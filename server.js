@@ -54,6 +54,8 @@ app.use((req, res, next) => {
 
 // MongoDB connection
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kid-budgeting-simulator';
+console.log('DEBUG: MONGODB_URI from env =', process.env.MONGODB_URI);
+console.log('DEBUG: mongoURI being used =', mongoURI);
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
