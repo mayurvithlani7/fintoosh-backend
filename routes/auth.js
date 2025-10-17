@@ -128,11 +128,18 @@ router.post('/login', loginLimiter, async (req, res) => {
     const MAX_ATTEMPTS = 5;
     const LOCKOUT_MINUTES = 5;
 
+    console.log('=== LOGIN ATTEMPT ===');
+    console.log('Email:', email);
+    console.log('Password provided:', !!password);
+
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('User not found for email:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    console.log('User found:', user.name, user.role, user.status);
 
     // Check if account is deactivated
     if (user.status === 'deactivated') {
@@ -192,6 +199,11 @@ router.post('/login', loginLimiter, async (req, res) => {
     delete userResponse.password;
     delete userResponse.loginAttempts;
     delete userResponse.lockoutUntil;
+
+    console.log('=== LOGIN SUCCESSFUL ===');
+    console.log('User:', userResponse.name, userResponse.role);
+    console.log('Token generated:', !!token);
+    console.log('Sending response...');
 
     res.json({
       user: userResponse,
