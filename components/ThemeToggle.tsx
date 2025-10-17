@@ -1,14 +1,16 @@
+import { ThemeType, useTheme } from '@/utils/themeContext';
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Modal, FlatList } from 'react-native';
-import { useTheme, themes, ThemeType } from '@/utils/themeContext';
+import { Animated, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ThemeToggleProps {
   style?: any;
 }
 
 const ThemeToggle: React.FC<ThemeToggleProps> = ({ style }) => {
-  const { theme, setTheme, toggleDarkMode, currentSeason, isDarkMode } = useTheme();
+  const { theme, setTheme, toggleDarkMode, currentSeason, isDarkMode, animationSettings } = useTheme();
   const [showThemeModal, setShowThemeModal] = React.useState(false);
+  const [isTransitioning, setIsTransitioning] = React.useState(false);
+  const spinValue = React.useRef(new Animated.Value(0)).current;
 
   const themeOptions = [
     { key: 'light', label: '☀️ Light', description: 'Bright and cheerful' },
@@ -28,10 +30,34 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ style }) => {
     )] : [])
   ];
 
-  const handleThemeSelect = (themeKey: ThemeType) => {
-    setTheme(themeKey);
-    setShowThemeModal(false);
+  const handleThemeSelect = async (themeKey: ThemeType) => {
+    if (!animationSettings.enabled || animationSettings.prefersReducedMotion) {
+      setTheme(themeKey);
+      setShowThemeModal(false);
+      return;
+    }
+
+    // Start transition animation
+    setIsTransitioning(true);
+    spinValue.setValue(0);
+
+    // Animate the spin
+    Animated.timing(spinValue, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start(() => {
+      setTheme(themeKey);
+      setIsTransitioning(false);
+      setShowThemeModal(false);
+    });
   };
+
+  // Create spin animation
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  });
 
   return (
     <>
@@ -55,6 +81,35 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ style }) => {
         </Text>
         <Text style={styles.toggleText}>Theme</Text>
       </TouchableOpacity>
+
+      {/* Theme Transition Overlay */}
+      <Modal
+        visible={isTransitioning}
+        transparent={true}
+        animationType="none"
+      >
+        <View style={styles.transitionOverlay}>
+          <Animated.View
+            style={[
+              styles.transitionSpinner,
+              { transform: [{ rotate: spin }] }
+            ]}
+          >
+            <Text style={styles.transitionEmoji}>
+              {theme === 'light' ? '☀️' :
+               theme === 'dark' ? '🌙' :
+               theme === 'indian' ? '🇮🇳' :
+               theme === 'diwali' ? '🪔' :
+               theme === 'holi' ? '🎨' :
+               theme === 'halloween' ? '🎃' :
+               theme === 'christmas' ? '🎄' :
+               theme === 'summer' ? '🏖️' :
+               theme === 'easter' ? '🐰' : '🎨'}
+            </Text>
+          </Animated.View>
+          <Text style={styles.transitionText}>Changing theme...</Text>
+        </View>
+      </Modal>
 
       <Modal
         visible={showThemeModal}
@@ -191,6 +246,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#495057',
+  },
+  transitionOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  transitionSpinner: {
+    width: 100,
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 50,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  transitionEmoji: {
+    fontSize: 40,
+  },
+  transitionText: {
+    marginTop: 20,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+    textAlign: 'center',
   },
 });
 

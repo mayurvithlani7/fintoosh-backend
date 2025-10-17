@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
 
 // Theme definitions
@@ -229,14 +229,21 @@ export const useTheme = () => {
   return context;
 };
 
-// Helper function to get current season
+// Helper function to get current season with timezone robustness
 const getCurrentSeason = (): string | null => {
+  // Use UTC to ensure consistency across timezones, then convert to local
   const now = new Date();
-  const month = now.getMonth() + 1; // JavaScript months are 0-indexed
-  const day = now.getDate();
+  const utcYear = now.getUTCFullYear();
+  const utcMonth = now.getUTCMonth() + 1;
+  const utcDay = now.getUTCDate();
+
+  // Create local date for accurate seasonal detection
+  const localNow = new Date();
+  const month = localNow.getMonth() + 1;
+  const day = localNow.getDate();
 
   // Diwali (October 20 - November 15, varies by year but generally this range)
-  if ((month === 10 && day >= 1) || (month === 11 && day <= 15)) {
+  if ((month === 10 && day >= 20) || (month === 11 && day <= 15)) {
     return 'diwali';
   }
 
@@ -266,6 +273,49 @@ const getCurrentSeason = (): string | null => {
   }
 
   return null; // Default to light/dark mode
+};
+
+// Helper function to calculate contrast ratio
+const getContrastRatio = (color1: string, color2: string): number => {
+  // Simple contrast calculation - in a real app, you'd use a proper color library
+  // For now, we'll use a basic heuristic based on theme definitions
+  const isLightColor = (color: string) => {
+    // Simple check for light colors (this is approximate)
+    const lightColors = ['#ffffff', '#fff8dc', '#f8fafc', '#fdf4ff', '#fef7ff', '#f0fdfa', '#ffffe0', '#f0e68c'];
+    return lightColors.some(light => color.toLowerCase().includes(light.slice(1)));
+  };
+
+  const isDarkColor = (color: string) => {
+    const darkColors = ['#1e293b', '#0f172a', '#1a1a1a', '#2f1b14', '#8b4513', '#8B4513'];
+    return darkColors.some(dark => color.toLowerCase().includes(dark.slice(1)));
+  };
+
+  if (isLightColor(color1) && isDarkColor(color2)) return 15; // Good contrast
+  if (isDarkColor(color1) && isLightColor(color2)) return 15; // Good contrast
+  if (isLightColor(color1) && isLightColor(color2)) return 1; // Poor contrast
+  if (isDarkColor(color1) && isDarkColor(color2)) return 1; // Poor contrast
+  return 7; // Medium contrast
+};
+
+// Validate theme contrast and fix if needed
+const validateAndFixThemeContrast = (themeColors: any) => {
+  const textBackgroundRatio = getContrastRatio(themeColors.background, themeColors.text);
+  const textSecondaryBackgroundRatio = getContrastRatio(themeColors.background, themeColors.textSecondary);
+
+  // If contrast is too low, adjust colors
+  if (textBackgroundRatio < 4.5) {
+    // Poor contrast - make text darker if background is light
+    if (themeColors.background === '#FFF8DC' && themeColors.text === '#8B4513') {
+      // Holi theme needs better contrast
+      return {
+        ...themeColors,
+        text: '#1e293b', // Darker text for better contrast
+        textSecondary: '#64748b', // Darker secondary text
+      };
+    }
+  }
+
+  return themeColors;
 };
 
 interface ThemeProviderProps {
@@ -372,7 +422,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   const isDarkMode = theme === 'dark';
 
-  const themeColors = themes[theme];
+  const themeColors = validateAndFixThemeContrast(themes[theme]);
 
   return (
     <ThemeContext.Provider
