@@ -11,14 +11,29 @@ interface ErrorCardProps {
 const ErrorCard: React.FC<ErrorCardProps> = ({ error, onRetry, onCancel }) => {
   const { themeColors } = useTheme();
 
+  // Make error messages child-friendly
+  const getChildFriendlyMessage = (errorMsg: string) => {
+    if (errorMsg.includes('Failed to load user data') || errorMsg.includes('Having trouble loading')) {
+      return 'Oops! 🤔 We\'re having trouble loading your points right now. Please try again!';
+    }
+    if (errorMsg.includes('Not authenticated') || errorMsg.includes('log you back in')) {
+      return 'Oops! 😅 We need to log you back in. Please ask a grown-up for help!';
+    }
+    if (errorMsg.includes('connection') || errorMsg.includes('network')) {
+      return 'Hmm! 📡 We can\'t connect right now. Check your internet and try again!';
+    }
+    // Return the original message if it doesn't match any pattern
+    return errorMsg;
+  };
+
   return (
     <View style={[styles.container, {
-      backgroundColor: themeColors.error + '20',
-      borderColor: themeColors.error,
-      shadowColor: themeColors.error
+      backgroundColor: themeColors.warning + '30',
+      borderColor: themeColors.warning,
+      shadowColor: themeColors.warning
     }]}>
-      <Text style={[styles.title, { color: themeColors.error }]}>Something Went Wrong</Text>
-      <Text style={[styles.errorText, { color: themeColors.text }]}>{error}</Text>
+      <Text style={[styles.title, { color: themeColors.warning }]}>Oops! 🤔</Text>
+      <Text style={[styles.errorText, { color: themeColors.text }]}>{getChildFriendlyMessage(error)}</Text>
       <View style={styles.buttonRow}>
         <TouchableOpacity
           style={[styles.retryBtn, { backgroundColor: themeColors.error }]}

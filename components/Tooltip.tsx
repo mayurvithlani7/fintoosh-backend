@@ -1,15 +1,15 @@
-import React, { useState, useRef } from 'react';
+import { useTheme } from '@/utils/themeContext';
+import React, { useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   Dimensions,
   Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useTheme } from '@/utils/themeContext';
 
-const { width } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface TooltipProps {
   content: string;
@@ -22,7 +22,7 @@ const Tooltip: React.FC<TooltipProps> = ({
   content,
   children,
   position = 'top',
-  maxWidth = width * 0.7
+  maxWidth = screenWidth * 0.7
 }) => {
   const { themeColors } = useTheme();
   const [visible, setVisible] = useState(false);
@@ -33,29 +33,42 @@ const Tooltip: React.FC<TooltipProps> = ({
   const hideTooltip = () => setVisible(false);
 
   const getTooltipPosition = () => {
-    const positions = {
-      top: {
-        top: tooltipLayout.y - 60,
-        left: tooltipLayout.x + tooltipLayout.width / 2 - maxWidth / 2,
-        transform: [{ translateX: 0 }],
-      },
-      bottom: {
-        top: tooltipLayout.y + tooltipLayout.height + 10,
-        left: tooltipLayout.x + tooltipLayout.width / 2 - maxWidth / 2,
-        transform: [{ translateX: 0 }],
-      },
-      left: {
-        top: tooltipLayout.y + tooltipLayout.height / 2 - 30,
-        left: tooltipLayout.x - maxWidth - 10,
-        transform: [{ translateX: 0 }],
-      },
-      right: {
-        top: tooltipLayout.y + tooltipLayout.height / 2 - 30,
-        left: tooltipLayout.x + tooltipLayout.width + 10,
-        transform: [{ translateX: 0 }],
-      },
+    let top = tooltipLayout.y;
+    let left = tooltipLayout.x + tooltipLayout.width / 2 - maxWidth / 2;
+
+    // Ensure tooltip stays within screen bounds
+    left = Math.max(10, Math.min(left, screenWidth - maxWidth - 10));
+
+    switch (position) {
+      case 'top':
+        top = Math.max(10, tooltipLayout.y - 60);
+        break;
+      case 'bottom':
+        top = tooltipLayout.y + tooltipLayout.height + 10;
+        if (top + 60 > screenHeight) {
+          // If bottom position goes off screen, try top
+          top = Math.max(10, tooltipLayout.y - 60);
+        }
+        break;
+      case 'left':
+        top = tooltipLayout.y + tooltipLayout.height / 2 - 30;
+        left = Math.max(10, tooltipLayout.x - maxWidth - 10);
+        break;
+      case 'right':
+        top = tooltipLayout.y + tooltipLayout.height / 2 - 30;
+        left = tooltipLayout.x + tooltipLayout.width + 10;
+        if (left + maxWidth > screenWidth - 10) {
+          // If right position goes off screen, try left
+          left = Math.max(10, tooltipLayout.x - maxWidth - 10);
+        }
+        break;
+    }
+
+    return {
+      top: Math.max(0, top),
+      left: Math.max(0, left),
+      transform: [{ translateX: 0 }],
     };
-    return positions[position];
   };
 
   const styles = StyleSheet.create({

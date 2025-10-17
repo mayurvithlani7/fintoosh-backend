@@ -575,21 +575,29 @@ function MyAchievementsSection() {
 
 // --- Video Lesson Section ---
 function VideoLessonSection() {
+  const { themeColors } = useTheme();
   // Responsive video sizing based on device width
   const windowWidth = Dimensions.get("window").width;
   const videoWidth = Math.min(340, windowWidth - 32);
   const videoHeight = Math.round(videoWidth * 9 / 16);
+  const [videoError, setVideoError] = React.useState(false);
 
-  const player = useVideoPlayer(require('../../assets/videos/Needs_vs_Wants.mp4'), (player) => {
-    player.loop = false;
-    player.muted = false;
-  });
+  let player;
+  try {
+    player = useVideoPlayer(require('../../assets/videos/Needs_vs_Wants.mp4'), (playerInstance) => {
+      playerInstance.loop = false;
+      playerInstance.muted = false;
+    });
+  } catch (error) {
+    console.warn('Video player initialization failed:', error);
+    setVideoError(true);
+  }
 
   return (
-    <View style={styles.sectionCard}>
-      <Text style={styles.sectionTitle}>Learn about Needs vs. Wants</Text>
+    <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+      <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Learn about Needs vs. Wants</Text>
       <View style={{
-        backgroundColor: "#edf7fb",
+        backgroundColor: themeColors.surface,
         borderRadius: 11,
         overflow: "hidden",
         alignSelf: "center",
@@ -598,21 +606,53 @@ function VideoLessonSection() {
         height: videoHeight,
         marginVertical: 6,
         justifyContent: "center",
-        alignItems: "center"
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: themeColors.border,
       }}>
-        <VideoView
-          player={player}
-          style={{
+        {videoError || !player ? (
+          // Fallback UI when video fails to load
+          <View style={{
             width: videoWidth,
             height: videoHeight,
-            borderRadius: 11,
-            backgroundColor: "#111"
-          }}
-          contentFit="contain"
-        />
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: themeColors.surface,
+          }}>
+            <Text style={{ fontSize: 48, marginBottom: 10 }}>🎥</Text>
+            <Text style={{
+              fontSize: 16,
+              color: themeColors.textSecondary,
+              textAlign: "center",
+              paddingHorizontal: 20
+            }}>
+              Video lesson about understanding the difference between needs and wants!
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.textSecondary,
+              textAlign: "center",
+              marginTop: 10,
+              fontStyle: "italic"
+            }}>
+              (Video not available on this device)
+            </Text>
+          </View>
+        ) : (
+          <VideoView
+            player={player}
+            style={{
+              width: videoWidth,
+              height: videoHeight,
+              borderRadius: 11,
+              backgroundColor: "#111"
+            }}
+            contentFit="contain"
+          />
+        )}
       </View>
-      <Text style={{ color: "#184c76", marginTop: 6, textAlign: "center" }}>
-        Video lesson about understanding the basic difference between &ldquo;needs&rdquo; and &ldquo;wants&rdquo;.
+      <Text style={{ color: themeColors.textSecondary, marginTop: 6, textAlign: "center" }}>
+        Video lesson about understanding the basic difference between "needs" and "wants".
       </Text>
     </View>
   );

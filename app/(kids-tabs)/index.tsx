@@ -299,7 +299,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       const storedUser = await AsyncStorage.getItem('user');
 
       if (!token || !storedUser) {
-        setError('Not authenticated. Please login again.');
+        setError('Oops! 😅 We need to log you back in. Please ask a grown-up for help!');
         return;
       }
 
@@ -366,7 +366,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
     } catch (error) {
       console.error('Error loading user data:', error);
-      setError('Failed to load user data. Please check your connection, then tap retry.');
+      setError('Oops! 🤔 Having trouble loading your points right now. Please try again!');
     } finally {
       setLoading(false);
       setRefreshing(false);
