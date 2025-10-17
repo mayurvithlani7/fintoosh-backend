@@ -22,6 +22,43 @@ import {
 
 import SwipeNavigator from '@/components/SwipeNavigator';
 
+// Type definitions
+interface Jar {
+  label: string;
+  key: string;
+  value: number;
+  color: string;
+  icon: string;
+}
+
+interface UserData {
+  id: string;
+  currentPoints: number;
+  savePoints: number;
+  spendPoints: number;
+  donatePoints: number;
+  investPoints: number;
+  isFirstTimeUser?: boolean;
+  role: string;
+  goals?: any[];
+  transactions?: any[];
+}
+
+interface Activity {
+  id?: string;
+  type: string;
+  amount: number;
+  description: string;
+  timestamp: string;
+  icon: string;
+}
+
+interface Notification {
+  _id?: string;
+  message: string;
+  isRead?: boolean;
+}
+
 // Helper functions for transaction processing
 const getTransactionDescription = (tx: any) => {
   switch (tx.type) {
@@ -192,24 +229,35 @@ const styles = StyleSheet.create({
 
 const KidsHomeScreen = memo(function KidsHomeScreen() {
   const { themeColors } = useTheme();
-  const [jars, setJars] = useState([
+  const [jars, setJars] = useState<Jar[]>([
     { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
     { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🐷' },
     { label: 'Spending Pot', key: 'spend', value: 0, color: themeColors.jarColors.spend, icon: '🛒' },
     { label: 'Help Others Pot', key: 'donate', value: 0, color: themeColors.jarColors.donate, icon: '🤲' },
     { label: 'Grow Money Pot', key: 'invest', value: 0, color: themeColors.jarColors.invest, icon: '📈' }
   ]);
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [guidedTourVisible, setGuidedTourVisible] = useState(false);
   const router = useRouter();
 
+  // Shared API call function to reduce duplication
+  const fetchUserData = useCallback(async (token: string, userId: string) => {
+    const response = await fetch(`${API_URL}/users/${userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to load user data');
+    }
+    return response.json();
+  }, []);
+
   // Notification state and logic
-  const [notifications, setNotifications] = useState<{ _id?: string; message: string; isRead?: boolean }[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifLoading, setNotifLoading] = useState(true);
   const [notifError, setNotifError] = useState<string | null>(null);
 
@@ -278,6 +326,13 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
       ]);
 
+      // Calculate total points for fallback
+      const currentTotalPoints = (freshUserData.currentPoints || 0) +
+                                (freshUserData.savePoints || 0) +
+                                (freshUserData.spendPoints || 0) +
+                                (freshUserData.donatePoints || 0) +
+                                (freshUserData.investPoints || 0);
+
       // Try to load recent transactions for activity feed
       try {
         const transactionsResponse = await fetch(`${API_URL}/transactions/${userId}`, {
@@ -300,11 +355,11 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           setRecentActivities(recentTransactions);
         } else {
           // Fallback to mock activities if no transactions
-          setRecentActivities(generateMockActivities(totalPoints));
+          setRecentActivities(generateMockActivities(currentTotalPoints));
         }
       } catch (txError) {
         console.log('Could not load transactions, using mock activities');
-        setRecentActivities(generateMockActivities(totalPoints));
+        setRecentActivities(generateMockActivities(currentTotalPoints));
       }
 
     } catch (error) {
@@ -338,10 +393,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
   // Auto-refresh data every 30 seconds when screen is focused
   useEffect(() => {
-    let interval: any;
-    const unsubscribe = () => {
-      if (interval) clearInterval(interval);
-    };
+    let interval: NodeJS.Timeout | null = null;
 
     if (!loading) {
       interval = setInterval(() => {
@@ -349,7 +401,11 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       }, 30000); // Refresh every 30 seconds
     }
 
-    return unsubscribe;
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [loading, loadUserData]);
 
   const onRefresh = useCallback(() => {
@@ -930,7 +986,7 @@ onPress={() => router.push('./transaction-history')}
                 body: JSON.stringify({ isFirstTimeUser: false }),
               });
               // Update local userData
-              setUserData((prev: any) => prev ? { ...prev, isFirstTimeUser: false } : null);
+              setUserData((prev: UserData | null) => prev ? { ...prev, isFirstTimeUser: false } : null);
             }
           } catch (error) {
             console.error('Failed to update first-time user status:', error);

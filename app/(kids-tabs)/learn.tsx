@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import { SuccessAnimation } from '@/components/animations/SuccessAnimation';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import HelpModal from '@/components/HelpModal';
 import { useTheme } from '@/utils/themeContext';
 
@@ -401,11 +402,31 @@ function FinancialLessonsSection() {
         animationType="slide"
         onRequestClose={() => setOpenLesson(null)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            {openLesson ? getLessonModalContent(openLesson) : null}
+        <ErrorBoundary fallback={({ error, resetError }) => (
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Oops! Something went wrong</Text>
+              <Text style={styles.modalText}>
+                We encountered an error loading this lesson. Please try again.
+              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => {
+                  resetError();
+                  setOpenLesson(null);
+                }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              {openLesson ? getLessonModalContent(openLesson) : null}
+            </View>
+          </View>
+        </ErrorBoundary>
       </Modal>
     </CulturalBorder>
   );
@@ -588,8 +609,6 @@ function VideoLessonSection() {
             backgroundColor: "#111"
           }}
           contentFit="contain"
-          allowsFullscreen
-          allowsPictureInPicture
         />
       </View>
       <Text style={{ color: "#184c76", marginTop: 6, textAlign: "center" }}>

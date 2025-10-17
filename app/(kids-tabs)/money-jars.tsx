@@ -117,11 +117,11 @@ export default function MoneyJarsScreen() {
   const { themeColors } = useTheme();
   const { formatAmount, showDenominations, convertToINR, interestRule } = useCurrency();
   const [jars, setJars] = useState([
-    { label: 'Pocket Money', key: 'current', value: 0, color: '#dfffec', icon: '💰' },
-    { label: 'Savings Pot', key: 'save', value: 0, color: '#c9f8ec', icon: '🐷' },
-    { label: 'Spending Pot', key: 'spend', value: 0, color: '#f9e9ac', icon: '🛒' },
-    { label: 'Help Others Pot', key: 'donate', value: 0, color: '#ffe0ee', icon: '🤲' },
-    { label: 'Grow Money Pot', key: 'invest', value: 0, color: '#bffbe3', icon: '📈' }
+    { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
+    { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🐷' },
+    { label: 'Spending Pot', key: 'spend', value: 0, color: themeColors.jarColors.spend, icon: '🛒' },
+    { label: 'Help Others Pot', key: 'donate', value: 0, color: themeColors.jarColors.donate, icon: '🤲' },
+    { label: 'Grow Money Pot', key: 'invest', value: 0, color: themeColors.jarColors.invest, icon: '📈' }
   ]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -159,11 +159,11 @@ export default function MoneyJarsScreen() {
         const freshUserData = await response.json();
 
         setJars([
-          { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: '#dfffec', icon: '💰' },
-          { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: '#c9f8ec', icon: '🐷' },
-          { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: '#f9e9ac', icon: '🛒' },
-          { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: '#ffe0ee', icon: '🤲' },
-          { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: '#bffbe3', icon: '📈' }
+          { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
+          { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
+          { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
+          { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
+          { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
         ]);
 
       } catch (error) {
@@ -197,11 +197,11 @@ export default function MoneyJarsScreen() {
           if (response.ok) {
             const freshUserData = await response.json();
             setJars([
-              { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: '#dfffec', icon: '💰' },
-              { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: '#c9f8ec', icon: '🐷' },
-              { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: '#f9e9ac', icon: '🛒' },
-              { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: '#ffe0ee', icon: '🤲' },
-              { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: '#bffbe3', icon: '📈' }
+              { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
+              { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
+              { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
+              { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
+              { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
             ]);
           }
         } catch (error) {
@@ -231,11 +231,11 @@ export default function MoneyJarsScreen() {
       if (response.ok) {
         const freshUserData = await response.json();
         setJars([
-          { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: '#dfffec', icon: '💰' },
-          { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: '#c9f8ec', icon: '🐷' },
-          { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: '#f9e9ac', icon: '🛒' },
-          { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: '#ffe0ee', icon: '🤲' },
-          { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: '#bffbe3', icon: '📈' }
+          { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
+          { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
+          { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
+          { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
+          { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
         ]);
       }
     } catch (error) {
