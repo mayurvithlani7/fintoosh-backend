@@ -38,6 +38,7 @@ const authLimiter = rateLimit({
 });
 
 // Middleware
+app.set('trust proxy', 1); // Trust first proxy for rate limiting
 app.use(cors());
 app.use(express.json());
 
@@ -54,8 +55,13 @@ app.use((req, res, next) => {
 
 // MongoDB connection
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kid-budgeting-simulator';
-console.log('DEBUG: MONGODB_URI from env =', process.env.MONGODB_URI);
-console.log('DEBUG: mongoURI being used =', mongoURI);
+console.log('=== ENVIRONMENT DEBUG ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
+console.log('MONGODB_URI length:', process.env.MONGODB_URI ? process.env.MONGODB_URI.length : 0);
+console.log('MONGODB_URI starts with:', process.env.MONGODB_URI ? process.env.MONGODB_URI.substring(0, 20) + '...' : 'NOT SET');
+console.log('mongoURI being used:', mongoURI ? mongoURI.substring(0, 50) + '...' : 'FALLBACK');
+console.log('========================');
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
