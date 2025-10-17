@@ -407,35 +407,53 @@ const AnalyticsOverview = () => {
           </View>
           <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 6 }}>Points by Pot</Text>
           <View style={{ alignItems: "center", justifyContent: "center" }}>
-            <PieChart
-              data={Object.entries(summary.jars).map(([jar, points], i) => {
-                const jarNameMap: { [key: string]: string } = {
-                  current: 'Pocket Money',
-                  save: 'Savings Pot',
-                  spend: 'Spending Pot',
-                  donate: 'Help Others',
-                  invest: 'Grow Money Pot'
-                };
-                return {
-                  name: jarNameMap[jar] || jar[0].toUpperCase() + jar.slice(1),
-                  population: points,
-                  color: ["#3375fc", "#49b100", "#d96c1c", "#e2b400", "#a54ad1"][i % 5],
-                  legendFontColor: "#345",
-                  legendFontSize: 13,
-                };
-              })}
-              width={Math.min(Dimensions.get('window').width * 0.94, 340)}
-              height={230}
-              chartConfig={{
-                color: (opacity = 1, index = 0) => ["#3375fc", "#49b100", "#d96c1c", "#e2b400", "#a54ad1"][index % 5],
-                labelColor: (opacity = 1) => "#345",
-                backgroundColor: "#fff",
-              } as any}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="14"
-              absolute
-            />
+            {(() => {
+              try {
+                const themeColorArray = [themeColors.primary, themeColors.success, themeColors.warning, themeColors.accent, themeColors.secondary];
+                const chartData = Object.entries(summary.jars).map(([jar, points], i) => {
+                  const jarNameMap: { [key: string]: string } = {
+                    current: 'Pocket Money',
+                    save: 'Savings Pot',
+                    spend: 'Spending Pot',
+                    donate: 'Help Others',
+                    invest: 'Grow Money Pot'
+                  };
+                  return {
+                    name: jarNameMap[jar] || jar[0].toUpperCase() + jar.slice(1),
+                    population: points as number,
+                    color: themeColorArray[i % 5] || themeColors.primary,
+                    legendFontColor: themeColors.text,
+                    legendFontSize: 13,
+                  };
+                });
+
+                return (
+                  <PieChart
+                    data={chartData}
+                    width={Math.min(Dimensions.get('window').width * 0.94, 340)}
+                    height={230}
+                    chartConfig={{
+                      color: (opacity = 1, index = 0) => themeColorArray[index % 5] || themeColors.primary,
+                      labelColor: (opacity = 1) => themeColors.text || '#000',
+                      backgroundColor: themeColors.card || '#fff',
+                    }}
+                    accessor="population"
+                    backgroundColor="transparent"
+                    paddingLeft="14"
+                    absolute
+                  />
+                );
+              } catch (chartError) {
+                console.error('Chart rendering error:', chartError);
+                return (
+                  <View style={{ padding: 20, alignItems: 'center' }}>
+                    <Text style={{ color: themeColors.textSecondary, textAlign: 'center' }}>
+                      Unable to display chart. Data may be unavailable.
+                    </Text>
+                  </View>
+                );
+              }
+            })()}
           </View>
           <Text style={{ color: "#888", fontSize: 12, marginTop: 10 }}>
             Child: {summary.name}
