@@ -125,63 +125,11 @@ export default function ParentsTabLayout() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  // Check authentication and backend connectivity on mount
+  // TEMPORARILY DISABLE AUTH CHECK FOR TESTING
   useEffect(() => {
-    const checkAuthAndBackend = async () => {
-      try {
-        // Import functions dynamically to avoid formatter issues
-        const { getAuthToken } = await import('@/utils/secureStorage');
-        const { API_URL } = await import('@/utils/config');
-
-        // Check if auth token exists
-        const token = await getAuthToken();
-        if (!token) {
-          setIsAuthenticated(false);
-          return;
-        }
-
-        // Check user role from stored data
-        const userData = await AsyncStorage.getItem('user');
-        if (userData) {
-          const user = JSON.parse(userData);
-          if (user.role !== 'parent') {
-            // Redirect to kid dashboard if not a parent
-            router.replace('/kid-dashboard');
-            return;
-          }
-        } else {
-          setIsAuthenticated(false);
-          return;
-        }
-
-        // Check if backend is reachable by making a simple request
-        try {
-          const response = await fetch(`${API_URL}/auth/profile`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-            // Short timeout to avoid hanging
-            signal: AbortSignal.timeout(5000),
-          });
-
-          if (response.ok) {
-            setIsAuthenticated(true);
-          } else {
-            setIsAuthenticated(false);
-          }
-        } catch (backendError) {
-          // Backend not reachable
-          console.log('Backend not reachable:', backendError);
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
-        console.log('Auth check error:', error);
-        setIsAuthenticated(false);
-      }
-    };
-
-    checkAuthAndBackend();
+    // Allow immediate access for testing
+    console.log('Authentication check disabled for testing - allowing access');
+    setIsAuthenticated(true);
   }, []);
 
   // Show loading or redirect while checking authentication

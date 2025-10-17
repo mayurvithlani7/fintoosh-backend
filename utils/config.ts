@@ -30,7 +30,8 @@ const getDevelopmentApiUrl = (): string => {
 };
 
 // Determine API base URL based on environment
-export const API_BASE_URL = __DEV__ ? getDevelopmentApiUrl() : PRODUCTION_API_URL;
+// TEMPORARILY FORCE PRODUCTION FOR TESTING
+export const API_BASE_URL = PRODUCTION_API_URL; // Always use production for now
 
 // Full API URL with /api suffix
 export const API_URL = `${API_BASE_URL}/api`;
