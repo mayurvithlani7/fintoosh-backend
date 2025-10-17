@@ -126,12 +126,18 @@ export default function ParentsChoresScreen() {
   };
 
   const loadChores = async () => {
-    if (!selectedChild) return;
+    if (!selectedChild) {
+      setRefreshing(false);
+      return;
+    }
 
     try {
       setLoading(true);
       const token = await getAuthToken();
-      if (!token) return;
+      if (!token) {
+        setRefreshing(false);
+        return;
+      }
 
       const response = await fetch(`${API_URL}/chores/${selectedChild}`, {
         headers: { 'Authorization': `Bearer ${token}` },

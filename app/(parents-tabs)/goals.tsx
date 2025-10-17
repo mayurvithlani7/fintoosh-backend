@@ -127,12 +127,18 @@ export default function ParentsGoalsScreen() {
   };
 
   const loadGoals = async () => {
-    if (!selectedChild) return;
+    if (!selectedChild) {
+      setRefreshing(false);
+      return;
+    }
 
     try {
       setLoading(true);
       const token = await getAuthToken();
-      if (!token) return;
+      if (!token) {
+        setRefreshing(false);
+        return;
+      }
 
       const response = await fetch(`${API_URL}/goals/${selectedChild}`, {
         headers: { 'Authorization': `Bearer ${token}` },

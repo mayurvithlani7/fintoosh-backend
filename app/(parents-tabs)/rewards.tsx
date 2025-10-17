@@ -105,6 +105,10 @@ export default function ParentsRewardsScreen() {
     try {
       setLoading(true);
       const token = await getAuthToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       const data: Reward[] = await fetchRewards(childId, token as any);
       setRewards(data);
     } catch (err: any) {
