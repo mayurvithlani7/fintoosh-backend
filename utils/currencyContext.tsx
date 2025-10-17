@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { API_URL } from './config';
+import { API_URL, DEFAULT_REFRESH_INTERVALS } from './config';
 import { getAuthToken } from './secureStorage';
 
 export interface InterestRuleType {
@@ -26,6 +26,11 @@ interface CurrencyContextType {
     rewardClaimMax?: number;
     pointMoveMax?: number;
   };
+  refreshIntervals: {
+    kidsHome: number;
+    notifications: number;
+    general: number;
+  };
   formatAmount: (points: number) => string;
   convertToINR: (points: number) => number;
   updateSettings: (settings: Partial<{
@@ -44,6 +49,11 @@ interface CurrencyContextType {
       choreClaimMax?: number;
       rewardClaimMax?: number;
       pointMoveMax?: number;
+    };
+    refreshIntervals: {
+      kidsHome: number;
+      notifications: number;
+      general: number;
     };
   }>) => Promise<void>;
   reloadSettings: () => Promise<void>;
@@ -68,6 +78,11 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     rewardClaimMax?: number;
     pointMoveMax?: number;
   }>({});
+  const [refreshIntervals, setRefreshIntervals] = useState({
+    kidsHome: DEFAULT_REFRESH_INTERVALS.KIDS_HOME,
+    notifications: DEFAULT_REFRESH_INTERVALS.NOTIFICATIONS,
+    general: DEFAULT_REFRESH_INTERVALS.GENERAL
+  });
 
   const formatAmount = (points: number): string => {
     if (currency === 'inr') {
@@ -95,6 +110,11 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       choreClaimMax?: number;
       rewardClaimMax?: number;
       pointMoveMax?: number;
+    };
+    refreshIntervals: {
+      kidsHome: number;
+      notifications: number;
+      general: number;
     };
   }>) => {
     console.log('updateSettings called with:', settings);
@@ -167,6 +187,10 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.log('Setting autoApprovalRules to:', settings.autoApprovalRules);
         setAutoApprovalRules(settings.autoApprovalRules);
       }
+      if (settings.refreshIntervals !== undefined) {
+        console.log('Setting refreshIntervals to:', settings.refreshIntervals);
+        setRefreshIntervals(settings.refreshIntervals);
+      }
 
       // Update stored user data
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
@@ -203,6 +227,11 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         setInterestRule(userData.interestRule);
         setAutoApprovalRules(userData.autoApprovalRules || {});
+        setRefreshIntervals(userData.refreshIntervals || {
+          kidsHome: DEFAULT_REFRESH_INTERVALS.KIDS_HOME,
+          notifications: DEFAULT_REFRESH_INTERVALS.NOTIFICATIONS,
+          general: DEFAULT_REFRESH_INTERVALS.GENERAL
+        });
       } else {
         console.log('Failed to load user data for currency settings');
       }
@@ -224,6 +253,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       defaultSplit,
       interestRule,
       autoApprovalRules,
+      refreshIntervals,
       formatAmount,
       convertToINR,
       updateSettings,

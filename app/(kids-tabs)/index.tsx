@@ -5,6 +5,7 @@ import HelpModal from '@/components/HelpModal';
 import Tooltip from '@/components/Tooltip';
 import { fetchNotifications, markNotificationRead } from '@/utils/api';
 import { API_URL } from '@/utils/config';
+import { useCurrency } from '@/utils/currencyContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -229,6 +230,7 @@ const styles = StyleSheet.create({
 
 const KidsHomeScreen = memo(function KidsHomeScreen() {
   const { themeColors } = useTheme();
+  const { refreshIntervals } = useCurrency();
   const [jars, setJars] = useState<Jar[]>([
     { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
     { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🐷' },
@@ -391,14 +393,14 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     }, [loadUserData])
   );
 
-  // Auto-refresh data every 30 seconds when screen is focused
+  // Auto-refresh data using configurable interval when screen is focused
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
-    if (!loading) {
+    if (!loading && refreshIntervals.kidsHome > 0) {
       interval = setInterval(() => {
         loadUserData();
-      }, 30000); // Refresh every 30 seconds
+      }, refreshIntervals.kidsHome);
     }
 
     return () => {
@@ -406,7 +408,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         clearInterval(interval);
       }
     };
-  }, [loading, loadUserData]);
+  }, [loading, loadUserData, refreshIntervals.kidsHome]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

@@ -35,3 +35,10 @@ export const API_BASE_URL = PRODUCTION_API_URL; // Always use production for now
 
 // Full API URL with /api suffix
 export const API_URL = `${API_BASE_URL}/api`;
+
+// Default refresh intervals (in milliseconds)
+export const DEFAULT_REFRESH_INTERVALS = {
+  KIDS_HOME: 5 * 60 * 1000, // 5 minutes for kids home screen (was 30 seconds)
+  NOTIFICATIONS: 2 * 60 * 1000, // 2 minutes for notifications
+  GENERAL: 10 * 60 * 1000, // 10 minutes for general data
+};
