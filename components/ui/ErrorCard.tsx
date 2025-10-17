@@ -1,5 +1,6 @@
+import { useTheme } from "@/utils/themeContext";
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ErrorCardProps {
   error: string;
@@ -7,33 +8,46 @@ interface ErrorCardProps {
   onCancel?: () => void;
 }
 
-const ErrorCard: React.FC<ErrorCardProps> = ({ error, onRetry, onCancel }) => (
-  <View style={styles.container}>
-    <Text style={styles.title}>Something Went Wrong</Text>
-    <Text style={styles.errorText}>{error}</Text>
-    <View style={styles.buttonRow}>
-      <TouchableOpacity style={styles.retryBtn} onPress={onRetry} accessibilityLabel="Retry">
-        <Text style={styles.btnText}>Retry</Text>
-      </TouchableOpacity>
-      {onCancel && (
-        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} accessibilityLabel="Cancel">
-          <Text style={styles.btnText}>Cancel</Text>
+const ErrorCard: React.FC<ErrorCardProps> = ({ error, onRetry, onCancel }) => {
+  const { themeColors } = useTheme();
+
+  return (
+    <View style={[styles.container, {
+      backgroundColor: themeColors.error + '20',
+      borderColor: themeColors.error,
+      shadowColor: themeColors.error
+    }]}>
+      <Text style={[styles.title, { color: themeColors.error }]}>Something Went Wrong</Text>
+      <Text style={[styles.errorText, { color: themeColors.text }]}>{error}</Text>
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={[styles.retryBtn, { backgroundColor: themeColors.error }]}
+          onPress={onRetry}
+          accessibilityLabel="Retry"
+        >
+          <Text style={[styles.btnText, { color: themeColors.card }]}>Retry</Text>
         </TouchableOpacity>
-      )}
+        {onCancel && (
+          <TouchableOpacity
+            style={[styles.cancelBtn, { backgroundColor: themeColors.surface }]}
+            onPress={onCancel}
+            accessibilityLabel="Cancel"
+          >
+            <Text style={[styles.btnText, { color: themeColors.text }]}>Cancel</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff0f2",
     borderRadius: 16,
     padding: 22,
     marginVertical: 17,
     alignItems: "center",
     borderWidth: 1.3,
-    borderColor: "#e18bb9",
-    shadowColor: "#e18bb9",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -42,11 +56,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#a03d6c",
     marginBottom: 8,
   },
   errorText: {
-    color: "#a03d6c",
     fontSize: 15,
     marginBottom: 15,
     textAlign: "center",
@@ -57,7 +69,6 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   retryBtn: {
-    backgroundColor: "#e18bb9",
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 7,
@@ -65,7 +76,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelBtn: {
-    backgroundColor: "#e5def3",
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 7,
@@ -73,7 +83,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   btnText: {
-    color: "#673557",
     fontWeight: "600",
     fontSize: 15,
   },
