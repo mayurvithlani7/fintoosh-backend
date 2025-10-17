@@ -89,9 +89,7 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
                   style={dynamicStyles.leftMenuItem}
                   onPress={() => {
                     onClose();
-                    if (typeof window !== "undefined" && window.location) {
-                      window.location.href = item.route;
-                    }
+                    router.push(item.route);
                   }}
                 >
                   <View style={styles.leftMenuItemContent}>
