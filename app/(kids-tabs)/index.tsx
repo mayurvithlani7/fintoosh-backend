@@ -711,8 +711,8 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
                   style={{
                     backgroundColor: jar.color,
                     borderRadius: 14,
-                    padding: 14,
-                    minWidth: 84,
+                    padding: 16,
+                    minWidth: 100,
                     alignItems: "center",
                     marginHorizontal: 8,
                     marginBottom: 8,
@@ -1000,8 +1000,11 @@ onPress={() => router.push('./transaction-history')}
 
 // Wrap with swipe navigation for tabs. Order MUST match your Tabs!
 export default function KidsHomeScreenWithSwipe() {
+  // Swipe navigation is enabled by default. Can be disabled per screen by passing disabled={true}
   return (
-    <SwipeNavigator tabRoutes={['index', 'money-jars', 'goals', 'chores', 'learn', 'more']}>
+    <SwipeNavigator
+      tabRoutes={['index', 'money-jars', 'goals', 'chores', 'learn', 'more']}
+    >
       <KidsHomeScreen />
     </SwipeNavigator>
   );

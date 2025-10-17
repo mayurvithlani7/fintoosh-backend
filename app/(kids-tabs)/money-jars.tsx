@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 22,
     marginTop: 6,
-    color: "#154477",
+    // Color overridden in render
   },
   sectionCard: {
     backgroundColor: "#fff",
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafd",
     color: "#112",
   } as any,
-  formBtn: { backgroundColor: "#ffc46b", padding: 10, borderRadius: 8, marginTop: 7, marginHorizontal: 4, alignSelf: "flex-end" },
+  formBtn: { backgroundColor: "#ffc46b", padding: 14, borderRadius: 8, marginTop: 7, marginHorizontal: 4, alignSelf: "flex-end" },
   formBtnText: { fontWeight: "700", color: "#6d3a00", fontSize: 15 },
   placeholder: { color: "#99a", fontStyle: "italic", fontSize: 15, marginBottom: 2, marginTop: 2, minHeight: 26 },
   statusMessage: { fontSize: 15, fontWeight: "600", marginTop: 3, color: "#18722a" }
@@ -316,8 +316,8 @@ export default function MoneyJarsScreen() {
             style={{
               backgroundColor: themeColors.jarColors[jar.key as keyof typeof themeColors.jarColors] || themeColors.surface,
               borderRadius: 14,
-              padding: 14,
-              minWidth: 84,
+              padding: 16,
+              minWidth: 100,
               alignItems: "center",
               marginHorizontal: 8,
               marginBottom: 8,

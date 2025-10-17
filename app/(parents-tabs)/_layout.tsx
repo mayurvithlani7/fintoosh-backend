@@ -18,16 +18,16 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
   router: any;
 }) {
   const menuItems = [
-    { name: '🏠 Overview', route: '/(parents-tabs)', icon: 'house.fill' },
-    { name: '📚 Teaching', route: '/(parents-tabs)/teaching', icon: 'book.fill' },
-    { name: '📋 Requests', route: '/(parents-tabs)/requests', icon: 'checkmark.circle.fill' },
-    { name: '💰 Points', route: '/(parents-tabs)/points', icon: 'dollarsign.circle.fill' },
-    { name: '🎯 Goals', route: '/(parents-tabs)/goals', icon: 'target' },
-    { name: '🧹 Tasks', route: '/(parents-tabs)/chores', icon: 'checkmark.seal.fill' },
-    { name: '🎁 Rewards', route: '/(parents-tabs)/rewards', icon: 'gift.fill' },
-    { name: '📊 Progress', route: '/(parents-tabs)/analytics', icon: 'chart.bar.xaxis' },
-    { name: '📈 History', route: '/(parents-tabs)/transaction-history', icon: 'list.bullet.rectangle' },
-    { name: '⚙️ Settings', route: '/(parents-tabs)/settings', icon: 'gear' },
+    { name: '🏠 Overview', route: 'index', icon: 'house.fill' },
+    { name: '📚 Teaching', route: 'teaching', icon: 'book.fill' },
+    { name: '📋 Requests', route: 'requests', icon: 'checkmark.circle.fill' },
+    { name: '💰 Points', route: 'points', icon: 'dollarsign.circle.fill' },
+    { name: '🎯 Goals', route: 'goals', icon: 'target' },
+    { name: '🧹 Tasks', route: 'chores', icon: 'checkmark.seal.fill' },
+    { name: '🎁 Rewards', route: 'rewards', icon: 'gift.fill' },
+    { name: '📊 Progress', route: 'analytics', icon: 'chart.bar.xaxis' },
+    { name: '📈 History', route: 'transaction-history', icon: 'list.bullet.rectangle' },
+    { name: '⚙️ Settings', route: 'settings', icon: 'gear' },
   ];
 
   console.log('HamburgerMenu isVisible:', isVisible);
