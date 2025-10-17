@@ -56,9 +56,10 @@ export default function AddChildScreen() {
 
   const handleBlur = (field: 'childName' | 'username' | 'pin') => {
     setTouched(t => ({ ...t, [field]: true }));
+    const value = field === 'childName' ? childName : field === 'username' ? username : pin;
     setErrors(e => ({
       ...e,
-      [field]: validateField(field, eval(field))
+      [field]: validateField(field, value)
     }));
   };
 
@@ -111,6 +112,11 @@ export default function AddChildScreen() {
         }
       }
 
+      console.log('=== ADD CHILD REQUEST ===');
+      console.log('API URL:', API_URL);
+      console.log('Token exists:', !!token);
+      console.log('Request data:', { name: childName.trim(), username: username.trim(), pin: pin.trim() });
+
       const response = await fetch(`${API_URL}/auth/create-child`, {
         method: 'POST',
         headers: {
@@ -124,7 +130,11 @@ export default function AddChildScreen() {
         }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (!response.ok) {
         let errorMessage = 'Failed to create child account. Please try again.';

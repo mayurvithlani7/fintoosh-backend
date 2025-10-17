@@ -69,9 +69,14 @@ export default function SignupScreen() {
 
   const handleBlur = (field: 'fullName' | 'email' | 'mobileNumber' | 'password' | 'referralCode') => {
     setTouched(t => ({ ...t, [field]: true }));
+    const value = field === 'fullName' ? fullName :
+                  field === 'email' ? email :
+                  field === 'mobileNumber' ? mobileNumber :
+                  field === 'password' ? password :
+                  referralCode;
     setErrors(e => ({
       ...e,
-      [field]: validateField(field, eval(field))
+      [field]: validateField(field, value)
     }));
   };
 
