@@ -1,0 +1,6 @@
+import React from "react";
+import AchievementSystem from "@/components/AchievementSystem";
+
+export default function AchievementsScreen() {
+  return <AchievementSystem />;
+}
