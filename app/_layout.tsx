@@ -32,8 +32,6 @@ export default function RootLayout() {
               <CurrencyProvider>
                 <DataCacheProvider>
                   <Stack>
-                    <Stack.Screen name="(kids-tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(parents-tabs)" options={{ headerShown: false }} />
                     <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
                     <Stack.Screen name="login" options={{ title: "Login" }} />
                     <Stack.Screen name="signup" options={{ title: "Sign Up" }} />
