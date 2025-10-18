@@ -18,15 +18,15 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
   router: any;
 }) {
   const menuItems = [
-    { name: '🏠 Home', route: 'index', icon: 'house.fill' },
-    { name: '💰 My Pots', route: 'money-jars', icon: 'dollarsign.circle.fill' },
-    { name: '🎯 My Goals', route: 'goals', icon: 'target' },
-    { name: '🧹 My Tasks', route: 'chores', icon: 'checkmark.seal.fill' },
-    { name: '📚 Money Gyaan', route: 'learn', icon: 'book.fill' },
-    { name: '🎮 Games', route: 'games', icon: 'gamecontroller.fill' },
-    { name: '🏆 Badges', route: 'achievements', icon: 'star.circle.fill' },
-    { name: '📋 My Requests', route: 'requests', icon: 'checkmark.circle.fill' },
-    { name: '⚙️ Settings', route: 'settings', icon: 'gear' },
+    { name: '🏠 Home', route: '/(kids-tabs)', icon: 'house.fill' },
+    { name: '💰 My Pots', route: '/(kids-tabs)/money-jars', icon: 'dollarsign.circle.fill' },
+    { name: '🎯 My Goals', route: '/(kids-tabs)/goals', icon: 'target' },
+    { name: '🧹 My Tasks', route: '/(kids-tabs)/chores', icon: 'checkmark.seal.fill' },
+    { name: '📚 Money Gyaan', route: '/(kids-tabs)/learn', icon: 'book.fill' },
+    { name: '🎮 Games', route: '/(kids-tabs)/games', icon: 'gamecontroller.fill' },
+    { name: '🏆 Badges', route: '/(kids-tabs)/achievements', icon: 'star.circle.fill' },
+    { name: '📋 My Requests', route: '/(kids-tabs)/requests', icon: 'checkmark.circle.fill' },
+    { name: '⚙️ Settings', route: '/(kids-tabs)/settings', icon: 'gear' },
   ];
 
   console.log('HamburgerMenu isVisible:', isVisible);
@@ -88,7 +88,8 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
                   style={dynamicStyles.leftMenuItem}
                   onPress={() => {
                     onClose();
-                    router.push(item.route);
+                    console.log('Navigating to:', item.route);
+                    router.replace(item.route);
                   }}
                 >
                   <View style={styles.leftMenuItemContent}>

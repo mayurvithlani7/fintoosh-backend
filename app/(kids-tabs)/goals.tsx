@@ -1,14 +1,15 @@
 import HelpModal from '@/components/HelpModal';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
-import { getAuthToken } from '@/utils/secureStorage';
+import { handleApiError } from '@/utils/errorHandler';
+import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -34,9 +35,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderRadius: 14,
     marginBottom: 16,
     padding: 18,
-    minWidth: 300,
-    width: "97%",
-    maxWidth: 520,
+    flex: 1,
+    marginHorizontal: 8,
     elevation: 2,
     shadowColor: themeColors.border,
   },
@@ -91,6 +91,9 @@ export default function GoalsScreen() {
             elevation: 2,
           }}
           onPress={() => router.push('./')}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to home screen"
+          accessibilityHint="Double tap to return to the main dashboard"
         >
           <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
         </TouchableOpacity>
@@ -104,6 +107,9 @@ export default function GoalsScreen() {
             elevation: 2,
           }}
           onPress={() => setHelpModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Help and information"
+          accessibilityHint="Double tap to open help guide for goals and rewards"
         >
           <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
@@ -277,20 +283,22 @@ function KidGoalsRewardsSection() {
   const loadGoalsAndRewards = async () => {
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const user = await getUserData();
 
-      if (!token || !storedUser) {
+      if (!token || !user) {
         setLoading(false);
         return;
       }
-
-      const user = JSON.parse(storedUser);
       // Always fetch freshest user data from backend (not AsyncStorage!)
       const userId = user.id;
       const userRes = await fetch(`${API_URL}/users/${user.id || user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!userRes.ok) throw new Error("Failed to fetch user data");
+      if (!userRes.ok) {
+        await handleApiError(userRes, { showError: (msg) => Alert.alert('Error', msg), feature: 'Goals - User Data' });
+        setLoading(false);
+        return;
+      }
       const freshUserData = await userRes.json();
       setUserData(freshUserData);
 
@@ -308,7 +316,7 @@ function KidGoalsRewardsSection() {
         );
 
         setGoals(currentGoals => {
-          return goalsData.map(serverGoal => {
+          return goalsData.map((serverGoal: any) => {
             const localGoal = currentGoals.find(g => g._id === serverGoal._id);
 
             // Check if this goal has a resolved request
@@ -354,25 +362,76 @@ function KidGoalsRewardsSection() {
   useEffect(() => {
     loadGoalsAndRewards();
 
-    // Poll faster: every 3 seconds to catch changes sooner
-    const pollInterval = setInterval(() => {
-      loadGoalsAndRewards();
-    }, 3000); // 3 seconds
-
-    // Also reload when app comes back to foreground (AppState)
+    // Smart polling with exponential backoff and activity detection
     const { AppState } = require('react-native');
-    let appStateListener = null;
+    let pollInterval: NodeJS.Timeout | null = null;
+    let currentInterval = 30000; // Start at 30 seconds (much better than 3!)
+    let isPolling = true;
+    let lastActivityTime = Date.now();
+
+    // Exponential backoff: 30s -> 60s -> 120s -> 240s -> max 600s (10 minutes)
+    const getNextInterval = () => Math.min(currentInterval * 2, 600000);
+
+    // Reset polling interval on user activity
+    const resetPollingInterval = () => {
+      lastActivityTime = Date.now();
+      currentInterval = 30000; // Reset to base 30 seconds
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      startPolling();
+    };
+
+    // Start polling with current interval
+    const startPolling = () => {
+      if (!isPolling) return;
+
+      pollInterval = setInterval(() => {
+        // Only poll if app is active and it's been at least 10 seconds since last activity
+        if (AppState.currentState === 'active' && (Date.now() - lastActivityTime) > 10000) {
+          loadGoalsAndRewards();
+          currentInterval = getNextInterval(); // Exponential backoff
+
+          // Restart with new interval
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            startPolling();
+          }
+        }
+      }, currentInterval);
+    };
+
+    // Start initial polling
+    startPolling();
+
+    // App state listener - pause polling when backgrounded
     let currentState = AppState.currentState;
-    appStateListener = AppState.addEventListener('change', nextState => {
+    const appStateSubscription = AppState.addEventListener('change', (nextState: any) => {
       if (currentState.match(/inactive|background/) && nextState === 'active') {
+        // App came back to foreground - refresh immediately and reset polling
         loadGoalsAndRewards();
+        resetPollingInterval();
+      } else if (nextState.match(/inactive|background/)) {
+        // App went to background - pause polling
+        isPolling = false;
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+      } else if (nextState === 'active') {
+        // App became active - resume polling
+        isPolling = true;
+        resetPollingInterval();
       }
       currentState = nextState;
     });
 
     return () => {
-      clearInterval(pollInterval);
-      if (appStateListener && appStateListener.remove) appStateListener.remove();
+      isPolling = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      appStateSubscription.remove();
     };
   }, []);
 
@@ -388,14 +447,12 @@ function KidGoalsRewardsSection() {
       setClaiming(goalId);
 
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const user = await getUserData();
 
-      if (!token || !storedUser) {
+      if (!token || !user) {
         Alert.alert('Error', 'Not authenticated.');
         return;
       }
-
-      const user = JSON.parse(storedUser);
 
       // Submit a goal completion request to parent
       const requestData = {
@@ -450,13 +507,11 @@ function KidGoalsRewardsSection() {
       setClaiming(rewardId);
 
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
-      if (!token || !storedUser) {
+      const user = await getUserData();
+      if (!token || !user) {
         Alert.alert('Error', 'Not authenticated.');
         return;
       }
-
-      const user = JSON.parse(storedUser);
       const reward = rewards.find(r => r._id === rewardId);
       if (!reward) {
         Alert.alert('Error', 'Reward not found.');
@@ -489,9 +544,8 @@ function KidGoalsRewardsSection() {
       // Fetch updated requests and rewards immediately for pending status
       try {
         const token2 = await getAuthToken();
-        const storedUser2 = await AsyncStorage.getItem('user');
-        if (storedUser2) {
-          const user2 = JSON.parse(storedUser2);
+        const user2 = await getUserData();
+        if (user2) {
           // Requests
           const reqRes = await fetch(`${API_URL}/requests/${user2.id}`);
           if (reqRes.ok) setRequests(await reqRes.json());
@@ -533,6 +587,10 @@ function KidGoalsRewardsSection() {
           style={[styles.refreshBtn, { backgroundColor: loading ? themeColors.surface : themeColors.primary }]}
           onPress={() => loadGoalsAndRewards()}
           disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel={loading ? "Refreshing goals and rewards" : "Refresh goals and rewards"}
+          accessibilityHint="Double tap to reload your goals and available rewards"
+          accessibilityState={{ disabled: loading }}
         >
           <Text style={[styles.refreshBtnText, { color: loading ? themeColors.textSecondary : themeColors.card }]}>
             {loading ? 'Refreshing...' : '🔄 Refresh'}
@@ -552,6 +610,10 @@ function KidGoalsRewardsSection() {
               marginHorizontal: 6,
             }}
             onPress={() => { setTab(t as "Active" | "Completed"); setShowArchive(false); }}
+            accessibilityRole="tab"
+            accessibilityLabel={`${t} goals`}
+            accessibilityHint={`Show ${t.toLowerCase()} goals`}
+            accessibilityState={{ selected: tab === t }}
           >
             <Text style={{ color: tab === t ? themeColors.card : themeColors.text, fontWeight: tab === t ? "bold" : "600", fontSize: 15 }}>{t}</Text>
           </TouchableOpacity>
@@ -583,7 +645,15 @@ function KidGoalsRewardsSection() {
         if (tab === "Active") {
           if (activeGoals.length === 0)
             return <Text style={styles.placeholder}>No active goals.</Text>;
-          return activeGoals.map(g => renderGoal(g));
+          return (
+            <FlatList
+              data={activeGoals}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item }) => renderGoal(item)}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 10 }}
+            />
+          );
         }
 
         // "Completed": last 90d, with archive logic
@@ -602,7 +672,13 @@ function KidGoalsRewardsSection() {
           return <Text style={styles.placeholder}>No completed goals in the past 90 days.</Text>;
         return (
           <>
-            {completedGoals.map(g => renderGoal(g))}
+            <FlatList
+              data={completedGoals}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item }) => renderGoal(item)}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 10 }}
+            />
             {completedArchived.length > 0 && !showArchive && (
               <TouchableOpacity
                 style={{
@@ -667,6 +743,10 @@ function KidGoalsRewardsSection() {
                 marginHorizontal: 6,
               }}
               onPress={() => { setRewardsTab(t as "Available" | "Claimed"); setShowRewardsArchive(false); }}
+              accessibilityRole="tab"
+              accessibilityLabel={`${t} rewards`}
+              accessibilityHint={`Show ${t.toLowerCase()} rewards`}
+              accessibilityState={{ selected: rewardsTab === t }}
             >
               <Text style={{ color: rewardsTab === t ? themeColors.card : themeColors.text, fontWeight: rewardsTab === t ? "bold" : "600", fontSize: 15 }}>{t}</Text>
             </TouchableOpacity>
@@ -700,14 +780,28 @@ function KidGoalsRewardsSection() {
           if (rewardsTab === "Available") {
             if (availableRewards.length === 0)
               return <Text style={styles.placeholder}>No rewards available to claim!</Text>;
-            return availableRewards.map(r => renderReward(r));
+            return (
+              <FlatList
+                data={availableRewards}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => renderReward(item)}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 10 }}
+              />
+            );
           }
           // Claimed
           if (claimedRewards.length === 0)
             return <Text style={styles.placeholder}>No claimed rewards in last 90 days.</Text>;
           return (
             <>
-              {claimedRewards.map(r => renderReward(r))}
+              <FlatList
+                data={claimedRewards}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => renderReward(item)}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 10 }}
+              />
               {claimedArchived.length > 0 && !showRewardsArchive && (
                 <TouchableOpacity
                   style={{
@@ -788,11 +882,13 @@ function KidGoalsRewardsSection() {
           borderWidth: 1,
           borderColor: isCompleted ? themeColors.success : isPending ? themeColors.warning : isExpired ? themeColors.error : themeColors.border,
         }}
+        accessibilityLabel={`Goal: ${g.name}. ${isCompleted ? 'Completed' : isPending ? 'Pending approval' : isExpired ? 'Expired' : 'Active'}. Progress: ${formatAmount(jarPoints)} out of ${formatAmount(g.targetAmount)} points.`}
+        accessibilityHint={canClaim ? 'Double tap to claim this goal' : isCompleted ? 'This goal has been completed' : isPending ? 'Waiting for parent approval' : isExpired ? 'This goal has expired' : 'You need more points to claim this goal'}
       >
         <View style={{ marginBottom: 8 }}>
-          <Text style={{ fontWeight: "bold", color: themeColors.text, fontSize: 16 }}>{g.name}</Text>
+          <Text style={{ fontWeight: "bold", color: themeColors.text, fontSize: 16 }} numberOfLines={1} ellipsizeMode="tail">{g.name}</Text>
           {g.description && (
-            <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginTop: 4 }}>
+            <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">
               {g.description}
             </Text>
           )}
@@ -839,6 +935,10 @@ function KidGoalsRewardsSection() {
                 }}
                 onPress={() => handleClaimGoal(g._id, g.name, g.jar, g.targetAmount)}
                 disabled={claiming === g._id}
+                accessibilityRole="button"
+                accessibilityLabel={`Claim goal: ${g.name}`}
+                accessibilityHint="Double tap to submit goal completion request to parent"
+                accessibilityState={{ disabled: claiming === g._id }}
               >
                 <Text style={{
                   color: themeColors.card,
@@ -863,6 +963,14 @@ function KidGoalsRewardsSection() {
     );
     // "Can claim" if available, not purchased, not pending, and enough points
     const canClaim = r.available && !r.purchased && userData && userData.currentPoints >= r.cost && !hasPending;
+
+    const getStatusText = () => {
+      if (r.purchased) return 'Claimed';
+      if (hasPending) return 'Pending approval';
+      if (canClaim) return 'Available to claim';
+      return 'Not enough points';
+    };
+
     return (
       <View
         key={r._id}
@@ -878,8 +986,10 @@ function KidGoalsRewardsSection() {
           borderWidth: 1,
           borderColor: r.purchased ? themeColors.success : hasPending ? themeColors.warning : themeColors.border,
         }}
+        accessibilityLabel={`Reward: ${r.name}. Cost: ${formatAmount(r.cost)} points. Status: ${getStatusText()}.`}
+        accessibilityHint={canClaim ? 'Double tap to claim this reward' : r.purchased ? 'This reward has been claimed' : hasPending ? 'Waiting for parent approval' : 'You need more points to claim this reward'}
       >
-        <Text style={{ flex: 2, fontWeight: "bold", color: themeColors.text }}>{r.name}</Text>
+        <Text style={{ flex: 2, fontWeight: "bold", color: themeColors.text }} numberOfLines={1} ellipsizeMode="tail">{r.name}</Text>
         <Text style={{ flex: 1, color: themeColors.primary, fontSize: 16 }}>{formatAmount(r.cost)}</Text>
         {r.purchased ? (
           <Text style={{
@@ -902,6 +1012,10 @@ function KidGoalsRewardsSection() {
             }}
             onPress={() => handleClaimReward(r._id)}
             disabled={claiming === r._id}
+            accessibilityRole="button"
+            accessibilityLabel={`Claim reward: ${r.name}`}
+            accessibilityHint="Double tap to submit reward claim request to parent"
+            accessibilityState={{ disabled: claiming === r._id }}
           >
             <Text style={{
               color: themeColors.card,

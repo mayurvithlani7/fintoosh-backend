@@ -2,6 +2,7 @@ import HelpModal from '@/components/HelpModal';
 import { RupeeDenominations } from '@/components/RupeeDenominations';
 import { API_URL } from '@/utils/config';
 import { InterestRuleType, useCurrency } from '@/utils/currencyContext';
+import { handleApiError } from '@/utils/errorHandler';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -153,7 +154,7 @@ export default function MoneyJarsScreen() {
 
       if (!response.ok) {
         if (showErrors) {
-          throw new Error('Failed to load user data');
+          await handleApiError(response, { showError: (msg) => Alert.alert('Error', msg), feature: 'Money Jars - User Data' });
         }
         return;
       }
@@ -223,6 +224,9 @@ export default function MoneyJarsScreen() {
             elevation: 2,
           }}
           onPress={() => router.push('./')}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to home screen"
+          accessibilityHint="Double tap to return to the main dashboard"
         >
           <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
         </TouchableOpacity>
@@ -236,6 +240,9 @@ export default function MoneyJarsScreen() {
             elevation: 2,
           }}
           onPress={() => setHelpModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Help and information"
+          accessibilityHint="Double tap to open help guide for money pots"
         >
           <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
@@ -247,6 +254,10 @@ export default function MoneyJarsScreen() {
           style={[styles.formBtn, { backgroundColor: themeColors.primary, alignSelf: 'center', minWidth: 200 }]}
           onPress={onRefresh}
           disabled={refreshing}
+          accessibilityRole="button"
+          accessibilityLabel={refreshing ? "Refreshing money pot points" : "Refresh money pot points"}
+          accessibilityHint="Double tap to reload your current point balances"
+          accessibilityState={{ disabled: refreshing }}
         >
           <Text style={[styles.formBtnText, { color: themeColors.card }]}>
             {refreshing ? 'Refreshing...' : '🔄 Refresh Points'}
@@ -451,17 +462,114 @@ function MovePointsSection({ jars, setJars }: {
   const [note, setNote] = React.useState("");
   const [status, setStatus] = React.useState<{ type: "error" | "ok"; msg: string } | null>(null);
 
+  // Validation states
+  const [amountError, setAmountError] = React.useState<string | null>(null);
+  const [fromError, setFromError] = React.useState<string | null>(null);
+  const [toError, setToError] = React.useState<string | null>(null);
+
+  // Validation functions
+  const validateAmount = (value: string) => {
+    const num = Number(value);
+    if (!value.trim()) {
+      setAmountError("Please enter the number of points to move");
+      return false;
+    }
+    if (isNaN(num) || num <= 0) {
+      setAmountError("Please enter a valid positive number");
+      return false;
+    }
+    if (num > 10000) {
+      setAmountError("Maximum 10,000 points per transfer");
+      return false;
+    }
+    if (!Number.isInteger(num)) {
+      setAmountError("Points must be whole numbers");
+      return false;
+    }
+    setAmountError(null);
+    return true;
+  };
+
+  const validateFromJar = (value: string) => {
+    if (!value) {
+      setFromError("Please select a source jar");
+      return false;
+    }
+    const jar = jars.find(j => j.key === value);
+    if (!jar) {
+      setFromError("Selected jar not found");
+      return false;
+    }
+    if (jar.value <= 0) {
+      setFromError("This jar is empty");
+      return false;
+    }
+    setFromError(null);
+    return true;
+  };
+
+  const validateToJar = (value: string, fromValue?: string) => {
+    if (!value) {
+      setToError("Please select a destination jar");
+      return false;
+    }
+    if (value === fromValue) {
+      setToError("Cannot move points to the same jar");
+      return false;
+    }
+    setToError(null);
+    return true;
+  };
+
+  // Input handlers with validation
+  const handleAmountChange = (value: string) => {
+    // Only allow numeric input
+    const numericValue = value.replace(/[^0-9]/g, '');
+    setAmount(numericValue);
+    if (numericValue) {
+      validateAmount(numericValue);
+    } else {
+      setAmountError(null);
+    }
+  };
+
+  const handleFromChange = (value: string) => {
+    setFrom(value);
+    if (value) {
+      validateFromJar(value);
+      // Re-validate destination if it conflicts
+      if (to && value === to) {
+        setToError("Cannot move points to the same jar");
+      } else if (to) {
+        validateToJar(to, value);
+      }
+    } else {
+      setFromError(null);
+    }
+  };
+
+  const handleToChange = (value: string) => {
+    setTo(value);
+    if (value) {
+      validateToJar(value, from);
+    } else {
+      setToError(null);
+    }
+  };
+
   async function handleMovePoints() {
-    // Validation
+    // Run all validations
+    const amountValid = validateAmount(amount);
+    const fromValid = validateFromJar(from);
+    const toValid = validateToJar(to, from);
+
+    if (!amountValid || !fromValid || !toValid) {
+      setStatus({ type: "error", msg: "Please fix the errors above before submitting." });
+      return;
+    }
+
+    // Additional validation: check if user has enough points
     const amt = Number(amount);
-    if (!from || !to || !amt || amt <= 0) {
-      setStatus({ type: "error", msg: "Fill all fields with a valid amount." });
-      return;
-    }
-    if (from === to) {
-      setStatus({ type: "error", msg: "Choose two different pots." });
-      return;
-    }
     const fromJar = jars.find(j => j.key === from);
     if (!fromJar || fromJar.value < amt) {
       setStatus({ type: "error", msg: "Not enough points in selected pot." });
@@ -560,25 +668,42 @@ function MovePointsSection({ jars, setJars }: {
             <TextInput
               placeholder="Enter points"
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={handleAmountChange}
               keyboardType="numeric"
-              style={[styles.input, { width: "100%" }]}
+              style={[styles.input, {
+                width: "100%",
+                borderColor: amountError ? themeColors.error : "#aaa"
+              }]}
+              accessibilityLabel="Points to move"
+              accessibilityHint="Enter the number of points you want to transfer between money pots"
             />
+            {amountError && (
+              <Text style={{
+                color: themeColors.error,
+                fontSize: 12,
+                marginTop: 2,
+                textAlign: 'center'
+              }}>
+                {amountError}
+              </Text>
+            )}
           </View>
 
           <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
             <Text style={styles.inputLabel}>From Which Pot?</Text>
             <View style={{
               borderWidth: 1,
-              borderColor: themeColors.border,
+              borderColor: fromError ? themeColors.error : themeColors.border,
               borderRadius: 7,
               width: "100%",
               alignSelf: "center"
             }}>
               <Picker
                 selectedValue={from}
-                onValueChange={v => setFrom(v)}
+                onValueChange={handleFromChange}
                 style={{ height: 37, minWidth: 120, width: "100%" }}
+                accessibilityLabel="Source money pot"
+                accessibilityHint="Select which money pot to take points from"
               >
                 <Picker.Item label="Choose a Pot" value="" />
                 {jars.map(j => (
@@ -586,21 +711,33 @@ function MovePointsSection({ jars, setJars }: {
                 ))}
               </Picker>
             </View>
+            {fromError && (
+              <Text style={{
+                color: themeColors.error,
+                fontSize: 12,
+                marginTop: 2,
+                textAlign: 'center'
+              }}>
+                {fromError}
+              </Text>
+            )}
           </View>
 
           <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
             <Text style={styles.inputLabel}>To Which Pot?</Text>
             <View style={{
               borderWidth: 1,
-              borderColor: themeColors.border,
+              borderColor: toError ? themeColors.error : themeColors.border,
               borderRadius: 7,
               width: "100%",
               alignSelf: "center"
             }}>
               <Picker
                 selectedValue={to}
-                onValueChange={v => setTo(v)}
+                onValueChange={handleToChange}
                 style={{ height: 37, minWidth: 120, width: "100%" }}
+                accessibilityLabel="Destination money pot"
+                accessibilityHint="Select which money pot to send points to"
               >
                 <Picker.Item label="Choose a Pot" value="" />
                 {jars.map(j => (
@@ -608,6 +745,16 @@ function MovePointsSection({ jars, setJars }: {
                 ))}
               </Picker>
             </View>
+            {toError && (
+              <Text style={{
+                color: themeColors.error,
+                fontSize: 12,
+                marginTop: 2,
+                textAlign: 'center'
+              }}>
+                {toError}
+              </Text>
+            )}
           </View>
 
           <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
@@ -620,6 +767,8 @@ function MovePointsSection({ jars, setJars }: {
               numberOfLines={2}
               maxLength={200}
               style={[styles.input, { minHeight: 60, textAlignVertical: 'top', width: "100%" }]}
+              accessibilityLabel="Optional note to parent"
+              accessibilityHint="Add a message explaining why you want to move these points"
             />
           </View>
 
@@ -634,6 +783,9 @@ function MovePointsSection({ jars, setJars }: {
                 width: "100%"
               }}
               onPress={handleMovePoints}
+              accessibilityRole="button"
+              accessibilityLabel="Submit point transfer request"
+              accessibilityHint="Send request to parent to move points between money pots"
             >
               <Text style={{ color: themeColors.warning, fontWeight: "bold", fontSize: 16 }}>
                 Ask to Move Points
@@ -647,7 +799,9 @@ function MovePointsSection({ jars, setJars }: {
               color: status.type === "error" ? themeColors.error : themeColors.success,
               fontWeight: "bold",
               textAlign: "center"
-            }}>
+            }}
+            accessibilityLabel={`${status.type === "error" ? "Error" : "Success"}: ${status.msg}`}
+            >
               {status.msg}
             </Text>
           )}

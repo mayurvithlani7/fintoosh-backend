@@ -9,6 +9,7 @@ import { Platform } from 'react-native';
  */
 
 const AUTH_TOKEN_KEY = 'authToken';
+const USER_DATA_KEY = 'userData';
 
 /**
  * Check if we're running on web platform
@@ -134,6 +135,155 @@ export const deleteAuthToken = async (): Promise<void> => {
     }
   } catch (error) {
     console.error('Failed to delete auth token from secure storage:', error);
+    throw error;
+  }
+};
+
+/**
+ * Save user data to secure storage
+ * User data contains profile information and is also sensitive
+ */
+export const saveUserData = async (userData: any): Promise<void> => {
+  try {
+    const userDataString = JSON.stringify(userData);
+
+    if (isWeb) {
+      // Web fallback: save to multiple storage methods for Expo Router compatibility
+      if (typeof window !== 'undefined') {
+        // Save to localStorage
+        if (window.localStorage) {
+          window.localStorage.setItem(USER_DATA_KEY, userDataString);
+          console.log('User data saved to localStorage (web development)');
+        }
+
+        // Save to sessionStorage as backup
+        if (window.sessionStorage) {
+          window.sessionStorage.setItem(USER_DATA_KEY, userDataString);
+          console.log('User data saved to sessionStorage (web development)');
+        }
+      }
+
+      // Save to AsyncStorage as additional backup for Expo web
+      try {
+        await AsyncStorage.setItem(USER_DATA_KEY, userDataString);
+        console.log('User data saved to AsyncStorage (web development)');
+      } catch (asyncError) {
+        console.warn('AsyncStorage not available for user data saving');
+      }
+    } else {
+      // Native platforms: use SecureStore
+      await SecureStore.setItemAsync(USER_DATA_KEY, userDataString);
+    }
+  } catch (error) {
+    console.error('Failed to save user data to secure storage:', error);
+    throw error;
+  }
+};
+
+/**
+ * Retrieve user data from secure storage
+ */
+export const getUserData = async (): Promise<any | null> => {
+  try {
+    let userDataString: string | null = null;
+
+    if (isWeb) {
+      // Web fallback: try multiple storage methods for Expo Router compatibility
+      if (typeof window !== 'undefined') {
+        // Try localStorage first
+        userDataString = window.localStorage?.getItem(USER_DATA_KEY);
+        if (userDataString) {
+          console.log('getUserData (web): found data in localStorage');
+        } else {
+          // Try sessionStorage as fallback
+          userDataString = window.sessionStorage?.getItem(USER_DATA_KEY);
+          if (userDataString) {
+            console.log('getUserData (web): found data in sessionStorage');
+          } else {
+            // Try AsyncStorage as last resort (for Expo web compatibility)
+            try {
+              userDataString = await AsyncStorage.getItem(USER_DATA_KEY);
+              if (userDataString) {
+                console.log('getUserData (web): found data in AsyncStorage');
+              }
+            } catch (asyncError) {
+              console.warn('AsyncStorage not available for user data retrieval');
+            }
+          }
+        }
+
+        if (!userDataString) {
+          console.log('getUserData (web): user data not found in any storage method');
+          return null;
+        }
+      } else {
+        console.log('getUserData (web): window not available');
+        return null;
+      }
+    } else {
+      // Native platforms: use SecureStore
+      userDataString = await SecureStore.getItemAsync(USER_DATA_KEY);
+    }
+
+    if (!userDataString) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(userDataString);
+    } catch (parseError) {
+      console.error('Failed to parse user data from secure storage:', parseError);
+      return null;
+    }
+  } catch (error) {
+    console.error('Failed to retrieve user data from secure storage:', error);
+    return null;
+  }
+};
+
+/**
+ * Delete user data from secure storage
+ */
+export const deleteUserData = async (): Promise<void> => {
+  try {
+    if (isWeb) {
+      // Web fallback: use localStorage
+      if (typeof window !== 'undefined') {
+        if (window.localStorage) {
+          window.localStorage.removeItem(USER_DATA_KEY);
+        }
+        if (window.sessionStorage) {
+          window.sessionStorage.removeItem(USER_DATA_KEY);
+        }
+      }
+      // Also try AsyncStorage
+      try {
+        await AsyncStorage.removeItem(USER_DATA_KEY);
+      } catch (asyncError) {
+        console.warn('AsyncStorage not available for user data deletion');
+      }
+    } else {
+      // Native platforms: use SecureStore
+      await SecureStore.deleteItemAsync(USER_DATA_KEY);
+    }
+  } catch (error) {
+    console.error('Failed to delete user data from secure storage:', error);
+    throw error;
+  }
+};
+
+/**
+ * Clear all authentication data (both token and user data)
+ */
+export const clearAllAuthData = async (): Promise<void> => {
+  try {
+    await Promise.all([
+      deleteAuthToken(),
+      deleteUserData()
+    ]);
+    console.log('All authentication data cleared from secure storage');
+  } catch (error) {
+    console.error('Failed to clear all auth data from secure storage:', error);
     throw error;
   }
 };

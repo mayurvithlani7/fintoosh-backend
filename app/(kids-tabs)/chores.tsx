@@ -1,5 +1,6 @@
 import HelpModal from '@/components/HelpModal';
 import { API_URL } from '@/utils/config';
+import { handleApiError } from '@/utils/errorHandler';
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
@@ -34,9 +35,9 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderRadius: 14,
     marginBottom: 16,
     padding: 18,
-    minWidth: 300,
-    width: "97%",
+    width: '100%',
     maxWidth: 520,
+    alignSelf: 'center',
     elevation: 2,
     shadowColor: themeColors.border,
   },
@@ -251,31 +252,19 @@ function ChoresSection() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!userRes.ok) {
-        // Handle rate limiting specifically
-        if (userRes.status === 429) {
-          const retryAfter = userRes.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-          showError(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
-          setLoading(false);
-          return;
-        }
-        throw new Error("Failed to fetch user data");
+        await handleApiError(userRes, { showError, feature: 'Chores - User Data' });
+        setLoading(false);
+        return;
       }
       setUserData(await userRes.json());
       // Chores
-      const choresRes = await fetch(`${API_URL}/chores/${user.id}`, {
+      const choresRes = await fetch(`${API_URL}/chores/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!choresRes.ok) {
-        // Handle rate limiting specifically
-        if (choresRes.status === 429) {
-          const retryAfter = choresRes.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-          showError(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
-          setLoading(false);
-          return;
-        }
-        throw new Error("Failed to fetch chores");
+        await handleApiError(choresRes, { showError, feature: 'Chores - Task List' });
+        setLoading(false);
+        return;
       }
       setChores(await choresRes.json());
       // Requests (for pending claim)
@@ -293,9 +282,8 @@ function ChoresSection() {
 
     // Update when app comes back to foreground
     const { AppState } = require('react-native');
-    let appStateListener = null;
     let currentState = AppState.currentState;
-    appStateListener = AppState.addEventListener('change', nextState => {
+    const appStateSubscription = AppState.addEventListener('change', (nextState: any) => {
       if (currentState.match(/inactive|background/) && nextState === 'active') {
         loadChoresUserAndRequests();
       }
@@ -303,7 +291,7 @@ function ChoresSection() {
     });
 
     return () => {
-      if (appStateListener && appStateListener.remove) appStateListener.remove();
+      appStateSubscription.remove();
     };
   }, []);
 
@@ -317,7 +305,7 @@ function ChoresSection() {
   const handleToggleDone = async (choreId: string, done: boolean) => {
     try {
       const token = await getAuthToken();
-      await patchChore(choreId, { completed: true, completedAt: new Date() }, token);
+      await patchChore(choreId, { completed: true, completedAt: new Date() }, token as any);
       // Will pick up update on next poll (or can reload immediately if more instant feel desired)
     } catch (error) {
       console.error('Error marking chore as done:', error);
@@ -567,7 +555,7 @@ function ChoresSection() {
               color: themeColors.card, fontSize: 19,
               marginRight: 10, textAlign: "center", textAlignVertical: "center", paddingTop: 4, fontWeight: "bold"
             }}>✔️</Text>
-            <Text style={{ flex: 3, fontWeight: "700", color: themeColors.success, fontSize: 16, marginRight: 5 }}>{c.name}</Text>
+            <Text style={{ flex: 3, fontWeight: "700", color: themeColors.success, fontSize: 16, marginRight: 5 }} numberOfLines={1} ellipsizeMode="tail">{c.name}</Text>
             <Text style={{ flex: 1, color: themeColors.success, fontWeight: "bold", fontSize: 15 }}>{c.points || c.pointValue || 0} pts</Text>
             <Text style={{ color: themeColors.success, fontWeight: "bold", marginLeft: 9 }}>
               Completed! 🎉
@@ -581,7 +569,7 @@ function ChoresSection() {
               borderColor: themeColors.success, borderWidth: 2,
               marginRight: 10, alignItems: "center", justifyContent: "center"
             }}></View>
-            <Text style={{ flex: 3, fontWeight: "600", color: themeColors.text, fontSize: 15 }}>{c.name}</Text>
+            <Text style={{ flex: 3, fontWeight: "600", color: themeColors.text, fontSize: 15 }} numberOfLines={1} ellipsizeMode="tail">{c.name}</Text>
             <Text style={{ flex: 1, color: themeColors.primary, fontWeight: "bold", fontSize: 14 }}>{c.points || c.pointValue || 0} pts</Text>
             {/* Claim button if eligible */}
             {canClaim && (

@@ -7,11 +7,11 @@ import { fetchNotifications, markNotificationRead } from '@/utils/api';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { getAuthToken } from '@/utils/secureStorage';
-import { ThemeType, useTheme } from '@/utils/themeContext';
+import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
   RefreshControl,
   SafeAreaView,
@@ -59,6 +59,96 @@ interface Notification {
   _id?: string;
   message: string;
   isRead?: boolean;
+}
+
+// State management with useReducer to prevent race conditions
+interface AppState {
+  // User data state
+  jars: Jar[];
+  userData: UserData | null;
+  recentActivities: Activity[];
+  loadingPhase: 'initial' | 'secondary' | 'complete';
+  error: string | null;
+  refreshing: boolean;
+
+  // Notification state
+  notifications: Notification[];
+  notifLoading: boolean;
+  notifError: string | null;
+
+  // UI state
+  guidedTourVisible: boolean;
+}
+
+type AppAction =
+  | { type: 'SET_LOADING_PHASE'; payload: AppState['loadingPhase'] }
+  | { type: 'SET_REFRESHING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_USER_DATA'; payload: { userData: UserData; jars: Jar[]; activities: Activity[] } }
+  | { type: 'SET_NOTIFICATIONS_LOADING'; payload: boolean }
+  | { type: 'SET_NOTIFICATIONS_ERROR'; payload: string | null }
+  | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
+  | { type: 'MARK_NOTIFICATION_READ'; payload: string }
+  | { type: 'SET_GUIDED_TOUR_VISIBLE'; payload: boolean }
+  | { type: 'UPDATE_USER_FIRST_TIME_STATUS'; payload: boolean };
+
+const initialState: AppState = {
+  jars: [
+    { label: 'Pocket Money', key: 'current', value: 0, color: '#4CAF50', icon: '💰' },
+    { label: 'Savings Pot', key: 'save', value: 0, color: '#2196F3', icon: '🐷' },
+    { label: 'Spending Pot', key: 'spend', value: 0, color: '#FF9800', icon: '🛒' },
+    { label: 'Help Others Pot', key: 'donate', value: 0, color: '#9C27B0', icon: '🤲' },
+    { label: 'Grow Money Pot', key: 'invest', value: 0, color: '#607D8B', icon: '📈' }
+  ],
+  userData: null,
+  recentActivities: [],
+  loadingPhase: 'initial',
+  error: null,
+  refreshing: false,
+  notifications: [],
+  notifLoading: true,
+  notifError: null,
+  guidedTourVisible: false,
+};
+
+function appReducer(state: AppState, action: AppAction): AppState {
+  switch (action.type) {
+    case 'SET_LOADING_PHASE':
+      return { ...state, loadingPhase: action.payload };
+    case 'SET_REFRESHING':
+      return { ...state, refreshing: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'SET_USER_DATA':
+      return {
+        ...state,
+        userData: action.payload.userData,
+        jars: action.payload.jars,
+        recentActivities: action.payload.activities,
+      };
+    case 'SET_NOTIFICATIONS_LOADING':
+      return { ...state, notifLoading: action.payload };
+    case 'SET_NOTIFICATIONS_ERROR':
+      return { ...state, notifError: action.payload };
+    case 'SET_NOTIFICATIONS':
+      return { ...state, notifications: action.payload };
+    case 'MARK_NOTIFICATION_READ':
+      return {
+        ...state,
+        notifications: state.notifications.map(n =>
+          n._id === action.payload ? { ...n, isRead: true } : n
+        ),
+      };
+    case 'SET_GUIDED_TOUR_VISIBLE':
+      return { ...state, guidedTourVisible: action.payload };
+    case 'UPDATE_USER_FIRST_TIME_STATUS':
+      return {
+        ...state,
+        userData: state.userData ? { ...state.userData, isFirstTimeUser: action.payload } : null,
+      };
+    default:
+      return state;
+  }
 }
 
 // Helper functions for transaction processing
@@ -231,47 +321,65 @@ const styles = StyleSheet.create({
 
 const KidsHomeScreen = memo(function KidsHomeScreen() {
   const { themeColors, theme, setTheme, themes } = useTheme();
-  const { refreshIntervals } = useCurrency();
+  const { refreshIntervals, formatAmount } = useCurrency();
   // Theme validation test - toggle between themes to verify color changes
   const [testTheme, setTestTheme] = useState(false);
 
-  // Request deduplication state management
-  const [activeRequests, setActiveRequests] = useState<Set<string>>(new Set());
-  const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const [jars, setJars] = useState<Jar[]>([
-    { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
-    { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🐷' },
-    { label: 'Spending Pot', key: 'spend', value: 0, color: themeColors.jarColors.spend, icon: '🛒' },
-    { label: 'Help Others Pot', key: 'donate', value: 0, color: themeColors.jarColors.donate, icon: '🤲' },
-    { label: 'Grow Money Pot', key: 'invest', value: 0, color: themeColors.jarColors.invest, icon: '📈' }
-  ]);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loadingPhase, setLoadingPhase] = useState<'initial' | 'secondary' | 'complete'>('initial');
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
-  const [helpModalVisible, setHelpModalVisible] = useState(false);
-  const [guidedTourVisible, setGuidedTourVisible] = useState(false);
+  // Request deduplication using ref to avoid React state race conditions
+  const activeRequestsRef = useRef<Map<string, AbortController>>(new Map());
+
+  // Consolidated state management with useReducer to prevent race conditions
+  const [state, dispatch] = useReducer(appReducer, {
+    ...initialState,
+    jars: [
+      { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
+      { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🐷' },
+      { label: 'Spending Pot', key: 'spend', value: 0, color: themeColors.jarColors.spend, icon: '🛒' },
+      { label: 'Help Others Pot', key: 'donate', value: 0, color: themeColors.jarColors.donate, icon: '🤲' },
+      { label: 'Grow Money Pot', key: 'invest', value: 0, color: themeColors.jarColors.invest, icon: '📈' }
+    ]
+  });
+
   const router = useRouter();
+
+  // Extract state for easier access
+  const {
+    jars,
+    userData,
+    recentActivities,
+    loadingPhase,
+    error,
+    refreshing,
+    notifications,
+    notifLoading,
+    notifError,
+    guidedTourVisible
+  } = state;
+
+  // Local UI state not managed by reducer
+  const [helpModalVisible, setHelpModalVisible] = React.useState(false);
 
   // Shared API call function with request deduplication and AbortController
   const fetchUserData = useCallback(async (requestId: string) => {
-    // Prevent duplicate requests
-    if (activeRequests.has(requestId)) return;
+    // Prevent duplicate requests - check if this requestId is already active
+    if (activeRequestsRef.current.has(requestId)) {
+      // Request already in progress, abort the existing one and start new
+      const existingController = activeRequestsRef.current.get(requestId);
+      if (existingController) {
+        existingController.abort();
+      }
+    }
 
-    // Cancel previous request
-    if (abortController) abortController.abort();
-
+    // Create new AbortController for this request
     const controller = new AbortController();
-    setAbortController(controller);
-    setActiveRequests(prev => new Set(prev).add(requestId));
+    activeRequestsRef.current.set(requestId, controller);
 
     try {
       const token = await getAuthToken();
       const storedUser = await AsyncStorage.getItem('user');
 
       if (!token || !storedUser) {
-        setError('Oops! 😅 We need to log you back in. Please ask a grown-up for help!');
+        dispatch({ type: 'SET_ERROR', payload: 'Oops! 😅 We need to log you back in. Please ask a grown-up for help!' });
         return;
       }
 
@@ -288,22 +396,14 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
       // Only update state if this request wasn't cancelled
       if (!controller.signal.aborted) {
-        setUserData(data);
-
-        setJars([
-          { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
-          { label: 'Savings Pot', key: 'save', value: data.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
-          { label: 'Spending Pot', key: 'spend', value: data.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
-          { label: 'Help Others Pot', key: 'donate', value: data.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
-          { label: 'Grow Money Pot', key: 'invest', value: data.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
-        ]);
-
         // Calculate total points for fallback
         const currentTotalPoints = (data.currentPoints || 0) +
                                   (data.savePoints || 0) +
                                   (data.spendPoints || 0) +
                                   (data.donatePoints || 0) +
                                   (data.investPoints || 0);
+
+        let activities: Activity[] = [];
 
         // Try to load recent transactions for activity feed
         try {
@@ -315,7 +415,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           if (transactionsResponse.ok && !controller.signal.aborted) {
             const transactions = await transactionsResponse.json();
             // Take the 5 most recent transactions
-            const recentTransactions = transactions.slice(0, 5).map((tx: any) => ({
+            activities = transactions.slice(0, 5).map((tx: any) => ({
               id: tx._id,
               type: tx.type,
               amount: tx.amount,
@@ -323,62 +423,64 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               timestamp: tx.createdAt,
               icon: getTransactionIcon(tx.type)
             }));
-            setRecentActivities(recentTransactions);
           } else if (!controller.signal.aborted) {
             // Fallback to mock activities if no transactions
-            setRecentActivities(generateMockActivities(currentTotalPoints));
+            activities = generateMockActivities(currentTotalPoints);
           }
         } catch (txError) {
           if (!controller.signal.aborted) {
             console.log('Could not load transactions, using mock activities');
-            setRecentActivities(generateMockActivities(currentTotalPoints));
+            activities = generateMockActivities(currentTotalPoints);
           }
         }
+
+        const jars = [
+          { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
+          { label: 'Savings Pot', key: 'save', value: data.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
+          { label: 'Spending Pot', key: 'spend', value: data.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
+          { label: 'Help Others Pot', key: 'donate', value: data.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
+          { label: 'Grow Money Pot', key: 'invest', value: data.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
+        ];
+
+        dispatch({ type: 'SET_USER_DATA', payload: { userData: data, jars, activities } });
       }
     } catch (error) {
       if (!controller.signal.aborted) {
         console.error('Error loading user data:', error);
-        setError('Oops! 🤔 Having trouble loading your points right now. Please try again!');
+        dispatch({ type: 'SET_ERROR', payload: 'Oops! 🤔 Having trouble loading your points right now. Please try again!' });
       }
     } finally {
+      // Always clean up the request from active requests
+      activeRequestsRef.current.delete(requestId);
+
       if (!controller.signal.aborted) {
-        setLoadingPhase('complete');
-        setRefreshing(false);
-        setActiveRequests(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(requestId);
-          return newSet;
-        });
+        dispatch({ type: 'SET_LOADING_PHASE', payload: 'complete' });
+        dispatch({ type: 'SET_REFRESHING', payload: false });
       }
     }
   }, [themeColors]);
 
-  // Notification state and logic
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notifLoading, setNotifLoading] = useState(true);
-  const [notifError, setNotifError] = useState<string | null>(null);
-
   // Load notifications for kid
   const loadNotifications = useCallback(async () => {
     try {
-      setNotifError(null);
-      setNotifLoading(true);
+      dispatch({ type: 'SET_NOTIFICATIONS_ERROR', payload: null });
+      dispatch({ type: 'SET_NOTIFICATIONS_LOADING', payload: true });
       const token = await getAuthToken();
       const storedUser = await AsyncStorage.getItem('user');
       if (!token || !storedUser) {
-        setNotifications([]);
-        setNotifLoading(false);
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
+        dispatch({ type: 'SET_NOTIFICATIONS_LOADING', payload: false });
         return;
       }
       const user = JSON.parse(storedUser);
       const userId = user.id;
       const notifList = await fetchNotifications(userId, token);
-      setNotifications(notifList || []);
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: notifList || [] });
     } catch (err) {
-      setNotifError("Failed to load notifications.");
-      setNotifications([]);
+      dispatch({ type: 'SET_NOTIFICATIONS_ERROR', payload: "Failed to load notifications." });
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
     } finally {
-      setNotifLoading(false);
+      dispatch({ type: 'SET_NOTIFICATIONS_LOADING', payload: false });
     }
   }, []);
   useEffect(() => { loadNotifications(); }, [loadNotifications]);
@@ -414,7 +516,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     if (userData && userData.isFirstTimeUser && userData.role === 'child' && loadingPhase === 'complete') {
       // Small delay to ensure UI is fully loaded
       setTimeout(() => {
-        setGuidedTourVisible(true);
+        dispatch({ type: 'SET_GUIDED_TOUR_VISIBLE', payload: true });
       }, 1000);
     }
   }, [userData, loadingPhase]);
@@ -442,14 +544,13 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         clearInterval(interval);
       }
       // Cancel any pending requests on unmount
-      if (abortController) {
-        abortController.abort();
-      }
+      activeRequestsRef.current.forEach(controller => controller.abort());
+      activeRequestsRef.current.clear();
     };
-  }, [loadingPhase, fetchUserData, refreshIntervals.kidsHome, abortController]);
+  }, [loadingPhase, fetchUserData, refreshIntervals.kidsHome]);
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
+    dispatch({ type: 'SET_REFRESHING', payload: true });
     const requestId = `user-data-refresh-${Date.now()}`;
     fetchUserData(requestId);
   }, [fetchUserData]);
@@ -495,9 +596,9 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       borderRadius: 14,
       marginBottom: 16,
       padding: 18,
-      minWidth: 300,
-      width: "97%",
+      width: '100%',
       maxWidth: 520,
+      alignSelf: 'center',
       elevation: 2,
       shadowColor: "#aaa",
       borderWidth: 1,
@@ -588,27 +689,6 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-      
-
-      {/* Theme Validation Test */}
-      {__DEV__ && (
-        <View style={[dynamicStyles.quickActionCard, { backgroundColor: themeColors.accent + '20' }]}>
-          <Text style={[dynamicStyles.sectionTitle, { color: themeColors.accent }]}>🎨 Theme Test</Text>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: themeColors.accent }]}
-            onPress={() => {
-              const themeKeys = Object.keys(themes);
-              const currentIndex = themeKeys.indexOf(theme);
-              const nextIndex = (currentIndex + 1) % themeKeys.length;
-              setTheme(themeKeys[nextIndex] as ThemeType);
-            }}
-          >
-            <Text style={styles.actionButtonText}>
-              Switch to {Object.keys(themes)[(Object.keys(themes).indexOf(theme) + 1) % Object.keys(themes).length]} theme
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Notifications */}
       {(notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0) && (
@@ -750,7 +830,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       <View style={dynamicStyles.quickActionCard}>
         <Text style={dynamicStyles.sectionTitle}>💰 Total Points</Text>
         <Text style={dynamicStyles.totalPointsText}>
-          {totalPoints}
+          {formatAmount(totalPoints)}
         </Text>
       </View>
 
@@ -792,7 +872,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 25, marginBottom: 3 }}>{jar.icon}</Text>
-                  <Text style={{ fontWeight: "700", fontSize: 18, marginBottom: 3, color: themeColors.text }}>{jar.value}</Text>
+                  <Text style={{ fontWeight: "700", fontSize: 18, marginBottom: 3, color: themeColors.text }}>{formatAmount(jar.value)}</Text>
                   <Text style={{ fontWeight: "bold", color: themeColors.text, fontSize: 13 }}>{jar.label}</Text>
                 </View>
               </Tooltip>
@@ -873,7 +953,7 @@ onPress={() => router.push('./games')}
                   {activity.description}
                 </Text>
                 <Text style={{ fontSize: 12, color: themeColors.textSecondary, marginTop: 2 }}>
-                  {new Date(activity.timestamp).toLocaleDateString()} • {activity.amount > 0 ? '+' : ''}{activity.amount} points
+                  {new Date(activity.timestamp).toLocaleDateString()} • {activity.amount > 0 ? '+' : ''}{formatAmount(Math.abs(activity.amount))} points
                 </Text>
               </View>
             </View>
@@ -1041,7 +1121,7 @@ onPress={() => router.push('./transaction-history')}
       <GuidedTour
         visible={guidedTourVisible}
         onComplete={async () => {
-          setGuidedTourVisible(false);
+          dispatch({ type: 'SET_GUIDED_TOUR_VISIBLE', payload: false });
           // Update user to mark as not first-time user
           try {
             const token = await getAuthToken();
@@ -1056,14 +1136,14 @@ onPress={() => router.push('./transaction-history')}
                 },
                 body: JSON.stringify({ isFirstTimeUser: false }),
               });
-              // Update local userData
-              setUserData((prev: UserData | null) => prev ? { ...prev, isFirstTimeUser: false } : null);
+              // Update local userData via reducer
+              dispatch({ type: 'UPDATE_USER_FIRST_TIME_STATUS', payload: false });
             }
           } catch (error) {
             console.error('Failed to update first-time user status:', error);
           }
         }}
-        onDismiss={() => setGuidedTourVisible(false)}
+        onDismiss={() => dispatch({ type: 'SET_GUIDED_TOUR_VISIBLE', payload: false })}
       />
       </ScrollView>
     </SafeAreaView>
