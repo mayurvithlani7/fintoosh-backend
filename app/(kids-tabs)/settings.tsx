@@ -1,11 +1,13 @@
 import HelpModal from '@/components/HelpModal';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useTheme } from "@/utils/themeContext";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 
 export default function SettingsScreen() {
   const { themeColors, animationSettings, setAnimationEnabled, setHapticFeedback, setSoundFeedback } = useTheme();
+  const router = useRouter();
   const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [loadingAnimations, setLoadingAnimations] = useState(false);
@@ -41,20 +43,44 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 22, marginTop: 6 }}>
-        <Text style={[styles.header, { color: themeColors.primary }]} accessibilityRole="header">Settings</Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            elevation: 2,
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
-        </TouchableOpacity>
+      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.surface,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              elevation: 2,
+              minWidth: 48,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => router.push('./')}
+          >
+            <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.accent,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              elevation: 2,
+              minWidth: 48,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => setHelpModalVisible(true)}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.header, { color: themeColors.primary }]} accessibilityRole="header">⚙️ Settings</Text>
+        </View>
       </View>
 
       <View style={[styles.settingRow, { borderBottomColor: themeColors.border }]}>

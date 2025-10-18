@@ -123,32 +123,44 @@ export default function KidsRequestsScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.surface,
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            elevation: 2,
-          }}
-          onPress={() => router.push('./')}
-        >
-          <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: themeColors.text }]}>📋 My Requests</Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            elevation: 2,
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
-        </TouchableOpacity>
+      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.surface,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              elevation: 2,
+              minWidth: 48,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => router.push('./')}
+          >
+            <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.accent,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              elevation: 2,
+              minWidth: 48,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => setHelpModalVisible(true)}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.title, { color: themeColors.primary }]}>📋 My Requests</Text>
+        </View>
       </View>
 
       {/* Refresh Button */}

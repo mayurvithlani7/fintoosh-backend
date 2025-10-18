@@ -161,15 +161,19 @@ export default function LearnScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}>
       <RangoliPattern color="#FF9933" opacity={0.03} />
-      <View style={{ width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
+      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
             style={{
-              backgroundColor: themeColors.border,
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
+              backgroundColor: themeColors.surface,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
               elevation: 2,
+              minWidth: 48,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
             onPress={() => router.push('/')}
           >
@@ -178,10 +182,14 @@ export default function LearnScreen() {
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.accent,
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
               elevation: 2,
+              minWidth: 48,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
             onPress={() => setHelpModalVisible(true)}
           >
@@ -189,7 +197,7 @@ export default function LearnScreen() {
           </TouchableOpacity>
         </View>
         <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.title, { color: themeColors.primary, textAlign: 'center' }]} accessibilityRole="header" accessibilityLabel="Learn About Money Education Section">📚 Learn About Money</Text>
+          <Text style={[styles.title, { color: themeColors.primary }]} accessibilityRole="header" accessibilityLabel="Learn About Money Education Section">📚 Learn About Money</Text>
         </View>
       </View>
 

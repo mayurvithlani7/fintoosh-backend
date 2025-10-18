@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
  */
 
 const AUTH_TOKEN_KEY = 'authToken';
-const USER_DATA_KEY = 'userData';
+const USER_DATA_KEY = 'user';
 
 /**
  * Check if we're running on web platform

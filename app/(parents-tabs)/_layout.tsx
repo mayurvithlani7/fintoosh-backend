@@ -124,11 +124,51 @@ export default function ParentsTabLayout() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  // TEMPORARILY DISABLE AUTH CHECK FOR TESTING
+  // Check authentication status
   useEffect(() => {
-    // Allow immediate access for testing
-    console.log('Authentication check disabled for testing - allowing access');
-    setIsAuthenticated(true);
+    const checkAuth = async () => {
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const token = await AsyncStorage.getItem('authToken');
+        const userStr = await AsyncStorage.getItem('user');
+
+        console.log('Parents layout auth check:', {
+          hasToken: !!token,
+          hasUserStr: !!userStr,
+          tokenLength: token?.length,
+          userStrLength: userStr?.length
+        });
+
+        if (token && userStr) {
+          const user = JSON.parse(userStr);
+          console.log('Parents layout parsed user:', {
+            role: user.role,
+            id: user.id,
+            isParent: user.role === 'parent'
+          });
+
+          // Check if token is expired (basic check)
+          if (user.role === 'parent') {
+            console.log('Parents layout: authentication successful');
+            setIsAuthenticated(true);
+          } else {
+            console.log('Parents layout: user is not parent, authentication failed');
+            setIsAuthenticated(false);
+          }
+        } else {
+          console.log('Parents layout: missing token or user data, authentication failed');
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Parents layout auth check failed:', error);
+        setIsAuthenticated(false);
+      }
+    };
+
+    // Small delay to ensure storage is complete
+    setTimeout(() => {
+      checkAuth();
+    }, 500);
   }, []);
 
   // Show loading or redirect while checking authentication
@@ -157,19 +197,31 @@ export default function ParentsTabLayout() {
             fontWeight: 'bold',
             fontSize: 20,
           },
+          headerTitle: '',
           headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => {
-                console.log('Hamburger pressed, setting activeModal to hamburger-menu');
-                setActiveModal('hamburger-menu');
-              }}
-              style={styles.hamburgerButton}
-              accessibilityRole="button"
-              accessibilityLabel="Open menu"
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.hamburgerIcon, { color: themeColors.text }]}>☰</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity
+                onPress={() => {
+                  console.log('Hamburger pressed, setting activeModal to hamburger-menu');
+                  setActiveModal('hamburger-menu');
+                }}
+                style={{ padding: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Open menu"
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: themeColors.text }}>☰</Text>
+              </TouchableOpacity>
+              <Text style={{
+                fontSize: 24,
+                fontWeight: '900',
+                letterSpacing: 0.5,
+                color: '#6A49F3',
+                marginLeft: 10,
+              }}>
+                Fintoosh
+              </Text>
+            </View>
           ),
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
@@ -197,16 +249,16 @@ export default function ParentsTabLayout() {
           ),
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'Overview', headerTitle: 'Overview' }} />
-        <Stack.Screen name="teaching" options={{ title: 'Teaching', headerTitle: 'Teaching' }} />
-        <Stack.Screen name="requests" options={{ title: 'Requests', headerTitle: 'Requests' }} />
-        <Stack.Screen name="points" options={{ title: 'Points', headerTitle: 'Points' }} />
-        <Stack.Screen name="goals" options={{ title: 'Goals', headerTitle: 'Goals' }} />
-        <Stack.Screen name="chores" options={{ title: 'Tasks', headerTitle: 'Tasks' }} />
-        <Stack.Screen name="rewards" options={{ title: 'Rewards', headerTitle: 'Rewards' }} />
-        <Stack.Screen name="analytics" options={{ title: 'Progress', headerTitle: 'Progress' }} />
-        <Stack.Screen name="transaction-history" options={{ title: 'History', headerTitle: 'History' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings', headerTitle: 'Settings' }} />
+        <Stack.Screen name="index" options={{ title: 'Overview' }} />
+        <Stack.Screen name="teaching" options={{ title: 'Teaching' }} />
+        <Stack.Screen name="requests" options={{ title: 'Requests' }} />
+        <Stack.Screen name="points" options={{ title: 'Points' }} />
+        <Stack.Screen name="goals" options={{ title: 'Goals' }} />
+        <Stack.Screen name="chores" options={{ title: 'Tasks' }} />
+        <Stack.Screen name="rewards" options={{ title: 'Rewards' }} />
+        <Stack.Screen name="analytics" options={{ title: 'Progress' }} />
+        <Stack.Screen name="transaction-history" options={{ title: 'History' }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       </Stack>
 
       <HamburgerMenu

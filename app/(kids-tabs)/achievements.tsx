@@ -1,6 +1,7 @@
 import AchievementSystem from "@/components/AchievementSystem";
 import HelpModal from "@/components/HelpModal";
 import { useTheme } from "@/utils/themeContext";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -21,45 +22,60 @@ const createStyles = (themeColors: any) => StyleSheet.create({
 
 export default function AchievementsScreen() {
   const { themeColors } = useTheme();
+  const router = useRouter();
   const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          width: "100%",
-          maxWidth: 520,
-          marginBottom: 22,
-          marginTop: 6,
-        }}
-      >
-        <Text style={[styles.title, { color: themeColors.text }]}>
-          🏆 My Achievements
-        </Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            elevation: 2,
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text
+      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <TouchableOpacity
             style={{
-              color: themeColors.card,
-              fontWeight: "bold",
-              fontSize: 14,
+              backgroundColor: themeColors.surface,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              elevation: 2,
+              minWidth: 48,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
+            onPress={() => router.push('./')}
           >
-            ❓ Help
+            <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.accent,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              elevation: 2,
+              minWidth: 48,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => setHelpModalVisible(true)}
+          >
+            <Text
+              style={{
+                color: themeColors.card,
+                fontWeight: "bold",
+                fontSize: 14,
+              }}
+            >
+              ❓ Help
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.title, { color: themeColors.primary }]}>
+            🏆 My Achievements
           </Text>
-        </TouchableOpacity>
+        </View>
       </View>
 
       <AchievementSystem />

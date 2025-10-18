@@ -93,7 +93,7 @@ export default function LoginScreen() {
 
     setTimeout(() => {
       if (data.user.role === 'parent') {
-        router.replace('/parent-dashboard');
+        router.replace('/(parents-tabs)');
       } else {
         router.replace('/kid-dashboard');
       }

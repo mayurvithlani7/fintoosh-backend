@@ -1396,15 +1396,19 @@ export default function GamesScreen() {
   return (
     <>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}>
-        <View style={{ width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
+        <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <TouchableOpacity
               style={{
-                backgroundColor: themeColors.border,
-                borderRadius: 20,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
+                backgroundColor: themeColors.surface,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
                 elevation: 2,
+                minWidth: 48,
+                minHeight: 48,
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
               onPress={() => router.push('/(kids-tabs)')}
             >
@@ -1413,10 +1417,14 @@ export default function GamesScreen() {
             <TouchableOpacity
               style={{
                 backgroundColor: themeColors.accent,
-                borderRadius: 20,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
                 elevation: 2,
+                minWidth: 48,
+                minHeight: 48,
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
               onPress={() => setHelpModalVisible(true)}
             >
@@ -1424,7 +1432,7 @@ export default function GamesScreen() {
             </TouchableOpacity>
           </View>
           <View style={{ alignItems: 'center' }}>
-            <Text style={[styles.title, { color: themeColors.text, textAlign: 'center' }]}>🎮 Play Money Games</Text>
+            <Text style={[styles.title, { color: themeColors.primary }]}>🎮 Play Money Games</Text>
           </View>
         </View>
 

@@ -212,24 +212,28 @@ export default function ParentsOverviewScreen() {
       )}
 
       {/* Heading */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
-        <Text style={[styles.title, { color: themeColors.primary }]}>Family Finance Hub</Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 16,
-            paddingHorizontal: 16, // Increased from 8 for accessibility
-            paddingVertical: 12,  // Increased from 4 for accessibility
-            elevation: 2,
-            minWidth: 48,         // Explicit minimum for accessibility
-            minHeight: 48,        // Explicit minimum for accessibility
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
-        </TouchableOpacity>
+      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.accent,
+              borderRadius: 16,
+              paddingHorizontal: 16, // Increased from 8 for accessibility
+              paddingVertical: 12,  // Increased from 4 for accessibility
+              elevation: 2,
+              minWidth: 48,         // Explicit minimum for accessibility
+              minHeight: 48,        // Explicit minimum for accessibility
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => setHelpModalVisible(true)}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.title, { color: themeColors.primary }]}>Family Finance Hub</Text>
+        </View>
       </View>
 
       {/* Refresh Button */}
@@ -715,7 +719,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   navRow: { flexDirection: 'row', alignSelf: 'center', marginBottom: 12 },
   navBtn: { backgroundColor: themeColors.secondary, borderRadius: 8, marginHorizontal: 4, paddingVertical: 8, paddingHorizontal: 16 },
   navBtnText: { color: themeColors.card, fontWeight: 'bold', fontSize: 16 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  title: { fontSize: 35, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
   sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 2, shadowColor: themeColors.border }, // Standard elevation for regular cards
   actionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 4, borderWidth: 2, borderColor: themeColors.primary, shadowColor: themeColors.border }, // Higher elevation for action sections
   sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8, color: themeColors.text },

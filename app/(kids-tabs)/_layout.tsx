@@ -4,7 +4,6 @@ import { Redirect, Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import Breadcrumbs from '@/components/Breadcrumbs';
 import ThemeToggle from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ACCESSIBILITY } from '@/constants/accessibility';
@@ -181,24 +180,35 @@ export default function KidsTabLayout() {
             backgroundColor: themeColors.background,
           },
           headerTintColor: themeColors.text,
-          headerTitle: () => <Breadcrumbs />,
+          headerTitle: '',
           headerTitleStyle: {
             fontWeight: 'bold',
             fontSize: 20,
           },
           headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => {
-                console.log('Hamburger pressed, setting activeModal to hamburger-menu');
-                setActiveModal('hamburger-menu');
-              }}
-              style={styles.hamburgerButton}
-              accessibilityRole="button"
-              accessibilityLabel="Open menu"
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.hamburgerIcon, { color: themeColors.text }]}>☰</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity
+                onPress={() => {
+                  console.log('Hamburger pressed, setting activeModal to hamburger-menu');
+                  setActiveModal('hamburger-menu');
+                }}
+                style={{ padding: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Open menu"
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: themeColors.text }}>☰</Text>
+              </TouchableOpacity>
+              <Text style={{
+                fontSize: 24,
+                fontWeight: '900',
+                letterSpacing: 0.5,
+                color: '#6A49F3',
+                marginLeft: 10,
+              }}>
+                Fintoosh
+              </Text>
+            </View>
           ),
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>

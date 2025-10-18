@@ -6,11 +6,10 @@ import Tooltip from '@/components/Tooltip';
 import { fetchNotifications, markNotificationRead } from '@/utils/api';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
-import { getAuthToken } from '@/utils/secureStorage';
+import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from "expo-router";
+import { useRouter } from 'expo-router';
 import React, { memo, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
   RefreshControl,
@@ -376,14 +375,14 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const storedUser = await getUserData();
 
       if (!token || !storedUser) {
         dispatch({ type: 'SET_ERROR', payload: 'Oops! 😅 We need to log you back in. Please ask a grown-up for help!' });
         return;
       }
 
-      const user = JSON.parse(storedUser);
+      const user = storedUser;
       const userId = user.id;
 
       const response = await fetch(`${API_URL}/users/${userId}`, {
@@ -466,13 +465,13 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       dispatch({ type: 'SET_NOTIFICATIONS_ERROR', payload: null });
       dispatch({ type: 'SET_NOTIFICATIONS_LOADING', payload: true });
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const storedUser = await getUserData();
       if (!token || !storedUser) {
         dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
         dispatch({ type: 'SET_NOTIFICATIONS_LOADING', payload: false });
         return;
       }
-      const user = JSON.parse(storedUser);
+      const user = storedUser;
       const userId = user.id;
       const notifList = await fetchNotifications(userId, token);
       dispatch({ type: 'SET_NOTIFICATIONS', payload: notifList || [] });
@@ -585,7 +584,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   // Dynamic styles based on theme
   const dynamicStyles = {
     title: {
-      fontSize: 28,
+      fontSize: 35,
       fontWeight: "bold" as const,
       marginBottom: 22,
       marginTop: 6,
@@ -740,20 +739,28 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         </View>
       )}
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
-        <Text style={dynamicStyles.title} accessibilityRole="header" accessibilityLabel="My Money Home Dashboard">🏠 My Money Pots</Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            elevation: 2,
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
-        </TouchableOpacity>
+      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.accent,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              elevation: 2,
+              minWidth: 48,
+              minHeight: 48,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => setHelpModalVisible(true)}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[dynamicStyles.title, { color: themeColors.primary }]} accessibilityRole="header" accessibilityLabel="My Money Home Dashboard">🏠 My Money Pots</Text>
+        </View>
       </View>
 
       {/* Gamified Progress Bar */}
@@ -1125,9 +1132,9 @@ onPress={() => router.push('./transaction-history')}
           // Update user to mark as not first-time user
           try {
             const token = await getAuthToken();
-            const storedUser = await AsyncStorage.getItem('user');
+            const storedUser = await getUserData();
             if (token && storedUser) {
-              const user = JSON.parse(storedUser);
+              const user = storedUser;
               await fetch(`${API_URL}/users/${user.id}`, {
                 method: 'PATCH',
                 headers: {

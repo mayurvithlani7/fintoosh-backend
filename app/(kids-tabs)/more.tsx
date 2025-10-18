@@ -21,14 +21,18 @@ export default function MoreScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 18, marginTop: 6 }}>
-        <Text style={styles.header}>More</Text>
+        <Text style={[styles.header, { color: themeColors.primary }]}>📱 More</Text>
         <TouchableOpacity
           style={{
             backgroundColor: themeColors.accent,
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
+            borderRadius: 16,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
             elevation: 2,
+            minWidth: 48,
+            minHeight: 48,
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
           onPress={() => setHelpModalVisible(true)}
         >
