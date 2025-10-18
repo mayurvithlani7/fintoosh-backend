@@ -109,6 +109,17 @@ export default function ParentsTeachingScreen() {
     deadline: ''
   });
 
+  // Timeline form state
+  const [timelineForm, setTimelineForm] = useState({
+    age: '',
+    year: '',
+    event: '',
+    customEvent: '',
+    description: '',
+    amount: '',
+    icon: '✨'
+  });
+
   // Update form helper
   const updateForm = (field: string, value: string) => {
     setDiscussionForm(prev => ({ ...prev, [field]: value }));
@@ -668,7 +679,8 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
       });
 
       if (!patchResponse.ok) {
-        console.error('Failed to update timeline:', patchResponse.status);
+        const errorText = await patchResponse.text();
+        console.error('Failed to update timeline:', patchResponse.status, errorText);
         return;
       }
 
@@ -1270,7 +1282,7 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
         onRequestClose={() => setSelectedGuide(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: themeColors.card }]}>
+          <View style={[styles.modalContainer, { backgroundColor: themeColors.card }]}>
             <ScrollView contentContainerStyle={styles.modalScroll}>
               {selectedGuide && (() => {
                 const guide = parentGuides.find(g => g.id === selectedGuide);
@@ -1279,9 +1291,13 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                     <Text style={[styles.modalTitle, { color: themeColors.text }]}>
                       {guide.icon} {guide.title}
                     </Text>
-                    <Text style={[styles.modalContent, { color: themeColors.text }]}>
-                      {guide.content}
-                    </Text>
+                    <View style={styles.guideContent}>
+                      {guide.content.split('\n').map((line, index) => (
+                        <Text key={index} style={[styles.guideText, { color: themeColors.text }]}>
+                          {line}
+                        </Text>
+                      ))}
+                    </View>
                     <TouchableOpacity
                       style={[styles.closeButton, { backgroundColor: themeColors.primary }]}
                       onPress={() => setSelectedGuide(null)}
@@ -1525,8 +1541,8 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                 placeholder="e.g., 8"
                 placeholderTextColor={themeColors.textSecondary}
                 keyboardType="numeric"
-                value={discussionForm.duration} // Reusing form field for age
-                onChangeText={(text) => updateForm('duration', text)}
+                value={timelineForm.age}
+                onChangeText={(value) => setTimelineForm(prev => ({ ...prev, age: value }))}
               />
 
               <Text style={[styles.label, { color: themeColors.text }]}>Year *</Text>
@@ -1535,8 +1551,8 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                 placeholder="e.g., 2025"
                 placeholderTextColor={themeColors.textSecondary}
                 keyboardType="numeric"
-                value={discussionForm.notes} // Reusing form field for year
-                onChangeText={(text) => updateForm('notes', text)}
+                value={timelineForm.year}
+                onChangeText={(value) => setTimelineForm(prev => ({ ...prev, year: value }))}
               />
 
               <Text style={[styles.label, { color: themeColors.text }]}>Event *</Text>
@@ -1547,19 +1563,19 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                   setShowEventSelection(true);
                 }}
               >
-                <Text style={{ color: discussionForm.topic ? themeColors.text : themeColors.textSecondary }}>
-                  {discussionForm.topic === 'custom' ? 'Custom Event' :
-                   discussionForm.topic ? `${discussionForm.customTopic} ${discussionForm.topic.replace('-', ' ')}` : 'Select event...'}
+                <Text style={{ color: timelineForm.event ? themeColors.text : themeColors.textSecondary }}>
+                  {timelineForm.event === 'custom' ? 'Custom Event' :
+                   timelineForm.event ? `${timelineForm.icon} ${timelineForm.event.replace('-', ' ')}` : 'Select event...'}
                 </Text>
               </TouchableOpacity>
 
-              {discussionForm.topic === 'custom' && (
+              {timelineForm.event === 'custom' && (
                 <TextInput
                   style={[styles.input, { backgroundColor: themeColors.surface, color: themeColors.text }]}
                   placeholder="Describe the custom event..."
                   placeholderTextColor={themeColors.textSecondary}
-                  value={discussionForm.keyLearnings}
-                  onChangeText={(text) => updateForm('keyLearnings', text)}
+                  value={timelineForm.customEvent}
+                  onChangeText={(value) => setTimelineForm(prev => ({ ...prev, customEvent: value }))}
                 />
               )}
 
@@ -1570,8 +1586,8 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                 placeholderTextColor={themeColors.textSecondary}
                 multiline={true}
                 numberOfLines={3}
-                value={discussionForm.mood}
-                onChangeText={(text) => updateForm('mood', text)}
+                value={timelineForm.description}
+                onChangeText={(value) => setTimelineForm(prev => ({ ...prev, description: value }))}
               />
 
               <Text style={[styles.label, { color: themeColors.text }]}>Amount (₹)</Text>
@@ -1580,8 +1596,8 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                 placeholder="e.g., 5000"
                 placeholderTextColor={themeColors.textSecondary}
                 keyboardType="numeric"
-                value={discussionForm.childId}
-                onChangeText={(text) => updateForm('childId', text)}
+                value={timelineForm.amount}
+                onChangeText={(value) => setTimelineForm(prev => ({ ...prev, amount: value }))}
               />
 
               <View style={styles.modalButtons}>
@@ -1589,14 +1605,14 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                   style={[styles.cancelButton, { backgroundColor: themeColors.surface }]}
                   onPress={() => {
                     setShowElderModal(false);
-                    setDiscussionForm({
-                      childId: '',
-                      topic: 'daily-spending',
-                      customTopic: '',
-                      duration: '15',
-                      keyLearnings: '',
-                      mood: 'good',
-                      notes: ''
+                    setTimelineForm({
+                      age: '',
+                      year: '',
+                      event: '',
+                      customEvent: '',
+                      description: '',
+                      amount: '',
+                      icon: '✨'
                     });
                   }}
                 >
@@ -1608,19 +1624,20 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                 <TouchableOpacity
                   style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
                   onPress={() => {
-                    if (!discussionForm.duration || !discussionForm.notes || !discussionForm.topic) {
+                    if (!timelineForm.age || !timelineForm.year || !timelineForm.event || !timelineForm.description) {
                       Alert.alert('Missing Information', 'Please fill in age, year, event, and description.');
                       return;
                     }
 
                     const newTimelineEntry = {
-                      age: parseInt(discussionForm.duration),
-                      year: parseInt(discussionForm.notes),
-                      icon: discussionForm.customTopic || '✨',
-                      event: discussionForm.topic,
-                      customEvent: discussionForm.topic === 'custom' ? discussionForm.keyLearnings : null,
-                      description: discussionForm.mood,
-                      amount: parseInt(discussionForm.childId) || 0
+                      age: parseInt(timelineForm.age),
+                      year: parseInt(timelineForm.year),
+                      icon: timelineForm.icon,
+                      event: timelineForm.event,
+                      customEvent: timelineForm.event === 'custom' ? timelineForm.customEvent : null,
+                      description: timelineForm.description,
+                      amount: parseInt(timelineForm.amount) || 0,
+                      significance: 'medium'
                     };
 
                     const updatedTimeline = {
@@ -1631,14 +1648,14 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                     saveTimelineToDatabase(updatedTimeline);
 
                     setShowElderModal(false);
-                    setDiscussionForm({
-                      childId: '',
-                      topic: 'daily-spending',
-                      customTopic: '',
-                      duration: '15',
-                      keyLearnings: '',
-                      mood: 'good',
-                      notes: ''
+                    setTimelineForm({
+                      age: '',
+                      year: '',
+                      event: '',
+                      customEvent: '',
+                      description: '',
+                      amount: '',
+                      icon: '✨'
                     });
 
                     Alert.alert(
@@ -1688,8 +1705,12 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                     style={[styles.eventOption, { backgroundColor: themeColors.surface }]}
                     onPress={() => {
                       console.log('Selected event:', event.key, event.icon);
-                      updateForm('topic', event.key);
-                      updateForm('customTopic', event.icon);
+                      setTimelineForm(prev => ({
+                        ...prev,
+                        event: event.key,
+                        icon: event.icon,
+                        customEvent: event.key === 'custom' ? prev.customEvent : ''
+                      }));
                       setShowEventSelection(false);
                     }}
                   >
@@ -2251,6 +2272,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     // color set inline with themeColors
   },
+  guideContent: {
+    marginBottom: 20,
+  },
+  guideText: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 8,
+  },
   starterCard: {
     borderRadius: 10,
     padding: 14,
@@ -2362,6 +2391,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalContainer: {
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '80%',
   },
   modalContent: {
     borderRadius: 20,
