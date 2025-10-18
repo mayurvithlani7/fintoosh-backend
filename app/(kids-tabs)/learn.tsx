@@ -21,7 +21,7 @@ import { useTheme } from '@/utils/themeContext';
 
 import { CulturalBorder, RangoliPattern } from "@/components/cultural";
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 16,
@@ -32,10 +32,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 22,
     marginTop: 6,
-    color: "#154477",
+    color: themeColors.primary,
   },
   sectionCard: {
-    backgroundColor: "#fff",
+    backgroundColor: themeColors.card,
     borderRadius: 14,
     marginBottom: 16,
     padding: 18,
@@ -43,19 +43,18 @@ const styles = StyleSheet.create({
     width: "97%",
     maxWidth: 520,
     elevation: 2,
-    shadowColor: "#aaa",
-    // ...
+    shadowColor: themeColors.border,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
     marginBottom: 8,
-    color: "#234",
+    color: themeColors.text,
   },
   lessonCard: {
     width: "45%",
     margin: "2.5%",
-    backgroundColor: "#fafdff",
+    backgroundColor: themeColors.surface,
     borderRadius: 12,
     elevation: 1,
     paddingVertical: 16,
@@ -64,8 +63,8 @@ const styles = StyleSheet.create({
     minHeight: 96,
     maxWidth: 170,
     borderWidth: 1,
-    borderColor: "#d8e6ee",
-    shadowColor: "#bcd",
+    borderColor: themeColors.border,
+    shadowColor: themeColors.border,
     shadowOpacity: 0.15,
     shadowRadius: 2,
   },
@@ -77,21 +76,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 15,
     textAlign: "center",
-    color: "#294352",
+    color: themeColors.text,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.38)",
+    backgroundColor: themeColors.overlay || 'rgba(0,0,0,0.38)',
     justifyContent: "center",
     alignItems: "center",
   },
   modalContent: {
-    backgroundColor: "#fff",
+    backgroundColor: themeColors.card,
     borderRadius: 18,
     width: "87%",
     maxWidth: 400,
     paddingBottom: 12,
-    shadowColor: "#222",
+    shadowColor: themeColors.border,
     shadowRadius: 8,
     elevation: 7,
   },
@@ -100,14 +99,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 9,
     textAlign: "center",
+    color: themeColors.primary,
   },
   modalText: {
     fontSize: 16,
     textAlign: "center",
     marginBottom: 18,
+    color: themeColors.text,
   },
   closeButton: {
-    backgroundColor: "#e9e9ef",
+    backgroundColor: themeColors.surface,
+    borderColor: themeColors.border,
+    borderWidth: 1,
     paddingVertical: 7,
     paddingHorizontal: 21,
     borderRadius: 8,
@@ -115,7 +118,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontWeight: "700",
-    color: "#38507a",
+    color: themeColors.text,
   },
   quizOption: {
     borderRadius: 7,
@@ -123,32 +126,36 @@ const styles = StyleSheet.create({
     marginBottom: 7,
     width: 220,
     alignItems: "center",
+    backgroundColor: themeColors.surface,
+    borderColor: themeColors.border,
+    borderWidth: 1,
   },
   quizButton: {
-    backgroundColor: "#d7faee",
+    backgroundColor: themeColors.success + "22",
     borderRadius: 7,
     paddingHorizontal: 18,
     paddingVertical: 8,
     marginRight: 10,
   },
   quizButtonText: {
-    color: "#23646a",
+    color: themeColors.success,
     fontWeight: "bold",
   },
   quizCloseButton: {
-    backgroundColor: "#ffe1c6",
+    backgroundColor: themeColors.warning + "33",
     paddingVertical: 7,
     paddingHorizontal: 17,
     borderRadius: 8,
   },
   quizCloseButtonText: {
     fontWeight: "bold",
-    color: "#c5741b",
+    color: themeColors.warning,
   },
 });
 
 export default function LearnScreen() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
@@ -317,8 +324,9 @@ export default function LearnScreen() {
 // --- FinancialLessonsSection: list of clickable lessons, with launch feedback ---
 function FinancialLessonsSection() {
   const { themeColors } = useTheme();
-  // Modal state: which lesson is open? null for none
+// Modal state: which lesson is open? null for none
   const [openLesson, setOpenLesson] = useState<string | null>(null);
+  const styles = createStyles(themeColors);
 
   // Lessons config - Kid-friendly titles!
   const lessons = [
@@ -435,6 +443,7 @@ function FinancialLessonsSection() {
 // --- My Achievements Section ---
 function MyAchievementsSection() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [badges, setBadges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -576,6 +585,7 @@ function MyAchievementsSection() {
 // --- Video Lesson Section ---
 function VideoLessonSection() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   // Responsive video sizing based on device width
   const windowWidth = Dimensions.get("window").width;
   const videoWidth = Math.min(340, windowWidth - 32);
@@ -660,6 +670,8 @@ function VideoLessonSection() {
 
 // --- NeedsWantsSortModal Placeholder ---
 function NeedsWantsSortModal({ onClose }: { onClose: () => void }) {
+  const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   return (
     <View style={{ padding: 18, alignItems: "center" }}>
       <Text style={styles.modalTitle}>🔀 Sort Fun Things!</Text>
@@ -676,6 +688,7 @@ function NeedsWantsSortModal({ onClose }: { onClose: () => void }) {
 // --- Quiz Modal ---
 function LessonQuizModal({ onClose }: { onClose: () => void }) {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const questions = [
     {
       q: "Which of these is a need, not a want?",
@@ -737,11 +750,11 @@ function LessonQuizModal({ onClose }: { onClose: () => void }) {
       <View style={{ padding: 18, alignItems: "center" }}>
         <Text style={{ fontSize: 21, fontWeight: "bold", marginBottom: 5 }}>🧠 Quiz Complete!</Text>
         <Text style={{ fontSize: 16, marginBottom: 12 }}>You scored {score} out of {questions.length}</Text>
-        <TouchableOpacity onPress={restart} style={{ backgroundColor: "#b3e4fd", borderRadius: 7, padding: 10, marginBottom: 7 }}>
-          <Text style={{ fontWeight: "700", color: "#104166" }}>Take Again</Text>
+        <TouchableOpacity onPress={restart} style={{ backgroundColor: themeColors.success + "22", borderRadius: 7, padding: 10, marginBottom: 7 }}>
+          <Text style={{ fontWeight: "700", color: themeColors.success }}>Take Again</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={onClose} style={{ backgroundColor: "#ffe1c6", paddingVertical: 7, paddingHorizontal: 19, borderRadius: 8 }}>
-          <Text style={{ fontWeight: "bold", color: "#c5741b" }}>Close</Text>
+        <TouchableOpacity onPress={onClose} style={{ backgroundColor: themeColors.warning + "33", paddingVertical: 7, paddingHorizontal: 19, borderRadius: 8 }}>
+          <Text style={{ fontWeight: "bold", color: themeColors.warning }}>Close</Text>
         </TouchableOpacity>
       </View>
     );
@@ -803,6 +816,7 @@ function LessonQuizModal({ onClose }: { onClose: () => void }) {
 // --- Assessment Modal ---
 function AssessmentModal({ onClose }: { onClose: () => void }) {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const questions = [
     {
       q: "What should you do before buying a toy?",
@@ -922,6 +936,8 @@ function AssessmentModal({ onClose }: { onClose: () => void }) {
 
 /** --- BEGIN: How My Money Grows Modal --- */
 function HowMyMoneyGrowsModal({ onClose }: { onClose: () => void }) {
+  const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [user, setUser] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -1010,31 +1026,31 @@ function HowMyMoneyGrowsModal({ onClose }: { onClose: () => void }) {
         marginBottom: 10,
         width: 220,
         borderRadius: 7,
-        backgroundColor: "#f2f6ff",
+        backgroundColor: themeColors.surface,
         padding: 9
       }}>
-        <Text style={{ fontSize: 15, color: "#294", fontWeight: "bold" }}>
-          Starting Savings: <Text style={{ color: "#227" }}>{savePoints} points</Text>
+        <Text style={{ fontSize: 15, color: themeColors.text, fontWeight: "bold" }}>
+          Starting Savings: <Text style={{ color: themeColors.primary }}>{savePoints} points</Text>
         </Text>
-        <Text style={{ fontSize: 15, color: "#347", fontWeight: "bold" }}>
-          Interest Rate: <Text style={{ color: "#227" }}>{rate}% per {freq}</Text>
+        <Text style={{ fontSize: 15, color: themeColors.textSecondary, fontWeight: "bold" }}>
+          Interest Rate: <Text style={{ color: themeColors.primary }}>{rate}% per {freq}</Text>
         </Text>
-        <Text style={{ fontSize: 15, color: "#579", fontWeight: "bold" }}>
-          Interest Applied To: <Text style={{ color: "#227" }}>{interestRule.jar === "save" ? "Savings Pot" : interestRule.jar}</Text>
+        <Text style={{ fontSize: 15, color: themeColors.textSecondary, fontWeight: "bold" }}>
+          Interest Applied To: <Text style={{ color: themeColors.primary }}>{interestRule.jar === "save" ? "Savings Pot" : interestRule.jar}</Text>
         </Text>
       </View>
-      <Text style={{ marginBottom: 4, textAlign: "center", fontWeight: "500" }}>
+      <Text style={{ marginBottom: 4, textAlign: "center", fontWeight: "500", color: themeColors.text }}>
         Growth Projection ({periodLabel}s):
       </Text>
       <View style={{
-        borderRadius: 10, backgroundColor: "#e8fafe", padding: 10,
+        borderRadius: 10, backgroundColor: themeColors.surface, padding: 10,
         marginBottom: 10, width: 210
       }}>
         {growth.map(row => (
           <Text key={row.period} style={{
             fontSize: 15,
             fontWeight: row.period === periods ? "bold" : "500",
-            color: "#235D83",
+            color: themeColors.primary,
             marginBottom: 3
           }}>
             {periodLabel} {row.period}: {row.value} points
@@ -1042,7 +1058,7 @@ function HowMyMoneyGrowsModal({ onClose }: { onClose: () => void }) {
           </Text>
         ))}
       </View>
-      <Text style={{ fontSize: 13, color: "#488", marginBottom: 13, textAlign: "center" }}>
+      <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginBottom: 13, textAlign: "center" }}>
         Keep saving! The more you save, the more your money can grow.
       </Text>
       <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -1056,6 +1072,7 @@ function HowMyMoneyGrowsModal({ onClose }: { onClose: () => void }) {
 /** --- BEGIN: Spend Smart Review Modal (Fixed and Completed) --- */
 function SpendSmartReviewModal({ onClose }: { onClose: () => void }) {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [loading, setLoading] = React.useState(true);
   const [recentPurchase, setRecentPurchase] = React.useState<any>(null); // Changed from reward to purchase for clarity
   const [choice, setChoice] = React.useState<null | "need" | "want">(null);

@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-import { useRouter } from "expo-router";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import HelpModal from '@/components/HelpModal';
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useTheme } from '@/utils/themeContext';
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const TABS = [
   { title: "Games", name: "games", icon: "gamecontroller.fill" },
@@ -12,6 +13,8 @@ const TABS = [
 ];
 
 export default function MoreScreen() {
+  const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const router = useRouter();
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
@@ -21,7 +24,7 @@ export default function MoreScreen() {
         <Text style={styles.header}>More</Text>
         <TouchableOpacity
           style={{
-            backgroundColor: '#6846b3',
+            backgroundColor: themeColors.accent,
             borderRadius: 20,
             paddingHorizontal: 12,
             paddingVertical: 6,
@@ -29,7 +32,7 @@ export default function MoreScreen() {
           }}
           onPress={() => setHelpModalVisible(true)}
         >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
       </View>
       {TABS.map(tab => (
@@ -39,7 +42,7 @@ export default function MoreScreen() {
           // Typesafe navigation for Expo Router v2+
           onPress={() => router.push({ pathname: `/(kids-tabs)/${tab.name}` })}
         >
-          <IconSymbol name={tab.icon} color="#7d37d7" size={26} style={{ marginRight: 16 }} />
+          <IconSymbol name={tab.icon as any} color={themeColors.primary} size={26} style={{ marginRight: 16 }} />
           <Text style={styles.text}>{tab.title}</Text>
         </TouchableOpacity>
       ))}
@@ -191,18 +194,18 @@ export default function MoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     paddingVertical: 36,
     paddingHorizontal: 10,
     alignItems: "flex-start",
     flexGrow: 1,
-    backgroundColor: "#fcf9ff"
+    backgroundColor: themeColors.background
   },
   header: {
     fontSize: 26,
     marginBottom: 18,
-    color: "#6846b3",
+    color: themeColors.primary,
     fontWeight: "bold",
     alignSelf: "center"
   },
@@ -213,11 +216,11 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     width: "100%",
     borderBottomWidth: 1,
-    borderBottomColor: "#ece0fa"
+    borderBottomColor: themeColors.border
   },
   text: {
     fontSize: 18,
-    color: "#352d46",
+    color: themeColors.text,
     fontWeight: "600"
   }
 });

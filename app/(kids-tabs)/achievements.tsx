@@ -4,7 +4,7 @@ import { useTheme } from "@/utils/themeContext";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 16,
@@ -15,12 +15,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 22,
     marginTop: 6,
-    color: "#154477",
+    color: themeColors.primary,
   },
 });
 
 export default function AchievementsScreen() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (

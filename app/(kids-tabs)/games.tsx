@@ -14,17 +14,16 @@ import { AnimatedProgressBar } from '../../components/animations/AnimatedProgres
 import { useTheme } from '../../utils/themeContext';
 import EntrepreneurStallGame from "./TheEntrepreneursStallGame";
 
-// Global styles for game components (theme-adaptive)
 const createGameStyles = (themeColors: any) => StyleSheet.create({
   gameModalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 15,
-    color: themeColors.text,
+    color: themeColors.primary,
   },
   gameButton: {
-    backgroundColor: '#4fc1e9',
+    backgroundColor: themeColors.primary,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -32,12 +31,14 @@ const createGameStyles = (themeColors: any) => StyleSheet.create({
     marginVertical: 5,
   },
   gameButtonText: {
-    color: '#fff',
+    color: themeColors.card,
     fontWeight: 'bold',
     fontSize: 16,
   },
   closeButton: {
-    backgroundColor: themeColors.border,
+    backgroundColor: themeColors.surface,
+    borderColor: themeColors.border,
+    borderWidth: 1,
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 25,
@@ -63,7 +64,7 @@ const createGameStyles = (themeColors: any) => StyleSheet.create({
     padding: 12,
     fontSize: 16,
     marginBottom: 10,
-    backgroundColor: themeColors.card,
+    backgroundColor: themeColors.surface,
     color: themeColors.text,
   },
   gameText: {
