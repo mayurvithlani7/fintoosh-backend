@@ -10,6 +10,7 @@ import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TextInput, Touchab
 
 export default function KidsRequestsScreen() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [requests, setRequests] = useState<{
     id: string;
     type: string;
@@ -533,29 +534,29 @@ export default function KidsRequestsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { backgroundColor: '#f7fafd' },
+const createStyles = (themeColors: any) => StyleSheet.create({
+  scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: '#194476' },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: '#aaa' },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: '#226' },
-  placeholder: { color: '#999', fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
   requestHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   statusIcon: { fontSize: 16, marginRight: 4 },
-  statusText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  requestText: { fontSize: 16, marginBottom: 8, color: '#234' },
-  boldText: { fontWeight: '600', color: '#226' },
+  statusText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
+  requestText: { fontSize: 16, marginBottom: 8, color: themeColors.text },
+  boldText: { fontWeight: '600', color: themeColors.primary },
   actionBtn: { padding: 12, borderRadius: 8, alignItems: 'center' },
-  actionBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  actionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
   messagesContainer: { marginTop: 12, marginBottom: 8 },
   messageBubble: { padding: 10, borderRadius: 12, marginBottom: 8, maxWidth: '80%' },
-  childMessage: { backgroundColor: '#e3f2fd', alignSelf: 'flex-start' },
-  parentMessage: { backgroundColor: '#f3e5f5', alignSelf: 'flex-end' },
-  messageText: { fontSize: 14, color: '#333' },
-  messageTime: { fontSize: 10, color: '#666', marginTop: 4, textAlign: 'right' },
+  childMessage: { backgroundColor: themeColors.surface, alignSelf: 'flex-start' },
+  parentMessage: { backgroundColor: themeColors.secondary, alignSelf: 'flex-end' },
+  messageText: { fontSize: 14, color: themeColors.text },
+  messageTime: { fontSize: 10, color: themeColors.textSecondary, marginTop: 4, textAlign: 'right' },
   messageInputContainer: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 8, gap: 8 },
-  messageInput: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, textAlignVertical: 'top' },
-  sendButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, minWidth: 60, alignItems: 'center' },
-  sendButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  messageInput: { flex: 1, borderWidth: 1, borderColor: themeColors.border, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, textAlignVertical: 'top', backgroundColor: themeColors.surface, color: themeColors.text },
+  sendButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, minWidth: 60, alignItems: 'center', backgroundColor: themeColors.primary },
+  sendButtonText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
 });
