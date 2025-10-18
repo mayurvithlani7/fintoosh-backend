@@ -633,15 +633,46 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
     if (!currentUser || !selectedChild) return;
 
     try {
-      await fetch(`${API_URL}/family-timeline/${currentUser.familyId}/${selectedChild.id}`, {
-        method: 'POST',
+      const token = await getAuthToken();
+      if (!token) {
+        console.error('No auth token available for timeline save');
+        return;
+      }
+
+      // First, get the existing timeline to ensure it exists and get its ID
+      const getResponse = await fetch(`${API_URL}/family-timeline/${currentUser.familyId}/${selectedChild.id}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (!getResponse.ok) {
+        console.error('Failed to get timeline:', getResponse.status);
+        return;
+      }
+
+      const existingTimeline = await getResponse.json();
+
+      // Now update the timeline using PATCH with the timeline ID
+      const patchResponse = await fetch(`${API_URL}/family-timeline/${existingTimeline._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           timeline: timelineData.timeline
         }),
       });
+
+      if (!patchResponse.ok) {
+        console.error('Failed to update timeline:', patchResponse.status);
+        return;
+      }
+
+      console.log('Timeline updated successfully in database');
     } catch (error) {
       console.error('Error saving timeline to database, using local storage:', error);
     }
@@ -842,9 +873,35 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                 <Text style={[styles.discussionTitle, { color: themeColors.text }]}>
                   💬 {discussion.topic === 'custom' ? discussion.customTopic : discussion.topic}
                 </Text>
-                <Text style={[styles.discussionDate, { color: themeColors.textSecondary }]}>
-                  {new Date(discussion.discussionDate).toLocaleDateString()}
-                </Text>
+                <View style={styles.discussionActions}>
+                  <TouchableOpacity
+                    style={[styles.deleteButton, { backgroundColor: themeColors.secondary }]}
+                    onPress={() => {
+                      console.log('Delete discussion button pressed for:', discussion._id);
+                      console.log('Current discussions count:', familyDiscussions.length);
+
+                      // Directly delete without Alert confirmation for testing
+                      console.log('Deleting discussion:', discussion._id);
+                      const updatedDiscussions = familyDiscussions.filter(d => d._id !== discussion._id);
+                      console.log('Updated discussions count:', updatedDiscussions.length);
+                      console.log('Discussion to delete:', discussion);
+                      console.log('Filtered discussions:', updatedDiscussions);
+
+                      // Force re-render by creating a completely new array
+                      setFamilyDiscussions([...updatedDiscussions]);
+                      console.log('State updated, new discussions count:', updatedDiscussions.length);
+                      console.log('Force re-render triggered');
+
+                      saveDiscussionsToDatabase(updatedDiscussions);
+                      console.log('AsyncStorage save initiated');
+                    }}
+                  >
+                    <Text style={[styles.deleteButtonText, { color: themeColors.card }]}>🗑️</Text>
+                  </TouchableOpacity>
+                  <Text style={[styles.discussionDate, { color: themeColors.textSecondary }]}>
+                    {new Date(discussion.discussionDate).toLocaleDateString()}
+                  </Text>
+                </View>
               </View>
 
               <Text style={[styles.discussionChild, { color: themeColors.primary }]}>
@@ -1023,6 +1080,36 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
               <View key={index} style={styles.timelineEntry}>
                 <View style={[styles.timelineDot, { backgroundColor: themeColors.primary }]} />
                 <View style={styles.timelineContent}>
+                  <View style={styles.timelineHeader}>
+                    <TouchableOpacity
+                      style={[styles.deleteButton, { backgroundColor: themeColors.secondary }]}
+                      onPress={() => {
+                        Alert.alert(
+                          'Delete Timeline Entry',
+                          'Are you sure you want to delete this timeline entry?',
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                              text: 'Delete',
+                              style: 'destructive',
+                              onPress: () => {
+                                console.log('Deleting timeline entry at index:', index);
+                                const updatedTimeline = {
+                                  timeline: familyTimeline.timeline.filter((_: any, i: number) => i !== index)
+                                };
+                                console.log('Updated timeline entries count:', updatedTimeline.timeline.length);
+                                setFamilyTimeline(updatedTimeline);
+                                saveTimelineToDatabase(updatedTimeline);
+                                Alert.alert('Entry Deleted', 'The timeline entry has been removed.');
+                              }
+                            }
+                          ]
+                        );
+                      }}
+                    >
+                      <Text style={[styles.deleteButtonText, { color: themeColors.card }]}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
                   <Text style={[styles.timelineYear, { color: themeColors.primary }]}>
                     Age {entry.age} • {entry.year}
                   </Text>
@@ -1073,6 +1160,49 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
           <View style={styles.dreamBoardGrid}>
             {dreamBoard.items.slice(0, 6).map((item: any, index: number) => (
               <View key={index} style={[styles.dreamItem, { backgroundColor: item.color || themeColors.surface }]}>
+                <View style={styles.dreamItemHeader}>
+                  <TouchableOpacity
+                    style={[styles.deleteButton, { backgroundColor: themeColors.secondary }]}
+                    onPress={() => {
+                      console.log('Delete dream button pressed for:', item.id, item.title);
+                      Alert.alert(
+                        'Delete Dream',
+                        `Are you sure you want to delete "${item.title}" from your Dream Board?`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => {
+                              console.log('🗑️🗑️🗑️ DREAM DELETE START 🗑️🗑️🗑️');
+                              console.log('Deleting dream:', item.title, 'ID:', item.id);
+
+                              // Simple direct approach - just remove the item without complex checks
+                              const updatedItems = dreamBoard.items.filter((dream: any) => dream.id !== item.id);
+                              console.log('Before:', dreamBoard.items.length, 'items');
+                              console.log('After:', updatedItems.length, 'items');
+
+                              const updatedDreamBoard = {
+                                ...dreamBoard,
+                                items: updatedItems,
+                                totalDreamValue: dreamBoard.totalDreamValue - item.targetAmount,
+                                monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
+                              };
+
+                              setDreamBoard(updatedDreamBoard);
+                              AsyncStorage.setItem('dreamBoard', JSON.stringify(updatedDreamBoard));
+
+                              console.log('🗑️🗑️🗑️ DREAM DELETE END 🗑️🗑️🗑️');
+                              Alert.alert('Dream Deleted', `"${item.title}" has been removed from your Dream Board.`);
+                            }
+                          }
+                        ]
+                      );
+                    }}
+                  >
+                    <Text style={[styles.deleteButtonText, { color: themeColors.card }]}>🗑️</Text>
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.dreamIcon}>{item.icon || '🎯'}</Text>
                 <Text style={[styles.dreamTitle, { color: themeColors.text }]} numberOfLines={2}>
                   {item.title}
@@ -2302,6 +2432,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
   },
+  discussionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  deleteButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  deleteButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   emptyDiscussions: {
     borderRadius: 10,
     padding: 20,
@@ -2342,6 +2487,12 @@ const styles = StyleSheet.create({
   timelineContent: {
     flex: 1,
   },
+  timelineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: '100%',
+    marginBottom: 8,
+  },
   timelineYear: {
     fontSize: 14,
     fontWeight: 'bold',
@@ -2374,6 +2525,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 120,
     elevation: 1,
+  },
+  dreamItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: '100%',
+    marginBottom: 8,
   },
   dreamIcon: {
     fontSize: 24,
