@@ -808,8 +808,43 @@ export default function ParentSettingsScreen() {
           <Text style={styles.saveButtonText}>Reset Child PIN</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: '#4CAF50', marginTop: 12 }]}
+          onPress={async () => {
+            try {
+              const token = await getAuthToken();
+              if (!token) {
+                Alert.alert('Error', 'Not authenticated. Please login again.');
+                return;
+              }
+
+              const response = await fetch(`${API_URL}/fix-parent-child-relationships`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              const data = await response.json();
+
+              if (response.ok) {
+                Alert.alert('Success', `Parent-child relationships fixed! Updated ${data.updatedChildren} children.`);
+              } else {
+                Alert.alert('Error', data.message || 'Failed to fix relationships.');
+              }
+            } catch (error) {
+              console.error('Error fixing relationships:', error);
+              Alert.alert('Error', 'Network error. Please try again.');
+            }
+          }}
+        >
+          <Text style={styles.saveButtonText}>🔧 Fix Parent-Child Relationships</Text>
+        </TouchableOpacity>
+
         <Text style={{ fontSize: 13, color: "#888", marginTop: 12, lineHeight: 18 }}>
-          🔐 <Text style={{ fontWeight: 'bold' }}>Security Feature:</Text> Requires your parent password for verification before any child account changes.
+          🔐 <Text style={{ fontWeight: 'bold' }}>Security Feature:</Text> Requires your parent password for verification before any child account changes.{'\n'}
+          🔧 <Text style={{ fontWeight: 'bold' }}>Fix Relationships:</Text> Updates all children in your family to have the correct parent linkage.
         </Text>
       </View>
 

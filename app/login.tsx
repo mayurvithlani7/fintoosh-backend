@@ -1,5 +1,6 @@
 import { saveAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 
@@ -85,7 +86,9 @@ export default function LoginScreen() {
 
     try {
       await saveAuthToken(data.token);
-      // Note: User data storage removed - using secure token only
+      // Store user data in AsyncStorage for session management
+      await AsyncStorage.setItem('user', JSON.stringify(data.user));
+      console.log('Login successful: stored token and user data');
     } catch (storageError) {
       console.error('Failed to store auth data:', storageError);
     }
