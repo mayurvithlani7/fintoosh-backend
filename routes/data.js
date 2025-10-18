@@ -629,17 +629,37 @@ router.get('/goals/:childId', auth, async (req, res) => {
   }
 });
 
-router.post('/goals', auth, requireParent, async (req, res) => {
+router.post('/goals', auth, async (req, res) => {
   try {
-    const { childId, name, targetAmount, jar, description, deadline } = req.body;
-    const child = await User.findOne({ id: childId, familyId: req.user.familyId, role: 'child' });
-    if (!child) {
-      return res.status(404).json({ message: "Child not found or does not belong to your family." });
+    const { childId, name, targetAmount, jar, description, deadline, templateId, milestones } = req.body;
+
+    let targetUserId;
+    let parentId = req.user._id;
+
+    // Determine the target user (goal owner)
+    if (req.user.role === 'parent') {
+      // Parents can create goals for their children
+      if (!childId) {
+        return res.status(400).json({ message: "childId is required for parent goal creation." });
+      }
+      const child = await User.findOne({ id: childId, familyId: req.user.familyId, role: 'child' });
+      if (!child) {
+        return res.status(404).json({ message: "Child not found or does not belong to your family." });
+      }
+      targetUserId = child._id;
+    } else if (req.user.role === 'child') {
+      // Children can create goals for themselves
+      targetUserId = req.user._id;
+      // For children, parent is their assigned parent
+      const childUser = await User.findById(req.user._id);
+      parentId = childUser.parentId || req.user._id; // fallback to self if no parent
+    } else {
+      return res.status(403).json({ message: "Invalid user role for goal creation." });
     }
 
     const goalData = {
-      parent: req.user._id,
-      user: child._id,
+      parent: parentId,
+      user: targetUserId,
       name,
       targetAmount,
       jar,
@@ -648,6 +668,8 @@ router.post('/goals', auth, requireParent, async (req, res) => {
     // Add optional fields if provided
     if (description) goalData.description = description;
     if (deadline) goalData.deadline = new Date(deadline);
+    if (templateId) goalData.templateId = templateId;
+    if (milestones) goalData.milestones = milestones;
 
     const goal = new Goal(goalData);
     const savedGoal = await goal.save();
@@ -2205,6 +2227,81 @@ router.post('/fix-parent-child-relationships', auth, requireParent, async (req, 
       familyId: req.user.familyId
     });
     res.status(500).json({ message: 'Failed to fix parent-child relationships' });
+  }
+});
+
+// Analytics routes
+router.get('/analytics/family/:familyId', auth, async (req, res) => {
+  try {
+    const { familyId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    // Verify user has access to this family
+    if (req.user.familyId !== familyId) {
+      return res.status(403).json({ message: 'Not authorized to view analytics for this family' });
+    }
+
+    // Get all family members
+    const familyMembers = await User.find({ familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
+
+    if (familyMembers.length === 0) {
+      return res.status(404).json({ message: 'No family members found' });
+    }
+
+    // Build date filter
+    let dateFilter = {};
+    if (startDate || endDate) {
+      dateFilter = {};
+      if (startDate) dateFilter.$gte = new Date(startDate);
+      if (endDate) dateFilter.$lte = new Date(endDate);
+    } else {
+      // Default to last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      dateFilter = { $gte: thirtyDaysAgo };
+    }
+
+    // Get family transactions
+    const transactions = await Transaction.find({
+      user: { $in: familyMembers.map(m => m._id) },
+      createdAt: dateFilter
+    }).sort({ createdAt: -1 });
+
+    // Get family chores
+    const chores = await Chore.find({
+      user: { $in: familyMembers.map(m => m._id) }
+    }).select('name points frequency useDefaultSplit customSplit');
+
+    // Get family goals
+    const goals = await Goal.find({
+      user: { $in: familyMembers.map(m => m._id) },
+      $or: [
+        { status: 'active' },
+        { status: 'completed' },
+        { updatedAt: dateFilter }
+      ]
+    }).select('name targetAmount currentAmount deadline status jar createdAt');
+
+    // Get one family member for settings (they should be the same)
+    const familyUser = familyMembers[0];
+
+    // Return aggregated data
+    res.json({
+      transactions,
+      chores,
+      goals,
+      user: familyUser,
+      familyMembers: familyMembers.map(m => ({
+        id: m.id,
+        name: m.name,
+        role: m.role,
+        totalPoints: (m.currentPoints || 0) + (m.savePoints || 0) + (m.spendPoints || 0) + (m.donatePoints || 0) + (m.investPoints || 0)
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error fetching analytics data:', error);
+    res.status(500).json({ message: 'Failed to fetch analytics data', error: error.message });
   }
 });
 
