@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from "@react-native-picker/picker";
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
   RefreshControl,
@@ -17,7 +17,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 const styles = StyleSheet.create({
@@ -129,120 +129,66 @@ export default function MoneyJarsScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const router = useRouter();
 
-  // Load user data and jar values from backend
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const token = await getAuthToken();
-        const storedUser = await AsyncStorage.getItem('user');
+  // Consolidated data loading function to prevent race conditions
+  const loadUserData = async (showErrors = true) => {
+    try {
+      const token = await getAuthToken();
+      const storedUser = await AsyncStorage.getItem('user');
 
-        if (!token || !storedUser) {
+      if (!token || !storedUser) {
+        if (showErrors) {
           Alert.alert('Error', 'Not authenticated. Please login again.');
-          return;
-}
+        }
+        return;
+      }
 
-/* (daysUntilPayout now moved above for type safety and correct hoisting) */
-
-        const user = JSON.parse(storedUser);
-        const userId = user.id;
+      const user = JSON.parse(storedUser);
+      const userId = user.id;
 
       const response = await fetch(`${API_URL}/users/${userId}`, {
         headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-        if (!response.ok) {
+      if (!response.ok) {
+        if (showErrors) {
           throw new Error('Failed to load user data');
         }
-
-        const freshUserData = await response.json();
-
-        setJars([
-          { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
-          { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
-          { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
-          { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
-          { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
-        ]);
-
-      } catch (error) {
-        console.error('Error loading user data:', error);
-        Alert.alert('Error', 'Failed to load user data. Please try again.');
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    loadUserData();
-  }, []);
+      const freshUserData = await response.json();
 
+      setJars([
+        { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
+        { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
+        { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
+        { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
+        { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
+      ]);
+
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      if (showErrors) {
+        Alert.alert('Error', 'Failed to load user data. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Single useFocusEffect to handle all data loading scenarios
   useFocusEffect(
     React.useCallback(() => {
-      // Reload data when screen comes into focus
-      const reloadData = async () => {
-        try {
-          const token = await getAuthToken();
-          const storedUser = await AsyncStorage.getItem('user');
-
-          if (!token || !storedUser) return;
-
-          const user = JSON.parse(storedUser);
-          const userId = user.id;
-
-          const response = await fetch(`${API_URL}/users/${userId}`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-
-          if (response.ok) {
-            const freshUserData = await response.json();
-            setJars([
-              { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
-              { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
-              { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
-              { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
-              { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
-            ]);
-          }
-        } catch (error) {
-          console.error('Error reloading data:', error);
-        }
-      };
-
-      reloadData();
+      loadUserData();
     }, [])
   );
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    try {
-      const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
-
-      if (!token || !storedUser) return;
-
-      const user = JSON.parse(storedUser);
-      const userId = user.id;
-
-          const response = await fetch(`${API_URL}/users/${userId}`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-
-      if (response.ok) {
-        const freshUserData = await response.json();
-        setJars([
-          { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
-          { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
-          { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
-          { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
-          { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
-        ]);
-      }
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-    } finally {
-      setRefreshing(false);
-    }
+    await loadUserData(false); // Don't show errors on refresh
   }, []);
 
   if (loading) {

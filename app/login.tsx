@@ -1,7 +1,5 @@
-import { API_URL } from '@/utils/config';
 import { saveAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 
@@ -14,14 +12,16 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
 
-// --- CONSTANTS ---
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_MINUTES = 5;
+// Import the new components
+import AccountRecovery from '@/components/AccountRecovery';
+import ChildLogin from '@/components/ChildLogin';
+import LoginForm from '@/components/LoginForm';
+import OTPLogin from '@/components/OTPLogin';
+
 type LoginMethod = 'email' | 'mobile';
 
 const { width } = Dimensions.get('window');
@@ -35,7 +35,6 @@ const SUCCESS_GREEN = '#4CAF50';
 const ERROR_RED = '#E53935';
 const INACTIVE_GRAY = '#E0E0E0';
 const TEXT_DARK = '#223366';
-const INPUT_BG = '#F7F9FC';
 
 // --- IMAGE ASSET MAP ---
 const featureImages = [
@@ -74,320 +73,23 @@ export default function LoginScreen() {
   const { themeColors } = useTheme();
   const [userType, setUserType] = useState<'parent' | 'child'>('parent');
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('email');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [pin, setPin] = useState('');
-  const [attempts, setAttempts] = useState(0);
-  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
-
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [otp, setOtp] = useState('');
-  const [userId, setUserId] = useState<string | null>(null);
-  const [otpSent, setOtpSent] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-
-  const [statusMessage, setStatusMessage] = useState('');
   const [isDeactivatedAccount, setIsDeactivatedAccount] = useState(false);
-  const [reactivationIdentifier, setReactivationIdentifier] = useState('');
-  const [reactivationOtp, setReactivationOtp] = useState('');
-  const [reactivationOtpSent, setReactivationOtpSent] = useState(false);
-  const [reactivationSuccess, setReactivationSuccess] = useState(false);
   const router = useRouter();
-  const now = Date.now();
-
-  React.useEffect(() => {
-    if (lockoutUntil && now > lockoutUntil) {
-      setAttempts(0);
-      setLockoutUntil(null);
-      setStatusMessage('');
-    }
-  }, [lockoutUntil, now]);
-
-  // Additional check for rate limiting messages
-  React.useEffect(() => {
-    if (statusMessage && statusMessage.includes('Too many') && statusMessage.includes('wait')) {
-      // If there's a rate limit message, check if local lockout has expired
-      const hasLockout = lockoutUntil && Date.now() < lockoutUntil;
-      if (!hasLockout && statusMessage.includes('Too many failed attempts')) {
-        // Local lockout expired, clear the message so user can try again
-        setStatusMessage('');
-        setAttempts(0);
-      }
-      // For server-side rate limiting messages, don't auto-clear them
-    }
-  }, [statusMessage, lockoutUntil]);
-
-  // OTP resend timer
-  React.useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer(prev => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [resendTimer]);
-
-  const handleEmailLogin = async () => {
-    if (lockoutUntil && Date.now() < lockoutUntil) {
-      const waitMins = Math.ceil((lockoutUntil - Date.now()) / 60000);
-      setStatusMessage(`Too many failed attempts. Try again in ${waitMins} minute(s).`);
-      return;
-    }
-    if (email.trim().length === 0 || password.trim().length === 0) {
-      setStatusMessage('Please enter both email and password.');
-      return;
-    }
-
-    try {
-      setStatusMessage('Logging in...');
-
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password: password.trim(),
-        }),
-      });
-
-      // Handle both JSON and plain text responses (for rate limiting)
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        // If JSON parsing fails (e.g., plain text 429 response), create a basic error object
-        data = { message: 'Request failed' };
-      }
-
-      if (!response.ok) {
-        // Check if account is deactivated and requires reactivation
-        if (data.requiresReactivation) {
-          setIsDeactivatedAccount(true);
-          setStatusMessage('This account has been deactivated. Please reactivate your account.');
-          // Clear any existing identifier - user must enter mobile number fresh
-          setReactivationIdentifier('');
-          return;
-        }
-
-        // Check if account is locked due to brute force protection
-        if (response.status === 403 && data.lockoutRemaining) {
-          setLockoutUntil(Date.now() + data.lockoutRemaining * 60000);
-          setStatusMessage(data.message || 'Account is temporarily locked.');
-          return;
-        }
-
-        // Check for rate limiting (429 Too Many Requests)
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-
-          // Provide more informative messaging based on wait time
-          let message = '';
-          if (waitTime <= 60) {
-            message = `Too many login attempts. Please wait ${waitTime} seconds before trying again.`;
-          } else if (waitTime <= 300) { // 5 minutes
-            message = `Too many login attempts. Please wait ${Math.ceil(waitTime / 60)} minutes before trying again.`;
-          } else {
-            message = `Too many login attempts. Please wait a while before trying again (about ${Math.ceil(waitTime / 60)} minutes).`;
-          }
-
-          setStatusMessage(message);
-          return;
-        }
-
-        // Update local attempts counter based on server response
-        if (data.attemptsRemaining !== undefined) {
-          setAttempts(MAX_ATTEMPTS - data.attemptsRemaining);
-        } else {
-          setAttempts(prev => prev + 1);
-        }
-
-        setStatusMessage(data.message || 'Invalid email or password.');
-        return;
-      }
-
-      setAttempts(0);
-      setLockoutUntil(null);
-
-      await handleLoginSuccess(data);
-    } catch (error) {
-      // Authentication error tracking
-      console.error('Email login error:', error, {
-        feature: 'auth',
-        action: 'email-login',
-        email: email.trim(),
-        attempts,
-        hasLockout: !!lockoutUntil
-      });
-
-      // TODO: Add Sentry error capture when package is properly configured
-      // Sentry.captureException(error, {
-      //   tags: { feature: 'auth', action: 'email-login' },
-      //   extra: { email: email.trim(), attempts, hasLockout: !!lockoutUntil }
-      // });
-
-      setStatusMessage('Network error. Please try again.');
-    }
-  };
-
-  const handleSendOTP = async () => {
-    if (!mobileNumber.trim()) {
-      setStatusMessage('Please enter your mobile number.');
-      return;
-    }
-
-    const mobileRegex = /^\+91\d{10}$/;
-    if (!mobileRegex.test(mobileNumber.trim())) {
-      setStatusMessage('Please enter a valid Indian mobile number (+91XXXXXXXXXX)');
-      return;
-    }
-
-    try {
-      setStatusMessage('Sending OTP...');
-
-      const response = await fetch(`${API_URL}/auth/send-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          mobileNumber: mobileNumber.trim(),
-        }),
-      });
-
-      // Handle both JSON and plain text responses (for rate limiting)
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        // If JSON parsing fails (e.g., plain text 429 response), create a basic error object
-        data = { message: 'Request failed' };
-      }
-
-      if (!response.ok) {
-        // Check for rate limiting (429 Too Many Requests)
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-          setStatusMessage(`Too many OTP requests. Please wait ${waitTime} seconds before trying again.`);
-          return;
-        }
-        setStatusMessage(data.message || 'Failed to send OTP. Please try again.');
-        return;
-      }
-
-      setUserId(data.userId);
-      setOtpSent(true);
-      setResendTimer(60);
-      setStatusMessage('?? OTP sent to your mobile number!');
-    } catch (error) {
-      // Authentication error tracking
-      console.error('Send OTP error:', error, {
-        feature: 'auth',
-        action: 'send-otp',
-        mobileNumber: mobileNumber.trim()
-      });
-
-      // TODO: Add Sentry error capture when package is properly configured
-      // Sentry.captureException(error, {
-      //   tags: { feature: 'auth', action: 'send-otp' },
-      //   extra: { mobileNumber: mobileNumber.trim() }
-      // });
-
-      setStatusMessage('Network error. Please try again.');
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!otp.trim()) {
-      setStatusMessage('Please enter the OTP.');
-      return;
-    }
-
-    if (!userId) {
-      setStatusMessage('Session expired. Please request OTP again.');
-      return;
-    }
-
-    try {
-      setStatusMessage('Verifying OTP...');
-
-      const response = await fetch(`${API_URL}/auth/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          otp: otp.trim(),
-        }),
-      });
-
-      // Handle both JSON and plain text responses (for rate limiting)
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        // If JSON parsing fails (e.g., plain text 429 response), create a basic error object
-        data = { message: 'Request failed' };
-      }
-
-      if (!response.ok) {
-        // Check for rate limiting (429 Too Many Requests)
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-          setStatusMessage(`Too many OTP verification attempts. Please wait ${waitTime} seconds before trying again.`);
-          return;
-        }
-        setStatusMessage(data.message || 'Invalid OTP. Please try again.');
-        return;
-      }
-
-      await handleLoginSuccess(data);
-    } catch (error) {
-      // Authentication error tracking
-      console.error('Verify OTP error:', error, {
-        feature: 'auth',
-        action: 'verify-otp',
-        hasUserId: !!userId,
-        otpLength: otp.trim().length
-      });
-
-      // TODO: Add Sentry error capture when package is properly configured
-      // Sentry.captureException(error, {
-      //   tags: { feature: 'auth', action: 'verify-otp' },
-      //   extra: { hasUserId: !!userId, otpLength: otp.trim().length }
-      // });
-
-      setStatusMessage('Network error. Please try again.');
-    }
-  };
 
   const handleLoginSuccess = async (data: any) => {
     // Check if account is deactivated
     if (data.user.status === 'deactivated') {
       setIsDeactivatedAccount(true);
-      setStatusMessage('This account is currently deactivated.');
-      // Store the identifier for reactivation
-      if (userType === 'parent') {
-        setReactivationIdentifier(loginMethod === 'email' ? email : mobileNumber);
-      }
       return;
     }
 
     try {
       await saveAuthToken(data.token);
-      await AsyncStorage.setItem('user', JSON.stringify(data.user));
+      // Note: User data storage removed - using secure token only
     } catch (storageError) {
       console.error('Failed to store auth data:', storageError);
     }
 
-    setStatusMessage(' Login successful!');
     setTimeout(() => {
       if (data.user.role === 'parent') {
         router.replace('/parent-dashboard');
@@ -403,270 +105,14 @@ export default function LoginScreen() {
 
   const switchToMobileLogin = () => {
     setLoginMethod('mobile');
-    setStatusMessage('');
-    setOtpSent(false);
-    setOtp('');
-    setUserId(null);
-    setResendTimer(0);
   };
 
   const switchToEmailLogin = () => {
     setLoginMethod('email');
-    setStatusMessage('');
   };
 
-  const handleChildLogin = async () => {
-    if (!username.trim() || !pin.trim()) {
-      setStatusMessage('Please enter both username and PIN.');
-      return;
-    }
-
-    try {
-      setStatusMessage('Logging in...');
-
-      const response = await fetch(`${API_URL}/auth/child-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          pin: pin.trim(),
-        }),
-      });
-
-      // Handle both JSON and plain text responses (for rate limiting)
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        // If JSON parsing fails (e.g., plain text 429 response), create a basic error object
-        data = { message: 'Request failed' };
-      }
-
-      if (!response.ok) {
-        // Check if account is deactivated and requires reactivation
-        if (data.requiresReactivation) {
-          setIsDeactivatedAccount(true);
-          setStatusMessage('This account has been deactivated. Please reactivate your account.');
-          return;
-        }
-
-        // Check if account is locked due to brute force protection
-        if (response.status === 403 && data.lockoutRemaining) {
-          setLockoutUntil(Date.now() + data.lockoutRemaining * 60000);
-          setStatusMessage(data.message || 'Account is temporarily locked.');
-          return;
-        }
-
-        // Check for rate limiting (429 Too Many Requests)
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-          setStatusMessage(`Too many login attempts. Please wait ${waitTime} seconds before trying again.`);
-          return;
-        }
-
-        // Update local attempts counter based on server response
-        if (data.attemptsRemaining !== undefined) {
-          setAttempts(MAX_ATTEMPTS - data.attemptsRemaining);
-        } else {
-          setAttempts(prev => prev + 1);
-        }
-
-        setStatusMessage(data.message || 'Forgot your PIN? Please ask your Parent to reset it in their Settings.');
-        return;
-      }
-
-      // Check if account is deactivated before proceeding
-      if (data.user.status === 'deactivated') {
-        setIsDeactivatedAccount(true);
-        setStatusMessage('This account is currently deactivated.');
-        return;
-      }
-
-      setAttempts(0);
-      setLockoutUntil(null);
-
-      await handleLoginSuccess(data);
-    } catch (error) {
-      // Authentication error tracking
-      console.error('Child login error:', error, {
-        feature: 'auth',
-        action: 'child-login',
-        username: username.trim(),
-        hasPin: !!pin.trim()
-      });
-
-      // TODO: Add Sentry error capture when package is properly configured
-      // Sentry.captureException(error, {
-      //   tags: { feature: 'auth', action: 'child-login' },
-      //   extra: { username: username.trim(), hasPin: !!pin.trim() }
-      // });
-
-      setStatusMessage('Network error. Please try again.');
-    }
-  };
-
-  // Account reactivation functions
-  const handleRequestReactivationOTP = async () => {
-    console.log('Reactivation identifier:', reactivationIdentifier);
-    console.log('Reactivation identifier trimmed:', reactivationIdentifier.trim());
-
-    if (!reactivationIdentifier.trim()) {
-      setStatusMessage('Please enter your mobile number.');
-      return;
-    }
-
-    // Validate mobile number format
-    const mobileRegex = /^\+91\d{10}$/;
-    const isValid = mobileRegex.test(reactivationIdentifier.trim());
-    console.log('Mobile validation result:', isValid, 'for:', reactivationIdentifier.trim());
-
-    if (!isValid) {
-      setStatusMessage('Please enter a valid 10-digit mobile number.');
-      return;
-    }
-
-    try {
-      setStatusMessage('Sending reactivation OTP...');
-
-      const response = await fetch(`${API_URL}/auth/request-reactivation-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          identifier: reactivationIdentifier.trim(),
-        }),
-      });
-
-      // Handle both JSON and plain text responses (for rate limiting)
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        // If JSON parsing fails (e.g., plain text 429 response), create a basic error object
-        data = { message: 'Request failed' };
-      }
-
-      if (!response.ok) {
-        // Check for rate limiting (429 Too Many Requests)
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-          setStatusMessage(`Too many reactivation requests. Please wait ${waitTime} seconds before trying again.`);
-          return;
-        }
-        console.error('Reactivation OTP error:', data);
-        setStatusMessage(data.message || 'Failed to send reactivation OTP.');
-        return;
-      }
-
-      setReactivationOtpSent(true);
-      setStatusMessage('Reactivation OTP sent! Check your mobile for the code.');
-    } catch (error) {
-      // Authentication error tracking
-      console.error('Request reactivation OTP error:', error, {
-        feature: 'auth',
-        action: 'request-reactivation-otp',
-        reactivationIdentifier: reactivationIdentifier.trim()
-      });
-
-      // TODO: Add Sentry error capture when package is properly configured
-      // Sentry.captureException(error, {
-      //   tags: { feature: 'auth', action: 'request-reactivation-otp' },
-      //   extra: { reactivationIdentifier: reactivationIdentifier.trim() }
-      // });
-
-      setStatusMessage('Network error. Please try again.');
-    }
-  };
-
-  const handleReactivateAccount = async () => {
-    if (!reactivationOtp.trim()) {
-      setStatusMessage('Please enter the OTP.');
-      return;
-    }
-
-    try {
-      setStatusMessage('Reactivating account...');
-
-      const response = await fetch(`${API_URL}/auth/reactivate-account`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          identifier: reactivationIdentifier.trim(),
-          otp: reactivationOtp.trim(),
-        }),
-      });
-
-      // Handle both JSON and plain text responses (for rate limiting)
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        // If JSON parsing fails (e.g., plain text 429 response), create a basic error object
-        data = { message: 'Request failed' };
-      }
-
-      if (!response.ok) {
-        // Check for rate limiting (429 Too Many Requests)
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-          setStatusMessage(`Too many reactivation attempts. Please wait ${waitTime} seconds before trying again.`);
-          return;
-        }
-        setStatusMessage(data.message || 'Failed to reactivate account.');
-        return;
-      }
-
-      // Show success message for 2-3 seconds
-      setReactivationSuccess(true);
-      setStatusMessage('Account reactivated successfully! Please login now.');
-
-      // After 3 seconds, reset to normal login state
-      setTimeout(() => {
-        setReactivationSuccess(false);
-        setIsDeactivatedAccount(false);
-        setReactivationOtpSent(false);
-        setReactivationOtp('');
-        // Reset login form
-        setEmail('');
-        setPassword('');
-        setMobileNumber('');
-        setOtp('');
-        setOtpSent(false);
-        setStatusMessage('');
-      }, 3000);
-    } catch (error) {
-      // Authentication error tracking
-      console.error('Reactivate account error:', error, {
-        feature: 'auth',
-        action: 'reactivate-account',
-        reactivationIdentifier: reactivationIdentifier.trim(),
-        otpLength: reactivationOtp.trim().length
-      });
-
-      // TODO: Add Sentry error capture when package is properly configured
-      // Sentry.captureException(error, {
-      //   tags: { feature: 'auth', action: 'reactivate-account' },
-      //   extra: { reactivationIdentifier: reactivationIdentifier.trim(), otpLength: reactivationOtp.trim().length }
-      // });
-
-      setStatusMessage('Network error. Please try again.');
-    }
-  };
-
-  const handleCancelReactivation = () => {
+  const handleReactivationSuccess = () => {
     setIsDeactivatedAccount(false);
-    setReactivationIdentifier('');
-    setReactivationOtp('');
-    setReactivationOtpSent(false);
-    setStatusMessage('');
   };
 
   return (
@@ -699,79 +145,10 @@ export default function LoginScreen() {
             {/* --- LOGIN CARD --- */}
             <View style={styles.card}>
               {isDeactivatedAccount ? (
-                <>
-                  <Text style={styles.welcomeTitle}>Account Reactivation</Text>
-                  <Text style={styles.title}>Reactivate Account</Text>
-
-                  <Text style={{ fontSize: 14, color: "#666", textAlign: 'center', marginBottom: 20, lineHeight: 20 }}>
-                    Your family account has been temporarily deactivated. Enter your registered email or mobile number to receive a reactivation OTP.
-                  </Text>
-
-                  {!reactivationOtpSent ? (
-                    <>
-                      <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Mobile Number</Text>
-                        <View style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          borderWidth: 1,
-                          borderColor: '#D0D7E4',
-                          borderRadius: 14,
-                          backgroundColor: '#F7F9FC',
-                        }}>
-                          <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 13, backgroundColor: '#e8f4ff', borderRightWidth: 1, borderRightColor: '#D0D7E4' }}>
-                            <Text style={{ fontSize: 16, fontWeight: '600', color: '#4166ee' }}>+91</Text>
-                          </TouchableOpacity>
-                          <TextInput
-                            placeholder="Enter 10-digit mobile number"
-                            value={reactivationIdentifier.replace(/^\+91/, '')}
-                            onChangeText={val => {
-                              const digits = val.replace(/\D/g, '').slice(0, 10);
-                              setReactivationIdentifier(`+91${digits}`);
-                            }}
-                            style={{ flex: 1, padding: 13, fontSize: 16, color: '#223366', backgroundColor: 'transparent' }}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            keyboardType="phone-pad"
-                            maxLength={10}
-                            placeholderTextColor="#999"
-                          />
-                        </View>
-                      </View>
-                      <View style={styles.buttonRow}>
-                        <TouchableOpacity style={styles.button} onPress={handleRequestReactivationOTP}>
-                          <Text style={styles.buttonText}>Send Reactivation OTP</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.button, styles.backButton]} onPress={handleCancelReactivation}>
-                          <Text style={[styles.buttonText, styles.backButtonText]}>Cancel</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Enter Reactivation OTP</Text>
-                        <TextInput
-                          placeholder="6-digit OTP sent to your mobile"
-                          value={reactivationOtp}
-                          onChangeText={setReactivationOtp}
-                          style={styles.input}
-                          keyboardType="numeric"
-                          maxLength={6}
-                          placeholderTextColor="#999"
-                        />
-                      </View>
-                      <View style={styles.buttonRow}>
-                        <TouchableOpacity style={styles.button} onPress={handleReactivateAccount}>
-                          <Text style={styles.buttonText}>Reactivate Account</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.button, styles.backButton]} onPress={handleCancelReactivation}>
-                          <Text style={[styles.buttonText, styles.backButtonText]}>Cancel</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
-                  )}
-                </>
+                <AccountRecovery
+                  onReactivationSuccess={handleReactivationSuccess}
+                  onCancel={() => setIsDeactivatedAccount(false)}
+                />
               ) : (
                 <>
                   <Text style={styles.welcomeTitle}>Welcome Back</Text>
@@ -820,182 +197,16 @@ export default function LoginScreen() {
                       </View>
 
                       {loginMethod === 'email' ? (
-                        <>
-                          <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Email Address</Text>
-                            <TextInput
-                              placeholder="Enter your email"
-                              value={email}
-                              onChangeText={setEmail}
-                              style={styles.input}
-                              autoCapitalize="none"
-                              autoCorrect={false}
-                              keyboardType="email-address"
-                              textContentType="emailAddress"
-                              placeholderTextColor="#999"
-                            />
-                          </View>
-                          <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Password</Text>
-                            <TextInput
-                              placeholder="Enter your password"
-                              value={password}
-                              onChangeText={setPassword}
-                              style={styles.input}
-                              autoCapitalize="none"
-                              autoCorrect={false}
-                              secureTextEntry
-                              textContentType="password"
-                              placeholderTextColor="#999"
-                            />
-                          </View>
-                          <View style={styles.forgotPasswordContainer}>
-                            <TouchableOpacity onPress={() => router.push('/forgot-password')}>
-                              <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
-                            </TouchableOpacity>
-                          </View>
-                          <View style={styles.buttonRow}>
-                            <TouchableOpacity style={styles.button} onPress={handleEmailLogin}>
-                              <Text style={styles.buttonText}>Sign In</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.button, styles.backButton]} onPress={handleBack}>
-                              <Text style={[styles.buttonText, styles.backButtonText]}>Back</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </>
+                        <LoginForm onLoginSuccess={handleLoginSuccess} onBack={handleBack} />
                       ) : (
-                        <>
-                          {!otpSent ? (
-                            <>
-                              <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Mobile Number</Text>
-                                <View style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  borderWidth: 1,
-                                  borderColor: '#D0D7E4',
-                                  borderRadius: 14,
-                                  backgroundColor: '#F7F9FC',
-                                }}>
-                                  <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 13, backgroundColor: '#e8f4ff', borderRightWidth: 1, borderRightColor: '#D0D7E4' }}>
-                                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#4166ee' }}>+91</Text>
-                                  </TouchableOpacity>
-                                  <TextInput
-                                    placeholder="Enter 10-digit mobile number"
-                                    value={mobileNumber.replace(/^\+91/, '')}
-                                    onChangeText={val => {
-                                      // Only allow 10 numeric digits, store as "+91" + digits
-                                      const digits = val.replace(/\D/g, '').slice(0, 10);
-                                      setMobileNumber(`+91${digits}`);
-                                    }}
-                                    style={{ flex: 1, padding: 13, fontSize: 16, color: '#223366', backgroundColor: 'transparent' }}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                    keyboardType="phone-pad"
-                                    maxLength={10}
-                                    placeholderTextColor="#999"
-                                  />
-                                </View>
-                              </View>
-                              <View style={styles.buttonRow}>
-                                <TouchableOpacity style={styles.button} onPress={handleSendOTP}>
-                                  <Text style={styles.buttonText}>Send OTP</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.button, styles.backButton]} onPress={handleBack}>
-                                  <Text style={[styles.buttonText, styles.backButtonText]}>Back</Text>
-                                </TouchableOpacity>
-                              </View>
-                            </>
-                          ) : (
-                            <>
-                              <View style={styles.inputGroup}>
-                                <Text style={styles.inputLabel}>Enter OTP</Text>
-                                <TextInput
-                                  placeholder="6-digit OTP"
-                                  value={otp}
-                                  onChangeText={setOtp}
-                                  style={styles.input}
-                                  autoCapitalize="characters"
-                                  autoCorrect={false}
-                                  keyboardType="default"
-                                  maxLength={6}
-                                  placeholderTextColor="#999"
-                                />
-                              </View>
-                              <View style={styles.buttonRow}>
-                                <TouchableOpacity style={styles.button} onPress={handleVerifyOTP}>
-                                  <Text style={styles.buttonText}>Verify OTP</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.button, styles.backButton]} onPress={handleBack}>
-                                  <Text style={[styles.buttonText, styles.backButtonText]}>Back</Text>
-                                </TouchableOpacity>
-                              </View>
-                              {resendTimer > 0 ? (
-                                <Text style={styles.resendText}>
-                                  Resend OTP in {resendTimer} seconds
-                                </Text>
-                              ) : (
-                                <TouchableOpacity onPress={handleSendOTP}>
-                                  <Text style={styles.resendLink}>Resend OTP</Text>
-                                </TouchableOpacity>
-                              )}
-                            </>
-                          )}
-                        </>
+                        <OTPLogin onLoginSuccess={handleLoginSuccess} onBack={handleBack} />
                       )}
                     </>
                   )}
 
                   {userType === 'child' && (
-                    <>
-                      <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>Username</Text>
-                        <TextInput
-                          placeholder="Enter your username"
-                          value={username}
-                          onChangeText={setUsername}
-                          style={styles.input}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          placeholderTextColor="#999"
-                        />
-                      </View>
-                      <View style={styles.inputGroup}>
-                        <Text style={styles.inputLabel}>PIN</Text>
-                        <TextInput
-                          placeholder="Enter your 4-6 digit PIN"
-                          value={pin}
-                          onChangeText={val => setPin(val.replace(/\D/g, '').slice(0, 6))}
-                          style={styles.input}
-                          keyboardType="numeric"
-                          maxLength={6}
-                          secureTextEntry
-                          placeholderTextColor="#999"
-                        />
-                      </View>
-                      <View style={styles.buttonRow}>
-                        <TouchableOpacity style={styles.button} onPress={handleChildLogin}>
-                          <Text style={styles.buttonText}>Sign In</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.button, styles.backButton]} onPress={handleBack}>
-                          <Text style={[styles.buttonText, styles.backButtonText]}>Back</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
+                    <ChildLogin onLoginSuccess={handleLoginSuccess} onBack={handleBack} />
                   )}
-
-                  {statusMessage ? (
-                    <Text
-                      style={[
-                        styles.statusMessage,
-                        statusMessage.includes('success') || statusMessage.includes('OTP sent')
-                          ? styles.success
-                          : styles.error
-                      ]}
-                    >
-                      {statusMessage}
-                    </Text>
-                  ) : null}
 
                   <View style={styles.signupPromptContainer}>
                     <Text style={styles.signupPromptText}>Don't have an account?</Text>
@@ -1150,7 +361,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     fontSize: 16,
-    backgroundColor: INPUT_BG,
+    backgroundColor: '#F7F9FC',
     color: TEXT_DARK
   },
 

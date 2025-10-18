@@ -9,13 +9,54 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 /**
  * Calculate a readable next interest payout date string.
  * Placeholder: For demo, next payout is exactly 7 or 30 days away if no backend timestamp, else uses child's lastPayoutDate if available.
  */
 import type { InterestRuleType } from "@/utils/currencyContext";
+
+// Enhanced empty state component with progressive onboarding
+const EmptyState = () => {
+  const router = useRouter();
+  const { themeColors } = useTheme();
+
+  return (
+    <View style={styles.emptyContainer}>
+      <Image
+        source={require('@/assets/images/placeholder-family.png')}
+        style={styles.emptyImage}
+        resizeMode="contain"
+      />
+      <Text style={[styles.emptyTitle, { color: themeColors.primary }]}>
+        Welcome to Family Finance Hub!
+      </Text>
+      <Text style={[styles.emptyDescription, { color: themeColors.text }]}>
+        Start teaching your child about money management by adding their profile.
+      </Text>
+      <View style={styles.onboardingSteps}>
+        <Text style={[styles.onboardingStep, { color: themeColors.textSecondary }]}>
+          • Set up money pots and goals
+        </Text>
+        <Text style={[styles.onboardingStep, { color: themeColors.textSecondary }]}>
+          • Approve spending requests
+        </Text>
+        <Text style={[styles.onboardingStep, { color: themeColors.textSecondary }]}>
+          • Track financial learning progress
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={[styles.primaryButton, { backgroundColor: themeColors.success }]}
+        onPress={() => router.push('/addChild')}
+      >
+        <Text style={[styles.primaryButtonText, { color: themeColors.card }]}>
+          Add Your First Child
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 export default function ParentsOverviewScreen() {
   const router = useRouter();
@@ -30,20 +71,42 @@ export default function ParentsOverviewScreen() {
   const { interestRule } = useCurrency();
   const [refreshing, setRefreshing] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+    notifications: true,  // Always expanded if there are unread notifications
+    interest: false,      // Collapsed by default - secondary info
+    pots: true,          // Expanded by default - core child status
+  });
 
   // Notifications state
   const [notifications, setNotifications] = useState<{ _id?: string; message: string; isRead?: boolean }[]>([]);
   const [notifLoading, setNotifLoading] = useState(true);
   const [notifError, setNotifError] = useState<string | null>(null);
 
-  // -- Global cache for childData, local state for notifications only --
+  // Progressive loading states
+  const [loadingPhase, setLoadingPhase] = useState<'critical' | 'secondary' | 'complete'>('critical');
+
+  // -- Progressive data loading with prioritization --
   useFocusEffect(
     useCallback(() => {
-      if (isDataStale('childData')) {
-        fetchChildData();
-      }
-      loadNotifications();
-    }, [isDataStale, fetchChildData])
+      const loadData = async () => {
+        setLoadingPhase('critical');
+
+        // Load critical data first (child data)
+        if (isDataStale('childData')) {
+          await fetchChildData();
+        }
+        setLoadingPhase('secondary');
+
+        // Then load secondary data with delay
+        setTimeout(() => {
+          loadNotifications();
+          setLoadingPhase('complete');
+        }, 100);
+      };
+
+      loadData();
+    }, [fetchChildData]) // Remove isDataStale from dependencies as it's stable
   );
 
   // Check for refresh parameter and update data
@@ -154,10 +217,12 @@ export default function ParentsOverviewScreen() {
           style={{
             backgroundColor: themeColors.accent,
             borderRadius: 16,
-            paddingHorizontal: 8,
-            paddingVertical: 4,
+            paddingHorizontal: 16, // Increased from 8 for accessibility
+            paddingVertical: 12,  // Increased from 4 for accessibility
             elevation: 2,
-            minWidth: 32,
+            minWidth: 48,         // Explicit minimum for accessibility
+            minHeight: 48,        // Explicit minimum for accessibility
+            justifyContent: 'center',
             alignItems: 'center',
           }}
           onPress={() => setHelpModalVisible(true)}
@@ -179,19 +244,32 @@ export default function ParentsOverviewScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Interest Payout Info */}
+      {/* Interest Payout Info - Collapsible */}
       {interestRule && childData && (
         <View style={[styles.sectionCard, { backgroundColor: themeColors.surface, borderColor: themeColors.success, borderWidth: 1, shadowColor: themeColors.border }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.success }]}>💸 Next Interest Payout</Text>
-          <Text style={{ fontSize: 15, color: themeColors.text, marginBottom: 6 }}>
-            <Text style={{ fontWeight: 'bold' }}>Savings Pot Balance:</Text> {childData.savePoints}
-          </Text>
-          <Text style={{ fontSize: 15, color: themeColors.text, marginBottom: 6 }}>
-            <Text style={{ fontWeight: 'bold' }}>Interest Rate:</Text> {interestRule.rate}% {interestRule.frequency === 'monthly' ? 'per month' : 'per week'}
-          </Text>
-          <Text style={{ fontSize: 15, color: themeColors.text }}>
-            <Text style={{ fontWeight: 'bold' }}>Next Payout Date:</Text> {getNextInterestPayout(interestRule, childData)}
-          </Text>
+          <TouchableOpacity
+            style={styles.sectionHeader}
+            onPress={() => setExpandedSections(prev => ({ ...prev, interest: !prev.interest }))}
+          >
+            <Text style={[styles.sectionTitle, { color: themeColors.success }]}>💸 Next Interest Payout</Text>
+            <Text style={[styles.expandIcon, { color: themeColors.textSecondary }]}>
+              {expandedSections.interest ? '▼' : '▶'}
+            </Text>
+          </TouchableOpacity>
+
+          {expandedSections.interest && (
+            <View style={styles.expandedContent}>
+              <Text style={{ fontSize: 15, color: themeColors.text, marginBottom: 6 }}>
+                <Text style={{ fontWeight: 'bold' }}>Savings Pot Balance:</Text> {childData.savePoints}
+              </Text>
+              <Text style={{ fontSize: 15, color: themeColors.text, marginBottom: 6 }}>
+                <Text style={{ fontWeight: 'bold' }}>Interest Rate:</Text> {interestRule.rate}% {interestRule.frequency === 'monthly' ? 'per month' : 'per week'}
+              </Text>
+              <Text style={{ fontSize: 15, color: themeColors.text }}>
+                <Text style={{ fontWeight: 'bold' }}>Next Payout Date:</Text> {getNextInterestPayout(interestRule, childData)}
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -234,70 +312,125 @@ export default function ParentsOverviewScreen() {
             </View>
           </View>
         ) : (
-          <View>
-            <Text style={styles.placeholder}>
-              No child is linked to your account. Add a child to manage their pots.
-            </Text>
-            <TouchableOpacity
-              style={[styles.quickBtn, { backgroundColor: themeColors.success, alignSelf: 'center', marginTop: 16, minWidth: 200 }]}
-              onPress={() => router.push('/addChild')}
-            >
-              <Text style={[styles.quickBtnText, { color: themeColors.card }]}>
-                👶 Add Your Child
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState />
         )}
       </View>
 
-      {/* Quick Actions */}
-      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>What Can I Do?</Text>
-        <View style={styles.quickActions}>
+      {/* Quick Actions - Grouped by Priority */}
+      <View style={[styles.actionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Quick Actions</Text>
+
+        {/* Primary Actions - Most frequently used */}
+        <View style={styles.primaryActions}>
           <TouchableOpacity
-            style={[styles.quickBtn, { backgroundColor: themeColors.primary }]}
+            style={[styles.primaryActionBtn, { backgroundColor: themeColors.primary }]}
             onPress={() => router.push('/(parents-tabs)/requests')}
           >
-            <Text style={[styles.quickBtnText, { color: themeColors.card }]}>Check Requests</Text>
+            <Text style={[styles.primaryActionText, { color: themeColors.card }]}>📋</Text>
+            <Text style={[styles.primaryActionLabel, { color: themeColors.card }]}>Check Requests</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.quickBtn, { backgroundColor: themeColors.accent }]}
+            style={[styles.primaryActionBtn, { backgroundColor: themeColors.success }]}
             onPress={() => router.push('/(parents-tabs)/points')}
           >
-            <Text style={[styles.quickBtnText, { color: themeColors.card }]}>Give Pocket Money</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickBtn, { backgroundColor: themeColors.secondary }]}
-            onPress={() => router.push('/(parents-tabs)/goals')}
-          >
-            <Text style={[styles.quickBtnText, { color: themeColors.card }]}>Set Child Goals</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickBtn, { backgroundColor: themeColors.warning }]}
-            onPress={() => router.push('/(parents-tabs)/chores')}
-          >
-            <Text style={[styles.quickBtnText, { color: themeColors.card }]}>Add Home Tasks</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickBtn, { backgroundColor: themeColors.accent }]}
-            onPress={() => router.push('/(parents-tabs)/rewards')}
-          >
-            <Text style={[styles.quickBtnText, { color: themeColors.card }]}>Manage Rewards</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickBtn, { backgroundColor: themeColors.primary }]}
-            onPress={() => router.push('/(parents-tabs)/analytics')}
-          >
-            <Text style={[styles.quickBtnText, { color: themeColors.card }]}>View Progress</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickBtn, { backgroundColor: themeColors.secondary }]}
-            onPress={() => router.push('/(parents-tabs)/transaction-history')}
-          >
-            <Text style={[styles.quickBtnText, { color: themeColors.card }]}>See History</Text>
+            <Text style={[styles.primaryActionText, { color: themeColors.card }]}>💰</Text>
+            <Text style={[styles.primaryActionLabel, { color: themeColors.card }]}>Give Pocket Money</Text>
           </TouchableOpacity>
         </View>
+
+        {/* More Actions Button */}
+        <TouchableOpacity
+          style={[styles.moreActionsBtn, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}
+          onPress={() => setShowMoreActions(true)}
+        >
+          <Text style={[styles.moreActionsText, { color: themeColors.text }]}>More Actions ▼</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* More Actions Modal */}
+      <Modal
+        visible={showMoreActions}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowMoreActions(false)}
+      >
+        <View style={styles.moreActionsModal}>
+          <TouchableOpacity
+            style={styles.moreActionsModal}
+            activeOpacity={1}
+            onPress={() => setShowMoreActions(false)}
+          >
+            <View style={styles.moreActionsSheet}>
+              <Text style={[styles.moreActionsTitle, { color: themeColors.text }]}>All Actions</Text>
+
+              <View style={styles.moreActionsGrid}>
+                <TouchableOpacity
+                  style={[styles.moreActionBtn, { backgroundColor: themeColors.secondary }]}
+                  onPress={() => {
+                    setShowMoreActions(false);
+                    router.push('/(parents-tabs)/goals');
+                  }}
+                >
+                  <Text style={styles.moreActionEmoji}>🎯</Text>
+                  <Text style={[styles.moreActionText, { color: themeColors.card }]}>Set Child Goals</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreActionBtn, { backgroundColor: themeColors.warning }]}
+                  onPress={() => {
+                    setShowMoreActions(false);
+                    router.push('/(parents-tabs)/chores');
+                  }}
+                >
+                  <Text style={styles.moreActionEmoji}>🧹</Text>
+                  <Text style={[styles.moreActionText, { color: themeColors.card }]}>Add Home Tasks</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreActionBtn, { backgroundColor: themeColors.accent }]}
+                  onPress={() => {
+                    setShowMoreActions(false);
+                    router.push('/(parents-tabs)/rewards');
+                  }}
+                >
+                  <Text style={styles.moreActionEmoji}>🎁</Text>
+                  <Text style={[styles.moreActionText, { color: themeColors.card }]}>Manage Rewards</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreActionBtn, { backgroundColor: themeColors.primary }]}
+                  onPress={() => {
+                    setShowMoreActions(false);
+                    router.push('/(parents-tabs)/analytics');
+                  }}
+                >
+                  <Text style={styles.moreActionEmoji}>📊</Text>
+                  <Text style={[styles.moreActionText, { color: themeColors.card }]}>View Progress</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreActionBtn, { backgroundColor: themeColors.secondary }]}
+                  onPress={() => {
+                    setShowMoreActions(false);
+                    router.push('/(parents-tabs)/transaction-history');
+                  }}
+                >
+                  <Text style={styles.moreActionEmoji}>📜</Text>
+                  <Text style={[styles.moreActionText, { color: themeColors.card }]}>See History</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.moreActionBtn, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}
+                  onPress={() => setShowMoreActions(false)}
+                >
+                  <Text style={styles.moreActionEmoji}>❌</Text>
+                  <Text style={[styles.moreActionText, { color: themeColors.text }]}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
       {/* Help Modal */}
       <HelpModal
@@ -546,7 +679,12 @@ const styles = StyleSheet.create({
     minWidth: 320,
     width: '97%',
     maxWidth: 520,
-    elevation: 2,
+    elevation: 8,  // Higher than regular cards for critical notifications
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 10,
   },
   notificationTitle: {
     fontSize: 18,
@@ -574,14 +712,160 @@ const styles = StyleSheet.create({
   navBtn: { backgroundColor: '#78d2eb', borderRadius: 8, marginHorizontal: 4, paddingVertical: 8, paddingHorizontal: 16 },
   navBtnText: { color: '#155674', fontWeight: 'bold', fontSize: 16 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: '#194476' },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: '#aaa' },
+  sectionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 2, shadowColor: '#aaa' }, // Standard elevation for regular cards
+  actionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 4, shadowColor: '#aaa', borderWidth: 2, borderColor: '#1976D2' }, // Higher elevation for action sections
   sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8, color: '#226' },
   placeholder: { color: '#999', fontStyle: 'italic', fontSize: 15, marginBottom: 1, marginTop: 2, minHeight: 26 },
   quickActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  quickBtn: { backgroundColor: '#d7b5fb', padding: 12, borderRadius: 8, margin: 4, minWidth: 140, alignItems: 'center' },
+  quickBtn: {
+    backgroundColor: '#d7b5fb',
+    padding: 16,          // Increased from 12 to meet 48dp accessibility
+    borderRadius: 8,
+    margin: 4,
+    minWidth: 160,        // Increased from 140
+    minHeight: 48,        // Added explicit minimum height
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   quickBtnText: { fontWeight: '700', color: '#50317a', fontSize: 15 },
   jarsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 10 },
   jar: { borderRadius: 14, padding: 18, minWidth: 80, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
   jarLabel: { fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
   jarValue: { fontSize: 18, fontWeight: 'bold' },
+  // Empty state styles
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyImage: {
+    width: 200,
+    height: 150,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emptyDescription: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  onboardingSteps: {
+    alignSelf: 'stretch',
+    marginBottom: 30,
+  },
+  onboardingStep: {
+    fontSize: 16,
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  primaryButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    minWidth: 200,
+    alignItems: 'center',
+    elevation: 3,
+  },
+  primaryButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  // More actions modal styles
+  moreActionsModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  moreActionsSheet: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '60%',
+  },
+  moreActionsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  moreActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  moreActionBtn: {
+    width: '48%',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  moreActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  moreActionEmoji: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  // Primary actions styles
+  primaryActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  primaryActionBtn: {
+    flex: 1,
+    padding: 20,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    alignItems: 'center',
+    elevation: 3,
+  },
+  primaryActionText: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  primaryActionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  moreActionsBtn: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  moreActionsText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Collapsible section styles
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  expandIcon: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  expandedContent: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
 });

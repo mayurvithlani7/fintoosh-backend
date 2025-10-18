@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import React, { memo, useCallback, useEffect, useState } from "react";
 import {
   RefreshControl,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -488,14 +489,16 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   if (error) {
     const ErrorCard = require('@/components/ui/ErrorCard').default;
     return (
-      <ScrollView
-        contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <ErrorCard error={error} onRetry={loadUserData} />
-      </ScrollView>
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <ErrorCard error={error} onRetry={loadUserData} />
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -504,43 +507,46 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     const SkeletonCard = require('@/components/ui/SkeletonCard').default;
     const SkeletonJar = require('@/components/ui/SkeletonJar').default;
     return (
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {/* Title Skeleton */}
+          <SkeletonCard height={38} width={150} style={{ alignSelf: "center", marginBottom: 10, marginTop: 6 }} />
+
+          {/* Total Points Skeleton */}
+          <SkeletonCard height={75} width={"96%"} borderRadius={16} style={{ marginBottom: 15 }} />
+
+          {/* Jars Skeleton Grid */}
+          <SkeletonCard height={32} width={120} style={{ marginBottom: 15 }} />
+          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 10, width: "100%" }}>
+            {[...Array(5)].map((_, i) => (
+              <SkeletonJar key={i} size={75} />
+            ))}
+          </View>
+          {/* Quick Actions Skeleton */}
+          <SkeletonCard height={28} width={130} style={{ marginBottom: 10, marginTop: 10 }} />
+          {[...Array(5)].map((_, i) => (
+            <SkeletonCard key={i + "qa"} height={36} width={"98%"} borderRadius={12} style={{ marginBottom: 11 }} />
+          ))}
+          {/* Activity Feed Placeholder */}
+          <SkeletonCard height={32} width={"92%"} borderRadius={10} style={{ marginTop: 26 }} />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Title Skeleton */}
-        <SkeletonCard height={38} width={150} style={{ alignSelf: "center", marginBottom: 10, marginTop: 6 }} />
-
-        {/* Total Points Skeleton */}
-        <SkeletonCard height={75} width={"96%"} borderRadius={16} style={{ marginBottom: 15 }} />
-
-        {/* Jars Skeleton Grid */}
-        <SkeletonCard height={32} width={120} style={{ marginBottom: 15 }} />
-        <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 10, width: "100%" }}>
-          {[...Array(5)].map((_, i) => (
-            <SkeletonJar key={i} size={75} />
-          ))}
-        </View>
-        {/* Quick Actions Skeleton */}
-        <SkeletonCard height={28} width={130} style={{ marginBottom: 10, marginTop: 10 }} />
-        {[...Array(5)].map((_, i) => (
-          <SkeletonCard key={i + "qa"} height={36} width={"98%"} borderRadius={12} style={{ marginBottom: 11 }} />
-        ))}
-        {/* Activity Feed Placeholder */}
-        <SkeletonCard height={32} width={"92%"} borderRadius={10} style={{ marginTop: 26 }} />
-      </ScrollView>
-    );
-  }
-
-  return (
-    <ScrollView
-      contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
       
 
       {/* Notifications */}
@@ -996,7 +1002,8 @@ onPress={() => router.push('./transaction-history')}
         }}
         onDismiss={() => setGuidedTourVisible(false)}
       />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 });
 

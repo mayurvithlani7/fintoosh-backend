@@ -11,11 +11,16 @@
     "primaryColor": "#6A49F3",
     "description": "Wise Kids. Smarter Money. - A family finance management app for parents and children to learn money management through fun tasks and games.",
     "privacy": "public",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fintoosh.app",
-      "buildNumber": "1.0.0"
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app requires camera access for future features",
+        "NSMicrophoneUsageDescription": "This app requires microphone access for future features",
+        "NSPhotoLibraryUsageDescription": "This app requires photo library access for future features"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,12 +31,6 @@
       },
       "package": "com.fintoosh.app",
       "versionCode": 1,
-      "keystore": {
-        "keystorePath": "../fintoosh-keystore/fintoosh.keystore",
-        "keystorePassword": "1234567890",
-        "keyAlias": "fintoosh-key",
-        "keyPassword": "1234567890"
-      },
       "web": {
         "output": "static",
         "favicon": "./assets/images/favicon.png"

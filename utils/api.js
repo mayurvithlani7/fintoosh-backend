@@ -30,16 +30,24 @@ async function getToken() {
 
 // --- Requests ---
 export async function fetchRequestsForUser(userId, token = null) {
-  const authToken = token || await getToken();
-  const headers = authToken ? { "Authorization": "Bearer " + authToken } : {};
-  const res = await fetch(`${API_URL}/requests/${userId}`, { headers });
-  if (!res.ok) {
-    if (res.status >= 400 && res.status < 600 && globalShowError) {
-      globalShowError("Request failed. Please try again.");
+  try {
+    const authToken = token || await getToken();
+    const headers = authToken ? { "Authorization": "Bearer " + authToken } : {};
+    const res = await fetch(`${API_URL}/requests/${userId}`, { headers });
+    if (!res.ok) {
+      if (res.status >= 400 && res.status < 600 && globalShowError) {
+        globalShowError("Request failed. Please try again.");
+      }
+      throw new Error("Failed to fetch requests");
     }
-    throw new Error("Failed to fetch requests");
+    return res.json();
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'requests', action: 'fetch' },
+      extra: { userId, hasToken: !!token }
+    });
+    throw error;
   }
-  return res.json();
 }
 
 export async function submitRequest(requestData, token = null) {
@@ -124,59 +132,83 @@ export async function patchChore(choreId, patchFields, token = null) {
 
 // --- Goals ---
 export async function fetchGoals(userId, token = null) {
-  const authToken = token || await getToken();
-  const headers = authToken ? { "Authorization": "Bearer " + authToken } : {};
-  const res = await fetch(`${API_URL}/goals/${userId}`, { headers });
-  if (!res.ok) {
-    if (res.status >= 400 && res.status < 600 && globalShowError) {
-      globalShowError("Request failed. Please try again.");
+  try {
+    const authToken = token || await getToken();
+    const headers = authToken ? { "Authorization": "Bearer " + authToken } : {};
+    const res = await fetch(`${API_URL}/goals/${userId}`, { headers });
+    if (!res.ok) {
+      if (res.status >= 400 && res.status < 600 && globalShowError) {
+        globalShowError("Request failed. Please try again.");
+      }
+      throw new Error("Failed to fetch goals");
     }
-    throw new Error("Failed to fetch goals");
+    return res.json();
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'goals', action: 'fetch' },
+      extra: { userId, hasToken: !!token }
+    });
+    throw error;
   }
-  return res.json();
 }
 
 // --- Rewards ---
 export async function fetchRewards(userId, token = null) {
-  const authToken = token || await getToken();
-  const headers = authToken ? { "Authorization": "Bearer " + authToken } : {};
-  const res = await fetch(`${API_URL}/rewards/${userId}`, { headers });
-  if (!res.ok) {
-    if (res.status >= 400 && res.status < 600 && globalShowError) {
-      globalShowError("Request failed. Please try again.");
+  try {
+    const authToken = token || await getToken();
+    const headers = authToken ? { "Authorization": "Bearer " + authToken } : {};
+    const res = await fetch(`${API_URL}/rewards/${userId}`, { headers });
+    if (!res.ok) {
+      if (res.status >= 400 && res.status < 600 && globalShowError) {
+        globalShowError("Request failed. Please try again.");
+      }
+      throw new Error("Failed to fetch rewards");
     }
-    throw new Error("Failed to fetch rewards");
+    return res.json();
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'rewards', action: 'fetch' },
+      extra: { userId, hasToken: !!token }
+    });
+    throw error;
   }
-  return res.json();
 }
 
 // --- Add Reward (Parent) ---
 export async function addReward({ childId, name, cost, description, category }, token = null) {
-  const authToken = token || await getToken();
-  const headers = {
-    "Content-Type": "application/json",
-    ...(authToken ? { "Authorization": "Bearer " + authToken } : {})
-  };
-  const body = {
-    childId,
-    name,
-    cost,
-  };
-  if (description) body.description = description;
-  if (category) body.category = category;
-  const res = await fetch(`${API_URL}/rewards`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    if (res.status >= 400 && res.status < 600 && globalShowError) {
-      globalShowError("Request failed. Please try again.");
+  try {
+    const authToken = token || await getToken();
+    const headers = {
+      "Content-Type": "application/json",
+      ...(authToken ? { "Authorization": "Bearer " + authToken } : {})
+    };
+    const body = {
+      childId,
+      name,
+      cost,
+    };
+    if (description) body.description = description;
+    if (category) body.category = category;
+    const res = await fetch(`${API_URL}/rewards`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      if (res.status >= 400 && res.status < 600 && globalShowError) {
+        globalShowError("Request failed. Please try again.");
+      }
+      const err = await res.json().catch(() => ({}));
+      throw new Error("Failed to add reward: " + (err.message || res.status));
     }
-    const err = await res.json().catch(() => ({}));
-    throw new Error("Failed to add reward: " + (err.message || res.status));
+    return res.json();
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'rewards', action: 'add' },
+      extra: { childId, name, cost, description, category, hasToken: !!token }
+    });
+    throw error;
   }
-  return res.json();
 }
 
 // --- Update User (for jars/points/etc) ---
@@ -237,15 +269,23 @@ export async function createTransaction(transactionData, token = null) {
 }
 
 export async function fetchTransactions(userId, token = null) {
-  const headers = token ? { "Authorization": "Bearer " + token } : {};
-  const res = await fetch(`${API_URL}/transactions/${userId}`, { headers });
-  if (!res.ok) {
-    if (res.status >= 400 && res.status < 600 && globalShowError) {
-      globalShowError("Request failed. Please try again.");
+  try {
+    const headers = token ? { "Authorization": "Bearer " + token } : {};
+    const res = await fetch(`${API_URL}/transactions/${userId}`, { headers });
+    if (!res.ok) {
+      if (res.status >= 400 && res.status < 600 && globalShowError) {
+        globalShowError("Request failed. Please try again.");
+      }
+      throw new Error("Failed to fetch transactions");
     }
-    throw new Error("Failed to fetch transactions");
+    return res.json();
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'transactions', action: 'fetch' },
+      extra: { userId, hasToken: !!token }
+    });
+    throw error;
   }
-  return res.json();
 }
 
 // --- Get User by ID ---
@@ -271,54 +311,78 @@ export async function fetchUser(userId, token) {
 
 // --- Get Family Children ---
 export async function fetchFamilyChildren(familyId, token) {
-  const headers = token ? { "Authorization": "Bearer " + token } : {};
-  const res = await fetch(`${API_URL}/users?familyId=${familyId}&role=child`, { headers });
-  if (!res.ok) {
-    if (res.status >= 400 && res.status < 600 && globalShowError) {
-      globalShowError("Request failed. Please try again.");
+  try {
+    const headers = token ? { "Authorization": "Bearer " + token } : {};
+    const res = await fetch(`${API_URL}/users?familyId=${familyId}&role=child`, { headers });
+    if (!res.ok) {
+      if (res.status >= 400 && res.status < 600 && globalShowError) {
+        globalShowError("Request failed. Please try again.");
+      }
+      throw new Error("Failed to fetch family children");
     }
-    throw new Error("Failed to fetch family children");
+    return res.json();
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'users', action: 'fetch-family-children' },
+      extra: { familyId, hasToken: !!token }
+    });
+    throw error;
   }
-  return res.json();
 }
 
 export async function fetchNotifications(userId, token = null) {
-  const headers = token ? { "Authorization": "Bearer " + token } : {};
-  const res = await fetch(`${API_URL}/notifications?userId=${userId}`, { headers });
-  if (!res.ok) {
-    // Handle rate limiting specifically
-    if (res.status === 429) {
-      const retryAfter = res.headers.get('Retry-After');
-      const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-      if (globalShowError) {
-        globalShowError(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
+  try {
+    const headers = token ? { "Authorization": "Bearer " + token } : {};
+    const res = await fetch(`${API_URL}/notifications?userId=${userId}`, { headers });
+    if (!res.ok) {
+      // Handle rate limiting specifically
+      if (res.status === 429) {
+        const retryAfter = res.headers.get('Retry-After');
+        const waitTime = retryAfter ? parseInt(retryAfter) : 60;
+        if (globalShowError) {
+          globalShowError(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
+        }
+        throw new Error(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
       }
-      throw new Error(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
+      if (res.status >= 400 && res.status < 600 && globalShowError) {
+        globalShowError("Request failed. Please try again.");
+      }
+      throw new Error("Failed to fetch notifications");
     }
-    if (res.status >= 400 && res.status < 600 && globalShowError) {
-      globalShowError("Request failed. Please try again.");
-    }
-    throw new Error("Failed to fetch notifications");
+    return res.json();
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'notifications', action: 'fetch' },
+      extra: { userId, hasToken: !!token }
+    });
+    throw error;
   }
-  return res.json();
 }
 
 export async function markNotificationRead(notifId, token = null) {
-  const headers = {
-    "Content-Type": "application/json",
-    ...(token ? { "Authorization": "Bearer " + token } : {})
-  };
-  const res = await fetch(`${API_URL}/notifications/${notifId}`, {
-    method: "PATCH",
-    headers
-  });
-  if (!res.ok) {
-    if (res.status >= 400 && res.status < 600 && globalShowError) {
-      globalShowError("Failed to mark notification as read");
+  try {
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": "Bearer " + token } : {})
+    };
+    const res = await fetch(`${API_URL}/notifications/${notifId}`, {
+      method: "PATCH",
+      headers
+    });
+    if (!res.ok) {
+      if (res.status >= 400 && res.status < 600 && globalShowError) {
+        globalShowError("Failed to mark notification as read");
+      }
+      throw new Error("Failed to mark notification as read");
     }
-    throw new Error("Failed to mark notification as read");
+    return res.json();
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'notifications', action: 'mark-read' },
+      extra: { notifId, hasToken: !!token }
+    });
+    throw error;
   }
-  return res.json();
 }
 
 export default {

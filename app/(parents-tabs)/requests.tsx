@@ -184,37 +184,70 @@ export default function ParentsRequestsScreen() {
     }
   };
 
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'denied'>('pending');
-
-  // State for showing archived requests
+  const [filter, setFilter] = useState<'pending' | 'approved' | 'denied'>('pending');
   const [showArchived, setShowArchived] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [errorState, setErrorState] = useState<{
+    type: 'network' | 'auth' | 'server' | null;
+    message: string;
+    retryAction?: () => void;
+  } | null>(null);
 
   const now = new Date();
   const ninetyDaysAgo = new Date(now);
   ninetyDaysAgo.setDate(now.getDate() - 90);
 
-  // Filtering with 90-day default for approved/denied
+  // Simplified filtering logic
   let baseRequests: typeof requests = [];
   let showArchiveButton = false;
+
   if (filter === "approved" || filter === "denied") {
     const statusLabel = filter === "approved" ? "Approved" : "Denied";
     const recent = requests.filter(r => r.status === statusLabel && new Date(r.createdAt) >= ninetyDaysAgo);
     const archived = requests.filter(r => r.status === statusLabel && new Date(r.createdAt) < ninetyDaysAgo);
-    baseRequests = recent;
+    baseRequests = showArchived ? [...recent, ...archived] : recent;
     showArchiveButton = archived.length > 0;
-    if (showArchived) {
-      baseRequests = [...recent, ...archived].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }
   } else {
-    baseRequests = requests.filter(req => {
-      switch (filter) {
-        case 'pending': return req.status === 'Pending';
-        case 'all': return true;
-        default: return req.status === 'Pending';
-      }
-    });
+    // Pending filter
+    baseRequests = requests.filter(req => req.status === 'Pending');
   }
-  const filteredRequests = baseRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // Apply search filter
+  const searchedRequests = baseRequests.filter(req =>
+    searchQuery === '' ||
+    req.childName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    req.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    req.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredRequests = searchedRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // Error display component
+  const ErrorDisplay = () => (
+    errorState ? (
+      <View style={styles.sectionCard}>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorTitle, { color: themeColors.error }]}>
+            ⚠️ {errorState.type === 'network' ? 'Connection Problem' :
+                errorState.type === 'auth' ? 'Authentication Required' :
+                'Something Went Wrong'}
+          </Text>
+          <Text style={[styles.errorMessage, { color: themeColors.text }]}>{errorState.message}</Text>
+          {errorState.retryAction && (
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: themeColors.primary }]}
+              onPress={() => {
+                setErrorState(null);
+                errorState.retryAction!();
+              }}
+            >
+              <Text style={[styles.retryButtonText, { color: themeColors.card }]}>Try Again</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    ) : null
+  );
 
   return (
     <ScrollView
@@ -241,26 +274,58 @@ export default function ParentsRequestsScreen() {
       </View>
       <Text style={styles.title}>Child's Requests</Text>
 
-      {/* Filter Buttons */}
+      {/* Search and Filter Section */}
       <View style={styles.sectionCard}>
-<Text style={[styles.sectionTitle, { marginBottom: 6 }]}>Sort Requests</Text>
-        <View style={styles.filterRow}>
-          {[
-            { key: 'pending', label: 'Pending', count: requests.filter(r => r.status === 'Pending').length },
-            { key: 'approved', label: 'Approved', count: requests.filter(r => r.status === 'Approved').length },
-            { key: 'denied', label: 'Denied', count: requests.filter(r => r.status === 'Denied').length },
-            { key: 'all', label: 'All', count: requests.length }
-          ].map(({ key, label, count }) => (
+        <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Find Requests</Text>
+
+        {/* Search Input */}
+        <TextInput
+          style={[styles.searchInput, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
+          placeholder="Search by child name, request type..."
+          placeholderTextColor={themeColors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+
+        {/* Filter Chips */}
+        <View style={styles.filterChips}>
+          <TouchableOpacity
+            style={[styles.chip, { backgroundColor: filter === 'pending' ? themeColors.primary : themeColors.surface }]}
+            onPress={() => setFilter('pending')}
+          >
+            <Text style={[styles.chipText, { color: filter === 'pending' ? themeColors.card : themeColors.text }]}>
+              🕐 Pending ({requests.filter(r => r.status === 'Pending').length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.chip, { backgroundColor: filter === 'approved' ? themeColors.success : themeColors.surface }]}
+            onPress={() => setFilter('approved')}
+          >
+            <Text style={[styles.chipText, { color: filter === 'approved' ? themeColors.card : themeColors.text }]}>
+              ✅ Approved ({requests.filter(r => r.status === 'Approved').length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.chip, { backgroundColor: filter === 'denied' ? themeColors.error : themeColors.surface }]}
+            onPress={() => setFilter('denied')}
+          >
+            <Text style={[styles.chipText, { color: filter === 'denied' ? themeColors.card : themeColors.text }]}>
+              ❌ Denied ({requests.filter(r => r.status === 'Denied').length})
+            </Text>
+          </TouchableOpacity>
+
+          {(filter === "approved" || filter === "denied") && showArchiveButton && (
             <TouchableOpacity
-              key={key}
-              style={[styles.filterBtn, { backgroundColor: filter === key ? themeColors.secondary : themeColors.surface }, filter === key && styles.filterBtnActive]}
-              onPress={() => setFilter(key as any)}
+              style={[styles.chip, { backgroundColor: showArchived ? themeColors.accent : themeColors.surface }]}
+              onPress={() => setShowArchived(!showArchived)}
             >
-              <Text style={[styles.filterBtnText, { color: filter === key ? themeColors.card : themeColors.text }]}>
-                {label} ({count})
+              <Text style={[styles.chipText, { color: showArchived ? themeColors.card : themeColors.text }]}>
+                📁 {showArchived ? 'Show Recent' : 'Show Archive'}
               </Text>
             </TouchableOpacity>
-          ))}
+          )}
         </View>
       </View>
 
@@ -288,7 +353,7 @@ export default function ParentsRequestsScreen() {
                 ? showArchived
                   ? "No denied requests found."
                   : "No denied requests in the past 90 days."
-                : `No ${filter === 'all' ? '' : filter.toLowerCase() + ' '}requests.`}
+                : searchQuery ? `No ${filter.toLowerCase()} requests match "${searchQuery}".` : `No ${filter.toLowerCase()} requests.`}
           </Text>
         </View>
       ) : (
@@ -769,6 +834,36 @@ const styles = StyleSheet.create({
   filterBtnActive: { backgroundColor: '#4CAF50' },
   filterBtnText: { color: '#666', fontSize: 14, fontWeight: '600' },
   filterBtnTextActive: { color: '#fff' },
+  // New styles for search and filter chips
+  searchInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 16,
+    backgroundColor: '#f8f9fa',
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 1,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   messagesContainer: { marginTop: 12, marginBottom: 8 },
   messageBubble: { padding: 10, borderRadius: 12, marginBottom: 8, maxWidth: '80%' },
   childMessage: { backgroundColor: '#e3f2fd', alignSelf: 'flex-start' },
@@ -791,4 +886,33 @@ const styles = StyleSheet.create({
   messageInput: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, textAlignVertical: 'top' },
   sendButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, minWidth: 60, alignItems: 'center' },
   sendButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  // Error display styles
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
