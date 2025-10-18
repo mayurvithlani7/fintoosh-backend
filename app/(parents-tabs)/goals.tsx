@@ -1,4 +1,5 @@
 import BackButton from '@/components/BackButton';
+import GoalTemplates from '@/components/GoalTemplates';
 import HelpModal from '@/components/HelpModal';
 import ValidationMessage from '@/components/ui/ValidationMessage';
 import { API_URL } from '@/utils/config';
@@ -56,6 +57,7 @@ export default function ParentsGoalsScreen() {
   const [showAllCompleted, setShowAllCompleted] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [editingGoal, setEditingGoal] = useState<any>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
   const scrollViewRef = React.useRef<ScrollView>(null);
 
   const jarOptions = [
@@ -164,13 +166,22 @@ export default function ParentsGoalsScreen() {
 
   const { showError, showFeedback } = useGlobalFeedback();
   const handleAddGoal = async () => {
+    console.log('[PARENTS GOALS] handleAddGoal called', {
+      goal: goal.trim(),
+      pointsNeeded: pointsNeeded.trim(),
+      selectedChild,
+      selectedJar,
+      editingGoal: !!editingGoal
+    });
 
     if (!goal.trim() || !pointsNeeded.trim()) {
+      console.log('[PARENTS GOALS] Validation failed: missing goal or points');
       showError('Please enter a goal and points amount.');
       return;
     }
 
     if (isNaN(Number(pointsNeeded)) || Number(pointsNeeded) <= 0) {
+      console.log('[PARENTS GOALS] Validation failed: invalid points amount');
       showError('Please enter a valid points amount (>0).');
       return;
     }
@@ -181,18 +192,24 @@ export default function ParentsGoalsScreen() {
       today.setHours(0,0,0,0);
       const deadlineDate = new Date(deadline.trim());
       if (isNaN(deadlineDate.getTime())) {
+        console.log('[PARENTS GOALS] Validation failed: invalid deadline');
         showError('Please enter a valid deadline date (YYYY-MM-DD).');
         return;
       }
       if (deadlineDate < today) {
+        console.log('[PARENTS GOALS] Validation failed: deadline in past');
         showError('Deadline can\'t be in the past. Please pick today or a future date.');
         return;
       }
     }
 
     try {
+      console.log('[PARENTS GOALS] Getting auth token...');
       const token = await getAuthToken();
+      console.log('[PARENTS GOALS] Token retrieved:', token ? `${token.substring(0, 20)}...` : 'null');
+
       if (!token) {
+        console.log('[PARENTS GOALS] No token found');
         showError('Not authenticated. Please login again.');
         return;
       }
@@ -212,33 +229,48 @@ export default function ParentsGoalsScreen() {
       }
 
       let response;
+      let apiUrl;
       if (editingGoal) {
         // Update existing goal
-        response = await fetch(`${API_URL}/goals/${editingGoal._id}`, {
+        apiUrl = `${API_URL}/goals/${editingGoal._id}`;
+        console.log('[PARENTS GOALS] Updating goal:', apiUrl, requestBody);
+        response = await fetch(apiUrl, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(requestBody),
         });
       } else {
         // Add new goal
         requestBody.childId = selectedChild;
-        response = await fetch(`${API_URL}/goals`, {
+        apiUrl = `${API_URL}/goals`;
+        console.log('[PARENTS GOALS] Creating goal:', apiUrl, requestBody);
+        response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(requestBody),
         });
       }
 
+      console.log('[PARENTS GOALS] API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: apiUrl
+      });
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: editingGoal ? 'Failed to update goal' : 'Failed to add goal' }));
+        console.log('[PARENTS GOALS] API Error:', errorData);
         throw new Error(errorData.message || (editingGoal ? 'Failed to update goal' : 'Failed to add goal'));
       }
+
+      const responseData = await response.json();
+      console.log('[PARENTS GOALS] API Success:', responseData);
 
       setGoal('');
       setDescription('');
@@ -251,13 +283,41 @@ export default function ParentsGoalsScreen() {
       // Refresh goals list
       loadGoals();
     } catch (err: any) {
-      console.error('Error saving goal:', err);
+      console.error('[PARENTS GOALS] Error saving goal:', err);
       showError(err.message || (editingGoal ? 'Failed to update goal. Please try again.' : 'Failed to add goal. Please try again.'));
     }
   };
 
   const handleChildChange = (childId: string) => {
     setSelectedChild(childId);
+  };
+
+  // Handle template selection for parents
+  const handleTemplateSelect = (template: any) => {
+    // Pre-populate the form with template data
+    setGoal(template.name);
+    setPointsNeeded(template.targetAmount.toString());
+    setDescription(template.description);
+
+    // Set jar to the one with highest allocation
+    const jarAllocations = template.jarAllocations as Record<string, number>;
+    const primaryJar = Object.entries(jarAllocations).reduce((a, b) => jarAllocations[a[0]] > jarAllocations[b[0]] ? a : b)[0];
+    setSelectedJar(primaryJar);
+
+    // Calculate deadline from duration
+    const deadlineDate = new Date(Date.now() + template.duration * 24 * 60 * 60 * 1000);
+    const formattedDeadline = deadlineDate.toISOString().split('T')[0];
+    setDeadline(formattedDeadline);
+
+    // Close modal
+    setShowTemplates(false);
+
+    // Clear any validation errors
+    setGoalNameError(null);
+    setPointsError(null);
+
+    // Scroll to top to show the form
+    scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
   };
 
   return (
@@ -324,7 +384,20 @@ export default function ParentsGoalsScreen() {
 
       {/* Add/Edit Goal Form */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>{editingGoal ? 'Edit Goal' : 'Add New Goal'}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>{editingGoal ? 'Edit Goal' : 'Add New Goal'}</Text>
+          {!editingGoal && (
+            <TouchableOpacity
+              style={[styles.templateBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setShowTemplates(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Use goal template"
+              accessibilityHint="Browse and select from pre-made goal templates"
+            >
+              <Text style={[styles.templateBtnText, { color: themeColors.card }]}>🎯 Use Template</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={styles.formRow}>
           <View style={styles.formGroup}>
@@ -908,6 +981,13 @@ export default function ParentsGoalsScreen() {
           }
         ]}
       />
+
+      {/* Goal Templates Modal */}
+      <GoalTemplates
+        visible={showTemplates}
+        onSelect={handleTemplateSelect}
+        onClose={() => setShowTemplates(false)}
+      />
     </ScrollView>
   );
 }
@@ -977,5 +1057,17 @@ childButton: {
     fontWeight: '700',
     color: themeColors.text,
     fontSize: 15,
+  },
+  templateBtn: {
+    backgroundColor: themeColors.secondary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  templateBtnText: {
+    color: themeColors.card,
+    fontWeight: '600',
+    fontSize: 12,
   },
 });

@@ -1,3 +1,4 @@
+import GoalTemplates from '@/components/GoalTemplates';
 import HelpModal from '@/components/HelpModal';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
@@ -655,19 +656,32 @@ function KidGoalsRewardsSection() {
     <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>My Goals</Text>
-        <TouchableOpacity
-          style={[styles.refreshBtn, { backgroundColor: loading ? themeColors.surface : themeColors.primary }]}
-          onPress={() => loadGoalsAndRewards()}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel={loading ? "Refreshing goals and rewards" : "Refresh goals and rewards"}
-          accessibilityHint="Double tap to reload your goals and available rewards"
-          accessibilityState={{ disabled: loading }}
-        >
-          <Text style={[styles.refreshBtnText, { color: loading ? themeColors.textSecondary : themeColors.card }]}>
-            {loading ? 'Refreshing...' : '🔄 Refresh'}
-          </Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={[styles.refreshBtn, { backgroundColor: themeColors.secondary, paddingHorizontal: 12, paddingVertical: 6 }]}
+            onPress={() => setShowTemplates(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Choose goal template"
+            accessibilityHint="Double tap to browse and select from goal templates"
+          >
+            <Text style={[styles.refreshBtnText, { color: themeColors.card, fontSize: 12 }]}>
+              🎯 Template
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.refreshBtn, { backgroundColor: loading ? themeColors.surface : themeColors.primary }]}
+            onPress={() => loadGoalsAndRewards()}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={loading ? "Refreshing goals and rewards" : "Refresh goals and rewards"}
+            accessibilityHint="Double tap to reload your goals and available rewards"
+            accessibilityState={{ disabled: loading }}
+          >
+            <Text style={[styles.refreshBtnText, { color: loading ? themeColors.textSecondary : themeColors.card }]}>
+              {loading ? 'Refreshing...' : '🔄 Refresh'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
       {/* Tabs for results (ALWAYS always rendered) */}
       <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 10 }}>
@@ -914,6 +928,13 @@ function KidGoalsRewardsSection() {
       </View>
 
       {msg ? <Text style={styles.statusMessage}>{msg}</Text> : null}
+
+      {/* Goal Templates Modal */}
+      <GoalTemplates
+        visible={showTemplates}
+        onSelect={handleTemplateSelect}
+        onClose={() => setShowTemplates(false)}
+      />
     </View>
   );
 

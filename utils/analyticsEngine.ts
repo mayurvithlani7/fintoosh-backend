@@ -300,7 +300,7 @@ export async function processAnalyticsData(
     if (startDate) queryParams.append('startDate', startDate);
     if (endDate) queryParams.append('endDate', endDate);
 
-    const response = await fetch(`${API_URL}/api/analytics/family/${familyId}?${queryParams}`);
+    const response = await fetch(`${API_URL}/analytics/family/${familyId}?${queryParams}`);
     if (!response.ok) {
       throw new Error('Failed to fetch analytics data');
     }
