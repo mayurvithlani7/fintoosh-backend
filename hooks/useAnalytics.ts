@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
 import { AnalyticsData, exportAnalyticsData, processAnalyticsData } from '../utils/analyticsEngine';
 
@@ -18,6 +19,27 @@ interface UseAnalyticsReturn {
 
 export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsReturn {
   const [familyId, setFamilyId] = useState<string | null>(options.familyId || null);
+
+  // Load familyId from AsyncStorage on mount
+  useEffect(() => {
+    const loadFamilyId = async () => {
+      if (!options.familyId) {
+        try {
+          const userData = await AsyncStorage.getItem('user');
+          if (userData) {
+            const user = JSON.parse(userData);
+            if (user.familyId) {
+              setFamilyId(user.familyId);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading familyId:', error);
+        }
+      }
+    };
+
+    loadFamilyId();
+  }, [options.familyId]);
   const { autoFetch = true, cacheTime = 5 * 60 * 1000 } = options; // 5 minutes default cache
 
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
