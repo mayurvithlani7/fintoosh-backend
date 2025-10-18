@@ -135,18 +135,18 @@ function ToyMarketMelaGame({ onClose, gameStyles, themeColors }: { onClose: () =
       {toys.map((toy, i) => (
         <View key={toy.name} style={{ flexDirection: "row", alignItems: "center", marginBottom: 7 }}>
           <Text style={{ width: 110 }}>{toy.emoji} {toy.name}: ₹{prices[i]} ({owned[i]} owned)</Text>
-          <TouchableOpacity style={[gameStyles.gameButton, { marginRight: 3, backgroundColor: "#ffc300" }]} onPress={() => buy(i)}>
+          <TouchableOpacity style={[gameStyles.gameButton, { marginRight: 3, backgroundColor: themeColors.warning }]} onPress={() => buy(i)}>
             <Text style={gameStyles.gameButtonText}>Buy</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[gameStyles.gameButton, { backgroundColor: "#ff6f00" }]} onPress={() => sell(i)}>
+          <TouchableOpacity style={[gameStyles.gameButton, { backgroundColor: themeColors.error }]} onPress={() => sell(i)}>
             <Text style={gameStyles.gameButtonText}>Sell</Text>
           </TouchableOpacity>
         </View>
       ))}
-      <TouchableOpacity style={[gameStyles.gameButton, { backgroundColor: "#d72660" }]} onPress={nextMelaDay}>
+      <TouchableOpacity style={[gameStyles.gameButton, { backgroundColor: themeColors.accent }]} onPress={nextMelaDay}>
         <Text style={gameStyles.gameButtonText}>Next Mela Day 🎉</Text>
       </TouchableOpacity>
-      <Text style={[gameStyles.resultText, { color: "#964b00" }]}>{message}</Text>
+      <Text style={[gameStyles.resultText, { color: themeColors.warning }]}>{message}</Text>
       <TouchableOpacity style={gameStyles.closeButton} onPress={onClose}>
         <Text style={gameStyles.closeButtonText}>Close</Text>
       </TouchableOpacity>
@@ -155,7 +155,7 @@ function ToyMarketMelaGame({ onClose, gameStyles, themeColors }: { onClose: () =
 }
 
 /* 3. Picnic Budget Challenge (Budget Challenge) */
-function PicnicBudgetChallengeGame({ onClose, gameStyles }: { onClose: () => void; gameStyles: any }) {
+function PicnicBudgetChallengeGame({ onClose, gameStyles, themeColors }: { onClose: () => void; gameStyles: any; themeColors: any }) {
   const [budget, setBudget] = useState(120);
   const [spent, setSpent] = useState(0);
   const [picked, setPicked] = useState<string[]>([]);
@@ -190,14 +190,14 @@ function PicnicBudgetChallengeGame({ onClose, gameStyles }: { onClose: () => voi
       {items.map((item, idx) => (
         <TouchableOpacity
           key={item.name}
-          style={[gameStyles.gameButton, { marginBottom: 5, backgroundColor: picked.includes(item.name) ? "#ffd166" : "#4fc1e9" }]}
+          style={[gameStyles.gameButton, { marginBottom: 5, backgroundColor: picked.includes(item.name) ? themeColors.warning : themeColors.primary }]}
           onPress={() => addItem(idx)}
           disabled={picked.includes(item.name)}
         >
           <Text style={gameStyles.gameButtonText}>{item.emoji} {item.name} (₹{item.price})</Text>
         </TouchableOpacity>
       ))}
-      <Text style={[gameStyles.resultText, { color: "#c43b0a" }]}>{message}</Text>
+      <Text style={[gameStyles.resultText, { color: themeColors.error }]}>{message}</Text>
       <Text style={{ textAlign: "center", marginTop: 8 }}>Items picked: {picked.length ? picked.join(", ") : "none chosen yet"}</Text>
       <TouchableOpacity style={gameStyles.gameButton} onPress={reset}>
         <Text style={gameStyles.gameButtonText}>Reset Choice</Text>
@@ -292,7 +292,7 @@ function StockMarketAdventureGame({ onClose, gameStyles }: { onClose: () => void
 }
 
 /* 6. Dream Jar Builder (Goal Planner) */
-function DreamJarBuilderGame({ onClose, gameStyles }: { onClose: () => void; gameStyles: any }) {
+function DreamJarBuilderGame({ onClose, gameStyles, themeColors }: { onClose: () => void; gameStyles: any; themeColors: any }) {
   const dreams = [
     { name: "Cricket Bat", target: 300, emoji: "🏏" },
     { name: "New Bicycle", target: 500, emoji: "🚲" },
@@ -323,7 +323,7 @@ function DreamJarBuilderGame({ onClose, gameStyles }: { onClose: () => void; gam
   return (
     <View style={{ padding: 10, alignItems: "center" }}>
       <Text style={gameStyles.gameModalTitle}>🥛 Dream Jar Builder</Text>
-      <Text style={{ marginBottom: 4, color: "#2564a7" }}>
+      <Text style={{ marginBottom: 4, color: themeColors.primary }}>
         Goal: {dreams[dreamIdx].emoji} {dreams[dreamIdx].name} (₹{dreams[dreamIdx].target})
       </Text>
       <View
@@ -331,10 +331,10 @@ function DreamJarBuilderGame({ onClose, gameStyles }: { onClose: () => void; gam
           marginVertical: 16,
           height: 120,
           width: 60,
-          backgroundColor: "#e0e0e0",
+          backgroundColor: themeColors.surface,
           borderRadius: 25,
           borderWidth: 2,
-          borderColor: "#adb5bd",
+          borderColor: themeColors.border,
           alignItems: "center",
           justifyContent: "flex-end",
           position: "relative",
@@ -343,18 +343,18 @@ function DreamJarBuilderGame({ onClose, gameStyles }: { onClose: () => void; gam
         <View style={{
           height: Math.max(10, (saved / dreams[dreamIdx].target) * 110),
           width: 45,
-          backgroundColor: "#b2f7ef",
+          backgroundColor: themeColors.success + "44",
           borderRadius: 20,
           marginBottom: 6,
         }} />
         <Text style={{
           position: "absolute", bottom: 50, width: "100%",
-          color: "#2564a7", fontWeight: "bold", textAlign: "center"
+          color: themeColors.primary, fontWeight: "bold", textAlign: "center"
         }}>
           {saved >= dreams[dreamIdx].target ? dreams[dreamIdx].emoji : ""}
         </Text>
       </View>
-      <Text style={{ marginBottom: 7, color: "#7b2ff2" }}>Saved: ₹{saved} / ₹{dreams[dreamIdx].target}</Text>
+      <Text style={{ marginBottom: 7, color: themeColors.primary }}>Saved: ₹{saved} / ₹{dreams[dreamIdx].target}</Text>
       <TouchableOpacity style={gameStyles.gameButton} onPress={addCoin}>
         <Text style={gameStyles.gameButtonText}>Drop Coin in Jar</Text>
       </TouchableOpacity>
@@ -655,7 +655,7 @@ function getGameComponent(gameId: string, onClose: () => void, styles: any, them
     case "stock-market":
       return <ToyMarketMelaGame onClose={onClose} gameStyles={gameStyles} themeColors={themeColors} />;
     case "budget-planner":
-      return <PicnicBudgetChallengeGame onClose={onClose} gameStyles={gameStyles} />;
+      return <PicnicBudgetChallengeGame onClose={onClose} gameStyles={gameStyles} themeColors={themeColors} />;
     case "charity-allocator":
       return <NeighbourhoodCharityGame onClose={onClose} gameStyles={gameStyles} />;
     case "savings-calculator":
@@ -663,7 +663,7 @@ function getGameComponent(gameId: string, onClose: () => void, styles: any, them
     case "stock-simulator":
       return <StockMarketAdventureGame onClose={onClose} gameStyles={gameStyles} />;
     case "goal-planner":
-      return <DreamJarBuilderGame onClose={onClose} gameStyles={gameStyles} />;
+      return <DreamJarBuilderGame onClose={onClose} gameStyles={gameStyles} themeColors={themeColors} />;
     case "risk-reward":
       return <SmartChoiceGame onClose={onClose} gameStyles={gameStyles} />;
     default:

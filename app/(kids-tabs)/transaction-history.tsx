@@ -103,7 +103,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   txJar: {
     fontWeight: "bold",
-    color: "#238216",
+    color: themeColors.success,
     marginHorizontal: 5
   },
   txDate: {
@@ -123,7 +123,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 13,
     borderRadius: 7,
-    backgroundColor: themeColors.secondary,
+    backgroundColor: themeColors.primary,
   },
   sectionTitle: {
     fontSize: 20,
@@ -413,7 +413,7 @@ export default function TransactionHistoryScreen() {
             <TypeSelect value={type} onChange={setType} themeColors={themeColors} />
           </View>
           <TouchableOpacity style={styles.refreshBtn} onPress={() => loadTransactions()} accessibilityLabel="Refresh transaction list">
-            <Text style={{ color: "#0346a7", fontWeight: "bold" }}>🔄 Refresh</Text>
+            <Text style={{ color: themeColors.card, fontWeight: "bold" }}>🔄 Refresh</Text>
           </TouchableOpacity>
         </View>
         {/* Date Range Picker for Transactions */}
@@ -428,7 +428,7 @@ export default function TransactionHistoryScreen() {
                   style={[styles.filterInput, { justifyContent: "center" }]}
                   onPress={() => setShowFromPicker(true)}
                 >
-                  <Text style={{ color: startDate ? "#234" : "#999", fontSize: 15 }}>
+                  <Text style={{ color: startDate ? themeColors.text : themeColors.textSecondary, fontSize: 15 }}>
                     {startDate ? startDate : "Select date"}
                   </Text>
                   {showFromPicker && (
@@ -461,7 +461,7 @@ export default function TransactionHistoryScreen() {
                   style={[styles.filterInput, { justifyContent: "center" }]}
                   onPress={() => setShowToPicker(true)}
                 >
-                  <Text style={{ color: endDate ? "#234" : "#999", fontSize: 15 }}>
+                  <Text style={{ color: endDate ? themeColors.text : themeColors.textSecondary, fontSize: 15 }}>
                     {endDate ? endDate : "Select date"}
                   </Text>
                   {showToPicker && (
@@ -486,16 +486,16 @@ export default function TransactionHistoryScreen() {
           </View>
           {(startDate || endDate) && (
             <TouchableOpacity
-              style={[styles.refreshBtn, {backgroundColor:"#ebe0f5"}]}
+              style={[styles.refreshBtn, {backgroundColor: themeColors.surface, borderColor: themeColors.border, borderWidth: 1}]}
               onPress={() => {setStartDate(""); setEndDate("");}}
             >
-              <Text style={{ color: "#73649a", fontWeight: "bold" }}>✕ Clear</Text>
+              <Text style={{ color: themeColors.primary, fontWeight: "bold" }}>✕ Clear</Text>
             </TouchableOpacity>
           )}
         </View>
         {/* Show validation if start > end */}
         {(startDate && endDate && startDate > endDate) && (
-          <Text style={{ color: "#b30713", fontWeight: "bold", marginLeft: 4, marginTop: 2, fontSize: 14 }}>
+          <Text style={{ color: themeColors.error, fontWeight: "bold", marginLeft: 4, marginTop: 2, fontSize: 14 }}>
             Start date cannot be after end date.
           </Text>
         )}
@@ -504,7 +504,7 @@ export default function TransactionHistoryScreen() {
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <Text style={styles.sectionTitle}>Points Activity</Text>
           {lastUpdated && (
-            <Text style={{ fontSize: 12, color: "#666", fontStyle: "italic" }}>
+            <Text style={{ fontSize: 12, color: themeColors.textSecondary, fontStyle: "italic" }}>
               Updated {Math.floor((Date.now() - lastUpdated.getTime()) / 1000)}s ago
             </Text>
           )}
@@ -514,7 +514,7 @@ export default function TransactionHistoryScreen() {
         ) : (
           <View style={styles.list}>
             {filtered.length === 0 ? (
-              <Text style={{ color: "#888", padding: 10, fontStyle: "italic" }}>No transactions found.</Text>
+              <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>No transactions found.</Text>
             ) : (
               (() => {
                 const sortedFiltered = filtered.sort((a, b) => new Date(b.date || b.createdAt || "").getTime() - new Date(a.date || a.createdAt || "").getTime());
@@ -528,8 +528,8 @@ export default function TransactionHistoryScreen() {
                           styles.txRow,
                           {
                             borderLeftColor:
-                              tx.amount > 0 ? "#36b12e" :
-                              tx.amount < 0 ? "#d13c07" : "#999"
+                              tx.amount > 0 ? themeColors.success :
+                              tx.amount < 0 ? themeColors.error : themeColors.border
                           }
                         ]}
                       >
@@ -538,7 +538,7 @@ export default function TransactionHistoryScreen() {
                             <Text
                               style={[
                                 styles.txAmount,
-                                { color: "#229d3c" }
+                                { color: themeColors.success }
                               ]}
                             >
                               +{tx.amount}
@@ -546,7 +546,7 @@ export default function TransactionHistoryScreen() {
                             <Text style={styles.txDesc}>
                               Interest Payout
                             </Text>
-                            <Text style={[styles.txJar, { color: "#1b843f" }]}>
+                            <Text style={[styles.txJar, { color: themeColors.success }]}>
                               Savings Pot
                             </Text>
                             <Text style={styles.txDate}>
@@ -558,7 +558,7 @@ export default function TransactionHistoryScreen() {
                             <Text
                               style={[
                                 styles.txAmount,
-                                { color: tx.amount > 0 ? "#239477" : tx.amount < 0 ? "#d13c07" : "#222" }
+                                { color: tx.amount > 0 ? themeColors.success : tx.amount < 0 ? themeColors.error : themeColors.text }
                               ]}
                             >
                               {tx.amount > 0 ? "+" : tx.amount < 0 ? "" : ""}
@@ -589,10 +589,10 @@ export default function TransactionHistoryScreen() {
                     ))}
                     {visibleCount < sortedFiltered.length && (
                       <TouchableOpacity
-                        style={[styles.refreshBtn, { alignSelf: "center", marginTop: 10, backgroundColor: "#e8f4fd" }]}
+                        style={[styles.refreshBtn, { alignSelf: "center", marginTop: 10, backgroundColor: themeColors.surface, borderColor: themeColors.border, borderWidth: 1 }]}
                         onPress={() => setVisibleCount(prev => prev + 20)}
                       >
-                        <Text style={{ color: "#036", fontWeight: "bold" }}>
+                        <Text style={{ color: themeColors.primary, fontWeight: "bold" }}>
                           Load More ({sortedFiltered.length - visibleCount} remaining)
                         </Text>
                       </TouchableOpacity>
