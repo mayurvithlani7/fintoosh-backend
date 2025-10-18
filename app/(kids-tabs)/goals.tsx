@@ -268,6 +268,64 @@ function KidGoalsRewardsSection() {
   const [tab, setTab] = useState<'Active' | 'Completed'>('Active');
   // Show archived completed
   const [showArchive, setShowArchive] = useState(false);
+  // Goal templates modal
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  // Handle template selection
+  const handleTemplateSelect = async (template: any) => {
+    try {
+      const token = await getAuthToken();
+      const user = await getUserData();
+
+      if (!token || !user) {
+        Alert.alert('Error', 'Not authenticated.');
+        return;
+      }
+
+      // Create goal from template
+      const jarAllocations = template.jarAllocations as Record<string, number>;
+      const primaryJar = Object.entries(jarAllocations).reduce((a, b) => jarAllocations[a[0]] > jarAllocations[b[0]] ? a : b)[0]; // Use jar with highest allocation
+
+      const goalData = {
+        childId: user.id,
+        name: template.name,
+        targetAmount: template.targetAmount,
+        jar: primaryJar,
+        description: template.description,
+        deadline: new Date(Date.now() + template.duration * 24 * 60 * 60 * 1000).toISOString(), // Convert days to milliseconds
+        templateId: template.id,
+        milestones: template.milestones
+      };
+
+      const response = await fetch(`${API_URL}/goals`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(goalData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.message || 'Failed to create goal from template.');
+        return;
+      }
+
+      const newGoal = await response.json();
+
+      // Add to local state
+      setGoals(prevGoals => [newGoal, ...prevGoals]);
+
+      setShowTemplates(false);
+      setMsg(`Goal "${template.name}" created successfully!`);
+      setTimeout(() => setMsg(""), 5000);
+
+    } catch (error) {
+      console.error('Error creating goal from template:', error);
+      Alert.alert('Error', 'Failed to create goal from template.');
+    }
+  };
 
   // Helper: get goal created date robustly
   function getGoalCreatedDate(g: any): Date {
