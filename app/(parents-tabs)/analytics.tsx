@@ -11,6 +11,8 @@ import { useTheme } from '@/utils/themeContext';
 import { PieChart } from 'react-native-chart-kit';
 
 export default function ParentsAnalyticsScreen() {
+  const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [feedback, setFeedback] = useState('');
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
@@ -33,17 +35,17 @@ export default function ParentsAnalyticsScreen() {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#6846b3',
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            elevation: 2,
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>Help</Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: themeColors.accent,
+            borderRadius: 20,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            elevation: 2,
+          }}
+          onPress={() => setHelpModalVisible(true)}
+        >
+          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Help</Text>
         </TouchableOpacity>
       </View>
       <Text style={styles.title}>Child&apos;s Progress Report</Text>
@@ -303,6 +305,7 @@ export default function ParentsAnalyticsScreen() {
 
 const AnalyticsOverview = () => {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
   const [error, setError] = useState('');
@@ -455,7 +458,7 @@ const AnalyticsOverview = () => {
               }
             })()}
           </View>
-          <Text style={{ color: "#888", fontSize: 12, marginTop: 10 }}>
+          <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 10 }}>
             Child: {summary.name}
           </Text>
         </>
@@ -469,6 +472,7 @@ const AnalyticsOverview = () => {
 
 const FinancialForecasting = () => {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [loading, setLoading] = useState(false);
   const [forecast, setForecast] = useState<any>(null);
   const [error, setError] = useState('');
@@ -604,6 +608,7 @@ const FinancialForecasting = () => {
 
 const BehavioralInsights = () => {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [loading, setLoading] = useState(false);
   const [insights, setInsights] = useState<any>(null);
   const [error, setError] = useState('');
@@ -753,25 +758,25 @@ const BehavioralInsights = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  scroll: { backgroundColor: '#f7fafd' },
+const createStyles = (themeColors: any) => StyleSheet.create({
+  scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: '#194476' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
   exportSection: {
-    backgroundColor: '#e9f7fd',
+    backgroundColor: themeColors.surface,
     borderRadius: 12,
     padding: 10,
     width: '97%',
     maxWidth: 520,
     marginBottom: 16
   },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: '#aaa' },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: '#226' },
-  placeholder: { color: '#999', fontStyle: 'italic', fontSize: 15, marginBottom: 8 },
-  exportBtn: { backgroundColor: '#78d2eb', padding: 10, borderRadius: 8, marginVertical: 4, alignItems: 'center' },
-  exportBtnText: { color: '#155674', fontWeight: '600', fontSize: 16 },
-  statusMessage: { fontSize: 15, fontWeight: '600', color: '#159320', marginTop: 8, marginBottom: 16, textAlign: 'center', backgroundColor: '#e8f5e8', padding: 10, borderRadius: 8, width: '97%', maxWidth: 520 },
-  analyticCard: { backgroundColor: "#e9f7fd", padding: 8, borderRadius: 7, marginRight: 6, marginBottom: 7, minWidth: 130, alignItems: "center" },
-  jarStat: { backgroundColor: "#f4ecfe", borderRadius: 7, padding: 7, marginRight: 8, marginBottom: 7, minWidth: 90, alignItems: "center" },
-  boldText: { fontWeight: "bold", color: "#154477" },
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, marginBottom: 8 },
+  exportBtn: { backgroundColor: themeColors.primary, padding: 10, borderRadius: 8, marginVertical: 4, alignItems: 'center' },
+  exportBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
+  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success, marginTop: 8, marginBottom: 16, textAlign: 'center', backgroundColor: themeColors.surface, padding: 10, borderRadius: 8, width: '97%', maxWidth: 520 },
+  analyticCard: { backgroundColor: themeColors.surface, borderColor: themeColors.border, borderWidth: 1, padding: 8, borderRadius: 7, marginRight: 6, marginBottom: 7, minWidth: 130, alignItems: "center" },
+  jarStat: { backgroundColor: themeColors.surface, borderColor: themeColors.border, borderWidth: 1, borderRadius: 7, padding: 7, marginRight: 8, marginBottom: 7, minWidth: 90, alignItems: "center" },
+  boldText: { fontWeight: "bold", color: themeColors.primary },
 });

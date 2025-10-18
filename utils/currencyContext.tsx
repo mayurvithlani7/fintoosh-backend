@@ -33,6 +33,8 @@ interface CurrencyContextType {
   };
   formatAmount: (points: number) => string;
   convertToINR: (points: number) => number;
+  calculateSplit: (total: number, percentage: number) => number;
+  validateSplit: (splits: { [key: string]: number }) => void;
   updateSettings: (settings: Partial<{
     currency: 'points' | 'inr';
     conversionRate: number;
@@ -85,14 +87,35 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   const formatAmount = (points: number): string => {
+    // Ensure integer values for points
+    const rounded = Math.round(points);
     if (currency === 'inr') {
-      const inr = points * conversionRate;
+      const inr = rounded * conversionRate;
       return `₹${inr.toFixed(0)}`;
     }
-    return `${points} pts`;
+    return `${rounded} pts`;
   };
 
   const convertToINR = (points: number): number => points * conversionRate;
+
+  const calculateSplit = (total: number, percentage: number): number => {
+    // Ensure splits result in integers
+    return Math.round(total * (percentage / 100));
+  };
+
+  const validateSplit = (splits: { [key: string]: number }) => {
+    const total = Object.values(splits).reduce((sum, val) => sum + val, 0);
+    if (total !== 100) {
+      throw new Error('Split percentages must total exactly 100%');
+    }
+
+    // Ensure all values are integers
+    Object.values(splits).forEach(val => {
+      if (!Number.isInteger(val)) {
+        throw new Error('Split percentages must be whole numbers');
+      }
+    });
+  };
 
   const updateSettings = async (settings: Partial<{
     currency: 'points' | 'inr';
@@ -256,6 +279,8 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       refreshIntervals,
       formatAmount,
       convertToINR,
+      calculateSplit,
+      validateSplit,
       updateSettings,
       reloadSettings
     }}>

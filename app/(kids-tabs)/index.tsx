@@ -7,7 +7,7 @@ import { fetchNotifications, markNotificationRead } from '@/utils/api';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { getAuthToken } from '@/utils/secureStorage';
-import { useTheme } from '@/utils/themeContext';
+import { ThemeType, useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
@@ -154,32 +154,32 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 22,
     marginTop: 6,
-    color: "#154477",
+    // color moved to dynamicStyles
   },
   jarBox: {
     minWidth: 85,
     alignItems: "center",
-    backgroundColor: "#f6faff",
+    // backgroundColor moved to dynamicStyles
     padding: 8,
     borderRadius: 8,
     margin: 8,
     borderWidth: 1,
-    borderColor: "#abe",
+    // borderColor moved to dynamicStyles
   },
   jarLabel: {
     fontWeight: "bold",
     marginBottom: 2,
-    color: "#167",
+    // color moved to dynamicStyles
     fontSize: 16,
   },
   jarPoints: {
     fontWeight: "700",
     fontSize: 21,
     marginBottom: 1,
-    color: "#201828",
+    // color moved to dynamicStyles
   },
   quickActionCard: {
-    backgroundColor: "#fff",
+    // backgroundColor moved to dynamicStyles
     borderRadius: 14,
     marginBottom: 16,
     padding: 18,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     marginBottom: 8,
-    color: "#234",
+    // color moved to dynamicStyles
   },
   actionButton: {
     borderRadius: 12,
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   statCard: {
-    backgroundColor: "#f0f8ff",
+    // backgroundColor moved to dynamicStyles
     borderRadius: 10,
     padding: 15,
     marginVertical: 5,
@@ -218,11 +218,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#2c5aa0",
+    // color moved to dynamicStyles
   },
   statLabel: {
     fontSize: 14,
-    color: "#666",
+    // color moved to dynamicStyles
     marginTop: 5,
   },
 });
@@ -230,8 +230,14 @@ const styles = StyleSheet.create({
 
 
 const KidsHomeScreen = memo(function KidsHomeScreen() {
-  const { themeColors } = useTheme();
+  const { themeColors, theme, setTheme, themes } = useTheme();
   const { refreshIntervals } = useCurrency();
+  // Theme validation test - toggle between themes to verify color changes
+  const [testTheme, setTestTheme] = useState(false);
+
+  // Request deduplication state management
+  const [activeRequests, setActiveRequests] = useState<Set<string>>(new Set());
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [jars, setJars] = useState<Jar[]>([
     { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
     { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🐷' },
@@ -240,7 +246,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     { label: 'Grow Money Pot', key: 'invest', value: 0, color: themeColors.jarColors.invest, icon: '📈' }
   ]);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingPhase, setLoadingPhase] = useState<'initial' | 'secondary' | 'complete'>('initial');
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
@@ -248,16 +254,104 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   const [guidedTourVisible, setGuidedTourVisible] = useState(false);
   const router = useRouter();
 
-  // Shared API call function to reduce duplication
-  const fetchUserData = useCallback(async (token: string, userId: string) => {
-    const response = await fetch(`${API_URL}/users/${userId}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (!response.ok) {
-      throw new Error('Failed to load user data');
+  // Shared API call function with request deduplication and AbortController
+  const fetchUserData = useCallback(async (requestId: string) => {
+    // Prevent duplicate requests
+    if (activeRequests.has(requestId)) return;
+
+    // Cancel previous request
+    if (abortController) abortController.abort();
+
+    const controller = new AbortController();
+    setAbortController(controller);
+    setActiveRequests(prev => new Set(prev).add(requestId));
+
+    try {
+      const token = await getAuthToken();
+      const storedUser = await AsyncStorage.getItem('user');
+
+      if (!token || !storedUser) {
+        setError('Oops! 😅 We need to log you back in. Please ask a grown-up for help!');
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      const userId = user.id;
+
+      const response = await fetch(`${API_URL}/users/${userId}`, {
+        signal: controller.signal,
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (!response.ok) throw new Error('Failed to load user data');
+      const data = await response.json();
+
+      // Only update state if this request wasn't cancelled
+      if (!controller.signal.aborted) {
+        setUserData(data);
+
+        setJars([
+          { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
+          { label: 'Savings Pot', key: 'save', value: data.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
+          { label: 'Spending Pot', key: 'spend', value: data.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
+          { label: 'Help Others Pot', key: 'donate', value: data.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
+          { label: 'Grow Money Pot', key: 'invest', value: data.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
+        ]);
+
+        // Calculate total points for fallback
+        const currentTotalPoints = (data.currentPoints || 0) +
+                                  (data.savePoints || 0) +
+                                  (data.spendPoints || 0) +
+                                  (data.donatePoints || 0) +
+                                  (data.investPoints || 0);
+
+        // Try to load recent transactions for activity feed
+        try {
+          const transactionsResponse = await fetch(`${API_URL}/transactions/${userId}`, {
+            signal: controller.signal,
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+
+          if (transactionsResponse.ok && !controller.signal.aborted) {
+            const transactions = await transactionsResponse.json();
+            // Take the 5 most recent transactions
+            const recentTransactions = transactions.slice(0, 5).map((tx: any) => ({
+              id: tx._id,
+              type: tx.type,
+              amount: tx.amount,
+              description: tx.description || getTransactionDescription(tx),
+              timestamp: tx.createdAt,
+              icon: getTransactionIcon(tx.type)
+            }));
+            setRecentActivities(recentTransactions);
+          } else if (!controller.signal.aborted) {
+            // Fallback to mock activities if no transactions
+            setRecentActivities(generateMockActivities(currentTotalPoints));
+          }
+        } catch (txError) {
+          if (!controller.signal.aborted) {
+            console.log('Could not load transactions, using mock activities');
+            setRecentActivities(generateMockActivities(currentTotalPoints));
+          }
+        }
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        console.error('Error loading user data:', error);
+        setError('Oops! 🤔 Having trouble loading your points right now. Please try again!');
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoadingPhase('complete');
+        setRefreshing(false);
+        setActiveRequests(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(requestId);
+          return newSet;
+        });
+      }
     }
-    return response.json();
-  }, []);
+  }, [themeColors]);
 
   // Notification state and logic
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -288,119 +382,58 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     }
   }, []);
   useEffect(() => { loadNotifications(); }, [loadNotifications]);
+
+  // Properly managed useFocusEffect with cleanup
   useFocusEffect(
-    React.useCallback(() => { loadNotifications(); }, [loadNotifications])
+    React.useCallback(() => {
+      let isMounted = true;
+
+      const loadData = async () => {
+        if (!isMounted) return;
+        await loadNotifications();
+      };
+
+      loadData();
+
+      return () => {
+        isMounted = false;
+        // Cleanup any subscriptions, timers, etc.
+      };
+    }, [loadNotifications])
   );
 
-  // Load user data and jar values from backend
-  const loadUserData = useCallback(async () => {
-    try {
-      setError(null);
-      const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
 
-      if (!token || !storedUser) {
-        setError('Oops! 😅 We need to log you back in. Please ask a grown-up for help!');
-        return;
-      }
-
-      const user = JSON.parse(storedUser);
-      const userId = user.id;
-
-      // Load user data
-      const userResponse = await fetch(`${API_URL}/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!userResponse.ok) {
-        throw new Error('Failed to load user data');
-      }
-
-      const freshUserData = await userResponse.json();
-      setUserData(freshUserData);
-
-      setJars([
-        { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
-        { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
-        { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
-        { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
-        { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
-      ]);
-
-      // Calculate total points for fallback
-      const currentTotalPoints = (freshUserData.currentPoints || 0) +
-                                (freshUserData.savePoints || 0) +
-                                (freshUserData.spendPoints || 0) +
-                                (freshUserData.donatePoints || 0) +
-                                (freshUserData.investPoints || 0);
-
-      // Try to load recent transactions for activity feed
-      try {
-        const transactionsResponse = await fetch(`${API_URL}/transactions/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (transactionsResponse.ok) {
-          const transactions = await transactionsResponse.json();
-          // Take the 5 most recent transactions
-          const recentTransactions = transactions.slice(0, 5).map((tx: any) => ({
-            id: tx._id,
-            type: tx.type,
-            amount: tx.amount,
-            description: tx.description || getTransactionDescription(tx),
-            timestamp: tx.createdAt,
-            icon: getTransactionIcon(tx.type)
-          }));
-          setRecentActivities(recentTransactions);
-        } else {
-          // Fallback to mock activities if no transactions
-          setRecentActivities(generateMockActivities(currentTotalPoints));
-        }
-      } catch (txError) {
-        console.log('Could not load transactions, using mock activities');
-        setRecentActivities(generateMockActivities(currentTotalPoints));
-      }
-
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      setError('Oops! 🤔 Having trouble loading your points right now. Please try again!');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [themeColors]);
 
   useEffect(() => {
-    loadUserData();
-  }, [loadUserData]);
+    const requestId = `user-data-initial-${Date.now()}`;
+    fetchUserData(requestId);
+  }, [fetchUserData]);
 
   // Check for first-time user and show guided tour
   useEffect(() => {
-    if (userData && userData.isFirstTimeUser && userData.role === 'child' && !loading) {
+    if (userData && userData.isFirstTimeUser && userData.role === 'child' && loadingPhase === 'complete') {
       // Small delay to ensure UI is fully loaded
       setTimeout(() => {
         setGuidedTourVisible(true);
       }, 1000);
     }
-  }, [userData, loading]);
+  }, [userData, loadingPhase]);
 
   useFocusEffect(
     React.useCallback(() => {
-      loadUserData();
-    }, [loadUserData])
+      const requestId = `user-data-focus-${Date.now()}`;
+      fetchUserData(requestId);
+    }, [fetchUserData])
   );
 
   // Auto-refresh data using configurable interval when screen is focused
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
-    if (!loading && refreshIntervals.kidsHome > 0) {
+    if (loadingPhase === 'complete' && refreshIntervals.kidsHome > 0) {
       interval = setInterval(() => {
-        loadUserData();
+        const requestId = `user-data-auto-${Date.now()}`;
+        fetchUserData(requestId);
       }, refreshIntervals.kidsHome);
     }
 
@@ -408,13 +441,18 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       if (interval) {
         clearInterval(interval);
       }
+      // Cancel any pending requests on unmount
+      if (abortController) {
+        abortController.abort();
+      }
     };
-  }, [loading, loadUserData, refreshIntervals.kidsHome]);
+  }, [loadingPhase, fetchUserData, refreshIntervals.kidsHome, abortController]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadUserData();
-  }, [loadUserData]);
+    const requestId = `user-data-refresh-${Date.now()}`;
+    fetchUserData(requestId);
+  }, [fetchUserData]);
 
   const totalPoints = jars.reduce((sum, jar) => sum + jar.value, 0);
 
@@ -458,13 +496,13 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       marginBottom: 16,
       padding: 18,
       minWidth: 300,
-      width: "97%" as any,
+      width: "97%",
       maxWidth: 520,
       elevation: 2,
       shadowColor: "#aaa",
       borderWidth: 1,
       borderColor: themeColors.border,
-    },
+    } as any, // Cast to any to allow percentage width
     sectionTitle: {
       fontSize: 20,
       fontWeight: "600" as const,
@@ -496,13 +534,16 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <ErrorCard error={error} onRetry={loadUserData} />
+          <ErrorCard error={error} onRetry={() => {
+            const requestId = `user-data-retry-${Date.now()}`;
+            fetchUserData(requestId);
+          }} />
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  if (loading) {
+  if (loadingPhase === 'initial') {
     // Skeleton loading experience for kids home
     const SkeletonCard = require('@/components/ui/SkeletonCard').default;
     const SkeletonJar = require('@/components/ui/SkeletonJar').default;
@@ -549,10 +590,30 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       >
       
 
+      {/* Theme Validation Test */}
+      {__DEV__ && (
+        <View style={[dynamicStyles.quickActionCard, { backgroundColor: themeColors.accent + '20' }]}>
+          <Text style={[dynamicStyles.sectionTitle, { color: themeColors.accent }]}>🎨 Theme Test</Text>
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: themeColors.accent }]}
+            onPress={() => {
+              const themeKeys = Object.keys(themes);
+              const currentIndex = themeKeys.indexOf(theme);
+              const nextIndex = (currentIndex + 1) % themeKeys.length;
+              setTheme(themeKeys[nextIndex] as ThemeType);
+            }}
+          >
+            <Text style={styles.actionButtonText}>
+              Switch to {Object.keys(themes)[(Object.keys(themes).indexOf(theme) + 1) % Object.keys(themes).length]} theme
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Notifications */}
       {(notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0) && (
         <View style={{
-          backgroundColor: "#f6f8fb",
+          backgroundColor: themeColors.surface,
           borderRadius: 15,
           padding: 10,
           marginBottom: 11,
@@ -560,13 +621,13 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           width: '97%',
           maxWidth: 520,
           elevation: 2,
-          shadowColor: '#caf'
+          shadowColor: themeColors.border
         }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 6, color: "#2767aa" }}>Notifications</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 6, color: themeColors.primary }}>Notifications</Text>
           {notifLoading ? (
-            <Text style={{ fontSize: 15, color: "#7a7a7a" }}>Loading...</Text>
+            <Text style={{ fontSize: 15, color: themeColors.textSecondary }}>Loading...</Text>
           ) : notifError ? (
-            <Text style={{ fontSize: 15, color: "#b22" }}>{notifError}</Text>
+            <Text style={{ fontSize: 15, color: themeColors.error }}>{notifError}</Text>
           ) : (
             notifications.filter(n => !n.isRead).slice(0, 4).map((notif, idx) => (
               <TouchableOpacity
@@ -574,9 +635,11 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
                 style={{
                   padding: 8,
                   marginBottom: 3,
-                  backgroundColor: '#f7f4e9',
+                  backgroundColor: themeColors.card,
                   borderRadius: 7,
                   elevation: 1,
+                  borderWidth: 1,
+                  borderColor: themeColors.border,
                 }}
                 onPress={async () => {
                   try {
@@ -588,7 +651,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
                   } catch (err) {}
                 }}
               >
-                <Text style={{ fontSize: 15, fontWeight: "bold", color: '#C85D12' }}>
+                <Text style={{ fontSize: 15, fontWeight: "bold", color: themeColors.warning }}>
                   {notif.message}
                 </Text>
               </TouchableOpacity>

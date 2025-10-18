@@ -1,94 +1,56 @@
+import { useTheme } from '@/utils/themeContext';
 import React from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+// import RNRestart from 'react-native-restart'; // Temporarily commented out due to import issues
 
 interface Props {
   children: React.ReactNode;
   fallback?: React.ComponentType<{ error: Error; resetError: () => void }>;
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  errorInfo: React.ErrorInfo | null;
+  retryCount: number;
 }
 
-class ErrorBoundary extends React.Component<Props, State> {
+class ErrorBoundary extends React.Component<Props, ErrorBoundaryState> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null, retryCount: 0 };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    this.setState({ errorInfo });
 
-    // In production, you might want to send this to an error reporting service
-    // like Sentry, Bugsnag, etc.
+    // Log to external service in production
+    if (!__DEV__) {
+      // Sentry.captureException(error, { extra: errorInfo });
+    }
   }
 
-  resetError = () => {
-    this.setState({ hasError: false, error: null });
+  handleRetry = () => {
+    this.setState(prev => ({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: prev.retryCount + 1
+    }));
   };
 
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        const FallbackComponent = this.props.fallback;
-        return <FallbackComponent error={this.state.error!} resetError={this.resetError} />;
-      }
-
       return (
-        <View style={styles.container}>
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
-            <Text style={styles.errorMessage}>
-              We encountered an unexpected error. Please try again.
-            </Text>
-
-            <TouchableOpacity style={styles.retryButton} onPress={this.resetError}>
-              <Text style={styles.retryButtonText}>Try Again</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.reportButton}
-              onPress={() => {
-                Alert.alert(
-                  'Report Error',
-                  'Would you like to report this error to help us improve the app?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Report',
-                      onPress: () => {
-                        // Send error details to console for debugging
-                        console.log('Error Report:', {
-                          error: this.state.error?.message,
-                          stack: this.state.error?.stack,
-                          timestamp: new Date().toISOString(),
-                          userAgent: navigator?.userAgent || 'Unknown',
-                          url: window?.location?.href || 'Unknown'
-                        });
-
-                        // In a real app, you'd send this to your error reporting service
-                        // Example: Sentry.captureException(this.state.error);
-
-                        Alert.alert(
-                          'Thank you! 🎉',
-                          'Error report sent successfully! Our team will look into this and fix it soon.',
-                          [{ text: 'OK' }]
-                        );
-                      }
-                    }
-                  ]
-                );
-              }}
-            >
-              <Text style={styles.reportButtonText}>Report Issue</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ErrorFallback
+          error={this.state.error}
+          retryCount={this.state.retryCount}
+          onRetry={this.handleRetry}
+        />
       );
     }
 
@@ -154,6 +116,71 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  errorEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  restartButton: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginTop: 12,
+    minWidth: 120,
+  },
+  restartButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });
+
+const ErrorFallback: React.FC<{
+  error: Error | null;
+  retryCount: number;
+  onRetry: () => void;
+}> = ({ error, retryCount, onRetry }) => {
+  const { themeColors } = useTheme();
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: themeColors.background }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={[styles.errorEmoji, { color: themeColors.error }]}>😵</Text>
+        <Text style={[styles.errorTitle, { color: themeColors.text }]}>
+          Oops! Something went wrong
+        </Text>
+        <Text style={[styles.errorMessage, { color: themeColors.textSecondary }]}>
+          {retryCount < 3 ?
+            "Don't worry, this happens sometimes. Let's try again!" :
+            "We're having trouble. Please restart the app."
+          }
+        </Text>
+
+        {retryCount < 3 && (
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: themeColors.primary }]}
+            onPress={onRetry}
+          >
+            <Text style={[styles.retryButtonText, { color: themeColors.card }]}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[styles.restartButton, { borderColor: themeColors.secondary }]}
+          onPress={() => {
+            // For now, just show an alert - in production you'd restart the app
+            alert('Please restart the app manually by closing and reopening it.');
+          }}
+        >
+          <Text style={[styles.restartButtonText, { color: themeColors.secondary }]}>
+            Restart App
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
 
 export default ErrorBoundary;

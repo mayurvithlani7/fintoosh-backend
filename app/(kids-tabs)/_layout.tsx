@@ -7,6 +7,8 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ThemeToggle from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ACCESSIBILITY } from '@/constants/accessibility';
+import { useNavigation } from '@/utils/navigationContext';
 import { useTheme } from '@/utils/themeContext';
 
 function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
@@ -107,8 +109,8 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
 
 export default function KidsTabLayout() {
   const { themeColors } = useTheme();
+  const { activeModal, setActiveModal } = useNavigation();
   const router = useRouter();
-  const [menuVisible, setMenuVisible] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   // Check authentication and backend connectivity on mount
@@ -186,9 +188,8 @@ export default function KidsTabLayout() {
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => {
-                console.log('Hamburger pressed, setting menuVisible to true');
-                setMenuVisible(true);
-                console.log('menuVisible should now be true');
+                console.log('Hamburger pressed, setting activeModal to hamburger-menu');
+                setActiveModal('hamburger-menu');
               }}
               style={styles.hamburgerButton}
               accessibilityRole="button"
@@ -237,10 +238,10 @@ export default function KidsTabLayout() {
       </Stack>
 
       <HamburgerMenu
-        isVisible={menuVisible}
+        isVisible={activeModal === 'hamburger-menu'}
         onClose={() => {
           console.log('Closing menu');
-          setMenuVisible(false);
+          setActiveModal(null);
         }}
         themeColors={themeColors}
         router={router}
@@ -294,6 +295,8 @@ const styles = StyleSheet.create({
   hamburgerButton: {
     marginLeft: 15,
     padding: 10,
+    minWidth: ACCESSIBILITY.MIN_TOUCH_TARGET,
+    minHeight: ACCESSIBILITY.MIN_TOUCH_TARGET,
   },
   hamburgerIcon: {
     fontSize: 24,

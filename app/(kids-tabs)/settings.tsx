@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "re
 
 export default function SettingsScreen() {
   const { themeColors, animationSettings, setAnimationEnabled, setHapticFeedback, setSoundFeedback } = useTheme();
+  const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
@@ -210,18 +211,18 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     paddingVertical: 48,
     paddingHorizontal: 16,
     alignItems: "flex-start",
     flexGrow: 1,
-    backgroundColor: "#fcf9ff"
+    backgroundColor: themeColors.background
   },
   header: {
     fontSize: 26,
     marginBottom: 25,
-    color: "#6846b3",
+    color: themeColors.primary,
     fontWeight: "bold",
     alignSelf: "center"
   },
@@ -232,36 +233,36 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: "#ece0fa"
+    borderBottomColor: themeColors.border
   },
   settingLabel: {
     fontSize: 18,
-    color: "#352d46",
+    color: themeColors.text,
     fontWeight: "600"
   },
   infoSection: {
     marginTop: 36,
     marginBottom: 8,
     padding: 12,
-    backgroundColor: "#f6f2ff",
+    backgroundColor: themeColors.surface,
     borderRadius: 10,
     width: "100%",
     alignItems: "flex-start"
   },
   infoLabel: {
     fontSize: 15,
-    color: "#614484",
+    color: themeColors.primary,
     fontWeight: "700"
   },
   infoValue: {
     fontSize: 15,
-    color: "#372060",
+    color: themeColors.text,
     fontWeight: "700",
     marginTop: 8
   },
   note: {
     marginTop: 14,
-    color: "#764296",
+    color: themeColors.textSecondary,
     fontSize: 14
   }
 });

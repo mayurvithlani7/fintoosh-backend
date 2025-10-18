@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 16,
@@ -27,10 +27,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 22,
     marginTop: 6,
-    color: "#154477",
+    color: themeColors.primary,
   },
   sectionCard: {
-    backgroundColor: "#fff",
+    backgroundColor: themeColors.card,
     borderRadius: 14,
     marginBottom: 16,
     padding: 18,
@@ -38,43 +38,44 @@ const styles = StyleSheet.create({
     width: "97%",
     maxWidth: 520,
     elevation: 2,
-    shadowColor: "#aaa",
+    shadowColor: themeColors.border,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
     marginBottom: 8,
-    color: "#234",
+    color: themeColors.text,
   },
   placeholder: {
-    color: "#99a", fontStyle: "italic", fontSize: 15,
+    color: themeColors.textSecondary, fontStyle: "italic", fontSize: 15,
     marginBottom: 2, marginTop: 2, minHeight: 26
   },
   statusMessage: {
-    fontSize: 15, fontWeight: "600", marginTop: 3, color: "#18722a"
+    fontSize: 15, fontWeight: "600", marginTop: 3, color: themeColors.success
   },
   refreshBtn: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: themeColors.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: "center",
   },
   refreshBtnDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: themeColors.surface,
   },
   refreshBtnText: {
-    color: "#fff",
+    color: themeColors.card,
     fontWeight: "bold",
     fontSize: 12,
   },
   refreshBtnTextDisabled: {
-    color: "#666",
+    color: themeColors.textSecondary,
   },
 });
 
 export default function GoalsScreen() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const router = useRouter();
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
@@ -245,6 +246,7 @@ export default function GoalsScreen() {
 // --- KidGoalsRewardsSection (loads from database, allows claiming) ---
 function KidGoalsRewardsSection() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const { formatAmount } = useCurrency();
   const [goals, setGoals] = useState<any[]>([]);
   const [rewards, setRewards] = useState<any[]>([]);
@@ -711,14 +713,16 @@ function KidGoalsRewardsSection() {
                   style={{
                     marginTop: 12,
                     alignSelf: "center",
-                    backgroundColor: "#e7e2fa",
+                    backgroundColor: themeColors.surface,
+                    borderColor: themeColors.border,
+                    borderWidth: 1,
                     paddingHorizontal: 20,
                     paddingVertical: 8,
                     borderRadius: 16
                   }}
                   onPress={() => setShowRewardsArchive(true)}
                 >
-                  <Text style={{ color: "#5837a7", fontWeight: "600" }}>Show All Claimed Rewards</Text>
+                  <Text style={{ color: themeColors.primary, fontWeight: "600" }}>Show All Claimed Rewards</Text>
                 </TouchableOpacity>
               )}
               {claimedArchived.length > 0 && showRewardsArchive && (
@@ -726,14 +730,16 @@ function KidGoalsRewardsSection() {
                   style={{
                     marginTop: 10,
                     alignSelf: "center",
-                    backgroundColor: "#e6e6e6",
+                    backgroundColor: themeColors.surface,
+                    borderColor: themeColors.border,
+                    borderWidth: 1,
                     paddingHorizontal: 14,
                     paddingVertical: 7,
                     borderRadius: 16
                   }}
                   onPress={() => setShowRewardsArchive(false)}
                 >
-                  <Text style={{ color: "#5837a7", fontWeight: "500" }}>Show Only Last 90 Days</Text>
+                  <Text style={{ color: themeColors.primary, fontWeight: "500" }}>Show Only Last 90 Days</Text>
                 </TouchableOpacity>
               )}
             </>
@@ -775,18 +781,18 @@ function KidGoalsRewardsSection() {
       <View
         key={g._id}
         style={{
-          backgroundColor: isCompleted ? "#e5fcd8" : isPending ? "#fffbe5" : isExpired ? "#ffeaea" : "#fff9e3",
+          backgroundColor: isCompleted ? themeColors.success + "15" : isPending ? themeColors.warning + "33" : isExpired ? themeColors.error + "15" : themeColors.surface,
           marginBottom: 7,
           borderRadius: 6,
           padding: 12,
           borderWidth: 1,
-          borderColor: isCompleted ? "#95c294" : isPending ? "#d9cc7b" : isExpired ? "#e57373" : "#eedaa3",
+          borderColor: isCompleted ? themeColors.success : isPending ? themeColors.warning : isExpired ? themeColors.error : themeColors.border,
         }}
       >
         <View style={{ marginBottom: 8 }}>
-          <Text style={{ fontWeight: "bold", color: "#824", fontSize: 16 }}>{g.name}</Text>
+          <Text style={{ fontWeight: "bold", color: themeColors.text, fontSize: 16 }}>{g.name}</Text>
           {g.description && (
-            <Text style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
+            <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginTop: 4 }}>
               {g.description}
             </Text>
           )}
@@ -794,39 +800,39 @@ function KidGoalsRewardsSection() {
 
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <View style={{ flex: 2 }}>
-            <Text style={{ fontSize: 14, color: "#666" }}>
+            <Text style={{ fontSize: 14, color: themeColors.textSecondary }}>
               Save in: {g.jar} jar
             </Text>
             {g.deadline && (
-              <Text style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+              <Text style={{ fontSize: 12, color: themeColors.textSecondary, marginTop: 2 }}>
                 Deadline: {new Date(g.deadline).toLocaleDateString()}
               </Text>
             )}
             {isPending && (
-              <Text style={{ fontSize: 11, color: "#a78912", fontStyle: "italic", marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: themeColors.warning, fontStyle: "italic", marginTop: 2 }}>
                 Awaiting parent approval
               </Text>
             )}
             {isExpired && (
-              <Text style={{ fontSize: 11, color: "#d32f2f", fontStyle: "italic", marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: themeColors.error, fontStyle: "italic", marginTop: 2 }}>
                 Goal expired ⏰
               </Text>
             )}
             {isCompleted && (
-              <Text style={{ fontSize: 11, color: "#18722a", fontStyle: "italic", marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: themeColors.success, fontStyle: "italic", marginTop: 2 }}>
                 Goal achieved! 🎉
               </Text>
             )}
           </View>
 
           <View style={{ alignItems: "flex-end" }}>
-            <Text style={{ flex: 1, color: "#273", fontSize: 16, marginBottom: 4 }}>
+            <Text style={{ flex: 1, color: themeColors.primary, fontSize: 16, marginBottom: 4 }}>
               {formatAmount(jarPoints)}/{formatAmount(g.targetAmount)}
             </Text>
             {canClaim && (
               <TouchableOpacity
                 style={{
-                  backgroundColor: buttonColor,
+                  backgroundColor: themeColors.success,
                   paddingVertical: 5,
                   paddingHorizontal: 13,
                   borderRadius: 8,
@@ -835,7 +841,7 @@ function KidGoalsRewardsSection() {
                 disabled={claiming === g._id}
               >
                 <Text style={{
-                  color: "#185b2a",
+                  color: themeColors.card,
                   fontWeight: "bold",
                   fontSize: 12
                 }}>
@@ -863,32 +869,32 @@ function KidGoalsRewardsSection() {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: r.purchased ? "#e5fcd8"
-            : hasPending ? "#fffbe5"
-            : "#e9f7fd",
+          backgroundColor: r.purchased ? themeColors.success + "15"
+            : hasPending ? themeColors.warning + "33"
+            : themeColors.surface,
           marginBottom: 7,
           borderRadius: 6,
           padding: 9,
           borderWidth: 1,
-          borderColor: r.purchased ? "#95c294" : hasPending ? "#d9cc7b" : "#abd6ee",
+          borderColor: r.purchased ? themeColors.success : hasPending ? themeColors.warning : themeColors.border,
         }}
       >
-        <Text style={{ flex: 2, fontWeight: "bold", color: "#287" }}>{r.name}</Text>
-        <Text style={{ flex: 1, color: "#385", fontSize: 16 }}>{formatAmount(r.cost)}</Text>
+        <Text style={{ flex: 2, fontWeight: "bold", color: themeColors.text }}>{r.name}</Text>
+        <Text style={{ flex: 1, color: themeColors.primary, fontSize: 16 }}>{formatAmount(r.cost)}</Text>
         {r.purchased ? (
           <Text style={{
-            color: "#18722a", fontWeight: "bold",
+            color: themeColors.success, fontWeight: "bold",
             marginLeft: 11, paddingVertical: 5, paddingHorizontal: 13
           }}>Completed! 🎉</Text>
         ) : hasPending || !r.available ? (
           <Text style={{
-            color: "#a78912", fontWeight: "bold",
+            color: themeColors.warning, fontWeight: "bold",
             marginLeft: 11, paddingVertical: 5, paddingHorizontal: 13
           }}>Pending...</Text>
         ) : canClaim ? (
           <TouchableOpacity
             style={{
-              backgroundColor: "#aacdfa",
+              backgroundColor: themeColors.primary,
               paddingVertical: 5,
               paddingHorizontal: 13,
               borderRadius: 8,
@@ -898,7 +904,7 @@ function KidGoalsRewardsSection() {
             disabled={claiming === r._id}
           >
             <Text style={{
-              color: "#2850a7",
+              color: themeColors.card,
               fontWeight: "bold"
             }}>
               {claiming === r._id ? "Claiming..." : "Claim"}
@@ -906,7 +912,7 @@ function KidGoalsRewardsSection() {
           </TouchableOpacity>
         ) : (
           <Text style={{
-            color: "#888", fontWeight: "bold",
+            color: themeColors.textSecondary, fontWeight: "bold",
             marginLeft: 11, paddingVertical: 5, paddingHorizontal: 13
           }}>Need More Points</Text>
         )}

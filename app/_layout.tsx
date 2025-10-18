@@ -10,6 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CurrencyProvider } from '@/utils/currencyContext';
 import { DataCacheProvider } from '@/utils/dataCacheContext';
 import { GlobalFeedbackProvider } from '@/utils/globalFeedbackContext';
+import { NavigationProvider } from '@/utils/navigationContext';
 import { ThemeProvider } from '@/utils/themeContext';
 
 /*
@@ -24,30 +25,32 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <ThemeProvider>
-          <GlobalFeedbackProvider>
-            <CurrencyProvider>
-              <DataCacheProvider>
-                <Stack>
-                  <Stack.Screen name="(kids-tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(parents-tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-                  <Stack.Screen name="login" options={{ title: "Login" }} />
-                  <Stack.Screen name="signup" options={{ title: "Sign Up" }} />
-                  <Stack.Screen name="forgot-password" options={{ title: "Forgot Password" }} />
-                  <Stack.Screen name="kid-dashboard" options={{ title: "Kid Dashboard" }} />
-                  <Stack.Screen name="parent-dashboard" options={{ title: "Parent Dashboard" }} />
-                  <Stack.Screen name="test" options={{ title: "Test Components" }} />
-                </Stack>
-                <OfflineIndicator />
-                <GlobalSnackbar />
-                <StatusBar style="auto" />
-              </DataCacheProvider>
-            </CurrencyProvider>
-          </GlobalFeedbackProvider>
-        </ThemeProvider>
-      </NavigationThemeProvider>
+      <NavigationProvider>
+        <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <ThemeProvider>
+            <GlobalFeedbackProvider>
+              <CurrencyProvider>
+                <DataCacheProvider>
+                  <Stack>
+                    <Stack.Screen name="(kids-tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(parents-tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+                    <Stack.Screen name="login" options={{ title: "Login" }} />
+                    <Stack.Screen name="signup" options={{ title: "Sign Up" }} />
+                    <Stack.Screen name="forgot-password" options={{ title: "Forgot Password" }} />
+                    <Stack.Screen name="kid-dashboard" options={{ title: "Kid Dashboard" }} />
+                    <Stack.Screen name="parent-dashboard" options={{ title: "Parent Dashboard" }} />
+                    <Stack.Screen name="test" options={{ title: "Test Components" }} />
+                  </Stack>
+                  <OfflineIndicator />
+                  <GlobalSnackbar />
+                  <StatusBar style="auto" />
+                </DataCacheProvider>
+              </CurrencyProvider>
+            </GlobalFeedbackProvider>
+          </ThemeProvider>
+        </NavigationThemeProvider>
+      </NavigationProvider>
     </ErrorBoundary>
   );
 }

@@ -1,6 +1,7 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { API_URL } from '@/utils/config';
+import { formatDateTime } from '@/utils/dateUtils';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
@@ -11,6 +12,7 @@ import { Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, 
 export default function ParentsRequestsScreen() {
   const router = useRouter();
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [requests, setRequests] = useState<{
     id: string;
     childName: string;
@@ -378,7 +380,7 @@ export default function ParentsRequestsScreen() {
                     <Text style={styles.boldText}>Reason:</Text> {request.reason}
                   </Text>
                   <Text style={styles.requestText}>
-                    <Text style={styles.boldText}>Date & Time:</Text> {new Date(request.createdAt).toLocaleDateString()} at {new Date(request.createdAt).toLocaleTimeString()}
+                    <Text style={styles.boldText}>Date & Time:</Text> {formatDateTime(request.createdAt)}
                   </Text>
                 </View>
               )}
@@ -811,29 +813,29 @@ export default function ParentsRequestsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { backgroundColor: '#f7fafd' },
+const createStyles = (themeColors: any) => StyleSheet.create({
+  scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: '#194476' },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: '#aaa' },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: '#226' },
-  placeholder: { color: '#999', fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
-  requestText: { fontSize: 16, marginBottom: 8, color: '#234' },
-  boldText: { fontWeight: '600', color: '#226' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
+  requestText: { fontSize: 16, marginBottom: 8, color: themeColors.text },
+  boldText: { fontWeight: '600', color: themeColors.primary },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   actionBtn: { flex: 1, padding: 12, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
-  actionBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  approveBtn: { backgroundColor: '#4CAF50' },
-  approveBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  denyBtn: { backgroundColor: '#f44336' },
-  denyBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  feedbackCard: { backgroundColor: '#e8f5e8', borderRadius: 8, padding: 12, marginTop: 10, minWidth: 320, width: '97%', maxWidth: 520 },
-  feedbackText: { color: '#2e7d32', fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  actionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
+  approveBtn: { backgroundColor: themeColors.success },
+  approveBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
+  denyBtn: { backgroundColor: themeColors.error },
+  denyBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
+  feedbackCard: { backgroundColor: themeColors.success + '22', borderRadius: 8, padding: 12, marginTop: 10, minWidth: 320, width: '97%', maxWidth: 520 },
+  feedbackText: { color: themeColors.success, fontSize: 16, fontWeight: '600', textAlign: 'center' },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 2 },
-  filterBtn: { backgroundColor: '#f0f0f0', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, margin: 4, minWidth: 80, alignItems: 'center' },
-  filterBtnActive: { backgroundColor: '#4CAF50' },
-  filterBtnText: { color: '#666', fontSize: 14, fontWeight: '600' },
-  filterBtnTextActive: { color: '#fff' },
+  filterBtn: { backgroundColor: themeColors.surface, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, margin: 4, minWidth: 80, alignItems: 'center' },
+  filterBtnActive: { backgroundColor: themeColors.primary },
+  filterBtnText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  filterBtnTextActive: { color: themeColors.card },
   // New styles for search and filter chips
   searchInput: {
     borderWidth: 1,
@@ -842,7 +844,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: themeColors.surface,
+    borderColor: themeColors.border,
+    color: themeColors.text,
   },
   filterChips: {
     flexDirection: 'row',
@@ -858,34 +862,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 1,
+    backgroundColor: themeColors.surface,
   },
   chipText: {
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+    color: themeColors.text,
   },
   messagesContainer: { marginTop: 12, marginBottom: 8 },
   messageBubble: { padding: 10, borderRadius: 12, marginBottom: 8, maxWidth: '80%' },
-  childMessage: { backgroundColor: '#e3f2fd', alignSelf: 'flex-start' },
-  parentMessage: { backgroundColor: '#f3e5f5', alignSelf: 'flex-end' },
-  messageText: { fontSize: 14, color: '#333' },
-  messageTime: { fontSize: 10, color: '#666', marginTop: 4, textAlign: 'right' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '90%', maxWidth: 400 },
-  modalTitle: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 16, color: '#194476' },
-  modalRequestSummary: { backgroundColor: '#f7fafd', padding: 12, borderRadius: 8, marginBottom: 16 },
-  modalRequestText: { fontSize: 16, marginBottom: 6, color: '#234' },
-  modalLabel: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#226' },
-  commentInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, minHeight: 80, textAlignVertical: 'top', marginBottom: 16 },
+  childMessage: { backgroundColor: themeColors.surface, alignSelf: 'flex-start' },
+  parentMessage: { backgroundColor: themeColors.secondary, alignSelf: 'flex-end' },
+  messageText: { fontSize: 14, color: themeColors.text },
+  messageTime: { fontSize: 10, color: themeColors.textSecondary, marginTop: 4, textAlign: 'right' },
+  modalOverlay: { flex: 1, backgroundColor: themeColors.overlay || 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: themeColors.card, borderRadius: 16, padding: 20, width: '90%', maxWidth: 400 },
+  modalTitle: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 16, color: themeColors.primary },
+  modalRequestSummary: { backgroundColor: themeColors.surface, padding: 12, borderRadius: 8, marginBottom: 16 },
+  modalRequestText: { fontSize: 16, marginBottom: 6, color: themeColors.text },
+  modalLabel: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: themeColors.text },
+  commentInput: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, padding: 12, minHeight: 80, textAlignVertical: 'top', marginBottom: 16, backgroundColor: themeColors.surface, color: themeColors.text },
   modalButtons: { flexDirection: 'row', justifyContent: 'space-between' },
   modalBtn: { flex: 1, padding: 12, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
-  modalBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  cancelBtn: { backgroundColor: '#6c757d' },
-  cancelBtnText: { color: '#fff', fontWeight: '600' },
+  modalBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
+  cancelBtn: { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border },
+  cancelBtnText: { color: themeColors.text, fontWeight: '600' },
   messageInputContainer: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 8, gap: 8 },
-  messageInput: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, textAlignVertical: 'top' },
-  sendButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, minWidth: 60, alignItems: 'center' },
-  sendButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  messageInput: { flex: 1, borderWidth: 1, borderColor: themeColors.border, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, textAlignVertical: 'top', backgroundColor: themeColors.surface, color: themeColors.text },
+  sendButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, minWidth: 60, alignItems: 'center', backgroundColor: themeColors.primary },
+  sendButtonText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
   // Error display styles
   errorContainer: {
     alignItems: 'center',
@@ -896,12 +902,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
     textAlign: 'center',
+    color: themeColors.error,
   },
   errorMessage: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 22,
+    color: themeColors.text,
   },
   retryButton: {
     paddingHorizontal: 24,
@@ -909,9 +917,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     minWidth: 120,
     alignItems: 'center',
+    backgroundColor: themeColors.primary,
   },
   retryButtonText: {
-    color: '#fff',
+    color: themeColors.card,
     fontSize: 16,
     fontWeight: '600',
   },

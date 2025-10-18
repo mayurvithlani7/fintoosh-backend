@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { patchChore } from '../../utils/api';
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 16,
@@ -27,10 +27,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 22,
     marginTop: 6,
-    // color moved inline for themeColors use
+    color: themeColors.primary,
   },
   sectionCard: {
-    // backgroundColor moved inline for themeColors use
+    backgroundColor: themeColors.card,
     borderRadius: 14,
     marginBottom: 16,
     padding: 18,
@@ -38,16 +38,16 @@ const styles = StyleSheet.create({
     width: "97%",
     maxWidth: 520,
     elevation: 2,
-    // shadowColor moved inline for themeColors use
+    shadowColor: themeColors.border,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
     marginBottom: 8,
-    // color moved inline for themeColors use
+    color: themeColors.text,
   },
   placeholder: {
-    // color moved inline for themeColors use
+    color: themeColors.textSecondary,
     fontStyle: "italic", fontSize: 15,
     marginBottom: 2, marginTop: 2, minHeight: 26
   },
@@ -55,6 +55,7 @@ const styles = StyleSheet.create({
 
 export default function ChoresScreen() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const router = useRouter();
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
@@ -213,6 +214,7 @@ export default function ChoresScreen() {
 // --- Chores Section (list) ---
 function ChoresSection() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [chores, setChores] = useState<any[]>([]);
   const [userData, setUserData] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
@@ -495,14 +497,16 @@ function ChoresSection() {
                 style={{
                   marginTop: 12,
                   alignSelf: "center",
-                  backgroundColor: "#e7e2fa",
+                  backgroundColor: themeColors.surface,
+                  borderColor: themeColors.border,
+                  borderWidth: 1,
                   paddingHorizontal: 20,
                   paddingVertical: 8,
                   borderRadius: 16
                 }}
                 onPress={() => setShowArchive(true)}
               >
-                <Text style={{ color: "#5837a7", fontWeight: "600" }}>Show All Completed Tasks</Text>
+                <Text style={{ color: themeColors.primary, fontWeight: "600" }}>Show All Completed Tasks</Text>
               </TouchableOpacity>
             )}
             {archived.length > 0 && showArchive && (
@@ -510,14 +514,16 @@ function ChoresSection() {
                 style={{
                   marginTop: 10,
                   alignSelf: "center",
-                  backgroundColor: "#e6e6e6",
+                  backgroundColor: themeColors.surface,
+                  borderColor: themeColors.border,
+                  borderWidth: 1,
                   paddingHorizontal: 14,
                   paddingVertical: 7,
                   borderRadius: 16
                 }}
                 onPress={() => setShowArchive(false)}
               >
-                <Text style={{ color: "#5837a7", fontWeight: "500" }}>Show Only Last 90 Days</Text>
+                <Text style={{ color: themeColors.primary, fontWeight: "500" }}>Show Only Last 90 Days</Text>
               </TouchableOpacity>
             )}
           </>

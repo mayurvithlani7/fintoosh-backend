@@ -9,6 +9,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import ThemeToggle from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNavigation } from '@/utils/navigationContext';
 import { useTheme } from '@/utils/themeContext';
 
 function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
@@ -111,6 +112,7 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
 export default function ParentsTabLayout() {
   const colorScheme = useColorScheme();
   const { themeColors } = useTheme();
+  const { activeModal, setActiveModal } = useNavigation();
   const dynamicStyles = StyleSheet.create({
     overlay: {
       flex: 1,
@@ -121,7 +123,6 @@ export default function ParentsTabLayout() {
   });
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [menuVisible, setMenuVisible] = useState(false);
 
   // TEMPORARILY DISABLE AUTH CHECK FOR TESTING
   useEffect(() => {
@@ -160,9 +161,8 @@ export default function ParentsTabLayout() {
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => {
-                console.log('Hamburger pressed, setting menuVisible to true');
-                setMenuVisible(true);
-                console.log('menuVisible should now be true');
+                console.log('Hamburger pressed, setting activeModal to hamburger-menu');
+                setActiveModal('hamburger-menu');
               }}
               style={styles.hamburgerButton}
               accessibilityRole="button"
@@ -211,10 +211,10 @@ export default function ParentsTabLayout() {
       </Stack>
 
       <HamburgerMenu
-        isVisible={menuVisible}
+        isVisible={activeModal === 'hamburger-menu'}
         onClose={() => {
           console.log('Closing menu');
-          setMenuVisible(false);
+          setActiveModal(null);
         }}
         themeColors={themeColors}
         router={router}

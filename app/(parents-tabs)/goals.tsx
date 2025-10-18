@@ -15,6 +15,7 @@ export default function ParentsGoalsScreen() {
   console.log('ParentsGoalsScreen component rendered');
 
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const { childData, fetchChildData } = useDataCache();
 
   console.log('Goals screen - childData:', childData);
@@ -911,24 +912,24 @@ export default function ParentsGoalsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { backgroundColor: '#f7fafd' },
+const createStyles = (themeColors: any) => StyleSheet.create({
+  scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: '#194476' },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: '#aaa' },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: '#226' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
   formRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   formGroup: { flex: 1, marginHorizontal: 6 },
-  inputLabel: { fontWeight: '500', marginBottom: 4, color: '#234', fontSize: 15 },
-  input: { borderWidth: 1, borderColor: '#abc', borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: '#f5fafd', color: '#112' },
-  formBtn: { backgroundColor: '#d7b5fb', padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
-  formBtnText: { fontWeight: '700', color: '#50317a', fontSize: 15 },
-  validation: { color: 'red', fontSize: 15, marginTop: 4 },
-  statusMessage: { fontSize: 15, fontWeight: '600', color: '#159320', marginTop: 4 },
-  placeholder: { color: '#999', fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
+  inputLabel: { fontWeight: '500', marginBottom: 4, color: themeColors.text, fontSize: 15 },
+  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
+  formBtn: { backgroundColor: themeColors.primary, padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
+  formBtnText: { fontWeight: '700', color: themeColors.card, fontSize: 15 },
+  validation: { color: themeColors.error, fontSize: 15, marginTop: 4 },
+  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success, marginTop: 4 },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
   childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
 childButton: {
-  backgroundColor: '#f0f0f0',
+  backgroundColor: themeColors.surface,
   paddingHorizontal: 16,
   paddingVertical: 8,
   borderRadius: 20,
@@ -938,41 +939,43 @@ childButton: {
   alignItems: 'center',
   overflow: 'hidden',
 },
-  childButtonSelected: { backgroundColor: '#4CAF50' },
-  childButtonText: { color: '#666', fontSize: 14, fontWeight: '600' },
-  childButtonTextSelected: { color: '#fff' },
+  childButtonSelected: { backgroundColor: themeColors.primary },
+  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonTextSelected: { color: themeColors.card },
   jarSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: 8, marginBottom: 8 },
-  jarButton: { backgroundColor: '#f0f0f0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, margin: 2, minWidth: 60, alignItems: 'center' },
-  jarButtonSelected: { backgroundColor: '#2196F3' },
-  jarButtonText: { color: '#666', fontSize: 12, fontWeight: '600' },
-  jarButtonTextSelected: { color: '#fff' },
+  jarButton: { backgroundColor: themeColors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, margin: 2, minWidth: 60, alignItems: 'center' },
+  jarButtonSelected: { backgroundColor: themeColors.secondary },
+  jarButtonText: { color: themeColors.text, fontSize: 12, fontWeight: '600' },
+  jarButtonTextSelected: { color: themeColors.card },
   refreshBtn: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: themeColors.secondary,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: "center",
   },
   refreshBtnDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: themeColors.surface,
   },
   refreshBtnText: {
-    color: "#fff",
+    color: themeColors.card,
     fontWeight: "bold",
     fontSize: 12,
   },
   refreshBtnTextDisabled: {
-    color: "#666",
+    color: themeColors.textSecondary,
   },
   cancelBtn: {
-    backgroundColor: '#6c757d',
+    backgroundColor: themeColors.surface,
+    borderWidth: 1,
+    borderColor: themeColors.border,
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
   },
   cancelBtnText: {
     fontWeight: '700',
-    color: '#fff',
+    color: themeColors.text,
     fontSize: 15,
   },
 });

@@ -11,7 +11,7 @@
     "primaryColor": "#6A49F3",
     "description": "Wise Kids. Smarter Money. - A family finance management app for parents and children to learn money management through fun tasks and games.",
     "privacy": "public",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fintoosh.app",

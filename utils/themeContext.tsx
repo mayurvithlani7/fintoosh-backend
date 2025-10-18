@@ -52,13 +52,13 @@ export const highContrastThemes = {
 export const themes = {
   light: {
     // WCAG AA compliant colors (4.5:1 contrast ratio minimum)
-    primary: '#1976D2',        // Blue with good contrast
+    primary: '#154477',        // Blue - moved from hardcoded
     secondary: '#7B1FA2',      // Purple with good contrast
     background: '#FFFFFF',     // Pure white
-    surface: '#F5F5F5',        // Light gray
+    surface: '#f6faff',        // Light blue surface - moved from hardcoded
     card: '#FFFFFF',           // Pure white
-    text: '#212121',           // Dark gray (better than #1e293b)
-    textSecondary: '#757575',  // Medium gray (better than #64748b)
+    text: '#201828',           // Dark blue-gray - moved from hardcoded
+    textSecondary: '#64748b',  // Medium gray
     border: '#BDBDBD',         // Light gray borders
     success: '#388E3C',        // Green with good contrast
     warning: '#F57C00',        // Orange with good contrast
@@ -73,7 +73,7 @@ export const themes = {
     }
   },
   dark: {
-    primary: '#3b82f6',
+    primary: '#4FC3F7',        // Light blue for dark backgrounds
     secondary: '#8b5cf6',
     background: '#0f172a',
     surface: '#1e293b',
@@ -256,6 +256,7 @@ interface AnimationSettings {
 interface ThemeContextType {
   theme: ThemeType;
   themeColors: typeof themes.light;
+  themes: typeof themes;
   setTheme: (theme: ThemeType) => void;
   toggleDarkMode: () => void;
   isDarkMode: boolean;
@@ -493,6 +494,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       value={{
         theme,
         themeColors,
+        themes,
         setTheme,
         toggleDarkMode,
         isDarkMode,

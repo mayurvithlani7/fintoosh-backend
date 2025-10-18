@@ -18,7 +18,7 @@ import { Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOp
 import type { InterestRuleType } from "@/utils/currencyContext";
 
 // Enhanced empty state component with progressive onboarding
-const EmptyState = () => {
+const EmptyState = ({ styles }: { styles: any }) => {
   const router = useRouter();
   const { themeColors } = useTheme();
 
@@ -62,6 +62,7 @@ export default function ParentsOverviewScreen() {
   const router = useRouter();
   const { refresh } = useLocalSearchParams();
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const {
     childData,
     childDataStatus,
@@ -106,7 +107,7 @@ export default function ParentsOverviewScreen() {
       };
 
       loadData();
-    }, [fetchChildData]) // Remove isDataStale from dependencies as it's stable
+    }, [fetchChildData]) // isDataStale is stable from context
   );
 
   // Check for refresh parameter and update data
@@ -290,29 +291,29 @@ export default function ParentsOverviewScreen() {
           })()
         ) : childData ? (
           <View style={styles.jarsContainer}>
-            <View style={[styles.jar, { backgroundColor: '#dfffec' }]}>
-              <Text style={[styles.jarLabel, { color: '#225d32' }]}>Pocket Money</Text>
-              <Text style={[styles.jarValue, { color: '#225d32' }]}>{childData.currentPoints}</Text>
+            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.current || '#E8F5E8' }]}>
+              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Pocket Money</Text>
+              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.currentPoints}</Text>
             </View>
-            <View style={[styles.jar, { backgroundColor: '#c9f8ec' }]}>
-              <Text style={[styles.jarLabel, { color: '#1e624b' }]}>Savings Pot</Text>
-              <Text style={[styles.jarValue, { color: '#1e624b' }]}>{childData.savePoints}</Text>
+            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.save || '#E3F2FD' }]}>
+              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Savings Pot</Text>
+              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.savePoints}</Text>
             </View>
-            <View style={[styles.jar, { backgroundColor: '#f9e9ac' }]}>
-              <Text style={[styles.jarLabel, { color: '#5d5433' }]}>Spending Pot</Text>
-              <Text style={[styles.jarValue, { color: '#5d5433' }]}>{childData.spendPoints}</Text>
+            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.spend || '#FFF3E0' }]}>
+              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Spending Pot</Text>
+              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.spendPoints}</Text>
             </View>
-            <View style={[styles.jar, { backgroundColor: '#ffe0ee' }]}>
-              <Text style={[styles.jarLabel, { color: '#5e2c4f' }]}>Help Others Pot</Text>
-              <Text style={[styles.jarValue, { color: '#5e2c4f' }]}>{childData.donatePoints}</Text>
+            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.donate || '#FCE4EC' }]}>
+              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Help Others Pot</Text>
+              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.donatePoints}</Text>
             </View>
-            <View style={[styles.jar, { backgroundColor: '#bffbe3' }]}>
-              <Text style={[styles.jarLabel, { color: '#035e44' }]}>Grow Money Pot</Text>
-              <Text style={[styles.jarValue, { color: '#035e44' }]}>{childData.investPoints}</Text>
+            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.invest || '#F3E5F5' }]}>
+              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Grow Money Pot</Text>
+              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.investPoints}</Text>
             </View>
           </View>
         ) : (
-          <EmptyState />
+          <EmptyState styles={styles} />
         )}
       </View>
 
@@ -671,7 +672,7 @@ function getNextInterestPayout(
   });
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   notificationSection: {
     borderRadius: 14,
     padding: 12,
@@ -680,7 +681,7 @@ const styles = StyleSheet.create({
     width: '97%',
     maxWidth: 520,
     elevation: 8,  // Higher than regular cards for critical notifications
-    shadowColor: '#000',
+    shadowColor: themeColors.shadow || '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -690,6 +691,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 6,
+    color: themeColors.primary,
   },
   notificationCard: {
     padding: 8,
@@ -699,26 +701,27 @@ const styles = StyleSheet.create({
   },
   notificationText: {
     fontSize: 15,
+    color: themeColors.text,
   },
   notificationUnread: {
     fontWeight: 'bold',
+    color: themeColors.warning,
   },
   notificationRead: {
     opacity: 0.5,
   },
-  scroll: { backgroundColor: '#f7fafd' },
+  scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
   navRow: { flexDirection: 'row', alignSelf: 'center', marginBottom: 12 },
-  navBtn: { backgroundColor: '#78d2eb', borderRadius: 8, marginHorizontal: 4, paddingVertical: 8, paddingHorizontal: 16 },
-  navBtnText: { color: '#155674', fontWeight: 'bold', fontSize: 16 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: '#194476' },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 2, shadowColor: '#aaa' }, // Standard elevation for regular cards
-  actionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 4, shadowColor: '#aaa', borderWidth: 2, borderColor: '#1976D2' }, // Higher elevation for action sections
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8, color: '#226' },
-  placeholder: { color: '#999', fontStyle: 'italic', fontSize: 15, marginBottom: 1, marginTop: 2, minHeight: 26 },
+  navBtn: { backgroundColor: themeColors.secondary, borderRadius: 8, marginHorizontal: 4, paddingVertical: 8, paddingHorizontal: 16 },
+  navBtnText: { color: themeColors.card, fontWeight: 'bold', fontSize: 16 },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 2, shadowColor: themeColors.border }, // Standard elevation for regular cards
+  actionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 4, borderWidth: 2, borderColor: themeColors.primary, shadowColor: themeColors.border }, // Higher elevation for action sections
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8, color: themeColors.text },
+  placeholder: { fontStyle: 'italic', fontSize: 15, marginBottom: 1, marginTop: 2, minHeight: 26, color: themeColors.textSecondary },
   quickActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   quickBtn: {
-    backgroundColor: '#d7b5fb',
     padding: 16,          // Increased from 12 to meet 48dp accessibility
     borderRadius: 8,
     margin: 4,
@@ -727,9 +730,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickBtnText: { fontWeight: '700', color: '#50317a', fontSize: 15 },
+  quickBtnText: { fontWeight: '700', fontSize: 15 },
   jarsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 10 },
-  jar: { borderRadius: 14, padding: 18, minWidth: 80, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
+  jar: { borderRadius: 14, padding: 18, minWidth: 80, alignItems: 'center', elevation: 2, shadowColor: themeColors.shadow || '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
   jarLabel: { fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
   jarValue: { fontSize: 18, fontWeight: 'bold' },
   // Empty state styles

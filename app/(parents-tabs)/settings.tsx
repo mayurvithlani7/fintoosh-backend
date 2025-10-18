@@ -81,14 +81,14 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: "#666",
+    borderColor: themeColors.border,
     borderRadius: 4,
     marginRight: 10,
     justifyContent: "center",
     alignItems: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: themeColors.primary,
   },
   checkboxText: {
     fontSize: 16,
@@ -111,7 +111,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     marginTop: 10,
-    color: "#18722a",
+    color: themeColors.success,
     textAlign: "center",
   },
 });

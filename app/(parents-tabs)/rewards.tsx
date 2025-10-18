@@ -27,6 +27,7 @@ interface Reward {
 export default function ParentsRewardsScreen() {
   const { showError, showFeedback } = useGlobalFeedback();
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const accentColor = themeColors.accent;
   const cardColor = themeColors.card;
   const [children, setChildren] = useState<ChildUser[]>([]);
@@ -722,35 +723,37 @@ export default function ParentsRewardsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { backgroundColor: '#f7fafd' },
+const createStyles = (themeColors: any) => StyleSheet.create({
+  scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: '#194476' },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: '#aaa' },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: '#226' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
   formRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   formGroup: { flex: 1, marginHorizontal: 6 },
-  inputLabel: { fontWeight: '500', marginBottom: 4, color: '#234', fontSize: 15 },
-  input: { borderWidth: 1, borderColor: '#abc', borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: '#f5fafd', color: '#112' },
-  formBtn: { backgroundColor: '#d7b5fb', padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
-  formBtnText: { fontWeight: '700', color: '#50317a', fontSize: 15 },
-  validation: { color: 'red', fontSize: 15, marginTop: 4 },
-  statusMessage: { fontSize: 15, fontWeight: '600', color: '#159320', marginTop: 4 },
-  placeholder: { color: '#999', fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
+  inputLabel: { fontWeight: '500', marginBottom: 4, color: themeColors.text, fontSize: 15 },
+  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
+  formBtn: { backgroundColor: themeColors.primary, padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
+  formBtnText: { fontWeight: '700', color: themeColors.card, fontSize: 15 },
+  validation: { color: themeColors.error, fontSize: 15, marginTop: 4 },
+  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success, marginTop: 4 },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
   childPickerRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },
-  childBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#f5efff', borderRadius: 15, marginHorizontal: 3, marginBottom: 4 },
-  childBtnSelected: { backgroundColor: '#bb89e5' },
-  childBtnText: { fontSize: 15, color: '#3a3266', fontWeight: '600' },
-  childBtnTextSelected: { color: '#fff', fontWeight: '800' },
+  childBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: themeColors.surface, borderRadius: 15, marginHorizontal: 3, marginBottom: 4 },
+  childBtnSelected: { backgroundColor: themeColors.primary },
+  childBtnText: { fontSize: 15, color: themeColors.text, fontWeight: '600' },
+  childBtnTextSelected: { color: themeColors.card, fontWeight: '800' },
   cancelBtn: {
-    backgroundColor: '#6c757d',
+    backgroundColor: themeColors.surface,
+    borderWidth: 1,
+    borderColor: themeColors.border,
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
   },
   cancelBtnText: {
     fontWeight: '700',
-    color: '#fff',
+    color: themeColors.text,
     fontSize: 15,
   },
 });

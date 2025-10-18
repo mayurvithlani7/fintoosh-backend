@@ -14,6 +14,7 @@ import BackButton from '@/components/BackButton';
 
 export default function ParentsPointsScreen() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const { showError, showFeedback } = useGlobalFeedback();
   const [amount, setAmount] = useState('');
   const [toJar, setToJar] = useState<'current' | 'save' | 'spend' | 'donate' | 'invest'>('current');
@@ -439,22 +440,22 @@ export default function ParentsPointsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { backgroundColor: '#f7fafd' },
+const createStyles = (themeColors: any) => StyleSheet.create({
+  scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: '#194476' },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: '#aaa' },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: '#226' },
-  inputLabel: { fontWeight: '500', marginBottom: 4, color: '#234', fontSize: 15 },
-  input: { borderWidth: 1, borderColor: '#abc', borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: '#f5fafd', color: '#112' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
+  inputLabel: { fontWeight: '500', marginBottom: 4, color: themeColors.text, fontSize: 15 },
+  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-  actionBtn: { flex: 1, backgroundColor: '#d7b5fb', padding: 12, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
-  actionBtnText: { fontWeight: '700', color: '#50317a', fontSize: 16 },
-  validation: { color: 'red', fontSize: 15 },
-  statusMessage: { fontSize: 15, fontWeight: '600' },
-  placeholder: { color: '#999', fontStyle: 'italic', fontSize: 15, marginBottom: 1, marginTop: 2, minHeight: 26 },
+  actionBtn: { flex: 1, backgroundColor: themeColors.primary, padding: 12, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
+  actionBtnText: { fontWeight: '700', color: themeColors.card, fontSize: 16 },
+  validation: { color: themeColors.error, fontSize: 15 },
+  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, marginBottom: 1, marginTop: 2, minHeight: 26 },
   jarsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 10 },
-  jar: { borderRadius: 14, padding: 18, minWidth: 80, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
+  jar: { borderRadius: 14, padding: 18, minWidth: 80, alignItems: 'center', elevation: 2, shadowColor: themeColors.border, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
   jarLabel: { fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
   jarValue: { fontSize: 18, fontWeight: 'bold' },
 });
