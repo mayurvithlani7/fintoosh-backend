@@ -39,7 +39,38 @@ const authLimiter = rateLimit({
 
 // Middleware
 app.set('trust proxy', 1); // Trust first proxy for rate limiting
-app.use(cors());
+
+// CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Allow localhost for development
+    if (origin.includes('localhost')) return callback(null, true);
+
+    // Allow your production frontend domains
+    const allowedOrigins = [
+      'https://fintoosh-frontend.onrender.com',
+      'http://localhost:8081',
+      'http://localhost:3000',
+      'exp://',
+      'https://expo.dev'
+    ];
+
+    if (allowedOrigins.some(allowed => origin.includes(allowed))) {
+      return callback(null, true);
+    }
+
+    // Allow all origins for now (remove this in production for security)
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Request logging middleware
