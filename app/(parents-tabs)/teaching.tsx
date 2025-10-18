@@ -1093,32 +1093,53 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                 <View style={[styles.timelineDot, { backgroundColor: themeColors.primary }]} />
                 <View style={styles.timelineContent}>
                   <View style={styles.timelineHeader}>
-                    <TouchableOpacity
-                      style={[styles.deleteButton, { backgroundColor: themeColors.secondary }]}
-                      onPress={() => {
+                  <TouchableOpacity
+                    style={[styles.deleteButton, { backgroundColor: themeColors.secondary }]}
+                    onPress={() => {
+                      console.log('Timeline delete button pressed for index:', index);
+
+                      // Use appropriate confirmation method for platform
+                      if (typeof window !== 'undefined' && window.confirm) {
+                        // Web: use browser confirm dialog
+                        const confirmed = window.confirm('Are you sure you want to delete this timeline entry?');
+                        if (confirmed) {
+                          console.log('Timeline delete confirmed for index:', index);
+                          const updatedTimeline = {
+                            timeline: familyTimeline.timeline.filter((_: any, i: number) => i !== index)
+                          };
+                          console.log('Updated timeline entries count:', updatedTimeline.timeline.length);
+                          setFamilyTimeline(updatedTimeline);
+                          saveTimelineToDatabase(updatedTimeline);
+                          console.log('Timeline entry deleted successfully');
+                        } else {
+                          console.log('Timeline delete cancelled');
+                        }
+                      } else {
+                        // Mobile: use Alert.alert
                         Alert.alert(
                           'Delete Timeline Entry',
                           'Are you sure you want to delete this timeline entry?',
                           [
-                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Cancel', style: 'cancel', onPress: () => console.log('Timeline delete cancelled') },
                             {
                               text: 'Delete',
                               style: 'destructive',
                               onPress: () => {
-                                console.log('Deleting timeline entry at index:', index);
+                                console.log('Timeline delete confirmed for index:', index);
                                 const updatedTimeline = {
                                   timeline: familyTimeline.timeline.filter((_: any, i: number) => i !== index)
                                 };
                                 console.log('Updated timeline entries count:', updatedTimeline.timeline.length);
                                 setFamilyTimeline(updatedTimeline);
                                 saveTimelineToDatabase(updatedTimeline);
-                                Alert.alert('Entry Deleted', 'The timeline entry has been removed.');
+                                console.log('Timeline entry deleted successfully');
                               }
                             }
                           ]
                         );
-                      }}
-                    >
+                      }
+                    }}
+                  >
                       <Text style={[styles.deleteButtonText, { color: themeColors.card }]}>🗑️</Text>
                     </TouchableOpacity>
                   </View>
@@ -1178,40 +1199,73 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                   <TouchableOpacity
                     style={[styles.deleteButton, { backgroundColor: themeColors.secondary }]}
                     onPress={() => {
-                      console.log('Delete dream button pressed for:', item.id, item.title);
-                      Alert.alert(
-                        'Delete Dream',
-                        `Are you sure you want to delete "${item.title}" from your Dream Board?`,
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Delete',
-                            style: 'destructive',
-                            onPress: () => {
-                              console.log('🗑️🗑️🗑️ DREAM DELETE START 🗑️🗑️🗑️');
-                              console.log('Deleting dream:', item.title, 'ID:', item.id);
+                      console.log('Dream delete button pressed for:', item.id, item.title);
+                      console.log('Dream board items before delete:', dreamBoard.items?.length || 0);
 
-                              // Simple direct approach - just remove the item without complex checks
-                              const updatedItems = dreamBoard.items.filter((dream: any) => dream.id !== item.id);
-                              console.log('Before:', dreamBoard.items.length, 'items');
-                              console.log('After:', updatedItems.length, 'items');
+                      // Use appropriate confirmation method for platform
+                      if (typeof window !== 'undefined' && window.confirm) {
+                        // Web: use browser confirm dialog
+                        const confirmed = window.confirm(`Are you sure you want to delete "${item.title}" from your Dream Board?`);
+                        if (confirmed) {
+                          console.log('Dream delete confirmed for:', item.id, item.title);
 
-                              const updatedDreamBoard = {
-                                ...dreamBoard,
-                                items: updatedItems,
-                                totalDreamValue: dreamBoard.totalDreamValue - item.targetAmount,
-                                monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
-                              };
+                          // Simple direct approach - just remove the item without complex checks
+                          const updatedItems = dreamBoard.items.filter((dream: any) => dream.id !== item.id);
+                          console.log('Before delete:', dreamBoard.items.length, 'items');
+                          console.log('After delete:', updatedItems.length, 'items');
 
-                              setDreamBoard(updatedDreamBoard);
-                              AsyncStorage.setItem('dreamBoard', JSON.stringify(updatedDreamBoard));
+                          const updatedDreamBoard = {
+                            ...dreamBoard,
+                            items: updatedItems,
+                            totalDreamValue: dreamBoard.totalDreamValue - item.targetAmount,
+                            monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
+                          };
 
-                              console.log('🗑️🗑️🗑️ DREAM DELETE END 🗑️🗑️🗑️');
-                              Alert.alert('Dream Deleted', `"${item.title}" has been removed from your Dream Board.`);
+                          console.log('Setting updated dream board...');
+                          setDreamBoard(updatedDreamBoard);
+                          console.log('Saving to AsyncStorage...');
+                          AsyncStorage.setItem('dreamBoard', JSON.stringify(updatedDreamBoard));
+
+                          console.log('Dream deleted successfully');
+                        } else {
+                          console.log('Dream delete cancelled');
+                        }
+                      } else {
+                        // Mobile: use Alert.alert
+                        Alert.alert(
+                          'Delete Dream',
+                          `Are you sure you want to delete "${item.title}" from your Dream Board?`,
+                          [
+                            { text: 'Cancel', style: 'cancel', onPress: () => console.log('Dream delete cancelled') },
+                            {
+                              text: 'Delete',
+                              style: 'destructive',
+                              onPress: () => {
+                                console.log('Dream delete confirmed for:', item.id, item.title);
+
+                                // Simple direct approach - just remove the item without complex checks
+                                const updatedItems = dreamBoard.items.filter((dream: any) => dream.id !== item.id);
+                                console.log('Before delete:', dreamBoard.items.length, 'items');
+                                console.log('After delete:', updatedItems.length, 'items');
+
+                                const updatedDreamBoard = {
+                                  ...dreamBoard,
+                                  items: updatedItems,
+                                  totalDreamValue: dreamBoard.totalDreamValue - item.targetAmount,
+                                  monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
+                                };
+
+                                console.log('Setting updated dream board...');
+                                setDreamBoard(updatedDreamBoard);
+                                console.log('Saving to AsyncStorage...');
+                                AsyncStorage.setItem('dreamBoard', JSON.stringify(updatedDreamBoard));
+
+                                console.log('Dream deleted successfully');
+                              }
                             }
-                          }
-                        ]
-                      );
+                          ]
+                        );
+                      }
                     }}
                   >
                     <Text style={[styles.deleteButtonText, { color: themeColors.card }]}>🗑️</Text>
@@ -1457,7 +1511,12 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                   onPress={() => {
                     // Validate required fields
                     if (!discussionForm.childId || !discussionForm.topic) {
-                      Alert.alert('Missing Information', 'Please select a child and discussion topic.');
+                      const errorMessage = 'Please select a child and discussion topic.';
+                      if (typeof window !== 'undefined' && window.alert) {
+                        window.alert('Missing Information: ' + errorMessage);
+                      } else {
+                        Alert.alert('Missing Information', errorMessage);
+                      }
                       return;
                     }
 
@@ -1627,7 +1686,12 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                   style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
                   onPress={() => {
                     if (!timelineForm.age || !timelineForm.year || !timelineForm.event || !timelineForm.description) {
-                      Alert.alert('Missing Information', 'Please fill in age, year, event, and description.');
+                      const errorMessage = 'Please fill in age, year, event, and description.';
+                      if (typeof window !== 'undefined' && window.alert) {
+                        window.alert('Missing Information: ' + errorMessage);
+                      } else {
+                        Alert.alert('Missing Information', errorMessage);
+                      }
                       return;
                     }
 
@@ -1886,15 +1950,34 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                     { key: 'other', label: 'Other', icon: '✨' }
                   ];
 
-                  Alert.alert(
-                    'Select Category',
-                    'Choose the type of dream',
-                    categories.map(cat => ({
-                      text: `${cat.icon} ${cat.label}`,
-                      onPress: () => updateDreamForm('category', cat.key)
-                    })),
-                    { cancelable: true }
-                  );
+                  // Use appropriate selection method for platform
+                  if (typeof window !== 'undefined' && window.prompt) {
+                    // Web: use prompt for simple selection
+                    const options = categories.map(cat => `${cat.icon} ${cat.label}`).join('\n');
+                    const selectedText = window.prompt(`Choose the type of dream:\n\n${options}\n\nEnter the emoji or name:`);
+
+                    if (selectedText) {
+                      // Find the category by icon or label
+                      const selectedCategory = categories.find(cat =>
+                        selectedText.includes(cat.icon) ||
+                        selectedText.toLowerCase().includes(cat.label.toLowerCase())
+                      );
+                      if (selectedCategory) {
+                        updateDreamForm('category', selectedCategory.key);
+                      }
+                    }
+                  } else {
+                    // Mobile: use Alert.alert
+                    Alert.alert(
+                      'Select Category',
+                      'Choose the type of dream',
+                      categories.map(cat => ({
+                        text: `${cat.icon} ${cat.label}`,
+                        onPress: () => updateDreamForm('category', cat.key)
+                      })),
+                      { cancelable: true }
+                    );
+                  }
                 }}
               >
                 <Text style={{ color: dreamForm.category ? themeColors.text : themeColors.textSecondary }}>
@@ -1953,7 +2036,18 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                   style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
                   onPress={() => {
                     if (!dreamForm.title || !dreamForm.targetAmount || !dreamForm.category) {
-                      Alert.alert('Missing Information', 'Please fill in title, target amount, and category.');
+                      const errorMessage = 'Please fill in title, target amount, and category.';
+                      console.error('Validation Error:', errorMessage);
+
+                      // Try multiple approaches for error display
+                      if (typeof window !== 'undefined' && window.alert) {
+                        window.alert('Missing Information: ' + errorMessage);
+                      } else if (Alert && Alert.alert) {
+                        Alert.alert('Missing Information', errorMessage);
+                      } else {
+                        // Fallback: show error in console only
+                        console.error('Could not display error dialog - please fill in all required fields');
+                      }
                       return;
                     }
 
