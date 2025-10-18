@@ -15,10 +15,17 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
 
   const { predictions, riskColor, riskText, loading, error } = usePredictions();
 
+  // Guaranteed high-contrast colors
+  const isDarkMode = backgroundColor === '#000000';
+  const mainTextColor = isDarkMode ? '#ffffff' : '#000000';
+  const secondaryTextColor = isDarkMode ? '#cccccc' : '#666666';
+  const surfaceColor = isDarkMode ? '#1a1a1a' : '#f5f5f5';
+  const cardBackgroundColor = backgroundColor;
+
   if (loading) {
     return (
       <View style={{ padding: 16 }}>
-        <Text style={{ color: textColor, fontSize: 16 }}>Loading insights...</Text>
+        <Text style={{ color: mainTextColor, fontSize: 16 }}>Loading insights...</Text>
       </View>
     );
   }
@@ -26,7 +33,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
   if (error) {
     return (
       <View style={{ padding: 16 }}>
-        <Text style={{ color: textColor, fontSize: 16 }}>Error loading insights: {error}</Text>
+        <Text style={{ color: mainTextColor, fontSize: 16 }}>Error loading insights: {error}</Text>
       </View>
     );
   }
@@ -34,15 +41,15 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
   if (!predictions) {
     return (
       <View style={{ padding: 16 }}>
-        <Text style={{ color: textColor, fontSize: 16 }}>No insights available</Text>
+        <Text style={{ color: mainTextColor, fontSize: 16 }}>No insights available</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ backgroundColor, padding: 16, margin: 16, borderRadius: 12 }}>
+    <View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Text style={{ color: textColor, fontSize: 20, fontWeight: 'bold' }}>
+        <Text style={{ color: mainTextColor, fontSize: 20, fontWeight: 'bold' }}>
           AI Financial Insights
         </Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -71,7 +78,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
 
       {/* Risk Level Indicator */}
       <View style={{ marginBottom: 16 }}>
-        <Text style={{ color: textColor, fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
+        <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
           Financial Health Status
         </Text>
         <View style={{
@@ -91,7 +98,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
           }}>
             {riskText}
           </Text>
-          <Text style={{ color: textColor, fontSize: 14 }}>
+          <Text style={{ color: mainTextColor, fontSize: 14 }}>
             {predictions.riskLevel === 'low' && 'Your financial habits are on track!'}
             {predictions.riskLevel === 'medium' && 'Some areas need attention to optimize savings.'}
             {predictions.riskLevel === 'high' && 'Action needed to improve financial health.'}
@@ -101,7 +108,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
 
       {/* Key Metrics */}
       <View style={{ marginBottom: 16 }}>
-        <Text style={{ color: textColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
+        <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
           Key Projections
         </Text>
         <View style={{ gap: 12 }}>
@@ -110,11 +117,11 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: 12,
-            backgroundColor: backgroundColor === '#000000' ? '#1a1a1a' : '#f5f5f5',
+            backgroundColor: surfaceColor,
             borderRadius: 8
           }}>
-            <Text style={{ color: textColor, fontSize: 14 }}>Next Month Spending</Text>
-            <Text style={{ color: textColor, fontSize: 16, fontWeight: '600' }}>
+            <Text style={{ color: mainTextColor, fontSize: 14 }}>Next Month Spending</Text>
+            <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600' }}>
               ₹{predictions.nextMonthSpending.toLocaleString()}
             </Text>
           </View>
@@ -124,11 +131,11 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: 12,
-            backgroundColor: backgroundColor === '#000000' ? '#1a1a1a' : '#f5f5f5',
+            backgroundColor: surfaceColor,
             borderRadius: 8
           }}>
-            <Text style={{ color: textColor, fontSize: 14 }}>Recommended Savings Target</Text>
-            <Text style={{ color: textColor, fontSize: 16, fontWeight: '600' }}>
+            <Text style={{ color: mainTextColor, fontSize: 14 }}>Recommended Savings Target</Text>
+            <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600' }}>
               ₹{predictions.savingsPotential.toLocaleString()}
             </Text>
           </View>
@@ -137,7 +144,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
 
       {/* Recommendations */}
       <View style={{ marginBottom: 16 }}>
-        <Text style={{ color: textColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
+        <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
           Personalized Recommendations
         </Text>
         <ScrollView style={{ maxHeight: 200 }}>
@@ -149,7 +156,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
                 alignItems: 'flex-start',
                 padding: 12,
                 marginBottom: 8,
-                backgroundColor: backgroundColor === '#000000' ? '#1a1a1a' : '#f5f5f5',
+                backgroundColor: surfaceColor,
                 borderRadius: 8,
                 borderLeftWidth: 3,
                 borderLeftColor: tintColor
@@ -165,7 +172,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
                 •
               </Text>
               <Text style={{
-                color: textColor,
+                color: mainTextColor,
                 fontSize: 14,
                 flex: 1,
                 lineHeight: 20
@@ -179,18 +186,18 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
 
       {/* Educational Tips */}
       <View>
-        <Text style={{ color: textColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
+        <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
           Financial Education Tips
         </Text>
         <View style={{
           padding: 12,
-          backgroundColor: backgroundColor === '#000000' ? '#1a1a1a' : '#f0f8ff',
+          backgroundColor: surfaceColor,
           borderRadius: 8,
           borderLeftWidth: 3,
           borderLeftColor: '#4CAF50'
         }}>
           <Text style={{
-            color: textColor,
+            color: mainTextColor,
             fontSize: 14,
             lineHeight: 20
           }}>

@@ -312,6 +312,10 @@ function KidGoalsRewardsSection() {
         milestones: template.milestones
       };
 
+      console.log('[GOALS FRONTEND] Creating goal with data:', goalData);
+      console.log('[GOALS FRONTEND] Making request to:', `${API_URL}/goals`);
+      console.log('[GOALS FRONTEND] Token (first 20 chars):', token.substring(0, 20));
+
       const response = await fetch(`${API_URL}/goals`, {
         method: 'POST',
         headers: {
@@ -321,9 +325,25 @@ function KidGoalsRewardsSection() {
         body: JSON.stringify(goalData)
       });
 
+      console.log('[GOALS FRONTEND] Response status:', response.status);
+      console.log('[GOALS FRONTEND] Response ok:', response.ok);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        Alert.alert('Error', errorData.message || 'Failed to create goal from template.');
+        let errorMessage = 'Failed to create goal from template.';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+          console.error('[GOALS FRONTEND] Error response JSON:', errorData);
+        } catch {
+          try {
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+            console.error('[GOALS FRONTEND] Error response text:', errorText);
+          } catch {
+            console.error('[GOALS FRONTEND] Could not read error response');
+          }
+        }
+        Alert.alert('Error', `${response.status} ${response.statusText}: ${errorMessage}`);
         return;
       }
 

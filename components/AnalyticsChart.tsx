@@ -22,10 +22,14 @@ export function SpendingTrendsChart({ data, title = "Spending Trends", height = 
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
 
+  // Guaranteed high-contrast colors
+  const isDarkMode = backgroundColor === '#000000';
+  const mainTextColor = isDarkMode ? '#ffffff' : '#000000';
+
   if (!data || data.length === 0) {
     return (
       <View style={{ padding: 16, alignItems: 'center' }}>
-        <Text style={{ color: textColor, fontSize: 16 }}>No spending data available</Text>
+        <Text style={{ color: mainTextColor, fontSize: 16 }}>No spending data available</Text>
       </View>
     );
   }
@@ -63,7 +67,7 @@ export function SpendingTrendsChart({ data, title = "Spending Trends", height = 
 
   return (
     <View style={{ padding: 16 }}>
-      <Text style={{ color: textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+      <Text style={{ color: mainTextColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
         {title}
       </Text>
       <LineChart
@@ -85,10 +89,14 @@ export function JarDistributionPie({ data, title = "Money Jar Distribution", hei
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
 
+  // Guaranteed high-contrast colors
+  const isDarkMode = backgroundColor === '#000000';
+  const mainTextColor = isDarkMode ? '#ffffff' : '#000000';
+
   if (!data || data.length === 0) {
     return (
       <View style={{ padding: 16, alignItems: 'center' }}>
-        <Text style={{ color: textColor, fontSize: 16 }}>No jar data available</Text>
+        <Text style={{ color: mainTextColor, fontSize: 16 }}>No jar data available</Text>
       </View>
     );
   }
@@ -105,7 +113,7 @@ export function JarDistributionPie({ data, title = "Money Jar Distribution", hei
   if (chartData.length === 0) {
     return (
       <View style={{ padding: 16, alignItems: 'center' }}>
-        <Text style={{ color: textColor, fontSize: 16 }}>No funds in jars</Text>
+        <Text style={{ color: mainTextColor, fontSize: 16 }}>No funds in jars</Text>
       </View>
     );
   }
@@ -123,7 +131,7 @@ export function JarDistributionPie({ data, title = "Money Jar Distribution", hei
 
   return (
     <View style={{ padding: 16 }}>
-      <Text style={{ color: textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+      <Text style={{ color: mainTextColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
         {title}
       </Text>
       <PieChart
@@ -145,10 +153,14 @@ export function ChoreCompletionHeatmap({ data, title = "Chore Completion Activit
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
 
+  // Guaranteed high-contrast colors
+  const isDarkMode = backgroundColor === '#000000';
+  const mainTextColor = isDarkMode ? '#ffffff' : '#000000';
+
   if (!data || data.length === 0) {
     return (
       <View style={{ padding: 16, alignItems: 'center' }}>
-        <Text style={{ color: textColor, fontSize: 16 }}>No chore completion data available</Text>
+        <Text style={{ color: mainTextColor, fontSize: 16 }}>No chore completion data available</Text>
       </View>
     );
   }
@@ -180,7 +192,7 @@ export function ChoreCompletionHeatmap({ data, title = "Chore Completion Activit
 
   return (
     <View style={{ padding: 16 }}>
-      <Text style={{ color: textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+      <Text style={{ color: mainTextColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
         {title}
       </Text>
       <BarChart
@@ -205,18 +217,22 @@ export function GoalProgressTimeline({ data, title = "Goal Progress Overview", h
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
 
+  // Guaranteed high-contrast colors
+  const isDarkMode = backgroundColor === '#000000';
+  const mainTextColor = isDarkMode ? '#ffffff' : '#000000';
+
   if (!data || data.length === 0) {
     return (
       <View style={{ padding: 16, alignItems: 'center' }}>
-        <Text style={{ color: textColor, fontSize: 16 }}>No goals data available</Text>
+        <Text style={{ color: mainTextColor, fontSize: 16 }}>No goals data available</Text>
       </View>
     );
   }
 
-  // Create progress chart data
+  // Create progress chart data - limit to 3 goals for better mobile display
   const progressData = {
-    labels: data.slice(0, 4).map((goal: any) => goal.goalName.substring(0, 6) + (goal.goalName.length > 6 ? '...' : '')),
-    data: data.slice(0, 4).map((goal: any) => goal.progress / 100)
+    labels: data.slice(0, 3).map((goal: any) => goal.goalName.length > 8 ? goal.goalName.substring(0, 8) + '...' : goal.goalName),
+    data: data.slice(0, 3).map((goal: any) => Math.min(1, Math.max(0, goal.progress / 100))) // Ensure 0-1 range
   };
 
   const chartConfig = {
@@ -225,7 +241,7 @@ export function GoalProgressTimeline({ data, title = "Goal Progress Overview", h
     backgroundGradientTo: backgroundColor,
     decimalPlaces: 0,
     color: (opacity = 1) => tintColor,
-    labelColor: (opacity = 1) => textColor,
+    labelColor: (opacity = 1) => mainTextColor,
     style: {
       borderRadius: 16
     }
@@ -233,13 +249,44 @@ export function GoalProgressTimeline({ data, title = "Goal Progress Overview", h
 
   return (
     <View style={{ padding: 16 }}>
-      <Text style={{ color: textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+      <Text style={{ color: mainTextColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
         {title}
       </Text>
+
+      {/* Progress bars for individual goals */}
+      <View style={{ marginBottom: 16 }}>
+        {data.slice(0, 3).map((goal: any, index: number) => (
+          <View key={index} style={{ marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ color: mainTextColor, fontSize: 14, fontWeight: '600' }}>
+                {goal.goalName.length > 15 ? goal.goalName.substring(0, 15) + '...' : goal.goalName}
+              </Text>
+              <Text style={{ color: mainTextColor, fontSize: 12 }}>
+                {goal.progress}%
+              </Text>
+            </View>
+            <View style={{
+              height: 8,
+              backgroundColor: isDarkMode ? '#333333' : '#e0e0e0',
+              borderRadius: 4,
+              overflow: 'hidden'
+            }}>
+              <View style={{
+                height: '100%',
+                width: `${Math.min(100, Math.max(0, goal.progress))}%`,
+                backgroundColor: tintColor,
+                borderRadius: 4
+              }} />
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Overall progress chart */}
       <ProgressChart
         data={progressData}
-        width={screenWidth - 32}
-        height={height}
+        width={Math.min(screenWidth - 32, 400)}
+        height={Math.min(height, 180)}
         chartConfig={chartConfig}
         hideLegend={false}
         style={{
@@ -255,10 +302,14 @@ export function SpendingCategoryBreakdown({ data, title = "Spending by Category"
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
 
+  // Guaranteed high-contrast colors
+  const isDarkMode = backgroundColor === '#000000';
+  const mainTextColor = isDarkMode ? '#ffffff' : '#000000';
+
   if (!data || data.length === 0) {
     return (
       <View style={{ padding: 16, alignItems: 'center' }}>
-        <Text style={{ color: textColor, fontSize: 16 }}>No category data available</Text>
+        <Text style={{ color: mainTextColor, fontSize: 16 }}>No category data available</Text>
       </View>
     );
   }
@@ -290,7 +341,7 @@ export function SpendingCategoryBreakdown({ data, title = "Spending by Category"
 
   return (
     <View style={{ padding: 16 }}>
-      <Text style={{ color: textColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+      <Text style={{ color: mainTextColor, fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
         {title}
       </Text>
       <PieChart
@@ -332,10 +383,15 @@ function getCategoryColor(category: string): string {
 }
 
 export function AnalyticsChartsContainer({ analyticsData }: { analyticsData: any }) {
+  const backgroundColor = useThemeColor({}, 'background');
+  const isDarkMode = backgroundColor === '#000000';
+  const mainTextColor = isDarkMode ? '#ffffff' : '#000000';
+  const secondaryTextColor = isDarkMode ? '#cccccc' : '#666666';
+
   if (!analyticsData) {
     return (
       <View style={{ padding: 16, alignItems: 'center' }}>
-        <Text style={{ fontSize: 16, color: '#666' }}>Loading analytics data...</Text>
+        <Text style={{ fontSize: 16, color: secondaryTextColor }}>Loading analytics data...</Text>
       </View>
     );
   }

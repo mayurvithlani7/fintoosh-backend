@@ -201,20 +201,25 @@ export function processGoalProgress(goals: any[]): GoalMetrics[] {
   const now = new Date();
 
   return goals.map(goal => {
-    const progress = goal.currentAmount || 0;
-    const target = goal.targetAmount;
-    const progressPercent = target > 0 ? (progress / target) * 100 : 0;
+    // Check if goal is completed (either by status or currentAmount >= targetAmount)
+    const isCompleted = goal.status === 'completed' || goal.completed === true ||
+                       (goal.currentAmount >= goal.targetAmount && goal.targetAmount > 0);
+
+    // If completed, set progress to 100%
+    const progressPercent = isCompleted ? 100 :
+                           (goal.targetAmount > 0 ? (goal.currentAmount || 0) / goal.targetAmount * 100 : 0);
 
     let daysRemaining = 0;
-    let projectedCompletion = 'On Track';
+    let projectedCompletion = isCompleted ? 'Completed' : 'On Track';
 
-    if (goal.deadline) {
+    if (goal.deadline && !isCompleted) {
       const deadline = new Date(goal.deadline);
       daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
       if (daysRemaining > 0) {
-        const dailyNeeded = (target - progress) / daysRemaining;
-        const currentDaily = progress / Math.max(1, Math.ceil((now.getTime() - new Date(goal.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
+        const currentAmount = goal.currentAmount || 0;
+        const dailyNeeded = (goal.targetAmount - currentAmount) / daysRemaining;
+        const currentDaily = currentAmount / Math.max(1, Math.ceil((now.getTime() - new Date(goal.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
 
         if (dailyNeeded > currentDaily * 1.5) {
           projectedCompletion = 'Behind Schedule';
@@ -229,7 +234,7 @@ export function processGoalProgress(goals: any[]): GoalMetrics[] {
     return {
       goalName: goal.name,
       progress: Math.round(progressPercent),
-      targetAmount: target,
+      targetAmount: goal.targetAmount,
       daysRemaining: Math.max(0, daysRemaining),
       projectedCompletion
     };
@@ -300,9 +305,32 @@ export async function processAnalyticsData(
     if (startDate) queryParams.append('startDate', startDate);
     if (endDate) queryParams.append('endDate', endDate);
 
-    const response = await fetch(`${API_URL}/analytics/family/${familyId}?${queryParams}`);
+    // Get auth token from secure storage
+    const { getAuthToken } = await import('./secureStorage');
+    const token = await getAuthToken();
+
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json'
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    console.log('[ANALYTICS FRONTEND] Making request to:', `${API_URL}/analytics/family/${familyId}?${queryParams}`);
+    console.log('[ANALYTICS FRONTEND] Headers:', headers);
+
+    const response = await fetch(`${API_URL}/analytics/family/${familyId}?${queryParams}`, {
+      headers
+    });
+
+    console.log('[ANALYTICS FRONTEND] Response status:', response.status);
+    console.log('[ANALYTICS FRONTEND] Response ok:', response.ok);
+
     if (!response.ok) {
-      throw new Error('Failed to fetch analytics data');
+      const errorText = await response.text();
+      console.error('[ANALYTICS FRONTEND] Error response:', errorText);
+      throw new Error(`Failed to fetch analytics data: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const rawData = await response.json();
