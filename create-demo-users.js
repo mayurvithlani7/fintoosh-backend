@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 
 async function createDemoUsers() {
   try {
-    await mongoose.connect('mongodb://localhost:27017/kid-budgeting-simulator');
+    await mongoose.connect('mongodb+srv://fintoosh_prod:fintoosh2024@fintoosh-cluster.mwuprcs.mongodb.net/fintoosh_prod?retryWrites=true&w=majority&appName=fintoosh-cluster');
 
     // Clear existing users
     await User.deleteMany({});
@@ -21,6 +21,7 @@ async function createDemoUsers() {
       id: 'parent-demo',
       name: 'Demo Parent',
       email: 'parent@demo.com',
+      mobileNumber: '+1234567890',
       password: 'parent123', // Don't pre-hash, let the model handle it
       role: 'parent',
       familyId: familyId,
@@ -43,6 +44,7 @@ async function createDemoUsers() {
       id: 'child-demo',
       name: 'Demo Child',
       email: 'child@demo.com',
+      mobileNumber: '+0987654321',
       password: 'child123', // Don't pre-hash, let the model handle it
       role: 'child',
       familyId: familyId,

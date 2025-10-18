@@ -3,7 +3,7 @@ const User = require('./models/User');
 
 async function testAPI() {
   try {
-    await mongoose.connect('mongodb://localhost:27017/kid-budgeting-simulator');
+    await mongoose.connect('mongodb+srv://fintoosh_prod:fintoosh2024@fintoosh-cluster.mwuprcs.mongodb.net/fintoosh_prod?retryWrites=true&w=majority&appName=fintoosh-cluster');
 
     console.log('Testing family children API...');
 

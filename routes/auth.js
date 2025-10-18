@@ -502,8 +502,9 @@ router.post('/child-login', async (req, res) => {
       });
     }
 
-    // Check PIN
-    if (user.pin !== pin) {
+    // Check PIN using hashed password comparison
+    const isPinValid = await user.comparePassword(pin);
+    if (!isPinValid) {
       // Failed attempt: Increment loginAttempts
       user.loginAttempts += 1;
 
