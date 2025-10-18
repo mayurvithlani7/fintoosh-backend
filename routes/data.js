@@ -647,21 +647,17 @@ router.post('/goals', auth, async (req, res) => {
   let targetUserId;
   let parentId = req.user._id;
 
-  // DEBUG: Temporarily allow all authenticated users to test
-  console.log('[GOALS DEBUG] Processing goal creation for role:', req.user.role);
-
   // Determine the target user (goal owner)
-  if (req.user.role === 'parent' || req.user.role === 'elder') {
-    // Parents and elders can create goals for their children
+  if (req.user.role === 'parent') {
+    // Parents can create goals for their children
     if (!childId) {
-      return res.status(400).json({ message: "childId is required for parent/elder goal creation." });
+      return res.status(400).json({ message: "childId is required for parent goal creation." });
     }
     const child = await User.findOne({ id: childId, familyId: req.user.familyId, role: 'child' });
     if (!child) {
       return res.status(404).json({ message: "Child not found or does not belong to your family." });
     }
     targetUserId = child._id;
-    console.log('[GOALS DEBUG] Parent/elder creating goal for child');
   } else if (req.user.role === 'child') {
     // Children can create goals for themselves
     targetUserId = req.user._id;
@@ -670,11 +666,8 @@ router.post('/goals', auth, async (req, res) => {
     parentId = childUser.parentId || req.user._id; // fallback to self if no parent
     console.log('[GOALS POST] Child creating goal for themselves:', { targetUserId, parentId });
   } else {
-    // DEBUG: Allow unknown roles for testing
-    console.log('[GOALS DEBUG] Unknown role detected, allowing for testing:', req.user.role, 'User ID:', req.user.id);
-    targetUserId = req.user._id;
-    const childUser = await User.findById(req.user._id);
-    parentId = childUser.parentId || req.user._id;
+    console.log('[GOALS POST] Invalid role detected:', req.user.role, 'User ID:', req.user.id, 'Family ID:', req.user.familyId);
+    return res.status(403).json({ message: `Invalid user role '${req.user.role}' for goal creation. Only parents and children can create goals.` });
   }
 
     const goalData = {
