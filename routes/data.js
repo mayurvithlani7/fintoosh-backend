@@ -2144,7 +2144,11 @@ router.get('/users/children', auth, requireParent, async (req, res) => {
  */
 router.post('/fix-parent-child-relationships', auth, requireParent, async (req, res) => {
   try {
-    console.log('Starting parent-child relationship fix for family:', req.user.familyId);
+    logger.info('Starting parent-child relationship fix', {
+      userId: req.user.id,
+      familyId: req.user.familyId,
+      action: 'fix-parent-child-relationships'
+    });
 
     // Find all children in the parent's family
     const children = await User.find({
@@ -2152,23 +2156,41 @@ router.post('/fix-parent-child-relationships', auth, requireParent, async (req, 
       role: 'child'
     });
 
-    console.log(`Found ${children.length} children in family ${req.user.familyId}`);
+    logger.info('Found children for relationship fix', {
+      familyId: req.user.familyId,
+      totalChildren: children.length,
+      userId: req.user.id
+    });
 
     let updatedCount = 0;
     for (const child of children) {
       if (!child.parentId || child.parentId !== req.user.id) {
-        console.log(`Updating child ${child.name} (${child.id}) - setting parentId to ${req.user.id}`);
+        logger.info('Updating child parentId', {
+          childId: child.id,
+          childName: child.name,
+          oldParentId: child.parentId,
+          newParentId: req.user.id,
+          familyId: req.user.familyId
+        });
         await User.updateOne(
           { _id: child._id },
           { $set: { parentId: req.user.id } }
         );
         updatedCount++;
       } else {
-        console.log(`Child ${child.name} (${child.id}) already has correct parentId`);
+        logger.debug('Child already has correct parentId', {
+          childId: child.id,
+          parentId: child.parentId
+        });
       }
     }
 
-    console.log(`Updated ${updatedCount} children with correct parentId`);
+    logger.info('Parent-child relationship fix completed', {
+      familyId: req.user.familyId,
+      updatedChildren: updatedCount,
+      totalChildren: children.length,
+      userId: req.user.id
+    });
 
     res.json({
       message: 'Parent-child relationships fixed successfully',
@@ -2176,7 +2198,12 @@ router.post('/fix-parent-child-relationships', auth, requireParent, async (req, 
       totalChildren: children.length
     });
   } catch (error) {
-    console.error('Error fixing parent-child relationships:', error);
+    logger.error('Error fixing parent-child relationships', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user.id,
+      familyId: req.user.familyId
+    });
     res.status(500).json({ message: 'Failed to fix parent-child relationships' });
   }
 });
