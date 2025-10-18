@@ -2,7 +2,32 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { createTransaction } from "../../utils/api";
+import { useTheme } from "../../utils/themeContext";
 import { INITIAL_STATE, StallItem, useAsyncStorageStall } from "../../utils/useAsyncStorageStall";
+
+const createStyles = (themeColors: any) => StyleSheet.create({
+  container: { padding: 18, alignItems: "center" },
+  title: { fontSize: 26, fontWeight: "bold", color: themeColors.primary, marginBottom: 4 },
+  desc: { color: themeColors.textSecondary, marginBottom: 10 },
+  itemSelectTitle: { fontWeight: "bold", marginTop: 10, color: themeColors.text },
+  sectionTitle: { fontWeight: "600", fontSize: 16, marginTop: 18, marginBottom: 4, color: themeColors.text },
+  row: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
+  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 7, width: 60, marginLeft: 6, marginRight: 4, textAlign: "center", backgroundColor: themeColors.surface, color: themeColors.text },
+  button: { backgroundColor: themeColors.primary, padding: 8, borderRadius: 7 },
+  buttonText: { fontWeight: "bold", color: themeColors.card, fontSize: 14 },
+  refreshBtn: { alignSelf: "flex-end", backgroundColor: themeColors.warning + "22", borderRadius: 8, padding: 5, marginVertical: 5, borderWidth: 1, borderColor: themeColors.warning },
+  refreshText: { color: themeColors.warning, fontWeight: "600", fontSize: 13 },
+  simulateBtn: { backgroundColor: themeColors.success, borderRadius: 8, padding: 10, marginTop: 6, marginBottom: 5, minWidth: 180, alignItems: "center" },
+  simulateText: { color: themeColors.card, fontWeight: "bold" },
+  simResult: { backgroundColor: themeColors.success + "15", borderRadius: 8, padding: 7, marginTop: 3, alignItems: "center" },
+  resetBtn: { marginTop: 17, backgroundColor: themeColors.error + "22", borderColor: themeColors.error, borderWidth: 1, padding: 8, borderRadius: 7, minWidth: 116, alignItems: "center" },
+  resetText: { color: themeColors.error, fontWeight: "700" },
+  closeBtn: { backgroundColor: themeColors.surface, borderColor: themeColors.border, borderWidth: 1, padding: 11, borderRadius: 21, alignItems: "center", marginTop: 18, width: '75%' },
+  closeButtonText: { fontSize: 16, fontWeight: '600', color: themeColors.text },
+  message: { color: themeColors.textSecondary, fontStyle: "italic", marginTop: 10, textAlign: "center", fontSize: 15 },
+  itemTab: { marginHorizontal: 3, marginVertical: 4, padding: 9, borderRadius: 9, borderWidth: 1, borderColor: themeColors.border, backgroundColor: themeColors.surface },
+  itemTabSelected: { borderColor: themeColors.primary, backgroundColor: themeColors.primary + "15" },
+});
 
 function getRandomCost(base: number) {
   // Simulate supply price fluctuation (±20%)
@@ -11,6 +36,8 @@ function getRandomCost(base: number) {
 }
 
 function EntrepreneurStallGame({ onClose }: { onClose: () => void }) {
+  const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   // Custom hook to load and persist stall state
   const { loading, error, stall, setStall } = useAsyncStorageStall();
   const [selectedItem, setSelectedItem] = useState(0);
@@ -173,9 +200,9 @@ function EntrepreneurStallGame({ onClose }: { onClose: () => void }) {
 
   if (loading || !stall) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 32 }}>
-        <ActivityIndicator size="large" color="#3ac670" />
-        <Text style={{ marginTop: 16 }}>Loading your stall...</Text>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 32, backgroundColor: themeColors.background }}>
+        <ActivityIndicator size="large" color={themeColors.success} />
+        <Text style={{ marginTop: 16, color: themeColors.text }}>Loading your stall...</Text>
       </View>
     );
   }
@@ -195,8 +222,8 @@ function EntrepreneurStallGame({ onClose }: { onClose: () => void }) {
             style={[styles.itemTab, selectedItem === idx && styles.itemTabSelected]}
             onPress={() => setSelectedItem(idx)}
           >
-            <Text style={{ fontWeight: "bold" }}>{it.name}</Text>
-            <Text style={{ color: "#227", fontSize: 13 }}>{it.quantity} left</Text>
+            <Text style={{ fontWeight: "bold", color: themeColors.text }}>{it.name}</Text>
+            <Text style={{ color: themeColors.primary, fontSize: 13 }}>{it.quantity} left</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -259,28 +286,6 @@ function EntrepreneurStallGame({ onClose }: { onClose: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 18, alignItems: "center" },
-  title: { fontSize: 26, fontWeight: "bold", color: "#2b2f5b", marginBottom: 4 },
-  desc: { color: "#364", marginBottom: 10 },
-  itemSelectTitle: { fontWeight: "bold", marginTop: 10 },
-  sectionTitle: { fontWeight: "600", fontSize: 16, marginTop: 18, marginBottom: 4 },
-  row: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
-  input: { borderWidth: 1, borderColor: "#bbb", borderRadius: 7, padding: 7, width: 60, marginLeft: 6, marginRight: 4, textAlign: "center", backgroundColor: "#f8fcfa" },
-  button: { backgroundColor: "#87ceeb", padding: 8, borderRadius: 7 },
-  buttonText: { fontWeight: "bold", color: "#056", fontSize: 14 },
-  refreshBtn: { alignSelf: "flex-end", backgroundColor: "#fffbe6", borderRadius: 8, padding: 5, marginVertical: 5, borderWidth: 1, borderColor: "#ffd93a" },
-  refreshText: { color: "#c89b0e", fontWeight: "600", fontSize: 13 },
-  simulateBtn: { backgroundColor: "#169353", borderRadius: 8, padding: 10, marginTop: 6, marginBottom: 5, minWidth: 180, alignItems: "center" },
-  simulateText: { color: "#fff", fontWeight: "bold" },
-  simResult: { backgroundColor: "#dbfff0", borderRadius: 8, padding: 7, marginTop: 3, alignItems: "center" },
-  resetBtn: { marginTop: 17, backgroundColor: "#ffe0e0", padding: 8, borderRadius: 7, minWidth: 116, alignItems: "center" },
-  resetText: { color: "#bb052d", fontWeight: "700" },
-  closeBtn: { backgroundColor: "#e9ecef", padding: 11, borderRadius: 21, alignItems: "center", marginTop: 18, width: '75%' },
-  closeButtonText: { fontSize: 16, fontWeight: '600', color: '#495057' },
-  message: { color: "#334", fontStyle: "italic", marginTop: 10, textAlign: "center", fontSize: 15 },
-  itemTab: { marginHorizontal: 3, marginVertical: 4, padding: 9, borderRadius: 9, borderWidth: 1, borderColor: "#bbb", backgroundColor: "#f9fcfa" },
-  itemTabSelected: { borderColor: "#2063b5", backgroundColor: "#e6f2ff" },
-});
+
 
 export default EntrepreneurStallGame;
