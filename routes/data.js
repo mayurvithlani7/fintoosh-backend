@@ -630,37 +630,45 @@ router.get('/goals/:childId', auth, async (req, res) => {
 });
 
 router.post('/goals', auth, async (req, res) => {
+  console.log('[GOALS POST DEBUG] ===== START =====');
+  console.log('[GOALS POST DEBUG] req.user exists:', !!req.user);
+  console.log('[GOALS POST DEBUG] req.user.role:', JSON.stringify(req.user?.role));
+  console.log('[GOALS POST DEBUG] req.user.id:', req.user?.id);
+
   try {
     const { childId, name, targetAmount, jar, description, deadline, templateId, milestones } = req.body;
+    console.log('[GOALS POST DEBUG] Request body:', { childId, name, targetAmount, jar });
 
-    console.log('[GOALS POST] User:', { id: req.user.id, role: req.user.role, familyId: req.user.familyId });
-    console.log('[GOALS POST] Request body:', { childId, name, targetAmount, jar });
+    console.log('[GOALS POST DEBUG] Role checks:');
+    console.log('[GOALS POST DEBUG] role === "parent":', req.user.role === 'parent');
+    console.log('[GOALS POST DEBUG] role === "child":', req.user.role === 'child');
+    console.log('[GOALS POST DEBUG] role === "elder":', req.user.role === 'elder');
 
-    let targetUserId;
-    let parentId = req.user._id;
+  let targetUserId;
+  let parentId = req.user._id;
 
-    // Determine the target user (goal owner)
-    if (req.user.role === 'parent') {
-      // Parents can create goals for their children
-      if (!childId) {
-        return res.status(400).json({ message: "childId is required for parent goal creation." });
-      }
-      const child = await User.findOne({ id: childId, familyId: req.user.familyId, role: 'child' });
-      if (!child) {
-        return res.status(404).json({ message: "Child not found or does not belong to your family." });
-      }
-      targetUserId = child._id;
-    } else if (req.user.role === 'child') {
-      // Children can create goals for themselves
-      targetUserId = req.user._id;
-      // For children, parent is their assigned parent
-      const childUser = await User.findById(req.user._id);
-      parentId = childUser.parentId || req.user._id; // fallback to self if no parent
-      console.log('[GOALS POST] Child creating goal for themselves:', { targetUserId, parentId });
-    } else {
-      console.log('[GOALS POST] Invalid role detected:', req.user.role);
-      return res.status(403).json({ message: `Invalid user role '${req.user.role}' for goal creation. Only parents and children can create goals.` });
+  // Determine the target user (goal owner)
+  if (req.user.role === 'parent') {
+    // Parents can create goals for their children
+    if (!childId) {
+      return res.status(400).json({ message: "childId is required for parent goal creation." });
     }
+    const child = await User.findOne({ id: childId, familyId: req.user.familyId, role: 'child' });
+    if (!child) {
+      return res.status(404).json({ message: "Child not found or does not belong to your family." });
+    }
+    targetUserId = child._id;
+  } else if (req.user.role === 'child') {
+    // Children can create goals for themselves
+    targetUserId = req.user._id;
+    // For children, parent is their assigned parent
+    const childUser = await User.findById(req.user._id);
+    parentId = childUser.parentId || req.user._id; // fallback to self if no parent
+    console.log('[GOALS POST] Child creating goal for themselves:', { targetUserId, parentId });
+  } else {
+    console.log('[GOALS POST] Invalid role detected:', req.user.role, 'User ID:', req.user.id, 'Family ID:', req.user.familyId);
+    return res.status(403).json({ message: `Invalid user role '${req.user.role}' for goal creation. Only parents and children can create goals.` });
+  }
 
     const goalData = {
       parent: parentId,
