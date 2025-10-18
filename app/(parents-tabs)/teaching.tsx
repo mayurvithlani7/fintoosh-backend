@@ -1151,8 +1151,10 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
         <TouchableOpacity
           style={[styles.primaryButton, { backgroundColor: themeColors.primary }]}
           onPress={() => {
-            console.log('Add Elder Wisdom button pressed');
+            console.log('Add Elder Wisdom button pressed - setting modal to true');
+            console.log('Current showElderModal value:', showElderModal);
             setShowElderModal(true);
+            console.log('Modal should now be visible');
           }}
         >
           <Text style={[styles.primaryButtonText, { color: themeColors.card }]}>
@@ -1692,12 +1694,12 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
 
               <View style={styles.eventGrid}>
                 {[
-                  { key: 'first-savings', label: 'First Savings Account', icon: '🐷' },
-                  { key: 'first-job', label: 'First Job/Allowance', icon: '💼' },
-                  { key: 'big-purchase', label: 'Big Purchase Decision', icon: '🛍️' },
-                  { key: 'financial-mistake', label: 'Learning from Mistake', icon: '📚' },
-                  { key: 'charity-donation', label: 'First Donation', icon: '❤️' },
-                  { key: 'investment-start', label: 'Investment Beginning', icon: '📈' },
+                  { key: 'first_savings', label: 'First Savings Account', icon: '🐷' },
+                  { key: 'first_job', label: 'First Job/Allowance', icon: '💼' },
+                  { key: 'big_purchase', label: 'Big Purchase Decision', icon: '🛍️' },
+                  { key: 'financial_mistake', label: 'Learning from Mistake', icon: '📚' },
+                  { key: 'charity_donation', label: 'First Donation', icon: '❤️' },
+                  { key: 'investment_start', label: 'Investment Beginning', icon: '📈' },
                   { key: 'custom', label: 'Custom Event', icon: '✨' }
                 ].map((event) => (
                   <TouchableOpacity
