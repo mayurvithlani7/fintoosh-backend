@@ -201,9 +201,11 @@ export function processGoalProgress(goals: any[]): GoalMetrics[] {
   const now = new Date();
 
   return goals.map(goal => {
-    // Check if goal is completed (either by status or currentAmount >= targetAmount)
-    const isCompleted = goal.status === 'completed' || goal.completed === true ||
-                       (goal.currentAmount >= goal.targetAmount && goal.targetAmount > 0);
+    // Check if goal is completed (multiple ways to detect completion)
+    const isCompleted = goal.status === 'completed' ||
+                       goal.completed === true ||
+                       goal.achieved === true ||
+                       (goal.currentAmount && goal.targetAmount && goal.currentAmount >= goal.targetAmount);
 
     // If completed, set progress to 100%
     const progressPercent = isCompleted ? 100 :
