@@ -633,6 +633,9 @@ router.post('/goals', auth, async (req, res) => {
   try {
     const { childId, name, targetAmount, jar, description, deadline, templateId, milestones } = req.body;
 
+    console.log('[GOALS POST] User:', { id: req.user.id, role: req.user.role, familyId: req.user.familyId });
+    console.log('[GOALS POST] Request body:', { childId, name, targetAmount, jar });
+
     let targetUserId;
     let parentId = req.user._id;
 
@@ -653,8 +656,10 @@ router.post('/goals', auth, async (req, res) => {
       // For children, parent is their assigned parent
       const childUser = await User.findById(req.user._id);
       parentId = childUser.parentId || req.user._id; // fallback to self if no parent
+      console.log('[GOALS POST] Child creating goal for themselves:', { targetUserId, parentId });
     } else {
-      return res.status(403).json({ message: "Invalid user role for goal creation." });
+      console.log('[GOALS POST] Invalid role detected:', req.user.role);
+      return res.status(403).json({ message: `Invalid user role '${req.user.role}' for goal creation. Only parents and children can create goals.` });
     }
 
     const goalData = {

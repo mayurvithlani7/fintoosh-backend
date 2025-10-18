@@ -47,7 +47,7 @@ const corsOptions = {
     if (!origin) return callback(null, true);
 
     // Allow localhost for development
-    if (origin.includes('localhost')) return callback(null, true);
+    if (origin && origin.includes('localhost')) return callback(null, true);
 
     // Allow your production frontend domains
     const allowedOrigins = [
@@ -58,7 +58,7 @@ const corsOptions = {
       'https://expo.dev'
     ];
 
-    if (allowedOrigins.some(allowed => origin.includes(allowed))) {
+    if (allowedOrigins.some(allowed => origin && origin.includes(allowed))) {
       return callback(null, true);
     }
 
