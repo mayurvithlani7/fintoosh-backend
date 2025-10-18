@@ -51,7 +51,7 @@ const EmptyState = ({ styles }: { styles: any }) => {
         onPress={() => router.push('/addChild')}
       >
         <Text style={[styles.primaryButtonText, { color: themeColors.card }]}>
-          Add Your First Child
+          Add Your Child
         </Text>
       </TouchableOpacity>
     </View>

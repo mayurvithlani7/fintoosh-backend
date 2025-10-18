@@ -5,7 +5,6 @@ import { API_URL } from '@/utils/config';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -56,7 +55,9 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginBottom: 8,
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8
+    gap: 8,
+    flexWrap: 'wrap',
+    rowGap: 10
   },
   filterInput: {
     backgroundColor: themeColors.surface,
@@ -205,46 +206,13 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
   )
 }
 
-function DateInput({ value, onChange, min, max, placeholder, themeColors }: {
-  value: string, onChange: (val: string) => void, min?: string, max?: string, placeholder?: string, themeColors: any
+function DateInput({ value, onChange, placeholder }: {
+  value: string, onChange: (val: string) => void, placeholder?: string
 }) {
-  if (Platform.OS === "web") {
-    return (
-      <input
-        type="date"
-        style={{
-          backgroundColor: themeColors.surface,
-          borderRadius: 7,
-          padding: 7,
-          flex: 1,
-          borderWidth: 1,
-          borderColor: themeColors.border,
-          fontSize: 15,
-          marginRight: 5,
-          color: themeColors.text,
-        }}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        min={min}
-        max={max}
-        placeholder={placeholder}
-      />
-    );
-  }
   return (
     <TextInput
-      style={{
-        backgroundColor: themeColors.surface,
-        borderRadius: 7,
-        padding: 7,
-        flex: 1,
-        borderWidth: 1,
-        borderColor: themeColors.border,
-        fontSize: 15,
-        marginRight: 5,
-        color: themeColors.text,
-      }}
-      placeholder={placeholder}
+      style={[createStyles({}).filterInput, { minWidth: 100 }]}
+      placeholder={placeholder || "YYYY-MM-DD"}
       value={value}
       onChangeText={onChange}
       keyboardType="numeric"
@@ -262,9 +230,6 @@ export default function TransactionHistoryScreen() {
   // Date filter logic
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  // For native modal pickers
-  const [showFromPicker, setShowFromPicker] = useState(false);
-  const [showToPicker, setShowToPicker] = useState(false);
 
   // Performance enhancements
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -416,77 +381,27 @@ export default function TransactionHistoryScreen() {
             <Text style={{ color: themeColors.card, fontWeight: "bold" }}>🔄 Refresh</Text>
           </TouchableOpacity>
         </View>
-        {/* Date Range Picker for Transactions */}
+        {/* Date Range Filter */}
         <View style={[styles.filtersRow, {marginTop: 4}]}>
-          {/* From picker */}
-          <View style={{ flex: 1, maxWidth: 136 }}>
-            <Text style={styles.filterLabel}>From</Text>
-            {Platform.OS === "web"
-              ? <DateInput value={startDate} onChange={setStartDate} {...(endDate ? { max: endDate } : {})} placeholder="YYYY-MM-DD" themeColors={themeColors} />
-              : (
-                <TouchableOpacity
-                  style={[styles.filterInput, { justifyContent: "center" }]}
-                  onPress={() => setShowFromPicker(true)}
-                >
-                  <Text style={{ color: startDate ? themeColors.text : themeColors.textSecondary, fontSize: 15 }}>
-                    {startDate ? startDate : "Select date"}
-                  </Text>
-                  {showFromPicker && (
-                    <DateTimePicker
-                      value={startDate ? new Date(startDate) : new Date()}
-                      mode="date"
-                      display={Platform.OS === "ios" ? "spinner" : "default"}
-                      maximumDate={endDate ? new Date(endDate) : undefined}
-                      onChange={(_, selectedDate) => {
-                        setShowFromPicker(false);
-                        if (selectedDate) {
-                          const pad = (n: number) => n < 10 ? "0"+n : n;
-                          const str = selectedDate.getFullYear()+"-"+pad(selectedDate.getMonth()+1)+"-"+pad(selectedDate.getDate());
-                          setStartDate(str);
-                        }
-                      }}
-                    />
-                  )}
-                </TouchableOpacity>
-              )
-            }
+          <View style={{ flex: 1, minWidth: 120 }}>
+            <Text style={[styles.label, { color: themeColors.text }]}>From Date</Text>
+            <DateInput
+              value={startDate}
+              onChange={setStartDate}
+              placeholder="YYYY-MM-DD"
+            />
           </View>
-          {/* To picker */}
-          <View style={{ flex: 1, maxWidth: 136 }}>
-            <Text style={styles.filterLabel}>To</Text>
-            {Platform.OS === "web"
-              ? <DateInput value={endDate} onChange={setEndDate} {...(startDate ? { min: startDate } : {})} placeholder="YYYY-MM-DD" themeColors={themeColors} />
-              : (
-                <TouchableOpacity
-                  style={[styles.filterInput, { justifyContent: "center" }]}
-                  onPress={() => setShowToPicker(true)}
-                >
-                  <Text style={{ color: endDate ? themeColors.text : themeColors.textSecondary, fontSize: 15 }}>
-                    {endDate ? endDate : "Select date"}
-                  </Text>
-                  {showToPicker && (
-                    <DateTimePicker
-                      value={endDate ? new Date(endDate) : new Date()}
-                      mode="date"
-                      display={Platform.OS === "ios" ? "spinner" : "default"}
-                      minimumDate={startDate ? new Date(startDate) : undefined}
-                      onChange={(_, selectedDate) => {
-                        setShowToPicker(false);
-                        if (selectedDate) {
-                          const pad = (n: number) => n < 10 ? "0"+n : n;
-                          const str = selectedDate.getFullYear()+"-"+pad(selectedDate.getMonth()+1)+"-"+pad(selectedDate.getDate());
-                          setEndDate(str);
-                        }
-                      }}
-                    />
-                  )}
-                </TouchableOpacity>
-              )
-            }
+          <View style={{ flex: 1, minWidth: 120 }}>
+            <Text style={[styles.label, { color: themeColors.text }]}>To Date</Text>
+            <DateInput
+              value={endDate}
+              onChange={setEndDate}
+              placeholder="YYYY-MM-DD"
+            />
           </View>
           {(startDate || endDate) && (
             <TouchableOpacity
-              style={[styles.refreshBtn, {backgroundColor: themeColors.surface, borderColor: themeColors.border, borderWidth: 1}]}
+              style={[styles.refreshBtn, {backgroundColor: themeColors.surface, alignSelf: 'flex-end'}]}
               onPress={() => {setStartDate(""); setEndDate("");}}
             >
               <Text style={{ color: themeColors.primary, fontWeight: "bold" }}>✕ Clear</Text>
@@ -517,7 +432,13 @@ export default function TransactionHistoryScreen() {
               <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>No transactions found.</Text>
             ) : (
               (() => {
-                const sortedFiltered = filtered.sort((a, b) => new Date(b.date || b.createdAt || "").getTime() - new Date(a.date || a.createdAt || "").getTime());
+                const sortedFiltered = filtered.sort((a, b) => {
+                  // @ts-ignore - TypeScript strict checking on Date constructor
+                  const dateA = new Date(a.date || a.createdAt || "1970-01-01");
+                  // @ts-ignore - TypeScript strict checking on Date constructor
+                  const dateB = new Date(b.date || b.createdAt || "1970-01-01");
+                  return dateB.getTime() - dateA.getTime();
+                });
                 const visibleTransactions = sortedFiltered.slice(0, visibleCount);
                 return (
                   <View>

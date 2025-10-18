@@ -258,11 +258,13 @@ export default function ParentsPointsScreen() {
                     width: '100%',
                     minHeight: 40,
                     borderRadius: 7,
-                    borderColor: '#abc',
+                    borderColor: themeColors.border,
                     borderWidth: 1,
                     fontSize: 16,
                     padding: 8,
                     marginTop: 2,
+                    backgroundColor: themeColors.surface,
+                    color: themeColors.text,
                   }}
                   value={toJar}
                   onChange={e => setToJar(e.target.value as any)}
@@ -275,12 +277,21 @@ export default function ParentsPointsScreen() {
                 </select>
               </div>
             ) : (
-              <View style={{ minHeight: 40, justifyContent: 'center' }}>
+              <View style={{
+                backgroundColor: themeColors.surface,
+                borderRadius: 7,
+                borderWidth: 1,
+                borderColor: themeColors.border,
+                marginRight: 5,
+                paddingVertical: 2,
+                minHeight: 40
+              }}>
                 <Picker
                   selectedValue={toJar}
                   onValueChange={v => setToJar(v)}
-                  style={{ width: '100%', minHeight: 40, marginBottom: 0 }}
-                  itemStyle={{ fontSize: 15 }}
+                  style={{height: 36, fontSize: 15, width: "100%", color: themeColors.text}}
+                  dropdownIconColor={themeColors.primary}
+                  itemStyle={{ color: themeColors.text }}
                 >
                   {jarOptions.map(opt => (
                     <Picker.Item key={opt.value} label={opt.label} value={opt.value} />

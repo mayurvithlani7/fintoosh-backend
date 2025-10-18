@@ -1,14 +1,17 @@
-import React from 'react';
-import { Text, View, StyleSheet } from 'react-native';
 import { useSegments } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 // Renders breadcrumbs like: Dashboard > Chores > Complete Task
 export default function Breadcrumbs() {
   const segments = useSegments();
+
+  console.log('Breadcrumbs segments:', segments); // Debug logging
+
   // Transform segments into breadcrumb labels (customize as needed)
   // Example mapping for major tabs, can expand as required
   const segmentLabelMap: Record<string, string> = {
-    'index': 'Home',
+    'index': 'Overview',
     'budget': 'Budget',
     'goals': 'Goals',
     'transactions': 'Transactions',
@@ -24,11 +27,27 @@ export default function Breadcrumbs() {
     'more': 'More',
     'parent-dashboard': 'Dashboard',
     'kid-dashboard': 'Dashboard',
+    'teaching': 'Teaching',
+    'transaction-history': 'History',
   };
+
+  // More aggressive filtering of route groups and empty segments
   const breadcrumbs = segments
-    .filter((seg) => seg !== '(parents-tabs)' && seg !== '(kids-tabs)' && seg !== '(tabs)' && seg !== '')
+    .filter((seg) => {
+      // Filter out route groups, empty segments, and problematic segments
+      return seg !== '(parents-tabs)' &&
+             seg !== '(kids-tabs)' &&
+             seg !== '(tabs)' &&
+             seg !== '' &&
+             !seg.startsWith('(') &&
+             !seg.endsWith(')');
+    })
     .map((seg) => segmentLabelMap[seg] || seg.charAt(0).toUpperCase() + seg.slice(1));
-  if (breadcrumbs.length <= 1) return null; // Hide if only on root tab
+
+  console.log('Filtered breadcrumbs:', breadcrumbs); // Debug logging
+
+  // Always show breadcrumbs if we have segments, even just one
+  if (breadcrumbs.length === 0) return null;
 
   return (
     <View style={styles.container} pointerEvents="none">

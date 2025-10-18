@@ -5,7 +5,6 @@ import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 
-import Breadcrumbs from '@/components/Breadcrumbs';
 import ThemeToggle from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -19,16 +18,16 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
   router: any;
 }) {
   const menuItems = [
-    { name: '🏠 Overview', route: 'index', icon: 'house.fill' },
-    { name: '📚 Teaching', route: 'teaching', icon: 'book.fill' },
-    { name: '📋 Requests', route: 'requests', icon: 'checkmark.circle.fill' },
-    { name: '💰 Points', route: 'points', icon: 'dollarsign.circle.fill' },
-    { name: '🎯 Goals', route: 'goals', icon: 'target' },
-    { name: '🧹 Tasks', route: 'chores', icon: 'checkmark.seal.fill' },
-    { name: '🎁 Rewards', route: 'rewards', icon: 'gift.fill' },
-    { name: '📊 Progress', route: 'analytics', icon: 'chart.bar.xaxis' },
-    { name: '📈 History', route: 'transaction-history', icon: 'list.bullet.rectangle' },
-    { name: '⚙️ Settings', route: 'settings', icon: 'gear' },
+    { name: '🏠 Overview', route: '/(parents-tabs)', icon: 'house.fill' },
+    { name: '📚 Teaching', route: '/(parents-tabs)/teaching', icon: 'book.fill' },
+    { name: '📋 Requests', route: '/(parents-tabs)/requests', icon: 'checkmark.circle.fill' },
+    { name: '💰 Points', route: '/(parents-tabs)/points', icon: 'dollarsign.circle.fill' },
+    { name: '🎯 Goals', route: '/(parents-tabs)/goals', icon: 'target' },
+    { name: '🧹 Tasks', route: '/(parents-tabs)/chores', icon: 'checkmark.seal.fill' },
+    { name: '🎁 Rewards', route: '/(parents-tabs)/rewards', icon: 'gift.fill' },
+    { name: '📊 Progress', route: '/(parents-tabs)/analytics', icon: 'chart.bar.xaxis' },
+    { name: '📈 History', route: '/(parents-tabs)/transaction-history', icon: 'list.bullet.rectangle' },
+    { name: '⚙️ Settings', route: '/(parents-tabs)/settings', icon: 'gear' },
   ];
 
   console.log('HamburgerMenu isVisible:', isVisible);
@@ -90,7 +89,8 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
                   style={dynamicStyles.leftMenuItem}
                   onPress={() => {
                     onClose();
-                    router.push(item.route);
+                    console.log('Navigating to:', item.route);
+                    router.replace(item.route);
                   }}
                 >
                   <View style={styles.leftMenuItemContent}>
@@ -153,7 +153,6 @@ export default function ParentsTabLayout() {
             backgroundColor: themeColors.background,
           },
           headerTintColor: themeColors.text,
-          headerTitle: () => <Breadcrumbs />,
           headerTitleStyle: {
             fontWeight: 'bold',
             fontSize: 20,
@@ -198,16 +197,16 @@ export default function ParentsTabLayout() {
           ),
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'Overview' }} />
-        <Stack.Screen name="teaching" options={{ title: 'Teaching' }} />
-        <Stack.Screen name="requests" options={{ title: 'Requests' }} />
-        <Stack.Screen name="points" options={{ title: 'Points' }} />
-        <Stack.Screen name="goals" options={{ title: 'Goals' }} />
-        <Stack.Screen name="chores" options={{ title: 'Tasks' }} />
-        <Stack.Screen name="rewards" options={{ title: 'Rewards' }} />
-        <Stack.Screen name="analytics" options={{ title: 'Progress' }} />
-        <Stack.Screen name="transaction-history" options={{ title: 'History' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="index" options={{ title: 'Overview', headerTitle: 'Overview' }} />
+        <Stack.Screen name="teaching" options={{ title: 'Teaching', headerTitle: 'Teaching' }} />
+        <Stack.Screen name="requests" options={{ title: 'Requests', headerTitle: 'Requests' }} />
+        <Stack.Screen name="points" options={{ title: 'Points', headerTitle: 'Points' }} />
+        <Stack.Screen name="goals" options={{ title: 'Goals', headerTitle: 'Goals' }} />
+        <Stack.Screen name="chores" options={{ title: 'Tasks', headerTitle: 'Tasks' }} />
+        <Stack.Screen name="rewards" options={{ title: 'Rewards', headerTitle: 'Rewards' }} />
+        <Stack.Screen name="analytics" options={{ title: 'Progress', headerTitle: 'Progress' }} />
+        <Stack.Screen name="transaction-history" options={{ title: 'History', headerTitle: 'History' }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings', headerTitle: 'Settings' }} />
       </Stack>
 
       <HamburgerMenu
