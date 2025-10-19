@@ -395,6 +395,14 @@ function KidGoalsRewardsSection() {
       const freshUserData = await userRes.json();
       setUserData(freshUserData);
 
+      // Load all approval requests first
+      const reqRes = await fetch(`${API_URL}/requests/${userId}`);
+      let currentRequests = [];
+      if (reqRes.ok) {
+        currentRequests = await reqRes.json();
+        setRequests(currentRequests);
+      }
+
       // Load goals
       const goalsResponse = await fetch(`${API_URL}/goals/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -403,25 +411,26 @@ function KidGoalsRewardsSection() {
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json();
 
-        // Check if any pending requests have been resolved (approved/denied)
-        const pendingRequests = requests.filter(req =>
-          req.type === 'goal-completion' && req.status !== 'Pending'
-        );
-
         setGoals(currentGoals => {
           return goalsData.map((serverGoal: any) => {
             const localGoal = currentGoals.find(g => g._id === serverGoal._id);
 
-            // Check if this goal has a resolved request
-            const resolvedRequest = pendingRequests.find(req => req.goalId === serverGoal._id);
+            // Check if this goal has any pending or resolved requests
+            const goalRequests = currentRequests.filter((req: any) => req.goalId === serverGoal._id && req.type === 'goal-completion');
 
+            // If there's a pending request for this goal, show it as pending
+            const pendingRequest = goalRequests.find((req: any) => req.status === 'Pending');
+            if (pendingRequest) {
+              return { ...serverGoal, status: 'pending' };
+            }
+
+            // If there's a resolved request, use server status (which should be updated)
+            const resolvedRequest = goalRequests.find((req: any) => req.status !== 'Pending');
             if (resolvedRequest) {
-              // If request was approved, server status should be 'completed'
-              // If request was denied, server status should be 'active'
               return serverGoal; // Use server status
             }
 
-            // For goals without resolved requests, preserve local "pending" status if still pending locally
+            // For goals without any requests, preserve local "pending" status if still pending locally
             if (localGoal && localGoal.status === 'pending' && serverGoal.status === 'active') {
               return { ...serverGoal, status: 'pending' };
             }
@@ -440,10 +449,6 @@ function KidGoalsRewardsSection() {
         const rewardsData = await rewardsResponse.json();
         setRewards(rewardsData);
       }
-
-      // Load all approval requests
-      const reqRes = await fetch(`${API_URL}/requests/${userId}`);
-      if (reqRes.ok) setRequests(await reqRes.json());
     } catch (error) {
       console.error('Error loading goals and rewards:', error);
       Alert.alert('Error', 'Failed to load goals and rewards.');
@@ -534,6 +539,56 @@ function KidGoalsRewardsSection() {
       loadGoalsAndRewards();
     }, [])
   );
+
+  const handleDeleteGoal = async (goalId: string, goalName: string, goalStatus: string) => {
+    // Only allow deletion of active goals
+    if (goalStatus !== 'active') {
+      Alert.alert('Cannot Delete', 'You can only delete active goals. Goals that are pending approval cannot be deleted.');
+      return;
+    }
+
+    Alert.alert(
+      'Delete Goal',
+      `Are you sure you want to delete "${goalName}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await getAuthToken();
+              if (!token) {
+                Alert.alert('Error', 'Not authenticated.');
+                return;
+              }
+
+              const response = await fetch(`${API_URL}/goals/${goalId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to delete goal' }));
+                throw new Error(errorData.message || 'Failed to delete goal');
+              }
+
+              // Remove goal from local state
+              setGoals(goals.filter(g => g._id !== goalId));
+              setMsg("Goal deleted successfully!");
+              setTimeout(() => setMsg(""), 5000);
+
+            } catch (error: any) {
+              console.error('Error deleting goal:', error);
+              Alert.alert('Error', error.message || 'Failed to delete goal.');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const handleClaimGoal = async (goalId: string, goalName: string, jar: string, targetAmount: number) => {
     try {
@@ -959,6 +1014,8 @@ function KidGoalsRewardsSection() {
   );
 
 
+
+
   // Individual goal renderer (uses parent logic for claim display, etc.)
   function renderGoal(g: any) {
     const jarPoints = userData ? userData[g.jar + "Points"] || 0 : 0;
@@ -966,6 +1023,7 @@ function KidGoalsRewardsSection() {
     const isPending = g.status === "pending" && !isCompleted;
     const isExpired = g.status === "expired";
     const canClaim = jarPoints >= g.targetAmount && g.status === "active" && !isCompleted && !isExpired;
+    const canDelete = g.status === "active" && !isCompleted && !isExpired;
 
     let buttonText = "Claim";
     let buttonColor = "#bbfbc1";
@@ -998,6 +1056,32 @@ function KidGoalsRewardsSection() {
         accessibilityLabel={`Goal: ${g.name}. ${isCompleted ? 'Completed' : isPending ? 'Pending approval' : isExpired ? 'Expired' : 'Active'}. Progress: ${formatAmount(jarPoints)} out of ${formatAmount(g.targetAmount)} points.`}
         accessibilityHint={canClaim ? 'Double tap to claim this goal' : isCompleted ? 'This goal has been completed' : isPending ? 'Waiting for parent approval' : isExpired ? 'This goal has expired' : 'You need more points to claim this goal'}
       >
+        {/* Delete button - only show for active goals */}
+        {canDelete && (
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: themeColors.error,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 6,
+              }}
+              onPress={() => handleDeleteGoal(g._id, g.name, g.status)}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete goal: ${g.name}`}
+              accessibilityHint="Double tap to delete this goal"
+            >
+              <Text style={{
+                color: themeColors.card,
+                fontWeight: "bold",
+                fontSize: 12
+              }}>
+                🗑️ Delete
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={{ marginBottom: 8 }}>
           <Text style={{ fontWeight: "bold", color: themeColors.text, fontSize: 16 }} numberOfLines={1} ellipsizeMode="tail">{g.name}</Text>
           {g.description && (

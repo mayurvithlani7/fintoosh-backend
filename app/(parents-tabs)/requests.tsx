@@ -181,8 +181,9 @@ export default function ParentsRequestsScreen() {
 
     } catch (error) {
       console.error('Error updating request:', error);
-      setFeedback('Failed to update request. Please try again.');
-      setTimeout(() => setFeedback(''), 3000);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update request. Please try again.';
+      setFeedback(errorMessage);
+      setTimeout(() => setFeedback(''), 5000); // Show error longer
     }
   };
 

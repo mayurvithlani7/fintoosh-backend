@@ -358,28 +358,47 @@ export function SpendingCategoryBreakdown({ data, title = "Spending by Category"
   );
 }
 
-// Helper functions for colors
+// Helper functions for theme-aware colors
 function getJarColor(jarName: string): string {
-  const colors = {
-    'Pocket Money': '#4CAF50',
-    'Savings Pot': '#2196F3',
-    'Spending Pot': '#FF9800',
-    'Help Others Pot': '#9C27B0',
-    'Grow Money Pot': '#607D8B'
+  const backgroundColor = useThemeColor({}, 'background');
+  const isDarkMode = backgroundColor === '#000000';
+
+  const colors = isDarkMode ? {
+    'Pocket Money': '#4ade80',    // Light green for dark mode
+    'Savings Pot': '#4a9eff',     // Light blue for dark mode
+    'Spending Pot': '#fb923c',    // Light orange for dark mode
+    'Help Others Pot': '#fbbf24', // Light yellow for dark mode
+    'Grow Money Pot': '#c084fc'   // Light purple for dark mode
+  } : {
+    'Pocket Money': '#16a34a',    // Dark green for light mode
+    'Savings Pot': '#2563eb',     // Dark blue for light mode
+    'Spending Pot': '#ea580c',    // Dark orange for light mode
+    'Help Others Pot': '#ca8a04',  // Dark yellow for light mode
+    'Grow Money Pot': '#a855f7'   // Dark purple for light mode
   };
-  return colors[jarName as keyof typeof colors] || '#757575';
+  return colors[jarName as keyof typeof colors] || (isDarkMode ? '#888888' : '#666666');
 }
 
 function getCategoryColor(category: string): string {
-  const colors = {
-    'Food': '#FF5722',
-    'Entertainment': '#3F51B5',
-    'Transportation': '#009688',
-    'Shopping': '#E91E63',
-    'Education': '#00BCD4',
-    'General': '#9E9E9E'
+  const backgroundColor = useThemeColor({}, 'background');
+  const isDarkMode = backgroundColor === '#000000';
+
+  const colors = isDarkMode ? {
+    'Food': '#f87171',         // Light red for dark mode
+    'Entertainment': '#60a5fa', // Light blue for dark mode
+    'Transportation': '#34d399', // Light green for dark mode
+    'Shopping': '#f472b6',      // Light pink for dark mode
+    'Education': '#38bdf8',     // Light cyan for dark mode
+    'General': '#9ca3af'        // Light gray for dark mode
+  } : {
+    'Food': '#dc2626',         // Dark red for light mode
+    'Entertainment': '#1d4ed8', // Dark blue for light mode
+    'Transportation': '#059669', // Dark green for light mode
+    'Shopping': '#db2777',      // Dark pink for light mode
+    'Education': '#0891b2',     // Dark cyan for light mode
+    'General': '#6b7280'        // Dark gray for light mode
   };
-  return colors[category as keyof typeof colors] || '#757575';
+  return colors[category as keyof typeof colors] || (isDarkMode ? '#888888' : '#666666');
 }
 
 export function AnalyticsChartsContainer({ analyticsData }: { analyticsData: any }) {

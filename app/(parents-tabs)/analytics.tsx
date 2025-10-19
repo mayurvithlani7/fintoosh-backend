@@ -342,10 +342,10 @@ const AnalyticsOverview = () => {
   const shadowColor = isDarkMode ? '#000000' : '#aaa';
 
   return (
-    <View style={[createStyles({}).sectionCard, { backgroundColor: surfaceColor, shadowColor }]}>
+    <View style={[createStyles({ background: surfaceColor, text: textColor, tint: tintColor }).sectionCard, { backgroundColor: surfaceColor, shadowColor }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <View style={{ flex: 1 }}>
-          <Text style={[createStyles({}).sectionTitle, { color: textColor }]}>Child's Progress Overview</Text>
+          <Text style={[createStyles({ background: surfaceColor, text: textColor, tint: tintColor }).sectionTitle, { color: textColor }]}>Child's Progress Overview</Text>
         </View>
         <TouchableOpacity
           style={{
@@ -367,7 +367,7 @@ const AnalyticsOverview = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      {error ? <Text style={[createStyles({}).placeholder, { color: mutedTextColor }]}>{error}</Text> : null}
+      {error ? <Text style={[createStyles({ background: surfaceColor, text: textColor, tint: tintColor }).placeholder, { color: mutedTextColor }]}>{error}</Text> : null}
       {loading ? <ActivityIndicator size="small" color={textColor} /> : null}
       {!loading && summary && (
         <>
@@ -396,11 +396,15 @@ const AnalyticsOverview = () => {
                   donate: 'Help Others',
                   invest: 'Grow Money Pot'
                 };
+                // Theme-aware colors for jars
+                const jarColors = isDarkMode
+                  ? ['#4a9eff', '#4ade80', '#fb923c', '#fbbf24', '#c084fc'] // Dark mode colors
+                  : ['#2563eb', '#16a34a', '#ea580c', '#ca8a04', '#a855f7']; // Light mode colors
                 return {
                   name: jarNameMap[jar] || jar[0].toUpperCase() + jar.slice(1),
                   population: points as number,
-                  color: ["#3375fc", "#49b100", "#d96c1c", "#e2b400", "#a54ad1"][i % 5],
-                  legendFontColor: backgroundColor === '#000000' ? "#cccccc" : "#345",
+                  color: jarColors[i % 5],
+                  legendFontColor: mainTextColor,
                   legendFontSize: 13,
                 };
               })}
@@ -408,8 +412,13 @@ const AnalyticsOverview = () => {
               height={230}
               // @ts-ignore
               chartConfig={{
-                color: (opacity = 1, index = 0) => ["#3375fc", "#49b100", "#d96c1c", "#e2b400", "#a54ad1"][index % 5],
-                labelColor: (opacity = 1) => backgroundColor === '#000000' ? "#cccccc" : "#345",
+                color: (opacity = 1, index = 0) => {
+                  const jarColors = isDarkMode
+                    ? ['#4a9eff', '#4ade80', '#fb923c', '#fbbf24', '#c084fc'] // Dark mode colors
+                    : ['#2563eb', '#16a34a', '#ea580c', '#ca8a04', '#a855f7']; // Light mode colors
+                  return jarColors[index % 5];
+                },
+                labelColor: (opacity = 1) => mainTextColor,
                 backgroundColor: surfaceColor,
               }}
               accessor="population"
@@ -424,13 +433,13 @@ const AnalyticsOverview = () => {
         </>
       )}
       {!loading && !summary && (
-        <Text style={[createStyles({}).placeholder, { color: mutedTextColor }]}>No progress data available yet.</Text>
+        <Text style={[createStyles({ background: surfaceColor, text: textColor, tint: tintColor }).placeholder, { color: mutedTextColor }]}>No progress data available yet.</Text>
       )}
     </View>
   );
 };
 
-const createStyles = (themeColors: any) => StyleSheet.create({
+const createStyles = (themeColors: { background: string; text: string; tint: string }) => StyleSheet.create({
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6 },
   sectionCard: { borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3 },

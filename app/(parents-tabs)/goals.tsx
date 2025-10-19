@@ -9,7 +9,7 @@ import { useTheme } from '@/utils/themeContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 export default function ParentsGoalsScreen() {
@@ -290,6 +290,54 @@ export default function ParentsGoalsScreen() {
 
   const handleChildChange = (childId: string) => {
     setSelectedChild(childId);
+  };
+
+  const handleDeleteGoal = async (goalId: string, goalName: string, goalStatus: string) => {
+    // Only allow deletion of active goals
+    if (goalStatus !== 'active') {
+      Alert.alert('Cannot Delete', 'You can only delete active goals. Goals that are pending approval cannot be deleted.');
+      return;
+    }
+
+    Alert.alert(
+      'Delete Goal',
+      `Are you sure you want to delete "${goalName}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await getAuthToken();
+              if (!token) {
+                Alert.alert('Error', 'Not authenticated.');
+                return;
+              }
+
+              const response = await fetch(`${API_URL}/goals/${goalId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to delete goal' }));
+                throw new Error(errorData.message || 'Failed to delete goal');
+              }
+
+              // Remove goal from local state
+              setGoals(goals.filter(g => g._id !== goalId));
+              showFeedback("Goal deleted successfully!");
+            } catch (error: any) {
+              console.error('Error deleting goal:', error);
+              showError(error.message || 'Failed to delete goal.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Handle template selection for parents
@@ -671,7 +719,7 @@ export default function ParentsGoalsScreen() {
                     <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
                       Status: {g.status} • Created: {new Date(g.createdAt).toLocaleDateString()}
                     </Text>
-                    {/* Edit button for parents - only show if goal hasn't been claimed/approved */}
+                    {/* Edit and Delete buttons for parents - only show if goal hasn't been claimed/approved */}
                     {g.status === 'active' && (
                       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                         <TouchableOpacity
@@ -694,6 +742,18 @@ export default function ParentsGoalsScreen() {
                           }}
                         >
                           <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={{
+                            backgroundColor: themeColors.error,
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 6,
+                            marginLeft: 8
+                          }}
+                          onPress={() => handleDeleteGoal(g._id, g.name, g.status)}
+                        >
+                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
                         </TouchableOpacity>
                       </View>
                     )}
