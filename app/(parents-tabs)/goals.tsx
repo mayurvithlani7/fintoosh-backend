@@ -292,54 +292,6 @@ export default function ParentsGoalsScreen() {
     setSelectedChild(childId);
   };
 
-  const handleDeleteGoal = async (goalId: string, goalName: string, goalStatus: string) => {
-    // Only allow deletion of active goals
-    if (goalStatus !== 'active') {
-      Alert.alert('Cannot Delete', 'You can only delete active goals. Goals that are pending approval cannot be deleted.');
-      return;
-    }
-
-    Alert.alert(
-      'Delete Goal',
-      `Are you sure you want to delete "${goalName}"? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const token = await getAuthToken();
-              if (!token) {
-                Alert.alert('Error', 'Not authenticated.');
-                return;
-              }
-
-              const response = await fetch(`${API_URL}/goals/${goalId}`, {
-                method: 'DELETE',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                },
-              });
-
-              if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'Failed to delete goal' }));
-                throw new Error(errorData.message || 'Failed to delete goal');
-              }
-
-              // Remove goal from local state
-              setGoals(goals.filter(g => g._id !== goalId));
-              showFeedback("Goal deleted successfully!");
-            } catch (error: any) {
-              console.error('Error deleting goal:', error);
-              showError(error.message || 'Failed to delete goal.');
-            }
-          }
-        }
-      ]
-    );
-  };
-
   // Handle template selection for parents
   const handleTemplateSelect = (template: any) => {
     // Pre-populate the form with template data
@@ -366,6 +318,56 @@ export default function ParentsGoalsScreen() {
 
     // Scroll to top to show the form
     scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+  };
+
+  const handleDeleteGoal = async (goalId: string, goalName: string) => {
+    Alert.alert(
+      'Delete Goal',
+      `Are you sure you want to delete "${goalName}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await getAuthToken();
+              if (!token) {
+                showError('Not authenticated.');
+                return;
+              }
+
+              const response = await fetch(`${API_URL}/goals/${goalId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              if (!response.ok) {
+                let errorMessage = 'Failed to delete goal.';
+                try {
+                  const errorData = await response.json();
+                  errorMessage = errorData.message || errorMessage;
+                } catch {
+                  // If JSON parsing fails, use default message
+                }
+                showError(errorMessage);
+                return;
+              }
+
+              showFeedback(`Goal "${goalName}" deleted successfully.`);
+
+              // Refresh goals list
+              loadGoals();
+            } catch (error) {
+              console.error('Error deleting goal:', error);
+              showError('Failed to delete goal.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -746,12 +748,12 @@ export default function ParentsGoalsScreen() {
                         <TouchableOpacity
                           style={{
                             backgroundColor: themeColors.error,
-                            paddingHorizontal: 12,
+                            paddingHorizontal: 10,
                             paddingVertical: 6,
                             borderRadius: 6,
                             marginLeft: 8
                           }}
-                          onPress={() => handleDeleteGoal(g._id, g.name, g.status)}
+                          onPress={() => handleDeleteGoal(g._id, g.name)}
                         >
                           <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
                         </TouchableOpacity>
