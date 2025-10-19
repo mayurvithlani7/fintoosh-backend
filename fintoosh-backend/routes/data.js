@@ -338,7 +338,35 @@ router.patch('/rewards/:rewardId', auth, requireParent, async (req, res) => {
       // Check points (but do not deduct yet)
       const currentPoints = rewardOwner.currentPoints || 0;
       if (currentPoints < reward.cost) {
-        return res.status(400).json({ message: 'Not enough points to claim this reward.' });
+        // Deny approval if not enough points; re-activate reward for claiming
+        reward.available = true;
+        reward.purchased = false;
+        reward.status = 'active';
+        await reward.save();
+
+        // Optionally: also find an active ApprovalRequest for this reward and mark as Denied
+        try {
+          const ApprovalRequest = require('../models/ApprovalRequest');
+          const pendingReq = await ApprovalRequest.findOne({
+            rewardId: reward._id.toString(),
+            status: 'Pending'
+          });
+          if (pendingReq) {
+            pendingReq.status = 'Denied';
+            pendingReq.updatedAt = new Date();
+            pendingReq.messages.push({
+              sender: 'parent',
+              userId: req.user.id,
+              text: 'Denied: not enough points in jar for reward approval.',
+              timestamp: new Date()
+            });
+            await pendingReq.save();
+          }
+        } catch (e) {
+          console.log('Error marking approval request as Denied:', e);
+        }
+
+        return res.status(400).json({ message: 'Not enough points in the jar for this reward. The reward claim has been denied and will remain available for the child to claim again.' });
       }
 
       // --- AUTO-APPROVAL LOGIC for reward claims ---
@@ -1571,12 +1599,24 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           const pointsField = jar + "Points";
           const target = goal.targetAmount || approval.amount || 0;
           if (!user[pointsField] || user[pointsField] < target) {
-            // Reset goal status back to 'active' so child can try again
+            // Not enough points: deny and reset goal to active
             goal.status = 'active';
             await goal.save();
 
+            // Mark ApprovalRequest as Denied, add message
+            approval.status = 'Denied';
+            approval.updatedAt = new Date();
+            approval.messages = approval.messages || [];
+            approval.messages.push({
+              sender: 'parent',
+              userId: req.user.id,
+              text: `Denied: not enough points in ${jar} jar for goal approval.`,
+              timestamp: new Date()
+            });
+            await approval.save();
+
             return res.status(400).json({
-              message: `Not enough points in ${jar} jar for goal completion. The child needs ${target - (user[pointsField] || 0)} more points. Goal has been reset to active status.`
+              message: `Not enough points in ${jar} jar for goal completion. The goal claim has been denied and will remain available for the child to claim again.`
             });
           }
           // Deduct points and complete goal
