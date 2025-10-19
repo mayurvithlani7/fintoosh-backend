@@ -297,7 +297,7 @@ router.post('/rewards', auth, requireParent, async (req, res) => {
 });
 
 // PATCH /rewards/:rewardId -- allow parents to edit rewards and handle reward claims
-router.patch('/rewards/:rewardId', auth, async (req, res) => {
+router.patch('/rewards/:rewardId', auth, requireParent, async (req, res) => {
   try {
     const reward = await Reward.findById(req.params.rewardId);
     if (!reward) return res.status(404).json({ message: 'Reward not found' });
@@ -964,7 +964,7 @@ router.post('/chores', auth, requireParent, async (req, res) => {
 });
 
 // PATCH /chores/:choreId -- allow parents to edit chores and kids to mark their own chores as completed
-router.patch('/chores/:choreId', auth, async (req, res) => {
+router.patch('/chores/:choreId', auth, requireParent, async (req, res) => {
   try {
     const { choreId } = req.params;
     const update = req.body;
