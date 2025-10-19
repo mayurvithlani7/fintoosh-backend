@@ -663,7 +663,13 @@ router.post('/goals', auth, async (req, res) => {
     targetUserId = req.user._id;
     // For children, parent is their assigned parent
     const childUser = await User.findById(req.user._id);
-    parentId = childUser.parentId || req.user._id; // fallback to self if no parent
+    if (childUser.parentId) {
+      // parentId is stored as string, need to convert to ObjectId
+      const parentUser = await User.findOne({ id: childUser.parentId });
+      parentId = parentUser ? parentUser._id : req.user._id; // fallback to self if parent not found
+    } else {
+      parentId = req.user._id; // fallback to self if no parent assigned
+    }
     console.log('[GOALS POST] Child creating goal for themselves:', { targetUserId, parentId });
   } else {
     console.log('[GOALS POST] Invalid role detected:', req.user.role, 'User ID:', req.user.id, 'Family ID:', req.user.familyId);
