@@ -219,6 +219,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 // Get current user profile
 router.get('/profile', auth, async (req, res) => {
   try {
+    console.log('[PROFILE] Checking user profile for:', req.user._id, '| role:', req.user.role);
     const user = await User.findById(req.user._id)
       .populate('goals')
       .populate('chores')
@@ -485,13 +486,6 @@ router.post('/child-login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if account is deactivated
-    if (user.status === 'deactivated') {
-      return res.status(403).json({
-        message: 'This account has been deactivated. Please contact support or reactivate your account.',
-        requiresReactivation: true
-      });
-    }
 
     // Check lockout: If lockoutUntil is in the future, reject the login attempt
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
