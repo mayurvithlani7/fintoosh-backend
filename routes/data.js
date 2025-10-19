@@ -743,6 +743,51 @@ router.patch('/goals/:goalId', auth, async (req, res) => {
   }
 });
 
+// DELETE /goals/:goalId -- allow parents and children to delete goals with restrictions
+router.delete('/goals/:goalId', auth, async (req, res) => {
+  try {
+    const { goalId } = req.params;
+
+    // Find the goal and check for existence/ownership
+    const goal = await Goal.findById(goalId);
+    if (!goal) return res.status(404).json({ message: "Goal not found" });
+
+    // Check authorization based on user role
+    if (req.user.role === 'parent') {
+      // Parents can delete goals from their family
+      const goalOwner = await User.findById(goal.user);
+      if (!goalOwner || goalOwner.familyId !== req.user.familyId) {
+        return res.status(403).json({ message: "Not authorized to delete this goal" });
+      }
+    } else if (req.user.role === 'child') {
+      // Children can only delete their own goals
+      if (!goal.user.equals(req.user._id)) {
+        return res.status(403).json({ message: "Not authorized to delete this goal" });
+      }
+    } else {
+      return res.status(403).json({ message: "Invalid user role for goal deletion" });
+    }
+
+    // Check status restrictions - neither parents nor children can delete pending goals
+    if (goal.status === 'pending') {
+      return res.status(400).json({ message: "Cannot delete a goal that is pending approval" });
+    }
+
+    // Only allow deletion of active goals (parents and children can delete active goals)
+    if (goal.status !== 'active') {
+      return res.status(400).json({ message: "Can only delete active goals" });
+    }
+
+    // Delete the goal
+    await Goal.findByIdAndDelete(goalId);
+
+    res.json({ message: "Goal deleted successfully" });
+  } catch (error) {
+    console.error('Error deleting goal:', error);
+    res.status(500).json({ message: "Failed to delete goal", error: error.message });
+  }
+});
+
 // Chore routes
 router.get('/chores/:childId', auth, async (req, res) => {
   try {
@@ -1395,7 +1440,13 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           const pointsField = jar + "Points";
           const target = goal.targetAmount || approval.amount || 0;
           if (!user[pointsField] || user[pointsField] < target) {
-            return res.status(400).json({ message: `Not enough points in ${jar} jar for goal completion. Kid must have enough points at time of approval.` });
+            // Reset goal status back to 'active' so child can try again
+            goal.status = 'active';
+            await goal.save();
+
+            return res.status(400).json({
+              message: `Not enough points in ${jar} jar for goal completion. The child needs ${target - (user[pointsField] || 0)} more points. Goal has been reset to active status.`
+            });
           }
           // Deduct points and complete goal
           user[pointsField] -= target;
