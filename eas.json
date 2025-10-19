@@ -1,4 +1,24 @@
 {
+<<<<<<< HEAD
+  "cli": {
+    "version": ">= 16.23.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+=======
   "build": {
     "production": {
       "android": {
@@ -8,5 +28,6 @@
         "EXPO_PUBLIC_API_URL": "https://fintoosh-backend.onrender.com"
       }
     }
+>>>>>>> 587a13d0a4ed328e5ceb892b62a292d50d0aba98
   }
 }
