@@ -271,6 +271,9 @@ router.get('/rewards/:userId', auth, async (req, res) => {
 
 router.post('/rewards', auth, requireParent, async (req, res) => {
   try {
+    // DEBUG log for parent token/role issues
+    console.log("POST /rewards headers:", req.headers);
+    console.log("POST /rewards req.user:", req.user);
     const { childId, name, description, cost, category } = req.body;
     console.log("DEBUG: Parent creating reward. AuthUser:", req.user, "childId:", childId);
     const child = await User.findOne({ _id: childId, familyId: req.user.familyId, role: 'child' });
@@ -285,7 +288,7 @@ router.post('/rewards', auth, requireParent, async (req, res) => {
       description,
       cost,
       category,
-      status: 'active', // Ensure all new rewards have status active
+      status: 'active',
     });
     const saved = await reward.save();
     child.rewards = child.rewards || [];
@@ -947,6 +950,7 @@ router.post('/chores', auth, requireParent, async (req, res) => {
       user: child._id,
       name,
       points,
+      status: 'active', // Ensure all new chores have status
     };
 
     // Add optional fields if provided
