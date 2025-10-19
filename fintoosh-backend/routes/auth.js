@@ -216,9 +216,19 @@ router.post('/login', loginLimiter, async (req, res) => {
       token,
       message: 'Login successful'
     }
+
+    // Diagnostic: Log keys, sizes of major user fields
+    const userJson = JSON.stringify(userResponse);
+    console.log(`[DEBUG] userResponse JSON length: ${userJson.length}`);
+    console.log(`[DEBUG] userResponse keys:`, Object.keys(userResponse));
+    if (userResponse.goals) console.log(`[DEBUG] goals count:`, Array.isArray(userResponse.goals) ? userResponse.goals.length : typeof userResponse.goals);
+    if (userResponse.chores) console.log(`[DEBUG] chores count:`, Array.isArray(userResponse.chores) ? userResponse.chores.length : typeof userResponse.chores);
+    if (userResponse.rewards) console.log(`[DEBUG] rewards count:`, Array.isArray(userResponse.rewards) ? userResponse.rewards.length : typeof userResponse.rewards);
+    if (userResponse.transactions) console.log(`[DEBUG] transactions count:`, Array.isArray(userResponse.transactions) ? userResponse.transactions.length : typeof userResponse.transactions);
+
     console.log(`[${new Date().toISOString()}] Sending login success response. Status: 200`);
     console.log('Response headers that will be sent:', res.getHeaders());
-    console.log('Response body:', JSON.stringify(loginResponse).slice(0, 200)); // limit log length
+    console.log('Response body:', userJson.slice(0, 200)); // limit log length
 
     res.json(loginResponse);
   } catch (error) {

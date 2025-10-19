@@ -89,6 +89,8 @@ export default function LoginScreen() {
     }
 
     try {
+      const { clearAllAuthData } = await import('@/utils/secureStorage');
+      await clearAllAuthData();
       console.log('Login response:', JSON.stringify(data));
       await saveAuthToken(data.token);
       await saveUserData(data.user);
