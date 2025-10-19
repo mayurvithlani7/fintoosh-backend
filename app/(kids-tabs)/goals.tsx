@@ -11,6 +11,7 @@ import React, { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -410,6 +411,7 @@ function KidGoalsRewardsSection() {
 
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json();
+        console.log('[KIDS GOALS] Fetched goals from server:', JSON.stringify(goalsData, null, 2));
 
         // Use the freshly loaded requests data for pending status logic
         const pendingGoalRequests = requestsData.filter((req: any) =>
@@ -663,55 +665,94 @@ function KidGoalsRewardsSection() {
   };
 
   const handleDeleteGoal = async (goalId: string, goalName: string) => {
-    Alert.alert(
-      'Delete Goal',
-      `Are you sure you want to delete "${goalName}"? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const token = await getAuthToken();
-              const user = await getUserData();
-              if (!token || !user) {
-                Alert.alert('Error', 'Not authenticated.');
-                return;
-              }
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Are you sure you want to delete "${goalName}"? This action cannot be undone.`);
+      if (!confirmed) return;
+      try {
+        const token = await getAuthToken();
+        const user = await getUserData();
+        if (!token || !user) {
+          Alert.alert('Error', 'Not authenticated.');
+          return;
+        }
 
-              const response = await fetch(`${API_URL}/goals/${goalId}`, {
-                method: 'DELETE',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                },
-              });
+        const response = await fetch(`${API_URL}/goals/${goalId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
 
-              if (!response.ok) {
-                let errorMessage = 'Failed to delete goal.';
-                try {
-                  const errorData = await response.json();
-                  errorMessage = errorData.message || errorMessage;
-                } catch {
-                  // If JSON parsing fails, use default message
+        if (!response.ok) {
+          let errorMessage = 'Failed to delete goal.';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // If JSON parsing fails, use default message
+          }
+          Alert.alert('Error', errorMessage);
+          return;
+        }
+
+        setGoals(goals.filter(g => g._id !== goalId));
+        setMsg(`Goal "${goalName}" deleted successfully.`);
+        setTimeout(() => setMsg(""), 5000);
+
+      } catch (error) {
+        console.error('Error deleting goal:', error);
+        Alert.alert('Error', 'Failed to delete goal.');
+      }
+    } else {
+      Alert.alert(
+        'Delete Goal',
+        `Are you sure you want to delete "${goalName}"? This action cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const token = await getAuthToken();
+                const user = await getUserData();
+                if (!token || !user) {
+                  Alert.alert('Error', 'Not authenticated.');
+                  return;
                 }
-                Alert.alert('Error', errorMessage);
-                return;
+
+                const response = await fetch(`${API_URL}/goals/${goalId}`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                  },
+                });
+
+                if (!response.ok) {
+                  let errorMessage = 'Failed to delete goal.';
+                  try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                  } catch {
+                    // If JSON parsing fails, use default message
+                  }
+                  Alert.alert('Error', errorMessage);
+                  return;
+                }
+
+                setGoals(goals.filter(g => g._id !== goalId));
+                setMsg(`Goal "${goalName}" deleted successfully.`);
+                setTimeout(() => setMsg(""), 5000);
+
+              } catch (error) {
+                console.error('Error deleting goal:', error);
+                Alert.alert('Error', 'Failed to delete goal.');
               }
-
-              // Remove the goal from local state
-              setGoals(goals.filter(g => g._id !== goalId));
-              setMsg(`Goal "${goalName}" deleted successfully.`);
-              setTimeout(() => setMsg(""), 5000);
-
-            } catch (error) {
-              console.error('Error deleting goal:', error);
-              Alert.alert('Error', 'Failed to delete goal.');
             }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   if (loading) {
