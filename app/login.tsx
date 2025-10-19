@@ -1,4 +1,4 @@
-import { saveAuthToken, saveUserData } from '@/utils/secureStorage';
+import { clearAllAuthData, saveAuthToken, saveUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -76,6 +76,11 @@ export default function LoginScreen() {
   const [isDeactivatedAccount, setIsDeactivatedAccount] = useState(false);
   const router = useRouter();
 
+  // Clear all authentication/session data when this screen mounts to avoid any stale user/token
+  React.useEffect(() => {
+    clearAllAuthData();
+  }, []);
+
   const handleLoginSuccess = async (data: any) => {
     // Check if account is deactivated
     if (data.user.status === 'deactivated') {
@@ -84,6 +89,7 @@ export default function LoginScreen() {
     }
 
     try {
+      console.log('Login response:', JSON.stringify(data));
       await saveAuthToken(data.token);
       await saveUserData(data.user);
       console.log('Login successful: stored token and user data securely');

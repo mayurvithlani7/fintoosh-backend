@@ -123,6 +123,12 @@ router.post('/register', async (req, res) => {
  * Login user with account-specific brute force protection
  */
 router.post('/login', loginLimiter, async (req, res) => {
+  const requestTimestamp = new Date().toISOString();
+  console.log(`=== [${requestTimestamp}] INCOMING LOGIN REQUEST ===`);
+  console.log('Method:', req.method, 'Path:', req.originalUrl, 'IP:', req.ip);
+  console.log('Headers:', req.headers);
+  console.log('Raw body:', JSON.stringify(req.body));
+
   try {
     const { email, password } = req.body;
     const MAX_ATTEMPTS = 5;
@@ -205,13 +211,26 @@ router.post('/login', loginLimiter, async (req, res) => {
     console.log('Token generated:', !!token);
     console.log('Sending response...');
 
-    res.json({
+    const loginResponse = {
       user: userResponse,
       token,
       message: 'Login successful'
-    });
+    }
+    console.log(`[${new Date().toISOString()}] Sending login success response. Status: 200`);
+    console.log('Response headers that will be sent:', res.getHeaders());
+    console.log('Response body:', JSON.stringify(loginResponse).slice(0, 200)); // limit log length
+
+    res.json(loginResponse);
   } catch (error) {
-    console.error('Login error:', error);
+    // Error catcher: log ALL request inputs for debugging failed cases
+    console.error(`[${new Date().toISOString()}] Login error:`, error);
+    console.error('INPUT (caught error):', {
+      headers: req.headers,
+      body: req.body,
+      method: req.method,
+      originalUrl: req.originalUrl,
+      ip: req.ip
+    });
     res.status(400).json({ message: error.message });
   }
 });
