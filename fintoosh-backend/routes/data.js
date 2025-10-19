@@ -706,34 +706,37 @@ router.patch('/goals/:goalId', auth, async (req, res) => {
     const update = req.body;
     const allowed = {};
 
+    // DEBUG: Log user role and id for troubleshooting
+    console.log('PATCH /goals/:goalId called by', req.user.role, 'userId:', req.user.id);
+
     // Find the goal and check for existence/ownership
     const goal = await Goal.findById(goalId);
     if (!goal) return res.status(404).json({ message: "Goal not found" });
 
-    // Parents can update all fields: name, description, targetAmount, jar, deadline, status
     if (req.user.role === 'parent') {
-      // Check if goal belongs to parent's family
+      // Parents can update all fields: name, description, targetAmount, jar, deadline, status
       const goalOwner = await User.findById(goal.user);
       if (!goalOwner || goalOwner.familyId !== req.user.familyId) {
         return res.status(403).json({ message: "Not authorized to modify this goal" });
       }
-      // Allow updating all goal fields
       if (update.name !== undefined) allowed.name = update.name;
       if (update.description !== undefined) allowed.description = update.description;
       if (update.targetAmount !== undefined) allowed.targetAmount = update.targetAmount;
       if (update.jar !== undefined) allowed.jar = update.jar;
       if (update.deadline !== undefined) allowed.deadline = update.deadline;
       if (update.status !== undefined) allowed.status = update.status;
-    } else {
-      // Child can only set status to 'pending'
+    } else if (req.user.role === 'child') {
+      // Child can only set status to 'pending' and only for their own goals
       if (update.status !== 'pending') {
         return res.status(403).json({ message: "Children can only set goal status to pending" });
       }
       if (!goal.user.equals(req.user._id)) {
         return res.status(403).json({ message: "Not authorized to modify this goal" });
       }
-      // Allow updating status for children
       if (update.status !== undefined) allowed.status = update.status;
+    } else {
+      // For all other roles, deny
+      return res.status(403).json({ message: "Not authorized to modify this goal" });
     }
 
     Object.assign(goal, allowed, { updatedAt: new Date() });
