@@ -2443,11 +2443,10 @@ router.get('/analytics/family/:familyId', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to view analytics for this family' });
     }
 
-    // Get all family members
-    const familyMembers = await User.find({ familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
-
-    if (familyMembers.length === 0) {
-      return res.status(404).json({ message: 'No family members found' });
+    // Find the child (role: 'child') in the family
+    const childUser = await User.findOne({ familyId, role: 'child' }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
+    if (!childUser) {
+      return res.status(404).json({ message: 'Child user not found for this family' });
     }
 
     // Build date filter
@@ -2463,20 +2462,20 @@ router.get('/analytics/family/:familyId', auth, async (req, res) => {
       dateFilter = { $gte: thirtyDaysAgo };
     }
 
-    // Get family transactions
+    // Get only the child's transactions
     const transactions = await Transaction.find({
-      user: { $in: familyMembers.map(m => m._id) },
+      user: childUser._id,
       createdAt: dateFilter
     }).sort({ createdAt: -1 });
 
-    // Get family chores
+    // Get only the child's chores
     const chores = await Chore.find({
-      user: { $in: familyMembers.map(m => m._id) }
+      user: childUser._id
     }).select('name points frequency useDefaultSplit customSplit');
 
-    // Get family goals
+    // Get only the child's goals
     const goals = await Goal.find({
-      user: { $in: familyMembers.map(m => m._id) },
+      user: childUser._id,
       $or: [
         { status: 'active' },
         { status: 'completed' },
@@ -2484,23 +2483,20 @@ router.get('/analytics/family/:familyId', auth, async (req, res) => {
       ]
     }).select('name targetAmount currentAmount deadline status jar createdAt');
 
-    // Get one family member for settings (they should be the same)
-    const familyUser = familyMembers[0];
-
-    // Return aggregated data
     res.json({
       transactions,
       chores,
       goals,
-      user: familyUser,
-      familyMembers: familyMembers.map(m => ({
-        id: m.id,
-        name: m.name,
-        role: m.role,
-        totalPoints: (m.currentPoints || 0) + (m.savePoints || 0) + (m.spendPoints || 0) + (m.donatePoints || 0) + (m.investPoints || 0)
-      }))
+      user: childUser,
+      familyMembers: [ // keep for summary UI, if needed
+        {
+          id: childUser.id,
+          name: childUser.name,
+          role: childUser.role,
+          totalPoints: (childUser.currentPoints || 0) + (childUser.savePoints || 0) + (childUser.spendPoints || 0) + (childUser.donatePoints || 0) + (childUser.investPoints || 0)
+        }
+      ]
     });
-
   } catch (error) {
     console.error('Error fetching analytics data:', error);
     res.status(500).json({ message: 'Failed to fetch analytics data', error: error.message });
