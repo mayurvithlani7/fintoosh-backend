@@ -88,24 +88,47 @@ export default function LoginScreen() {
       return;
     }
 
+    let storageErrorMessage = "";
     try {
-      const { clearAllAuthData } = await import('@/utils/secureStorage');
+      const { clearAllAuthData, getAuthToken, getUserData } = await import('@/utils/secureStorage');
       await clearAllAuthData();
       console.log('Login response:', JSON.stringify(data));
       await saveAuthToken(data.token);
       await saveUserData(data.user);
       console.log('Login successful: stored token and user data securely');
+
+      // Ensure token and user data are actually stored 
+      let retries = 0;
+      const MAX_RETRIES = 8;
+      const RETRY_INTERVAL = 250; // ms
+
+      let token = null, user = null;
+
+      while (retries < MAX_RETRIES) {
+        token = await getAuthToken();
+        user = await getUserData();
+        if (token && user) break;
+        retries++;
+        await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
+      }
+      if (!token || !user) {
+        storageErrorMessage = "App could not verify login session in storage. Please retry login. If problem persists, fully close and restart the app.";
+      }
     } catch (storageError) {
       console.error('Failed to store auth data:', storageError);
+      storageErrorMessage = "App could not save login securely. On some devices, clearing app data wipes system keys needed for secure storage. Please fully close and restart the app, or reinstall if problem persists.";
     }
 
-    setTimeout(() => {
-      if (data.user.role === 'parent') {
-        router.replace('/(parents-tabs)');
-      } else {
-        router.replace('/kid-dashboard');
-      }
-    }, 1000);
+    if (storageErrorMessage) {
+      alert(storageErrorMessage);
+      return;
+    }
+
+    if (data.user.role === 'parent') {
+      router.replace('/(parents-tabs)');
+    } else {
+      router.replace('/kid-dashboard');
+    }
   };
 
   const handleBack = () => {

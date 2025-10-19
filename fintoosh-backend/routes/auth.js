@@ -568,6 +568,11 @@ router.post('/child-login', async (req, res) => {
     delete userResponse.loginAttempts;
     delete userResponse.lockoutUntil;
 
+    // Ensure 'id' is always present on user object for frontend consistency
+    if (!userResponse.id) {
+      userResponse.id = userResponse._id ? userResponse._id.toString() : undefined;
+    }
+
     res.json({
       user: userResponse,
       token,
