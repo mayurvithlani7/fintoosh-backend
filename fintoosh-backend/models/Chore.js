@@ -21,6 +21,7 @@ const choreSchema = new mongoose.Schema({
     donate: { type: Number, default: 0, min: 0, max: 100 },  // Help Others Pot
     invest: { type: Number, default: 0, min: 0, max: 100 }   // Grow Money Pot
   },
+  status: { type: String, default: "active" }, // Ensure status field is present and defaults to 'active'
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
