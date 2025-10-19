@@ -1052,7 +1052,7 @@ router.get('/requests', auth, requireParent, async (req, res) => {
     console.log("DEBUG: Parent fetching requests. AuthUser:", req.user);
     const ApprovalRequest = require('../models/ApprovalRequest');
     // DEBUG fetch - log time and user for real-time issues
-    console.log("DEBUG /requests fetch at", new Date().toISOString(), "UserID:", req.user.id, "FamilyID:", req.user.familyId);
+    console.log("DEBUG /requests fetch at", new Date().toISOString(), "UserID:", req.user.id, "FamilyID:", req.user.familyId, "Role:", req.user.role, "req.user:", req.user);
     const User = require('../models/User');
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
