@@ -1,0 +1,75 @@
+{
+  "expo": {
+    "name": "Fintoosh",
+    "slug": "fintoosh",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/Fintoosh.png",
+    "scheme": "fintoosh",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#ffffff",
+    "primaryColor": "#6A49F3",
+    "description": "Wise Kids. Smarter Money. - A family finance management app for parents and children to learn money management through fun tasks and games.",
+    "privacy": "public",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fintoosh.app",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app requires camera access for future features",
+        "NSMicrophoneUsageDescription": "This app requires microphone access for future features",
+        "NSPhotoLibraryUsageDescription": "This app requires photo library access for future features"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "package": "com.fintoosh.app",
+      "versionCode": 1,
+      "web": {
+        "output": "static",
+        "favicon": "./assets/images/favicon.png"
+      },
+      "plugins": [
+        "expo-router",
+        [
+          "expo-splash-screen",
+          {
+            "image": "./assets/images/Fintoosh.png",
+            "imageWidth": 200,
+            "resizeMode": "contain",
+            "backgroundColor": "#ffffff",
+            "dark": {
+              "backgroundColor": "#000000"
+            }
+          }
+        ],
+        "expo-secure-store"
+      ],
+      "experiments": {
+        "typedRoutes": true,
+        "reactCompiler": true
+      },
+      "extra": {
+        "router": {},
+        "eas": {
+          "projectId": "749948db-673c-41b7-a30f-8fae58203b4d"
+        }
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "749948db-673c-41b7-a30f-8fae58203b4d"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-video"
+    ]
+  }
+}
