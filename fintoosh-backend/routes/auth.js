@@ -571,6 +571,10 @@ router.post('/child-login', async (req, res) => {
     // Ensure 'id' is always present on user object for frontend consistency
     if (!userResponse.id) {
       userResponse.id = userResponse._id ? userResponse._id.toString() : undefined;
+      // Optionally, PATCH the DB to add missing id for legacy users
+      if (userResponse.id) {
+        await User.updateOne({ _id: userResponse._id }, { $set: { id: userResponse.id } });
+      }
     }
 
     res.json({
