@@ -22,6 +22,7 @@ interface Reward {
   description?: string;
   purchased?: boolean;
   available?: boolean;
+  status?: string; // status field ("active", "pending", "completed")
 }
 
 export default function ParentsRewardsScreen() {
@@ -383,29 +384,36 @@ export default function ParentsRewardsScreen() {
                   style={{
                     flexDirection: 'row',
                     justifyContent: 'space-between',
-                    backgroundColor: r.purchased ? '#e5fcd8' : r.available === false ? '#fffbe5' : '#f6faff',
+                    backgroundColor: r.purchased ? '#e5fcd8'
+                      : r.status === 'pending' || r.available === false ? '#fffbe5'
+                      : '#f6faff',
                     marginVertical: 5,
                     padding: 9,
                     borderRadius: 7,
                     alignItems: 'center',
                     borderWidth: 1,
-                    borderColor: r.purchased ? "#95c294" : r.available === false ? "#d9cc7b" : "#abd6ee"
+                    borderColor: r.purchased ? "#95c294"
+                      : r.status === 'pending' || r.available === false ? "#d9cc7b"
+                      : "#abd6ee"
                   }}
                 >
                   <View style={{ flex: 4 }}>
                     <Text style={{ fontWeight: 'bold', color: '#234' }}>{r.name}</Text>
                     <Text style={{ color: '#324', fontSize: 16 }}>({r.cost} pts)</Text>
                     {r.description && <Text style={{ fontSize: 13, color: '#567' }}>{r.description}</Text>}
+                    {/* Status Display */}
                     {r.purchased ? (
                       <Text style={{ color: "#18722a", fontWeight: "bold", fontSize: 13 }}>Claimed</Text>
+                    ) : r.status === 'pending' ? (
+                      <Text style={{ color: "#a78912", fontWeight: "bold", fontSize: 13 }}>Pending Approval</Text>
                     ) : r.available === false ? (
                       <Text style={{ color: "#a78912", fontWeight: "bold", fontSize: 13 }}>Waiting for Approval</Text>
                     ) : (
                       <Text style={{ color: "#184e82", fontSize: 13 }}>Available</Text>
                     )}
                   </View>
-                  {/* Edit button for parents - only show if reward hasn't been purchased/claimed */}
-                  {!r.purchased && (
+                  {/* Parent controls: edit/delete for active, pending indicator, nothing for completed/approved */}
+                  {r.status === 'active' && !r.purchased ? (
                     <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                       <TouchableOpacity
                         style={{
@@ -426,8 +434,56 @@ export default function ParentsRewardsScreen() {
                       >
                         <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
                       </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: themeColors.error,
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 6,
+                          marginLeft: 8
+                        }}
+                        onPress={async () => {
+                          showError('');
+                          showFeedback('');
+                          try {
+                            const token = await getAuthToken();
+                            const response = await fetch(`${API_URL}/rewards/${r._id}`, {
+                              method: 'DELETE',
+                              headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (!response.ok) {
+                              const data = await response.json().catch(() => ({}));
+                              throw new Error(data.message || 'Failed to delete reward.');
+                            }
+                            showFeedback('Reward deleted successfully.');
+                            setTimeout(() => showFeedback(''), 3000);
+                            const selectedChild = children.find(child => child._id === selectedChildId);
+                            if (selectedChild) {
+                              await loadRewards(selectedChild.id);
+                            }
+                          } catch (err: any) {
+                            showError(err.message || 'Failed to delete reward.');
+                          }
+                        }}
+                      >
+                        <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
+                      </TouchableOpacity>
                     </View>
-                  )}
+                  ) : r.status === 'pending' ? (
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                      <Text style={{
+                        color: themeColors.warning,
+                        fontWeight: 'bold',
+                        fontSize: 13,
+                        backgroundColor: themeColors.surface,
+                        paddingVertical: 7,
+                        paddingHorizontal: 14,
+                        borderRadius: 7,
+                      }}>
+                        Pending Approval
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               ))}
               {/* Archive toggle for claimed rewards */}

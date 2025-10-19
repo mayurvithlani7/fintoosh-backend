@@ -321,53 +321,92 @@ export default function ParentsGoalsScreen() {
   };
 
   const handleDeleteGoal = async (goalId: string, goalName: string) => {
-    Alert.alert(
-      'Delete Goal',
-      `Are you sure you want to delete "${goalName}"? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const token = await getAuthToken();
-              if (!token) {
-                showError('Not authenticated.');
-                return;
-              }
+    console.log('[PARENTS GOALS] handleDeleteGoal fired for:', goalId, goalName);
 
-              const response = await fetch(`${API_URL}/goals/${goalId}`, {
-                method: 'DELETE',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                },
-              });
+    if (Platform.OS === 'web') {
+      // Web fallback: use window.confirm
+      const confirmed = window.confirm(`Are you sure you want to delete "${goalName}"? This action cannot be undone.`);
+      if (!confirmed) return;
+      try {
+        const token = await getAuthToken();
+        if (!token) {
+          showError('Not authenticated.');
+          return;
+        }
 
-              if (!response.ok) {
-                let errorMessage = 'Failed to delete goal.';
-                try {
-                  const errorData = await response.json();
-                  errorMessage = errorData.message || errorMessage;
-                } catch {
-                  // If JSON parsing fails, use default message
+        const response = await fetch(`${API_URL}/goals/${goalId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Failed to delete goal.';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // If JSON parsing fails, use default message
+          }
+          showError(errorMessage);
+          return;
+        }
+
+        showFeedback(`Goal "${goalName}" deleted successfully.`);
+        loadGoals();
+      } catch (error) {
+        console.error('Error deleting goal:', error);
+        showError('Failed to delete goal.');
+      }
+    } else {
+      // Native - use Alert.alert
+      Alert.alert(
+        'Delete Goal',
+        `Are you sure you want to delete "${goalName}"? This action cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const token = await getAuthToken();
+                if (!token) {
+                  showError('Not authenticated.');
+                  return;
                 }
-                showError(errorMessage);
-                return;
+
+                const response = await fetch(`${API_URL}/goals/${goalId}`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                  },
+                });
+
+                if (!response.ok) {
+                  let errorMessage = 'Failed to delete goal.';
+                  try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                  } catch {
+                    // If JSON parsing fails, use default message
+                  }
+                  showError(errorMessage);
+                  return;
+                }
+
+                showFeedback(`Goal "${goalName}" deleted successfully.`);
+                loadGoals();
+              } catch (error) {
+                console.error('Error deleting goal:', error);
+                showError('Failed to delete goal.');
               }
-
-              showFeedback(`Goal "${goalName}" deleted successfully.`);
-
-              // Refresh goals list
-              loadGoals();
-            } catch (error) {
-              console.error('Error deleting goal:', error);
-              showError('Failed to delete goal.');
             }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   return (
@@ -692,75 +731,94 @@ export default function ParentsGoalsScreen() {
             }
             return (
               <View>
-                {filteredGoals.map(g => (
-                  <View
-                    key={g._id}
-                    style={{
-                      backgroundColor: themeColors.surface,
-                      marginVertical: 5,
-                      padding: 12,
-                      borderRadius: 7,
-                    }}
-                  >
-                    <Text style={{ marginBottom: 4 }}>
-                      <Text style={{ fontWeight: 'bold', color: themeColors.text, fontSize: 16 }}>{g.name}</Text>
-                    </Text>
-                    {g.description && (
-                      <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginBottom: 6 }}>
-                        {g.description}
+                {filteredGoals.map(g => {
+                  // DEBUG LOG for goal state
+                  console.log('[PARENTS GOALS] Rendering goal:', g.name, '| _id:', g._id, '| status:', g.status, '| full:', g);
+                  return (
+                    <View
+                      key={g._id}
+                      style={{
+                        backgroundColor: themeColors.surface,
+                        marginVertical: 5,
+                        padding: 12,
+                        borderRadius: 7,
+                      }}
+                    >
+                      <Text style={{ marginBottom: 4 }}>
+                        <Text style={{ fontWeight: 'bold', color: themeColors.text, fontSize: 16 }}>{g.name}</Text>
                       </Text>
-                    )}
-                    <Text style={{ color: themeColors.textSecondary, fontSize: 14 }}>
-                      Target: {g.targetAmount} points in {jarOptions.find(j => j.value === g.jar)?.label || g.jar} pot
-                    </Text>
-                    {g.deadline && (
+                      {g.description && (
+                        <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginBottom: 6 }}>
+                          {g.description}
+                        </Text>
+                      )}
+                      <Text style={{ color: themeColors.textSecondary, fontSize: 14 }}>
+                        Target: {g.targetAmount} points in {jarOptions.find(j => j.value === g.jar)?.label || g.jar} pot
+                      </Text>
+                      {g.deadline && (
+                        <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                          Deadline: {new Date(g.deadline).toLocaleDateString()}
+                        </Text>
+                      )}
                       <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                        Deadline: {new Date(g.deadline).toLocaleDateString()}
+                        Status: {g.status} • Created: {new Date(g.createdAt).toLocaleDateString()}
                       </Text>
-                    )}
-                    <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                      Status: {g.status} • Created: {new Date(g.createdAt).toLocaleDateString()}
-                    </Text>
-                    {/* Edit and Delete buttons for parents - only show if goal hasn't been claimed/approved */}
-                    {g.status === 'active' && (
-                      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
-                        <TouchableOpacity
-                          style={{
-                            backgroundColor: themeColors.primary,
-                            paddingHorizontal: 12,
-                            paddingVertical: 6,
-                            borderRadius: 6,
-                            marginLeft: 8
-                          }}
-                          onPress={() => {
-                            setEditingGoal(g);
-                            setGoal(g.name);
-                            setDescription(g.description || '');
-                            setPointsNeeded(g.targetAmount.toString());
-                            setSelectedJar(g.jar);
-                            setDeadline(g.deadline ? g.deadline.split('T')[0] : '');
-                            // Scroll to top to show the form
-                            scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
-                          }}
-                        >
-                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={{
-                            backgroundColor: themeColors.error,
-                            paddingHorizontal: 10,
-                            paddingVertical: 6,
-                            borderRadius: 6,
-                            marginLeft: 8
-                          }}
-                          onPress={() => handleDeleteGoal(g._id, g.name)}
-                        >
-                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                ))}
+                      {/* Status indicator and controls for parent */}
+                      {g.status === 'active' && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: themeColors.primary,
+                              paddingHorizontal: 12,
+                              paddingVertical: 6,
+                              borderRadius: 6,
+                              marginLeft: 8
+                            }}
+                            onPress={() => {
+                              setEditingGoal(g);
+                              setGoal(g.name);
+                              setDescription(g.description || '');
+                              setPointsNeeded(g.targetAmount.toString());
+                              setSelectedJar(g.jar);
+                              setDeadline(g.deadline ? g.deadline.split('T')[0] : '');
+                              // Scroll to top to show the form
+                              scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+                            }}
+                          >
+                            <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={{
+                              backgroundColor: themeColors.error,
+                              paddingHorizontal: 10,
+                              paddingVertical: 6,
+                              borderRadius: 6,
+                              marginLeft: 8
+                            }}
+                            onPress={() => handleDeleteGoal(g._id, g.name)}
+                          >
+                            <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      {g.status === 'pending' && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                          <Text style={{
+                            color: themeColors.warning, // warning color for pending
+                            fontWeight: 'bold',
+                            fontSize: 13,
+                            backgroundColor: themeColors.surface,
+                            paddingVertical: 7,
+                            paddingHorizontal: 14,
+                            borderRadius: 7,
+                          }}>
+                            Pending Approval
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
                 {/* Archive Toggle for completed goals */}
                 {goalsTab === 'Completed' && showArchiveButton && !showAllCompleted && (
                   <TouchableOpacity

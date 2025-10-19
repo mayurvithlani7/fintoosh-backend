@@ -3,8 +3,12 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
+<<<<<<< HEAD
     "start": "node fintoosh-backend/server.js",
     "start:mobile": "expo start",
+=======
+    "start": "node server.js",
+>>>>>>> 6f759c05667990b1f3a5b6538e4bdcfc0c8aec55
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

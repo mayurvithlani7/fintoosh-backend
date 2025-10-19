@@ -41,6 +41,7 @@ export default function ParentsChoresScreen() {
     completedAt?: string;
     approvedAt?: string;
     createdAt: string;
+    status?: string; // <-- add status for backend state ("active", "pending", "completed")
   }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -718,8 +719,8 @@ export default function ParentsChoresScreen() {
                     <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>
                       Status: {(c.completed && c.approved) ? 'Completed' : c.completed ? 'Pending Approval' : 'Active'} • Created: {new Date(c.createdAt).toLocaleDateString()}
                     </Text>
-                    {/* Edit button for parents - only show if chore hasn't been completed and approved */}
-                    {!c.completed || !c.approved ? (
+                    {/* Parent controls: edit/delete for active, pending indicator, nothing for completed/approved */}
+                    {c.status === 'active' ? (
                       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                         <TouchableOpacity
                           style={{
@@ -744,6 +745,51 @@ export default function ParentsChoresScreen() {
                         >
                           <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
                         </TouchableOpacity>
+                        <TouchableOpacity
+                          style={{
+                            backgroundColor: themeColors.error,
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                            borderRadius: 6,
+                            marginLeft: 8
+                          }}
+                          onPress={async () => {
+                            setError('');
+                            setFeedback('');
+                            try {
+                              const token = await getAuthToken();
+                              const response = await fetch(`${API_URL}/chores/${c._id}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                              });
+                              if (!response.ok) {
+                                const data = await response.json().catch(() => ({}));
+                                throw new Error(data.message || 'Failed to delete chore.');
+                              }
+                              setFeedback('Task deleted successfully.');
+                              setTimeout(() => setFeedback(''), 3000);
+                              loadChores();
+                            } catch (err: any) {
+                              setError(err.message || 'Failed to delete chore.');
+                            }
+                          }}
+                        >
+                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : c.status === 'pending' ? (
+                      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                        <Text style={{
+                          color: themeColors.warning,
+                          fontWeight: 'bold',
+                          fontSize: 13,
+                          backgroundColor: themeColors.surface,
+                          paddingVertical: 7,
+                          paddingHorizontal: 14,
+                          borderRadius: 7,
+                        }}>
+                          Pending Approval
+                        </Text>
                       </View>
                     ) : null}
                   </View>
