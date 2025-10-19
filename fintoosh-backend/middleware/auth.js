@@ -39,7 +39,9 @@ const auth = async (req, res, next) => {
 };
 
 const requireParent = (req, res, next) => {
-  if (req.user.role !== 'parent') {
+  // Log every attempt for debugging parent access issues
+  console.log("[requireParent middleware] req.user:", req.user && { id: req.user.id, email: req.user.email, role: req.user.role });
+  if (!req.user || req.user.role !== 'parent') {
     return res.status(403).json({ message: 'Parent access required' });
   }
   next();

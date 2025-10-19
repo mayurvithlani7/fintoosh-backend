@@ -14,6 +14,9 @@ export default function ParentsAnalyticsScreen() {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
+  const cardColor = useThemeColor({}, 'card');
+  const accentColor = useThemeColor({}, 'accent');
+  const iconColor = useThemeColor({}, 'icon');
 
   const styles = createStyles({ background: backgroundColor, text: textColor, tint: tintColor });
   const [helpModalVisible, setHelpModalVisible] = useState(false);
@@ -68,7 +71,7 @@ export default function ParentsAnalyticsScreen() {
       <Text style={[styles.title, { color: textColor, fontSize: 24 }]}>Advanced Analytics Dashboard</Text>
 
       {/* AI-Powered Insights */}
-      <View style={[styles.sectionCard, { backgroundColor: backgroundColor === '#000000' ? '#1a1a1a' : '#ffffff' }]}>
+      <View style={[styles.sectionCard, { backgroundColor: cardColor }]}>
         <SpendingInsights
           onExport={handleExport}
           onRefresh={handleRefresh}
@@ -76,22 +79,22 @@ export default function ParentsAnalyticsScreen() {
       </View>
 
       {/* Charts Section */}
-      <View style={[styles.sectionCard, { backgroundColor: backgroundColor === '#000000' ? '#1a1a1a' : '#ffffff' }]}>
+      <View style={[styles.sectionCard, { backgroundColor: cardColor }]}>
         <Text style={[styles.sectionTitle, { color: textColor }]}>📊 Data Visualizations</Text>
         <AnalyticsChartsContainer analyticsData={analyticsData} />
       </View>
 
       {/* Error Display */}
       {error && (
-        <View style={[styles.sectionCard, { backgroundColor: '#ffebee' }]}>
-          <Text style={{ color: '#c62828', fontSize: 16 }}>
+        <View style={[styles.sectionCard, { backgroundColor: cardColor }]}>
+          <Text style={{ color: accentColor, fontSize: 16 }}>
             ⚠️ Error loading analytics: {error}
           </Text>
           <TouchableOpacity
-            style={{ backgroundColor: '#c62828', padding: 10, borderRadius: 6, marginTop: 10 }}
+            style={{ backgroundColor: accentColor, padding: 10, borderRadius: 6, marginTop: 10 }}
             onPress={handleRefresh}
           >
-            <Text style={{ color: '#ffffff', textAlign: 'center' }}>Retry</Text>
+            <Text style={{ color: backgroundColor, textAlign: 'center' }}>Retry</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -272,6 +275,9 @@ const AnalyticsOverview = () => {
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const tintColor = useThemeColor({}, 'tint');
+  const cardColor = useThemeColor({}, 'card');
+  const accentColor = useThemeColor({}, 'accent');
+  const iconColor = useThemeColor({}, 'icon');
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
   const [error, setError] = useState('');
@@ -330,22 +336,19 @@ const AnalyticsOverview = () => {
     loadAnalytics();
   }, []);
 
-  // Theme-aware colors for the component - use guaranteed high contrast
-  const isDarkMode = backgroundColor === '#000000';
-  const surfaceColor = isDarkMode ? '#1a1a1a' : '#ffffff';
-  const cardBackgroundColor = isDarkMode ? '#2a2a2a' : '#e9f7fd';
-  const accentColor = isDarkMode ? '#4a9eff' : '#4CAF50';
-  const accentTextColor = '#ffffff'; // Always white text on colored buttons
-  const mainTextColor = isDarkMode ? '#ffffff' : '#000000'; // High contrast
-  const secondaryTextColor = isDarkMode ? '#cccccc' : '#154477';
-  const mutedTextColor = isDarkMode ? '#888888' : '#666666';
-  const shadowColor = isDarkMode ? '#000000' : '#aaa';
+  // Theme-aware colors from the theme API
+  const accentTextColor = backgroundColor;
+  const mainTextColor = textColor;
+  const secondaryTextColor = accentColor;
+  const mutedTextColor = iconColor;
+  const cardBackgroundColor = cardColor;
+  const shadowColor = backgroundColor;
 
   return (
-    <View style={[createStyles({ background: surfaceColor, text: textColor, tint: tintColor }).sectionCard, { backgroundColor: surfaceColor, shadowColor }]}>
+    <View style={[createStyles({ background: cardBackgroundColor, text: textColor, tint: tintColor }).sectionCard, { backgroundColor: cardBackgroundColor, shadowColor }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <View style={{ flex: 1 }}>
-          <Text style={[createStyles({ background: surfaceColor, text: textColor, tint: tintColor }).sectionTitle, { color: textColor }]}>Child's Progress Overview</Text>
+          <Text style={[createStyles({ background: cardBackgroundColor, text: textColor, tint: tintColor }).sectionTitle, { color: textColor }]}>Child's Progress Overview</Text>
         </View>
         <TouchableOpacity
           style={{
@@ -367,7 +370,7 @@ const AnalyticsOverview = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      {error ? <Text style={[createStyles({ background: surfaceColor, text: textColor, tint: tintColor }).placeholder, { color: mutedTextColor }]}>{error}</Text> : null}
+      {error ? <Text style={[createStyles({ background: cardBackgroundColor, text: textColor, tint: tintColor }).placeholder, { color: mutedTextColor }]}>{error}</Text> : null}
       {loading ? <ActivityIndicator size="small" color={textColor} /> : null}
       {!loading && summary && (
         <>
@@ -396,30 +399,24 @@ const AnalyticsOverview = () => {
                   donate: 'Help Others',
                   invest: 'Grow Money Pot'
                 };
-                // Theme-aware colors for jars
-                const jarColors = isDarkMode
-                  ? ['#4a9eff', '#4ade80', '#fb923c', '#fbbf24', '#c084fc'] // Dark mode colors
-                  : ['#2563eb', '#16a34a', '#ea580c', '#ca8a04', '#a855f7']; // Light mode colors
+                // Use theme accent, tint, icon, and card colors for chart slices
+                const themeColors = [accentColor, tintColor, iconColor, cardColor, textColor];
                 return {
                   name: jarNameMap[jar] || jar[0].toUpperCase() + jar.slice(1),
                   population: points as number,
-                  color: jarColors[i % 5],
-                  legendFontColor: mainTextColor,
-                  legendFontSize: 13,
-                };
+                  color: themeColors[i % themeColors.length] as any,
+                } as any;
               })}
               width={Math.min(Dimensions.get('window').width * 0.94, 340)}
               height={230}
               // @ts-ignore
               chartConfig={{
                 color: (opacity = 1, index = 0) => {
-                  const jarColors = isDarkMode
-                    ? ['#4a9eff', '#4ade80', '#fb923c', '#fbbf24', '#c084fc'] // Dark mode colors
-                    : ['#2563eb', '#16a34a', '#ea580c', '#ca8a04', '#a855f7']; // Light mode colors
-                  return jarColors[index % 5];
+                  const themeColors = [accentColor, tintColor, iconColor, cardColor, textColor];
+                  return themeColors[index % themeColors.length];
                 },
                 labelColor: (opacity = 1) => mainTextColor,
-                backgroundColor: surfaceColor,
+                backgroundColor: cardBackgroundColor,
               }}
               accessor="population"
               backgroundColor="transparent"
@@ -433,7 +430,7 @@ const AnalyticsOverview = () => {
         </>
       )}
       {!loading && !summary && (
-        <Text style={[createStyles({ background: surfaceColor, text: textColor, tint: tintColor }).placeholder, { color: mutedTextColor }]}>No progress data available yet.</Text>
+        <Text style={[createStyles({ background: cardBackgroundColor, text: textColor, tint: tintColor }).placeholder, { color: mutedTextColor }]}>No progress data available yet.</Text>
       )}
     </View>
   );

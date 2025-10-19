@@ -341,6 +341,8 @@ export default function ParentsRewardsScreen() {
 
         {loading && <ActivityIndicator size="small" color={themeColors.primary} />}
         {(() => {
+          // DEBUG: Show status of all rewards at parent render time
+          console.log('Rewards for rendering:', rewards.map(r => ({ id: r._id, name: r.name, status: r.status, purchased: r.purchased })));
           let filteredRewards: Reward[] = [];
           let showArchiveButton = false;
           if (rewardsTab === 'Available') {

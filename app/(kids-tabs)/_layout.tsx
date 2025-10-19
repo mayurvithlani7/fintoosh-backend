@@ -1,5 +1,3 @@
-import { deleteAuthToken } from '@/utils/secureStorage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -222,9 +220,9 @@ export default function KidsTabLayout() {
                   borderRadius: 6,
                 }}
                 onPress={async () => {
-                  // Clear tokens and redirect to login
-                  await deleteAuthToken();
-                  await AsyncStorage.removeItem('user');
+                  // Clear all auth/session data and redirect to login
+                  const { clearAllAuthData } = await import('@/utils/secureStorage');
+                  await clearAllAuthData();
                   // Use expo-router navigation
                   router.replace('/login');
                 }}

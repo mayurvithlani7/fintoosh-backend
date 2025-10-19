@@ -652,6 +652,8 @@ export default function ParentsChoresScreen() {
           <Text style={styles.placeholder}>Loading chores...</Text>
         ) : (
           (() => {
+            // DEBUG: Log all chores with status field for parent debugging
+            console.log('Chores for rendering:', chores.map(c => ({ id: c._id, name: c.name, status: c.status })));
             // Filter logic with 90-day limit for completed
             let filteredChores;
             let showArchiveButton = false;
