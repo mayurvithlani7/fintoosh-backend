@@ -291,6 +291,7 @@ router.post('/rewards', auth, requireParent, async (req, res) => {
       status: 'active',
     });
     const saved = await reward.save();
+    console.log('[create reward] saved reward:', saved);
     child.rewards = child.rewards || [];
     child.rewards.push(saved._id);
     await child.save();
