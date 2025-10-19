@@ -285,6 +285,7 @@ router.post('/rewards', auth, requireParent, async (req, res) => {
       description,
       cost,
       category,
+      status: 'active', // Ensure all new rewards have status active
     });
     const saved = await reward.save();
     child.rewards = child.rewards || [];
