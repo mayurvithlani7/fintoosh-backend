@@ -462,12 +462,12 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   }, [themeColors]);
 
   // Notification suppression (persistent):
-  const [notificationsSuppressed, setNotificationsSuppressed] = useState(false);
+  const [notificationsSuppressed, setNotificationsSuppressed] = useState<boolean>(false);
   const NOTIF_CLEARED_KEY = 'kids_notifications_cleared_at';
   useEffect(() => {
     (async () => {
       const clearedAt = await (await import('@react-native-async-storage/async-storage')).default.getItem(NOTIF_CLEARED_KEY);
-      if (clearedAt) setNotificationsSuppressed(true);
+      setNotificationsSuppressed(!!clearedAt);
     })();
   }, []);
 
@@ -487,16 +487,17 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       const userId = user.id;
       const notifList = await fetchNotifications(userId, token);
       dispatch({ type: 'SET_NOTIFICATIONS', payload: notifList || [] });
-      // If there are new notifications, unsuppress
+      // If there are new notifications, unsuppress only if ALL notifications are newer than clear time
       if (notifList && notifList.length > 0) {
         const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
         const clearedAtStr = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
         if (clearedAtStr) {
           const clearedTime = Number(clearedAtStr);
-          const hasNewAfterClear = notifList.some((n: any) =>
+          // Only unsuppress if ALL notifications are newer than cleared time (meaning they arrived after clear)
+          const allNewAfterClear = notifList.every((n: any) =>
             n.createdAt && Number(new Date(n.createdAt)) > clearedTime
           );
-          if (hasNewAfterClear) {
+          if (allNewAfterClear) {
             setNotificationsSuppressed(false);
             await AsyncStorage.removeItem(NOTIF_CLEARED_KEY);
           }
@@ -717,7 +718,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       >
 
       {/* Notifications */}
-      {(!notificationsSuppressed && (notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0)) && (
+      {(notificationsSuppressed === false && (notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0)) && (
         <View style={{
           backgroundColor: themeColors.surface,
           borderRadius: 15,

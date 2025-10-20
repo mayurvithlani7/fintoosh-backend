@@ -6,7 +6,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ACCESSIBILITY } from '@/constants/accessibility';
 import { useNavigation } from '@/utils/navigationContext';
-import { useTheme } from '@/utils/themeContext';
+import { ThemeProvider, useTheme } from '@/utils/themeContext';
 
 function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
   isVisible: boolean;
@@ -105,9 +105,10 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
   );
 }
 
-export default function KidsTabLayout() {
+function KidsTabLayoutInner() {
   const { themeColors } = useTheme();
   const { activeModal, setActiveModal } = useNavigation();
+  const dataCache = require('@/utils/dataCacheContext').useDataCache();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
@@ -241,6 +242,7 @@ export default function KidsTabLayout() {
                 }}
                 onPress={async () => {
                   // Clear all persistent and secure user/session data and redirect to login
+                  dataCache.resetDataCache();
                   const { clearSensitiveAppData } = await import('@/utils/secureStorage');
                   await clearSensitiveAppData();
                   // Use expo-router navigation
@@ -349,3 +351,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+export default function KidsTabLayout() {
+  return (
+    <ThemeProvider>
+      <KidsTabLayoutInner />
+    </ThemeProvider>
+  );
+}

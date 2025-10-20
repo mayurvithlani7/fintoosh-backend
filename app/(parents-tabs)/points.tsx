@@ -1,6 +1,5 @@
-import { Picker } from '@react-native-picker/picker';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import HelpModal from '@/components/HelpModal';
 import { createTransaction, fetchFamilyChildren, fetchUser, patchUserPoints } from '@/utils/api';
@@ -17,7 +16,7 @@ export default function ParentsPointsScreen() {
   const styles = createStyles(themeColors);
   const { showError, showFeedback } = useGlobalFeedback();
   const [amount, setAmount] = useState('');
-  const [toJar, setToJar] = useState<string>('');
+  const [toJar, setToJar] = useState<string>('current'); // Initialize with first option since Android Picker doesn't show placeholder well
   const [childData, setChildData] = useState<{
     name: string;
     currentPoints: number;
@@ -29,6 +28,7 @@ export default function ParentsPointsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
   const jarOptions = [
     { label: 'Pocket Money', value: 'current' },
     { label: 'Savings Pot', value: 'save' },
@@ -36,6 +36,17 @@ export default function ParentsPointsScreen() {
     { label: 'Help Others Pot', value: 'donate' },
     { label: 'Grow Money Pot', value: 'invest' }
   ];
+
+  const selectedJarLabel = jarOptions.find(jar => jar.value === toJar)?.label || 'Select --';
+
+  const handleJarSelect = (value: string) => {
+    setToJar(value);
+    setDropdownVisible(false);
+  };
+
+  const openDropdown = () => {
+    setDropdownVisible(true);
+  };
 
   useEffect(() => {
     loadChildData();
@@ -104,6 +115,8 @@ export default function ParentsPointsScreen() {
       showError('Enter a valid positive number for points.');
       return;
     }
+
+
 
     try {
       // Get current user and child info
@@ -269,7 +282,7 @@ export default function ParentsPointsScreen() {
                   value={toJar}
                   onChange={e => setToJar(e.target.value as any)}
                 >
-                  <option value="">Select --</option>
+                  <option value="placeholder">Select --</option>
                   {jarOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
@@ -278,27 +291,37 @@ export default function ParentsPointsScreen() {
                 </select>
               </div>
             ) : (
-              <View style={{
-                backgroundColor: themeColors.surface,
-                borderRadius: 7,
-                borderWidth: 1,
-                borderColor: themeColors.border,
-                marginRight: 5,
-                paddingVertical: 2,
-                minHeight: 40
-              }}>
-                <Picker
-                  selectedValue={toJar}
-                  onValueChange={v => setToJar(v)}
-                  style={{height: 36, fontSize: 15, width: "100%", color: themeColors.text}}
-                  dropdownIconColor={themeColors.primary}
-                  itemStyle={{ color: themeColors.text }}
+              <View style={{ position: 'relative' }}>
+                <TouchableOpacity
+                  style={{
+                    height: 45,
+                    backgroundColor: themeColors.surface,
+                    borderRadius: 7,
+                    borderWidth: 1,
+                    borderColor: themeColors.border,
+                    marginRight: 5,
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingHorizontal: 12,
+                    flexDirection: 'row'
+                  }}
+                  onPress={openDropdown}
                 >
-                  <Picker.Item label="Select --" value="" />
-                  {jarOptions.map(opt => (
-                    <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
-                  ))}
-                </Picker>
+                  <Text style={{
+                    fontSize: 16,
+                    color: themeColors.text || '#000',
+                    flex: 1
+                  }}>
+                    {selectedJarLabel}
+                  </Text>
+                  <Text style={{
+                    fontSize: 16,
+                    color: themeColors.primary,
+                    fontWeight: 'bold'
+                  }}>
+                    ▼
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -351,6 +374,61 @@ export default function ParentsPointsScreen() {
           </Text>
         )}
       </View>
+
+      {/* Dropdown Modal */}
+      <Modal
+        visible={dropdownVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDropdownVisible(false)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+          activeOpacity={1}
+          onPress={() => setDropdownVisible(false)}
+        >
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.surface,
+              borderRadius: 7,
+              borderWidth: 1,
+              borderColor: themeColors.border,
+              minWidth: 200,
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              maxWidth: 300
+            }}
+            activeOpacity={1}
+          >
+            {jarOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={{
+                  padding: 16,
+                  borderBottomWidth: option.value === 'invest' ? 0 : 1,
+                  borderBottomColor: themeColors.border
+                }}
+                onPress={() => handleJarSelect(option.value)}
+              >
+                <Text style={{
+                  fontSize: 16,
+                  color: themeColors.text
+                }}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Help Modal */}
       <HelpModal

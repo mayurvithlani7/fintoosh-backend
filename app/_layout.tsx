@@ -24,10 +24,10 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ErrorBoundary>
-      <NavigationProvider>
-        <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <ThemeProvider>
+    <ThemeProvider>
+      <ErrorBoundary>
+        <NavigationProvider>
+          <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <GlobalFeedbackProvider>
               <CurrencyProvider>
                 <DataCacheProvider>
@@ -48,9 +48,9 @@ export default function RootLayout() {
                 </DataCacheProvider>
               </CurrencyProvider>
             </GlobalFeedbackProvider>
-          </ThemeProvider>
-        </NavigationThemeProvider>
-      </NavigationProvider>
-    </ErrorBoundary>
+          </NavigationThemeProvider>
+        </NavigationProvider>
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }

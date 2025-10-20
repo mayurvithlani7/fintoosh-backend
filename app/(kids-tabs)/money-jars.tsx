@@ -6,12 +6,12 @@ import { handleApiError } from '@/utils/errorHandler';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from "@react-native-picker/picker";
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -462,6 +462,10 @@ function MovePointsSection({ jars, setJars }: {
   const [note, setNote] = React.useState("");
   const [status, setStatus] = React.useState<{ type: "error" | "ok"; msg: string } | null>(null);
 
+  // Dropdown modal states
+  const [fromDropdownVisible, setFromDropdownVisible] = React.useState(false);
+  const [toDropdownVisible, setToDropdownVisible] = React.useState(false);
+
   // Validation states
   const [amountError, setAmountError] = React.useState<string | null>(null);
   const [fromError, setFromError] = React.useState<string | null>(null);
@@ -714,26 +718,36 @@ function MovePointsSection({ jars, setJars }: {
             color: themeColors.text,
             fontSize: 14,
           }}>From Which Pot?</Text>
-          <View style={{
-            borderWidth: 1,
-            borderColor: fromError ? themeColors.error : themeColors.border,
-            borderRadius: 7,
-            width: "100%",
-            alignSelf: "center"
-          }}>
-            <Picker
-              selectedValue={from}
-              onValueChange={handleFromChange}
-              style={{ height: 37, minWidth: 120, width: "100%" }}
-              accessibilityLabel="Source money pot"
-              accessibilityHint="Select which money pot to take points from"
-            >
-              <Picker.Item label="Select Pot" value="" />
-              {jars.map(j => (
-                <Picker.Item label={`${j.label} (${j.value})`} value={j.key} key={j.key} />
-              ))}
-            </Picker>
-          </View>
+          <TouchableOpacity
+            style={{
+              height: 45,
+              backgroundColor: themeColors.surface,
+              borderWidth: 1,
+              borderColor: fromError ? themeColors.error : themeColors.border,
+              borderRadius: 7,
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 12,
+              flexDirection: 'row',
+              width: "100%"
+            }}
+            onPress={() => setFromDropdownVisible(true)}
+          >
+            <Text style={{
+              fontSize: 16,
+              color: from ? themeColors.text : themeColors.textSecondary,
+              flex: 1
+            }}>
+              {from ? `${jars.find(j => j.key === from)?.label} (${jars.find(j => j.key === from)?.value})` : 'Select Pot'}
+            </Text>
+            <Text style={{
+              fontSize: 16,
+              color: themeColors.primary,
+              fontWeight: 'bold'
+            }}>
+              ▼
+            </Text>
+          </TouchableOpacity>
           {fromError && (
             <Text style={{
               color: themeColors.error,
@@ -753,26 +767,36 @@ function MovePointsSection({ jars, setJars }: {
             color: themeColors.text,
             fontSize: 14,
           }}>To Which Pot?</Text>
-          <View style={{
-            borderWidth: 1,
-            borderColor: toError ? themeColors.error : themeColors.border,
-            borderRadius: 7,
-            width: "100%",
-            alignSelf: "center"
-          }}>
-            <Picker
-              selectedValue={to}
-              onValueChange={handleToChange}
-              style={{ height: 37, minWidth: 120, width: "100%" }}
-              accessibilityLabel="Destination money pot"
-              accessibilityHint="Select which money pot to send points to"
-            >
-              <Picker.Item label="Select Pot" value="" />
-              {jars.map(j => (
-                <Picker.Item label={j.label} value={j.key} key={j.key} />
-              ))}
-            </Picker>
-          </View>
+          <TouchableOpacity
+            style={{
+              height: 45,
+              backgroundColor: themeColors.surface,
+              borderWidth: 1,
+              borderColor: toError ? themeColors.error : themeColors.border,
+              borderRadius: 7,
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: 12,
+              flexDirection: 'row',
+              width: "100%"
+            }}
+            onPress={() => setToDropdownVisible(true)}
+          >
+            <Text style={{
+              fontSize: 16,
+              color: to ? themeColors.text : themeColors.textSecondary,
+              flex: 1
+            }}>
+              {to ? jars.find(j => j.key === to)?.label : 'Select Pot'}
+            </Text>
+            <Text style={{
+              fontSize: 16,
+              color: themeColors.primary,
+              fontWeight: 'bold'
+            }}>
+              ▼
+            </Text>
+          </TouchableOpacity>
           {toError && (
             <Text style={{
               color: themeColors.error,
@@ -853,6 +877,120 @@ function MovePointsSection({ jars, setJars }: {
         )}
 
       </View>
+
+      {/* From Dropdown Modal */}
+      <Modal
+        visible={fromDropdownVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setFromDropdownVisible(false)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+          activeOpacity={1}
+          onPress={() => setFromDropdownVisible(false)}
+        >
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.surface,
+              borderRadius: 7,
+              borderWidth: 1,
+              borderColor: themeColors.border,
+              minWidth: 200,
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              maxWidth: 300
+            }}
+            activeOpacity={1}
+          >
+            {jars.filter(jar => jar.value > 0).map((jar) => (
+              <TouchableOpacity
+                key={jar.key}
+                style={{
+                  padding: 16,
+                  borderBottomWidth: jar.key === 'invest' ? 0 : 1,
+                  borderBottomColor: themeColors.border
+                }}
+                onPress={() => {
+                  handleFromChange(jar.key);
+                }}
+              >
+                <Text style={{
+                  fontSize: 16,
+                  color: themeColors.text
+                }}>
+                  {jar.label} ({jar.value})
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* To Dropdown Modal */}
+      <Modal
+        visible={toDropdownVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setToDropdownVisible(false)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+          activeOpacity={1}
+          onPress={() => setToDropdownVisible(false)}
+        >
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.surface,
+              borderRadius: 7,
+              borderWidth: 1,
+              borderColor: themeColors.border,
+              minWidth: 200,
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              maxWidth: 300
+            }}
+            activeOpacity={1}
+          >
+            {jars.filter(jar => jar.key !== from).map((jar) => (
+              <TouchableOpacity
+                key={jar.key}
+                style={{
+                  padding: 16,
+                  borderBottomWidth: jar.key === 'invest' ? 0 : 1,
+                  borderBottomColor: themeColors.border
+                }}
+                onPress={() => {
+                  handleToChange(jar.key);
+                }}
+              >
+                <Text style={{
+                  fontSize: 16,
+                  color: themeColors.text
+                }}>
+                  {jar.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }

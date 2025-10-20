@@ -79,23 +79,21 @@ export default function ParentsOverviewScreen() {
     pots: true,          // Expanded by default - core child status
   });
 
+  // Utility for persisting "cleared at" time
+  const NOTIF_CLEARED_KEY = 'parents_notifications_cleared_at';
+
   // Notifications state
   const [notifications, setNotifications] = useState<{ _id?: string; message: string; isRead?: boolean }[]>([]);
   const [notifLoading, setNotifLoading] = useState(true);
   const [notifError, setNotifError] = useState<string | null>(null);
   // Local persistent state: suppress notifications if cleared until new ones arrive
-  const [notificationsSuppressed, setNotificationsSuppressed] = useState(false);
-
-  // Utility for persisting "cleared at" time
-  const NOTIF_CLEARED_KEY = 'parents_notifications_cleared_at';
+  const [notificationsSuppressed, setNotificationsSuppressed] = useState<boolean>(false);
 
   // On mount, check if persisted clear is present
   React.useEffect(() => {
     (async () => {
       const clearedAt = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
-      if (clearedAt) {
-        setNotificationsSuppressed(true);
-      }
+      setNotificationsSuppressed(!!clearedAt);
     })();
   }, []);
 
@@ -161,18 +159,16 @@ export default function ParentsOverviewScreen() {
       }
       const notifList = await fetchNotifications(currentUser.id, token);
       setNotifications(notifList || []);
-      // If there are new notifications, unsuppress
+      // If there are new notifications, unsuppress only if ALL notifications are newer than clear time
       if (notifList && notifList.length > 0) {
-        // Only unsuppress if suppressed (was cleared) and new notification is newer
         const clearedAtStr = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
         if (clearedAtStr) {
-          // Assume all backend notifs have createdAt, but if not, just length check
           const clearedTime = Number(clearedAtStr);
-          // Here, unsuppress only if any notif is newer than cleared time
-          const hasNewAfterClear = notifList.some((n: any) =>
+          // Only unsuppress if ALL notifications are newer than cleared time (meaning they arrived after clear)
+          const allNewAfterClear = notifList.every((n: any) =>
             n.createdAt && Number(new Date(n.createdAt)) > clearedTime
           );
-          if (hasNewAfterClear) {
+          if (allNewAfterClear) {
             setNotificationsSuppressed(false);
             await AsyncStorage.removeItem(NOTIF_CLEARED_KEY);
           }
@@ -199,7 +195,7 @@ export default function ParentsOverviewScreen() {
       }
     >
       {/* Notifications section */}
-      {(!notificationsSuppressed && (notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0)) && (
+      {(notificationsSuppressed === false && (notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0)) && (
         <View style={[styles.notificationSection, {
           backgroundColor: themeColors.surface,
           borderColor: themeColors.border,

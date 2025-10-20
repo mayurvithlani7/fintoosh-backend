@@ -143,8 +143,36 @@ export default function ParentsChoresScreen() {
     { label: 'Monthly', value: 'monthly' }
   ];
 
+  // Watch for changes in parent authentication and force reset children state and reload on user/family/session change
   useEffect(() => {
-    loadChildren();
+    let isMounted = true;
+    async function checkUser() {
+      const currentUser = await getUserData();
+      const token = await getAuthToken();
+      if (!currentUser || !token) {
+        setChildren([]);
+        setSelectedChild('');
+        setChores([]);
+        return;
+      }
+      // Whenever familyId or token changes, force a full reload
+      setChildren([]);
+      setSelectedChild('');
+      setChores([]);
+      loadChildren();
+    }
+    checkUser();
+
+    // Optionally monitor "storage" events for cross-tab updates (web only)
+    if (Platform.OS === 'web' && typeof window !== "undefined" && window.addEventListener) {
+      const handleStorage = (e: any) => {
+        if (e.key === "user" || e.key === "accessToken" || e.key === "token") {
+          checkUser();
+        }
+      };
+      window.addEventListener("storage", handleStorage);
+      return () => window.removeEventListener("storage", handleStorage);
+    }
   }, []);
 
   useFocusEffect(
@@ -158,7 +186,7 @@ export default function ParentsChoresScreen() {
 
   // If the tab loses focus, mark data as potentially stale
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (Platform.OS === 'web' && typeof window !== "undefined") {
       const onBlur = () => setShowStaleWarning(true);
       window.addEventListener('blur', onBlur);
       return () => window.removeEventListener('blur', onBlur);

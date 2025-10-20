@@ -304,7 +304,7 @@ export default function KidsRequestsScreen() {
                 {(request.messages && request.messages.length > 0) && (
                   <View style={styles.messagesContainer}>
                     <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 8 }]}>Messages:</Text>
-                    {request.messages.map((msg, index) => (
+                    {request.messages.map((msg: { sender: string; text: string; timestamp: string }, index: number) => (
                       <View key={index} style={[
                         styles.messageBubble,
                         msg.sender === 'child'

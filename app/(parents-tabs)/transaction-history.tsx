@@ -4,10 +4,10 @@ import { fetchFamilyChildren, fetchTransactions } from "@/utils/api";
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from "@/utils/themeContext";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from "@react-native-picker/picker";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -24,11 +24,12 @@ if (Platform.OS !== "web") {
   } catch (e) {}
 }
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 10,
     paddingHorizontal: 4,
+    backgroundColor: themeColors.background,
     flex: 1,
     minHeight: "100%"
   },
@@ -37,46 +38,52 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 12,
     marginBottom: 10,
+    color: themeColors.primary,
   },
   sectionCard: {
+    backgroundColor: themeColors.card,
     borderRadius: 16,
     marginBottom: 12,
     padding: 16,
     minWidth: 300,
     width: "98%",
-    maxWidth: 560,
+    maxWidth: 520,
     elevation: 2,
+    shadowColor: themeColors.border,
+    borderWidth: 1,
+    borderColor: themeColors.border,
   },
   filtersRow: {
-    flexDirection: Platform.OS === "web" ? "row" : "column",
-    flexWrap: "wrap",
-    alignItems: Platform.OS === "web" ? "center" : "stretch",
+    flexDirection: "row",
+    marginBottom: 8,
+    alignItems: "center",
     justifyContent: "space-between",
-    gap: Platform.OS === "web" ? 8 : 0,
-    rowGap: Platform.OS === "web" ? undefined : 12,
-    marginBottom: Platform.OS === "web" ? 8 : 0,
+    gap: 8,
+    flexWrap: 'wrap',
+    rowGap: 10
   },
   filterInput: {
+    backgroundColor: themeColors.surface,
     borderRadius: 7,
-    padding: 8,
+    padding: 7,
+    flex: 1,
     borderWidth: 1,
+    borderColor: themeColors.border,
     fontSize: 15,
-    marginRight: Platform.OS === "web" ? 5 : 0,
-    marginBottom: Platform.OS === "web" ? 0 : 10,
-    width: "100%",
-    backgroundColor: undefined,
-    borderColor: undefined,
-    color: undefined,
+    marginRight: 5,
+    color: themeColors.text,
   },
   label: {
     fontWeight: "500",
     fontSize: 14,
+    color: themeColors.text,
     marginRight: 3
   },
   list: {
     width: "100%"
   },
   txRow: {
+    backgroundColor: themeColors.surface,
     borderRadius: 9,
     marginBottom: 7,
     flexDirection: "row",
@@ -84,49 +91,56 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderLeftWidth: 5,
+    borderLeftColor: themeColors.border,
+  },
+  txAmount: {
+    fontSize: 16,
+    fontWeight: "bold",
+    minWidth: 80,
+    color: themeColors.text,
+  },
+  txDesc: {
+    flex: 1,
+    marginLeft: 9,
+    fontWeight: "500",
+    color: themeColors.text,
+  },
+  txJar: {
+    fontWeight: "bold",
+    color: themeColors.success,
+    marginHorizontal: 5
+  },
+  txDate: {
+    fontSize: 13,
+    color: themeColors.textSecondary,
+    marginLeft: 8,
+    minWidth: 72
+  },
+  filterLabel: {
+    fontWeight: "500",
+    color: themeColors.text,
+    fontSize: 13,
+    marginRight: 4
+  },
+  refreshBtn: {
+    marginLeft: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    borderRadius: 7,
+    backgroundColor: themeColors.primary,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 8,
+    color: themeColors.text,
   },
   txChild: {
     fontWeight: "600",
     fontSize: 13,
     minWidth: 45,
     marginRight: 6,
-  },
-  txAmount: {
-    fontSize: 16,
-    fontWeight: "bold",
-    minWidth: 80
-  },
-  txDesc: {
-    flex: 1,
-    marginLeft: 9,
-    fontWeight: "500",
-  },
-  txJar: {
-    fontWeight: "bold",
-    marginHorizontal: 5
-  },
-  txDate: {
-    fontSize: 13,
-    marginLeft: 8,
-    minWidth: 74
-  },
-  filterLabel: {
-    fontWeight: "500",
-    fontSize: 13,
-    marginRight: 4
-  },
-  refreshBtn: {
-    minWidth: 40,
-    alignSelf: "center",
-    paddingVertical: 7,
-    paddingHorizontal: 13,
-    borderRadius: 7,
-    marginTop: Platform.OS === "web" ? 0 : 10
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
+    color: themeColors.secondary,
   },
   dateFieldBtn: {
     borderRadius: 7,
@@ -162,6 +176,22 @@ const jarNameMap: { [key: string]: string } = {
 };
 
 function TypeSelect({ value, onChange, themeColors }: { value: string; onChange: (val: string) => void; themeColors: any }) {
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+
+  const typeOptions = [
+    { label: 'All', value: '' },
+    { label: 'Home Task', value: 'chore-completion' },
+    { label: 'Goal', value: 'goal-completion' },
+    { label: 'Reward', value: 'reward-purchase' },
+    { label: 'Move', value: 'points-move' },
+    { label: 'Points Request', value: 'points-request' },
+    { label: 'Adjustment', value: 'parent-points-adjustment' },
+    { label: 'Interest Payout', value: 'interest-payout' },
+    { label: 'Others', value: 'others' }
+  ];
+
+  const selectedLabel = typeOptions.find(opt => opt.value === value)?.label || 'All';
+
   if (Platform.OS === "web") {
     return (
       <select
@@ -192,33 +222,94 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
     );
   }
   return (
-    <View style={{
-      backgroundColor: themeColors.surface,
-      borderRadius: 7,
-      borderWidth: 1,
-      borderColor: themeColors.border,
-      marginRight: 0,
-      paddingVertical: 2,
-      minHeight: 35,
-      marginBottom: 10,
-    }}>
-      <Picker
-        selectedValue={value}
-        onValueChange={onChange}
-        style={{ height: 33, fontSize: 15, width: "100%", color: themeColors.text }}
-        dropdownIconColor={themeColors.primary}
-        itemStyle={{ color: themeColors.text }}
+    <View style={{ position: 'relative' }}>
+      <TouchableOpacity
+        style={{
+          height: 45,
+          backgroundColor: themeColors.surface,
+          borderRadius: 7,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingHorizontal: 12,
+          flexDirection: 'row',
+          marginBottom: 10,
+        }}
+        onPress={() => setDropdownVisible(true)}
       >
-        <Picker.Item label="All" value="" />
-        <Picker.Item label="Home Task" value="chore-completion" />
-        <Picker.Item label="Goal" value="goal-completion" />
-        <Picker.Item label="Reward" value="reward-purchase" />
-        <Picker.Item label="Move" value="points-move" />
-        <Picker.Item label="Points Request" value="points-request" />
-        <Picker.Item label="Adjustment" value="parent-points-adjustment" />
-        <Picker.Item label="Interest Payout" value="interest-payout" />
-        <Picker.Item label="Others" value="others" />
-      </Picker>
+        <Text style={{
+          fontSize: 15,
+          color: themeColors.text,
+          flex: 1
+        }}>
+          {selectedLabel}
+        </Text>
+        <Text style={{
+          fontSize: 16,
+          color: themeColors.primary,
+          fontWeight: 'bold'
+        }}>
+          ▼
+        </Text>
+      </TouchableOpacity>
+
+      <Modal
+        visible={dropdownVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDropdownVisible(false)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+          activeOpacity={1}
+          onPress={() => setDropdownVisible(false)}
+        >
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.surface,
+              borderRadius: 7,
+              borderWidth: 1,
+              borderColor: themeColors.border,
+              minWidth: 200,
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              maxWidth: 300
+            }}
+            activeOpacity={1}
+          >
+            {typeOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={{
+                  padding: 16,
+                  borderBottomWidth: option.value === 'others' ? 0 : 1,
+                  borderBottomColor: themeColors.border
+                }}
+                onPress={() => {
+                  onChange(option.value);
+                  setDropdownVisible(false);
+                }}
+              >
+                <Text style={{
+                  fontSize: 16,
+                  color: themeColors.text
+                }}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -254,23 +345,37 @@ function DateInput({ value, onChange, placeholder, themeColors }: {
   return (
     <View style={{ width: "100%" }}>
       <TouchableOpacity
-        style={[
-          styles.dateFieldBtn,
-          {
-            backgroundColor: themeColors.surface,
-            borderColor: themeColors.border,
-          }
-        ]}
+        style={{
+          backgroundColor: themeColors.surface,
+          borderRadius: 7,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          justifyContent: "space-between",
+          alignItems: "center",
+          height: 40,
+          paddingHorizontal: 10,
+          marginBottom: 4,
+          marginTop: 2,
+          flexDirection: "row"
+        }}
         onPress={() => setShow(true)}
         activeOpacity={0.7}
       >
         <Text
-          style={[
-            styles.dateFieldText,
-            { color: value ? themeColors.text : themeColors.textSecondary }
-          ]}
+          style={{
+            fontSize: 15,
+            color: value ? themeColors.text : themeColors.textSecondary,
+            flex: 1
+          }}
         >
           {value ? value : (placeholder || "Select Date")}
+        </Text>
+        <Text style={{
+          fontSize: 16,
+          color: themeColors.primary,
+          fontWeight: 'bold'
+        }}>
+          📅
         </Text>
       </TouchableOpacity>
       {show && DateTimePicker && (
@@ -296,6 +401,7 @@ function DateInput({ value, onChange, placeholder, themeColors }: {
 
 export default function ParentTransactionHistoryScreen() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("");
@@ -377,46 +483,26 @@ export default function ParentTransactionHistoryScreen() {
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card }]}>
         {/* Filters, vertical on mobile, horizontal on web */}
         <View style={styles.filtersRow}>
-          <View style={{ flex: 1, minWidth: 140, marginBottom: Platform.OS === "web" ? 0 : 16 }}>
-            <Text style={[styles.label, { color: themeColors.text }]}>Search</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.label}>Search</Text>
             <TextInput
               placeholder="Type to search..."
-              style={[
-                styles.filterInput,
-                {
-                  backgroundColor: themeColors.surface,
-                  borderColor: themeColors.border,
-                  color: themeColors.text,
-                  maxWidth: 340,
-                }
-              ]}
+              style={styles.filterInput}
               value={search}
               onChangeText={setSearch}
-              placeholderTextColor={themeColors.textSecondary}
             />
           </View>
-          <View style={{ flex: 1, minWidth: 180, marginBottom: Platform.OS === "web" ? 0 : 16 }}>
-            <Text style={[styles.label, { color: themeColors.text }]}>Filter by Type</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.label}>Filter by Type</Text>
             <TypeSelect value={type} onChange={setType} themeColors={themeColors} />
           </View>
-          <TouchableOpacity
-            style={[
-              styles.refreshBtn,
-              {
-                backgroundColor: themeColors.secondary,
-                marginRight: Platform.OS === "web" ? 0 : 0,
-                marginTop: Platform.OS === "web" ? 0 : 8
-              }
-            ]}
-            onPress={loadTransactions}
-            accessibilityLabel="Refresh transaction list"
-          >
-            <Text style={{ color: themeColors.card, fontWeight: "bold" }}>🔄 Refresh Child's History</Text>
+          <TouchableOpacity style={styles.refreshBtn} onPress={() => loadTransactions()} accessibilityLabel="Refresh transaction list">
+            <Text style={{ color: themeColors.card, fontWeight: "bold" }}>🔄 Refresh</Text>
           </TouchableOpacity>
         </View>
         {/* Date Range Filter */}
-        <View style={styles.filtersRow}>
-          <View style={{ flex: 1, minWidth: 120, marginBottom: Platform.OS === "web" ? 0 : 16 }}>
+        <View style={[styles.filtersRow, {marginTop: 4}]}>
+          <View style={{ flex: 1, minWidth: 120 }}>
             <Text style={[styles.label, { color: themeColors.text }]}>From Date</Text>
             <DateInput
               value={startDate}
@@ -425,7 +511,7 @@ export default function ParentTransactionHistoryScreen() {
               themeColors={themeColors}
             />
           </View>
-          <View style={{ flex: 1, minWidth: 120, marginBottom: Platform.OS === "web" ? 0 : 16 }}>
+          <View style={{ flex: 1, minWidth: 120 }}>
             <Text style={[styles.label, { color: themeColors.text }]}>To Date</Text>
             <DateInput
               value={endDate}
@@ -436,8 +522,8 @@ export default function ParentTransactionHistoryScreen() {
           </View>
           {(startDate || endDate) && (
             <TouchableOpacity
-              style={[styles.refreshBtn, { backgroundColor: themeColors.surface, alignSelf: 'flex-end' }]}
-              onPress={() => { setStartDate(""); setEndDate(""); }}
+              style={[styles.refreshBtn, {backgroundColor: themeColors.surface, alignSelf: 'flex-end'}]}
+              onPress={() => {setStartDate(""); setEndDate("");}}
             >
               <Text style={{ color: themeColors.primary, fontWeight: "bold" }}>✕ Clear</Text>
             </TouchableOpacity>

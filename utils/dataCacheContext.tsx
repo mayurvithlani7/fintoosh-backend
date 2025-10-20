@@ -218,8 +218,26 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [isDataStale]);
 
+  // Reset function: clears all cache state and fetch status
+  const resetDataCache = useCallback(() => {
+    setChildData(null);
+    setChores(null);
+    setRequests(null);
+    setGoals(null);
+    setChildDataStatus('idle');
+    setChoresStatus('idle');
+    setRequestsStatus('idle');
+    setGoalsStatus('idle');
+    setLastFetched({
+      childData: null,
+      chores: null,
+      requests: null,
+      goals: null,
+    });
+  }, []);
+
   // Provider value
-  const value: DataCacheContextType = {
+  const value: DataCacheContextType & { resetDataCache: () => void } = {
     childData,
     chores,
     requests,
@@ -234,7 +252,8 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     fetchRequests,
     fetchGoals,
     isDataStale,
-    CACHE_TIME_DEFAULT
+    CACHE_TIME_DEFAULT,
+    resetDataCache,
   };
 
   return (

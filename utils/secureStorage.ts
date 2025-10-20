@@ -368,9 +368,10 @@ export const clearSensitiveAppData = async (): Promise<void> => {
     'familyDiscussions',
     'dreamBoard',
     'familyTimeline',
-    'teachingMilestones',
-    'parents_notifications_cleared_at',
-    'kids_notifications_cleared_at'
+    'teachingMilestones'
+    // Note: notification clear timestamps persist across logins
+    // 'parents_notifications_cleared_at',
+    // 'kids_notifications_cleared_at'
     // ADD further keys if new user-specific AsyncStorage keys are added
   ];
   // Remove all keys with allSettled so all attempts are made

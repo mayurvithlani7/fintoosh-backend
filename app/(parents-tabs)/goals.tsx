@@ -1,3 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
 import BackButton from '@/components/BackButton';
 import GoalTemplates from '@/components/GoalTemplates';
 import HelpModal from '@/components/HelpModal';
@@ -7,10 +13,6 @@ import { useDataCache } from '@/utils/dataCacheContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 export default function ParentsGoalsScreen() {
@@ -70,8 +72,33 @@ export default function ParentsGoalsScreen() {
     { label: 'Grow Money Pot', value: 'invest' }
   ];
 
+  // Secure: force clear and reload of children/goals on parent session/token change
   useEffect(() => {
-    loadChildren();
+    async function checkUser() {
+      const token = await getAuthToken();
+      const storedUser = await AsyncStorage.getItem('user');
+      if (!token || !storedUser) {
+        setChildren([]);
+        setSelectedChild('');
+        setGoals([]);
+        return;
+      }
+      setChildren([]);
+      setSelectedChild('');
+      setGoals([]);
+      loadChildren();
+    }
+    checkUser();
+
+    if (typeof window !== "undefined" && window.addEventListener) {
+      const handleStorage = (e: any) => {
+        if (e.key === "user" || e.key === "accessToken" || e.key === "token") {
+          checkUser();
+        }
+      };
+      window.addEventListener("storage", handleStorage);
+      return () => window.removeEventListener("storage", handleStorage);
+    }
   }, []);
 
   // Auto-fetch goals whenever the screen is focused (parent tab switch), for real-time updates after child actions
@@ -95,7 +122,6 @@ export default function ParentsGoalsScreen() {
       console.log('Loading children with token:', token.substring(0, 20) + '...');
 
       // First get current user to get familyId
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       const currentUserStr = await AsyncStorage.getItem('user');
       if (!currentUserStr) {
         console.log('No user data in storage');

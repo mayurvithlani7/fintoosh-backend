@@ -277,6 +277,34 @@ export default function ParentSettingsScreen() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deletionMessage, setDeletionMessage] = useState('');
 
+  // Secure: Reset children state and refetch on parent session/token/user change
+  useEffect(() => {
+    async function checkUser() {
+      const token = await getAuthToken();
+      const storedUser = await AsyncStorage.getItem('user');
+      if (!token || !storedUser) {
+        setChildren([]);
+        setSelectedChild(null);
+        return;
+      }
+      setChildren([]);
+      setSelectedChild(null);
+      await fetchChildren();
+    }
+    checkUser();
+
+    // Optionally monitor "storage" events for cross-tab updates (web)
+    if (typeof window !== "undefined" && window.addEventListener) {
+      const handleStorage = (e: any) => {
+        if (e.key === "user" || e.key === "accessToken" || e.key === "token") {
+          checkUser();
+        }
+      };
+      window.addEventListener("storage", handleStorage);
+      return () => window.removeEventListener("storage", handleStorage);
+    }
+  }, []);
+
   // Sync ALL local state with context values when they load or after a save+reload
   useEffect(() => {
     setSelectedCurrency(currency);
@@ -513,6 +541,9 @@ export default function ParentSettingsScreen() {
         // Force immediate logout and navigation
         setTimeout(async () => {
           try {
+            // Reset data cache to prevent cross-user data leakage
+            const dataCache = require('@/utils/dataCacheContext').useDataCache();
+            dataCache.resetDataCache();
             // Clear all authentication data
             await deleteAuthToken();
             await AsyncStorage.removeItem('user');
@@ -569,6 +600,9 @@ export default function ParentSettingsScreen() {
         // Force immediate logout and navigation
         setTimeout(async () => {
           try {
+            // Reset data cache to prevent cross-user data leakage
+            const dataCache = require('@/utils/dataCacheContext').useDataCache();
+            dataCache.resetDataCache();
             // Clear all authentication data
             await deleteAuthToken();
             await AsyncStorage.removeItem('user');

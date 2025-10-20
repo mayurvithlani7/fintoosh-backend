@@ -5,12 +5,12 @@ import { API_URL } from '@/utils/config';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from "@react-native-picker/picker";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   AppState,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -19,6 +19,13 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+
+let DateTimePicker: any = null;
+if (Platform.OS !== "web") {
+  try {
+    DateTimePicker = require("@react-native-community/datetimepicker").default;
+  } catch (e) {}
+}
 
 // Dynamic styles that use theme colors
 const createStyles = (themeColors: any) => StyleSheet.create({
@@ -145,7 +152,22 @@ const typeLabels: { [key: string]: string } = {
 };
 
 function TypeSelect({ value, onChange, themeColors }: { value: string; onChange: (val: string) => void; themeColors: any }) {
-  // Dropdown for web, otherwise Picker for native
+  const [dropdownVisible, setDropdownVisible] = React.useState(false);
+
+  const typeOptions = [
+    { label: 'All', value: '' },
+    { label: 'Task', value: 'chore-completion' },
+    { label: 'Goal', value: 'goal-completion' },
+    { label: 'Reward', value: 'reward-purchase' },
+    { label: 'Move', value: 'points-move' },
+    { label: 'Points Request', value: 'points-request' },
+    { label: 'Adjustment', value: 'parent-points-adjustment' },
+    { label: 'Interest Payout', value: 'interest-payout' },
+    { label: 'Others', value: 'others' }
+  ];
+
+  const selectedLabel = typeOptions.find(opt => opt.value === value)?.label || 'All';
+
   if (Platform.OS === "web") {
     return (
       <select
@@ -176,48 +198,181 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
     );
   }
   return (
-    <View style={{
-      backgroundColor: themeColors.surface,
-      borderRadius: 7,
-      borderWidth: 1,
-      borderColor: themeColors.border,
-      marginRight: 5,
-      paddingVertical: 2,
-      minHeight: 35
-    }}>
-      <Picker
-        selectedValue={value}
-        onValueChange={onChange}
-        style={{height: 33, fontSize: 15, width: "100%", color: themeColors.text}}
-        dropdownIconColor={themeColors.primary}
-        itemStyle={{ color: themeColors.text }}
+    <View style={{ position: 'relative', marginRight: 5 }}>
+      <TouchableOpacity
+        style={{
+          height: 40,
+          backgroundColor: themeColors.surface,
+          borderRadius: 7,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingHorizontal: 12,
+          flexDirection: 'row',
+          minWidth: 120
+        }}
+        onPress={() => setDropdownVisible(true)}
       >
-        <Picker.Item label="All" value="" />
-        <Picker.Item label="Task" value="chore-completion" />
-        <Picker.Item label="Goal" value="goal-completion" />
-        <Picker.Item label="Reward" value="reward-purchase" />
-        <Picker.Item label="Move" value="points-move" />
-        <Picker.Item label="Points Request" value="points-request" />
-        <Picker.Item label="Adjustment" value="parent-points-adjustment" />
-        <Picker.Item label="Interest Payout" value="interest-payout" />
-        <Picker.Item label="Others" value="others" />
-      </Picker>
+        <Text style={{
+          fontSize: 15,
+          color: themeColors.text,
+          flex: 1
+        }}>
+          {selectedLabel}
+        </Text>
+        <Text style={{
+          fontSize: 16,
+          color: themeColors.primary,
+          fontWeight: 'bold'
+        }}>
+          ▼
+        </Text>
+      </TouchableOpacity>
+
+      <Modal
+        visible={dropdownVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDropdownVisible(false)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+          activeOpacity={1}
+          onPress={() => setDropdownVisible(false)}
+        >
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.surface,
+              borderRadius: 7,
+              borderWidth: 1,
+              borderColor: themeColors.border,
+              minWidth: 200,
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              maxWidth: 300
+            }}
+            activeOpacity={1}
+          >
+            {typeOptions.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={{
+                  padding: 16,
+                  borderBottomWidth: option.value === 'others' ? 0 : 1,
+                  borderBottomColor: themeColors.border
+                }}
+                onPress={() => {
+                  onChange(option.value);
+                  setDropdownVisible(false);
+                }}
+              >
+                <Text style={{
+                  fontSize: 16,
+                  color: themeColors.text
+                }}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
-  )
+  );
 }
 
-function DateInput({ value, onChange, placeholder }: {
-  value: string, onChange: (val: string) => void, placeholder?: string
+function DateInput({ value, onChange, placeholder, themeColors }: {
+  value: string, onChange: (val: string) => void, placeholder?: string, themeColors: any
 }) {
+  const [show, setShow] = useState(false);
+
+  if (Platform.OS === "web") {
+    return (
+      <input
+        type="date"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          backgroundColor: themeColors.surface,
+          borderRadius: 7,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          fontSize: 15,
+          padding: 8,
+          minHeight: 35,
+          minWidth: 110,
+          width: "100%",
+          color: themeColors.text,
+        }}
+        placeholder={placeholder}
+      />
+    );
+  }
+  // Native mobile: use button+modal for readability/tap, plus DateTimePicker popup
   return (
-    <TextInput
-      style={[createStyles({}).filterInput, { minWidth: 100 }]}
-      placeholder={placeholder || "YYYY-MM-DD"}
-      value={value}
-      onChangeText={onChange}
-      keyboardType="numeric"
-    />
-  )
+    <View style={{ width: "100%" }}>
+      <TouchableOpacity
+        style={{
+          backgroundColor: themeColors.surface,
+          borderRadius: 7,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          justifyContent: "space-between",
+          alignItems: "center",
+          height: 40,
+          paddingHorizontal: 10,
+          marginBottom: 4,
+          marginTop: 2,
+          flexDirection: "row"
+        }}
+        onPress={() => setShow(true)}
+        activeOpacity={0.7}
+      >
+        <Text
+          style={{
+            fontSize: 15,
+            color: value ? themeColors.text : themeColors.textSecondary,
+            flex: 1
+          }}
+        >
+          {value ? value : (placeholder || "Select Date")}
+        </Text>
+        <Text style={{
+          fontSize: 16,
+          color: themeColors.primary,
+          fontWeight: 'bold'
+        }}>
+          📅
+        </Text>
+      </TouchableOpacity>
+      {show && DateTimePicker && (
+        <DateTimePicker
+          value={value ? new Date(value) : new Date()}
+          mode="date"
+          display="default"
+          onChange={(_event: any, d?: Date) => {
+            setShow(false);
+            if (d) {
+              // Format as YYYY-MM-DD
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, "0");
+              const day = String(d.getDate()).padStart(2, "0");
+              onChange(`${year}-${month}-${day}`);
+            }
+          }}
+        />
+      )}
+    </View>
+  );
 }
 
 export default function TransactionHistoryScreen() {
@@ -389,6 +544,7 @@ export default function TransactionHistoryScreen() {
               value={startDate}
               onChange={setStartDate}
               placeholder="YYYY-MM-DD"
+              themeColors={themeColors}
             />
           </View>
           <View style={{ flex: 1, minWidth: 120 }}>
@@ -397,6 +553,7 @@ export default function TransactionHistoryScreen() {
               value={endDate}
               onChange={setEndDate}
               placeholder="YYYY-MM-DD"
+              themeColors={themeColors}
             />
           </View>
           {(startDate || endDate) && (

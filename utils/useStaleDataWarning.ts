@@ -1,55 +1,76 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from "react";
+import { Platform } from 'react-native';
 
 /**
  * Shared stale data warning (reset warning everywhere when data refetched).
  * - Returns [showStaleWarning, lastRefreshed, markRefreshed]
- * - markRefreshed updates localStorage and notifies all tabs/screens.
- * - showStaleWarning becomes true after 60s (default) from last refresh, or window blur (web).
+ * - markRefreshed updates AsyncStorage and clears warnings.
+ * - showStaleWarning becomes true after timeout from last refresh.
  */
 const STORAGE_KEY = "staleDataLastRefreshedTs";
 
-function getSharedLastRefreshed(defaultValue = Date.now()): number {
-  if (typeof window !== "undefined" && window.localStorage) {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const ts = Number(stored);
-      if (!isNaN(ts) && ts > 0) return ts;
+async function getSharedLastRefreshed(defaultValue = Date.now()): Promise<number> {
+  try {
+    if (Platform.OS === 'web' && typeof window !== "undefined" && window.localStorage) {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const ts = Number(stored);
+        if (!isNaN(ts) && ts > 0) return ts;
+      }
+    } else {
+      // React Native: use AsyncStorage
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const ts = Number(stored);
+        if (!isNaN(ts) && ts > 0) return ts;
+      }
     }
+  } catch (error) {
+    console.warn('Error reading stale data timestamp:', error);
   }
   return defaultValue;
 }
 
-function setSharedLastRefreshed(ts: number) {
-  if (typeof window !== "undefined" && window.localStorage) {
-    localStorage.setItem(STORAGE_KEY, ts.toString());
-    // For single-tab, also dispatch an event so hook updates immediately
-    window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+async function setSharedLastRefreshed(ts: number): Promise<void> {
+  try {
+    if (Platform.OS === 'web' && typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.setItem(STORAGE_KEY, ts.toString());
+      // For single-tab, dispatch storage event
+      if (window.dispatchEvent) {
+        window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+      }
+    } else {
+      // React Native: use AsyncStorage
+      await AsyncStorage.setItem(STORAGE_KEY, ts.toString());
+    }
+  } catch (error) {
+    console.warn('Error saving stale data timestamp:', error);
   }
 }
 
 export function useStaleDataWarning(staleTimeoutMs = 60000): [boolean, number, () => void] {
-  const [lastRefreshed, setLastRefreshed] = useState(() => getSharedLastRefreshed());
+  const [lastRefreshed, setLastRefreshed] = useState<number>(Date.now());
   const [showStaleWarning, setShowStaleWarning] = useState(false);
 
-  // Mark as stale on window blur (web)
+  // Initialize lastRefreshed from storage
   useEffect(() => {
-    const onBlur = () => setShowStaleWarning(true);
-    if (typeof window !== "undefined" && window.addEventListener) {
-      window.addEventListener("blur", onBlur);
-      return () => window.removeEventListener("blur", onBlur);
-    }
+    getSharedLastRefreshed().then(ts => {
+      setLastRefreshed(ts);
+    });
   }, []);
 
-  // Listen for storage changes to update warning everywhere
+  // Listen for storage changes to update warning (web only)
   useEffect(() => {
-    function storageListener(e: StorageEvent) {
-      if (e.key === STORAGE_KEY) {
-        const ts = getSharedLastRefreshed();
-        setLastRefreshed(ts);
-        setShowStaleWarning(false); // Hide warning across all tabs/screens
+    if (Platform.OS === 'web' && typeof window !== "undefined" && window.addEventListener) {
+      function storageListener(e: StorageEvent) {
+        if (e.key === STORAGE_KEY) {
+          getSharedLastRefreshed().then(ts => {
+            setLastRefreshed(ts);
+            setShowStaleWarning(false);
+          });
+        }
       }
-    }
-    if (typeof window !== "undefined" && window.addEventListener) {
       window.addEventListener("storage", storageListener);
       return () => window.removeEventListener("storage", storageListener);
     }
@@ -69,7 +90,7 @@ export function useStaleDataWarning(staleTimeoutMs = 60000): [boolean, number, (
     return () => clearInterval(interval);
   }, [lastRefreshed, staleTimeoutMs]);
 
-  // Call this after a fresh API fetch - updates shared storage and clears warnings everywhere
+  // Call this after a fresh API fetch - updates shared storage and clears warnings
   const markRefreshed = () => {
     const now = Date.now();
     setLastRefreshed(now);

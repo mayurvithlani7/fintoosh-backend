@@ -72,6 +72,7 @@ const features = [
 export default function LoginScreen() {
   console.log('[LOGIN] Component rendering started');
   const { themeColors } = useTheme();
+  const dataCache = require('@/utils/dataCacheContext').useDataCache();
   const [userType, setUserType] = useState<'parent' | 'child'>('parent');
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('email');
   const [isDeactivatedAccount, setIsDeactivatedAccount] = useState(false);
@@ -111,6 +112,8 @@ export default function LoginScreen() {
 
     let storageErrorMessage = "";
     try {
+      // Reset data cache to prevent cross-user data leakage
+      dataCache.resetDataCache();
       const { clearAllAuthData, getAuthToken, getUserData } = await import('@/utils/secureStorage');
       await clearAllAuthData();
       console.log('Login response token length:', data.token.length, 'user object size:', JSON.stringify(data.user).length);

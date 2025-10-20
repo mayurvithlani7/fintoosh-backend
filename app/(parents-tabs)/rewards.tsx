@@ -61,8 +61,35 @@ export default function ParentsRewardsScreen() {
     return new Date(); // fallback: now
   }
 
+  // Secure: force clear and reload of children and rewards when parent session changes
   useEffect(() => {
-    loadChildren();
+    async function checkUser() {
+      const token = await getAuthToken();
+      const storedUser = await AsyncStorage.getItem('user');
+      if (!token || !storedUser) {
+        setChildren([]);
+        setSelectedChildId('');
+        setRewards([]);
+        return;
+      }
+      // Reset all local state before reload
+      setChildren([]);
+      setSelectedChildId('');
+      setRewards([]);
+      await loadChildren();
+    }
+    checkUser();
+
+    // Optionally monitor "storage" events for cross-tab updates (web)
+    if (typeof window !== "undefined" && window.addEventListener) {
+      const handleStorage = (e: any) => {
+        if (e.key === "user" || e.key === "accessToken" || e.key === "token") {
+          checkUser();
+        }
+      };
+      window.addEventListener("storage", handleStorage);
+      return () => window.removeEventListener("storage", handleStorage);
+    }
   }, []);
 
   // Auto-fetch rewards whenever the screen is focused (parent tab switch), for real-time updates after kid claims

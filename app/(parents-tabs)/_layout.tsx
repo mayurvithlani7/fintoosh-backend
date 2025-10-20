@@ -7,7 +7,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNavigation } from '@/utils/navigationContext';
-import { useTheme } from '@/utils/themeContext';
+import { ThemeProvider, useTheme } from '@/utils/themeContext';
 
 function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
   isVisible: boolean;
@@ -107,10 +107,11 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
   );
 }
 
-export default function ParentsTabLayout() {
+function ParentsTabLayoutInner() {
   const colorScheme = useColorScheme();
   const { themeColors } = useTheme();
   const { activeModal, setActiveModal } = useNavigation();
+  const dataCache = require('@/utils/dataCacheContext').useDataCache();
   const dynamicStyles = StyleSheet.create({
     overlay: {
       flex: 1,
@@ -258,6 +259,7 @@ export default function ParentsTabLayout() {
                 }}
                 onPress={async () => {
                   // Logout: clear all tokens, user data, and user-specific persistent state, then redirect
+                  dataCache.resetDataCache();
                   const { clearSensitiveAppData } = await import('@/utils/secureStorage');
                   await clearSensitiveAppData();
                   router.replace('/login');
@@ -364,3 +366,11 @@ const styles = StyleSheet.create({
   },
 
 });
+
+export default function ParentsTabLayout() {
+  return (
+    <ThemeProvider>
+      <ParentsTabLayoutInner />
+    </ThemeProvider>
+  );
+}
