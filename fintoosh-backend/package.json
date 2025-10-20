@@ -57,8 +57,10 @@
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
     "twilio": "^5.10.3",
+    "validator": "^13.12.0",
     "whatwg-url": "^15.1.0",
-    "winston": "^3.18.3"
+    "winston": "^3.18.3",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
