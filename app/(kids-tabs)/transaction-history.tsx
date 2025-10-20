@@ -10,9 +10,9 @@ import {
   ActivityIndicator,
   Alert,
   AppState,
+  FlatList,
   Modal,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -393,7 +393,7 @@ export default function TransactionHistoryScreen() {
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
-  const loadTransactions = async (isBackground = false) => {
+  const loadTransactions = async (isBackground = false, page = 1) => {
     if (!isBackground) setLoading(true);
     try {
       const token = await getAuthToken();
@@ -401,16 +401,28 @@ export default function TransactionHistoryScreen() {
       if (!token || !storedUser) throw new Error("Not authenticated.");
       const user = JSON.parse(storedUser);
       let userId = user.id || user._id;
-      let txs: any[] = [];
+
       if (fetchTransactions) {
-        txs = await fetchTransactions(userId, token);
+        const result = await fetchTransactions(userId, token, page);
+        if (page === 1) {
+          setTransactions(result.transactions || []);
+        } else {
+          setTransactions(prev => [...prev, ...(result.transactions || [])]);
+        }
+        setLastUpdated(new Date());
       } else {
         // fallback direct fetch
-        const res = await fetch(`${API_URL}/transactions/${userId}`, {
+        const res = await fetch(`${API_URL}/transactions/${userId}?page=${page}&limit=50`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
-          txs = await res.json();
+          const result = await res.json();
+          if (page === 1) {
+            setTransactions(result.transactions || []);
+          } else {
+            setTransactions(prev => [...prev, ...(result.transactions || [])]);
+          }
+          setLastUpdated(new Date());
         } else if (res.status === 429) {
           // Rate limited - don't update transactions, just log
           console.warn('Transaction history refresh rate limited, skipping update');
@@ -423,8 +435,6 @@ export default function TransactionHistoryScreen() {
           throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
       }
-      setTransactions(txs);
-      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error loading transactions:', error);
       // Only clear transactions on actual errors, not rate limiting
@@ -498,7 +508,7 @@ export default function TransactionHistoryScreen() {
   });
 
   return (
-    <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back" to="/(kids-tabs)" />
         <TouchableOpacity
@@ -584,102 +594,103 @@ export default function TransactionHistoryScreen() {
         {loading ? (
           <ActivityIndicator />
         ) : (
-          <View style={styles.list}>
-            {filtered.length === 0 ? (
-              <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>No transactions found.</Text>
-            ) : (
-              (() => {
-                const sortedFiltered = filtered.sort((a, b) => {
-                  // @ts-ignore - TypeScript strict checking on Date constructor
-                  const dateA = new Date(a.date || a.createdAt || "1970-01-01");
-                  // @ts-ignore - TypeScript strict checking on Date constructor
-                  const dateB = new Date(b.date || b.createdAt || "1970-01-01");
-                  return dateB.getTime() - dateA.getTime();
-                });
-                const visibleTransactions = sortedFiltered.slice(0, visibleCount);
-                return (
-                  <View>
-                    {visibleTransactions.map((tx, idx) => (
-                      <View
-                        key={tx._id || idx}
-                        style={[
-                          styles.txRow,
-                          {
-                            borderLeftColor:
-                              tx.amount > 0 ? themeColors.success :
-                              tx.amount < 0 ? themeColors.error : themeColors.border
-                          }
-                        ]}
-                      >
-                        {tx.type === "interest-payout" ? (
-                          <>
-                            <Text
-                              style={[
-                                styles.txAmount,
-                                { color: themeColors.success }
-                              ]}
-                            >
-                              +{tx.amount}
-                            </Text>
-                            <Text style={styles.txDesc}>
-                              Interest Payout
-                            </Text>
-                            <Text style={[styles.txJar, { color: themeColors.success }]}>
-                              Savings Pot
-                            </Text>
-                            <Text style={styles.txDate}>
-                              {(tx.date || tx.createdAt || "").slice(0, 10)}
-                            </Text>
-                          </>
-                        ) : (
-                          <>
-                            <Text
-                              style={[
-                                styles.txAmount,
-                                { color: tx.amount > 0 ? themeColors.success : tx.amount < 0 ? themeColors.error : themeColors.text }
-                              ]}
-                            >
-                              {tx.amount > 0 ? "+" : tx.amount < 0 ? "" : ""}
-                              {tx.amount}
-                            </Text>
-                            <Text style={styles.txDesc}>
-                              {(tx.description || typeLabels[tx.type] || tx.type)
-                                .replace(/current/g, 'Pocket Money')
-                                .replace(/save/g, 'Savings Pot')
-                                .replace(/spend/g, 'Spending Pot')
-                                .replace(/donate/g, 'Help Others Pot')
-                                .replace(/invest/g, 'Grow Money Pot')
-                                .replace(/\sjar/g, '')}
-                            </Text>
-                            <Text style={styles.txJar}>
-                              {tx.fromJar
-                                ? `→ ${tx.fromJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot')}`
-                                : tx.type === "points-move" && tx.toJar
-                                ? `→ ${tx.toJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot')}`
-                                : ""}
-                            </Text>
-                            <Text style={styles.txDate}>
-                              {(tx.date || tx.createdAt || "").slice(0, 10)}
-                            </Text>
-                          </>
-                        )}
-                      </View>
-                    ))}
-                    {visibleCount < sortedFiltered.length && (
-                      <TouchableOpacity
-                        style={[styles.refreshBtn, { alignSelf: "center", marginTop: 10, backgroundColor: themeColors.surface, borderColor: themeColors.border, borderWidth: 1 }]}
-                        onPress={() => setVisibleCount(prev => prev + 20)}
-                      >
-                        <Text style={{ color: themeColors.primary, fontWeight: "bold" }}>
-                          Load More ({sortedFiltered.length - visibleCount} remaining)
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              })()
+          <FlatList
+            data={filtered.sort((a, b) => {
+              const dateA = new Date(a.date || a.createdAt || "1970-01-01");
+              const dateB = new Date(b.date || b.createdAt || "1970-01-01");
+              return dateB.getTime() - dateA.getTime();
+            })}
+            keyExtractor={(item) => item._id || Math.random().toString()}
+            initialNumToRender={10}
+            maxToRenderPerBatch={5}
+            windowSize={10}
+            getItemLayout={(data, index) => ({
+              length: 80,
+              offset: 80 * index,
+              index
+            })}
+            renderItem={({ item: tx }) => (
+              <View
+                style={[
+                  styles.txRow,
+                  {
+                    borderLeftColor:
+                      tx.amount > 0 ? themeColors.success :
+                      tx.amount < 0 ? themeColors.error : themeColors.border
+                  }
+                ]}
+              >
+                {tx.type === "interest-payout" ? (
+                  <>
+                    <Text
+                      style={[
+                        styles.txAmount,
+                        { color: themeColors.success }
+                      ]}
+                    >
+                      +{tx.amount}
+                    </Text>
+                    <Text style={styles.txDesc}>
+                      Interest Payout
+                    </Text>
+                    <Text style={[styles.txJar, { color: themeColors.success }]}>
+                      Savings Pot
+                    </Text>
+                    <Text style={styles.txDate}>
+                      {(tx.date || tx.createdAt || "").slice(0, 10)}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text
+                      style={[
+                        styles.txAmount,
+                        { color: tx.amount > 0 ? themeColors.success : tx.amount < 0 ? themeColors.error : themeColors.text }
+                      ]}
+                    >
+                      {tx.amount > 0 ? "+" : tx.amount < 0 ? "" : ""}
+                      {tx.amount}
+                    </Text>
+                    <Text style={styles.txDesc}>
+                      {(tx.description || typeLabels[tx.type] || tx.type)
+                        .replace(/current/g, 'Pocket Money')
+                        .replace(/save/g, 'Savings Pot')
+                        .replace(/spend/g, 'Spending Pot')
+                        .replace(/donate/g, 'Help Others Pot')
+                        .replace(/invest/g, 'Grow Money Pot')
+                        .replace(/\sjar/g, '')}
+                    </Text>
+                    <Text style={styles.txJar}>
+                      {tx.fromJar
+                        ? `→ ${tx.fromJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot')}`
+                        : tx.type === "points-move" && tx.toJar
+                        ? `→ ${tx.toJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot')}`
+                        : ""}
+                    </Text>
+                    <Text style={styles.txDate}>
+                      {(tx.date || tx.createdAt || "").slice(0, 10)}
+                    </Text>
+                  </>
+                )}
+              </View>
             )}
-          </View>
+            ListEmptyComponent={
+              <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>
+                No transactions found.
+              </Text>
+            }
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              setIsRefreshing(true);
+              loadTransactions(false, 1).finally(() => setIsRefreshing(false));
+            }}
+            onEndReached={() => {
+              // Load more data when reaching the end
+              const currentPage = Math.ceil(transactions.length / 50) + 1;
+              loadTransactions(false, currentPage);
+            }}
+            onEndReachedThreshold={0.5}
+          />
         )}
       </View>
 
@@ -780,6 +791,6 @@ export default function TransactionHistoryScreen() {
           }
         ]}
       />
-    </ScrollView>
+    </View>
   );
 }

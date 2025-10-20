@@ -268,10 +268,11 @@ export async function createTransaction(transactionData, token = null) {
   }
 }
 
-export async function fetchTransactions(userId, token = null) {
+export async function fetchTransactions(userId, token = null, page = 1, limit = 50) {
   try {
     const headers = token ? { "Authorization": "Bearer " + token } : {};
-    const res = await fetch(`${API_URL}/transactions/${userId}`, { headers });
+    const url = `${API_URL}/transactions/${userId}?page=${page}&limit=${limit}`;
+    const res = await fetch(url, { headers });
     if (!res.ok) {
       if (res.status >= 400 && res.status < 600 && globalShowError) {
         globalShowError("Request failed. Please try again.");
@@ -282,7 +283,7 @@ export async function fetchTransactions(userId, token = null) {
   } catch (error) {
     Sentry.captureException(error, {
       tags: { feature: 'transactions', action: 'fetch' },
-      extra: { userId, hasToken: !!token }
+      extra: { userId, page, limit, hasToken: !!token }
     });
     throw error;
   }

@@ -7,9 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Modal,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -411,8 +411,10 @@ export default function ParentTransactionHistoryScreen() {
   const [endDate, setEndDate] = useState("");
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
-  const loadTransactions = async () => {
-    setLoading(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadTransactions = async (page = 1, append = false) => {
+    if (!append) setLoading(true);
     try {
       const token = await getAuthToken();
       const storedUser = await AsyncStorage.getItem('user');
@@ -427,16 +429,18 @@ export default function ParentTransactionHistoryScreen() {
       });
       setChildMap(childIdMap);
 
-      let allTxs: any[] = [];
+      let allTxs: any[] = append ? [...transactions] : [];
       for (const child of children) {
-        const txs = await fetchTransactions(child.id, token);
-        allTxs = allTxs.concat((txs || []).map((t: any) => ({ ...t, childName: child.name || child.id })));
+        const txs = await fetchTransactions(child.id, token, page);
+        if (txs && txs.transactions) {
+          allTxs = allTxs.concat((txs.transactions || []).map((t: any) => ({ ...t, childName: child.name || child.id })));
+        }
       }
       setTransactions(allTxs);
     } catch {
-      setTransactions([]);
+      if (!append) setTransactions([]);
     }
-    setLoading(false);
+    if (!append) setLoading(false);
   };
 
   useEffect(() => {
@@ -463,7 +467,7 @@ export default function ParentTransactionHistoryScreen() {
   });
 
   return (
-    <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}>
+    <View style={styles.container}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 560, marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
@@ -540,91 +544,108 @@ export default function ParentTransactionHistoryScreen() {
         {loading ? (
           <ActivityIndicator />
         ) : (
-          <View style={styles.list}>
-            {filtered.length === 0 ? (
-              <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>No points activity found.</Text>
-            ) : (
-              filtered
-                .sort((a, b) => {
-                  // @ts-ignore
-                  const dateA = new Date(a.date || a.createdAt || "1970-01-01");
-                  // @ts-ignore
-                  const dateB = new Date(b.date || b.createdAt || "1970-01-01");
-                  return dateB.getTime() - dateA.getTime();
-                })
-                .map((tx, idx) => (
-                  <View
-                    key={tx._id || idx}
-                    style={[
-                      styles.txRow,
-                      {
-                        backgroundColor: themeColors.surface,
-                        borderLeftColor:
-                          tx.amount > 0 ? themeColors.success :
-                            tx.amount < 0 ? themeColors.error : themeColors.border,
-                      }
-                    ]}
-                  >
-                    <Text style={[styles.txChild, { color: themeColors.secondary }]}>{tx.childName || childMap[tx.user] || ""}</Text>
-                    {tx.type === "interest-payout" ? (
-                      <>
-                        <Text style={[styles.txAmount, { color: themeColors.success }]}>
-                          +{tx.amount}
-                        </Text>
-                        <Text style={[styles.txDesc, { color: themeColors.text }]} numberOfLines={2} ellipsizeMode="tail">
-                          Interest Payout
-                        </Text>
-                        <Text style={[styles.txJar, { color: themeColors.success }]}>
-                          Savings Pot
-                        </Text>
-                        <Text style={[styles.txDate, { color: themeColors.textSecondary }]}>
-                          {(tx.date || tx.createdAt || "").slice(0, 10)}
-                        </Text>
-                      </>
-                    ) : (
-                      <>
-                        <Text
-                          style={[
-                            styles.txAmount,
-                            {
-                              color:
-                                tx.amount > 0 ? themeColors.primary :
-                                  tx.amount < 0 ? themeColors.error : themeColors.textSecondary
-                            }
-                          ]}
-                        >
-                          {tx.amount > 0 ? "+" : tx.amount < 0 ? "" : ""}
-                          {tx.amount}
-                        </Text>
-                        <Text
-                          style={[styles.txDesc, { color: themeColors.text }]}
-                          numberOfLines={2}
-                          ellipsizeMode="tail"
-                        >
-                          {(tx.description || typeLabels[tx.type] || tx.type)
-                            .replace(/current/g, 'Pocket Money')
-                            .replace(/save/g, 'Savings Pot')
-                            .replace(/spend/g, 'Spending Pot')
-                            .replace(/donate/g, 'Help Others Pot')
-                            .replace(/invest/g, 'Grow Money Pot')
-                            .replace(/\sjar/g, '')}
-                        </Text>
-                        <Text style={[styles.txJar, { color: themeColors.secondary }]}>
-                          {tx.fromJar
-                            ? `→ ${jarNameMap[tx.fromJar] || tx.fromJar}`
-                            : tx.type === "points-move" && tx.toJar
-                              ? `→ ${jarNameMap[tx.toJar] || tx.toJar}`
-                              : ""}
-                        </Text>
-                        <Text style={[styles.txDate, { color: themeColors.textSecondary }]}>
-                          {(tx.date || tx.createdAt || "").slice(0, 10)}
-                        </Text>
-                      </>
-                    )}
-                  </View>
-                ))
+          <FlatList
+            data={filtered.sort((a, b) => {
+              const dateA = new Date(a.date || a.createdAt || "1970-01-01");
+              const dateB = new Date(b.date || b.createdAt || "1970-01-01");
+              return dateB.getTime() - dateA.getTime();
+            })}
+            keyExtractor={(item) => item._id || Math.random().toString()}
+            initialNumToRender={10}
+            maxToRenderPerBatch={5}
+            windowSize={10}
+            getItemLayout={(data, index) => ({
+              length: 80,
+              offset: 80 * index,
+              index
+            })}
+            renderItem={({ item: tx }) => (
+              <View
+                style={[
+                  styles.txRow,
+                  {
+                    backgroundColor: themeColors.surface,
+                    borderLeftColor:
+                      tx.amount > 0 ? themeColors.success :
+                        tx.amount < 0 ? themeColors.error : themeColors.border,
+                  }
+                ]}
+              >
+                <Text style={[styles.txChild, { color: themeColors.secondary }]}>{tx.childName || childMap[tx.user] || ""}</Text>
+                {tx.type === "interest-payout" ? (
+                  <>
+                    <Text style={[styles.txAmount, { color: themeColors.success }]}>
+                      +{tx.amount}
+                    </Text>
+                    <Text style={[styles.txDesc, { color: themeColors.text }]} numberOfLines={2} ellipsizeMode="tail">
+                      Interest Payout
+                    </Text>
+                    <Text style={[styles.txJar, { color: themeColors.success }]}>
+                      Savings Pot
+                    </Text>
+                    <Text style={[styles.txDate, { color: themeColors.textSecondary }]}>
+                      {(tx.date || tx.createdAt || "").slice(0, 10)}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text
+                      style={[
+                        styles.txAmount,
+                        {
+                          color:
+                            tx.amount > 0 ? themeColors.primary :
+                              tx.amount < 0 ? themeColors.error : themeColors.textSecondary
+                        }
+                      ]}
+                    >
+                      {tx.amount > 0 ? "+" : tx.amount < 0 ? "" : ""}
+                      {tx.amount}
+                    </Text>
+                    <Text
+                      style={[styles.txDesc, { color: themeColors.text }]}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {(tx.description || typeLabels[tx.type] || tx.type)
+                        .replace(/current/g, 'Pocket Money')
+                        .replace(/save/g, 'Savings Pot')
+                        .replace(/spend/g, 'Spending Pot')
+                        .replace(/donate/g, 'Help Others Pot')
+                        .replace(/invest/g, 'Grow Money Pot')
+                        .replace(/\sjar/g, '')}
+                    </Text>
+                    <Text style={[styles.txJar, { color: themeColors.secondary }]}>
+                      {tx.fromJar
+                        ? `→ ${jarNameMap[tx.fromJar] || tx.fromJar}`
+                        : tx.type === "points-move" && tx.toJar
+                          ? `→ ${jarNameMap[tx.toJar] || tx.toJar}`
+                          : ""}
+                    </Text>
+                    <Text style={[styles.txDate, { color: themeColors.textSecondary }]}>
+                      {(tx.date || tx.createdAt || "").slice(0, 10)}
+                    </Text>
+                  </>
+                )}
+              </View>
             )}
-          </View>
+            ListEmptyComponent={
+              <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>
+                No points activity found.
+              </Text>
+            }
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              setIsRefreshing(true);
+              loadTransactions(1, false).finally(() => setIsRefreshing(false));
+            }}
+            onEndReached={() => {
+              // Load more data when reaching the end
+              const currentPage = Math.ceil(transactions.length / 50) + 1;
+              loadTransactions(currentPage, true);
+            }}
+            onEndReachedThreshold={0.5}
+          />
         )}
       </View>
 
@@ -814,6 +835,6 @@ export default function ParentTransactionHistoryScreen() {
           },
         ]}
       />
-    </ScrollView>
+    </View>
   );
 }
