@@ -10,9 +10,47 @@ const PORT = process.env.PORT || 5001;
 
 // Rate limiting middleware
 
-// General rate limiting: 100 requests per IP per 5 minutes for all general public routes
+// Role-based rate limiting for authenticated users
+const createRoleBasedLimiter = (role) => {
+  const limits = {
+    parent: { windowMs: 15 * 60 * 1000, max: 100 }, // 100 requests per 15 minutes
+    child: { windowMs: 15 * 60 * 1000, max: 50 },   // 50 requests per 15 minutes
+    default: { windowMs: 15 * 60 * 1000, max: 30 }  // 30 requests per 15 minutes for anonymous
+  };
+
+  const limit = limits[role] || limits.default;
+
+  return rateLimit({
+    windowMs: limit.windowMs,
+    max: limit.max,
+    keyGenerator: (req) => `${req.user?.role || 'anonymous'}_${req.ip}`,
+    handler: (req, res) => {
+      const role = req.user?.role || 'anonymous';
+      const resetTime = new Date(Date.now() + limit.windowMs);
+      logger.warn('Rate limit exceeded', {
+        role,
+        ip: req.ip,
+        userId: req.user?.id,
+        endpoint: req.originalUrl,
+        method: req.method,
+        resetTime: resetTime.toISOString()
+      });
+      res.status(429).json({
+        message: 'Too many requests, please slow down',
+        retryAfter: Math.ceil(limit.windowMs / 1000),
+        role: role,
+        limit: limit.max,
+        windowMs: limit.windowMs
+      });
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+};
+
+// General IP-based rate limiting for unauthenticated routes
 const generalLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
+  windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
@@ -24,6 +62,16 @@ const sensitiveLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // Limit each IP to 10 requests per windowMs for sensitive routes
   message: 'Too many requests to sensitive endpoints, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Throttling for expensive operations (lower rate limits)
+const expensiveOperationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Only 20 expensive operations per 15 minutes
+  keyGenerator: (req) => `${req.user?.role || 'anonymous'}_${req.ip}`,
+  message: 'Too many expensive operations, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
 });

@@ -4,6 +4,15 @@ const User = require('../models/User');
 const OTPService = require('../utils/otpService');
 const { auth } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
+const {
+  sanitizeInput,
+  validateUserInput,
+  validateFinancialData,
+  validatePIN,
+  validateMobileNumber,
+  validatePassword,
+  validateMessage
+} = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -23,7 +32,7 @@ const loginLimiter = rateLimit({
 });
 
 // Register new user
-router.post('/register', async (req, res) => {
+router.post('/register', sanitizeInput, validateUserInput, validateMobileNumber, validatePassword, async (req, res) => {
   try {
     const { name, email, password, role = 'parent', id, parentId: inputParentId, parentMobile, mobileNumber, referralCode } = req.body;
     console.log('Registration attempt:', { name, email, role, mobileNumber, parentMobile, parentId: inputParentId });
@@ -122,13 +131,7 @@ router.post('/register', async (req, res) => {
 /**
  * Login user with account-specific brute force protection
  */
-router.post('/login', loginLimiter, async (req, res) => {
-  const requestTimestamp = new Date().toISOString();
-  console.log(`=== [${requestTimestamp}] INCOMING LOGIN REQUEST ===`);
-  console.log('Method:', req.method, 'Path:', req.originalUrl, 'IP:', req.ip);
-  console.log('Headers:', req.headers);
-  console.log('Raw body:', JSON.stringify(req.body));
-
+router.post('/login', loginLimiter, sanitizeInput, async (req, res) => {
   try {
     const { email, password } = req.body;
     const MAX_ATTEMPTS = 5;
@@ -211,36 +214,13 @@ router.post('/login', loginLimiter, async (req, res) => {
     console.log('Token generated:', !!token);
     console.log('Sending response...');
 
-    const loginResponse = {
+    res.json({
       user: userResponse,
       token,
       message: 'Login successful'
-    }
-
-    // Diagnostic: Log keys, sizes of major user fields
-    const userJson = JSON.stringify(userResponse);
-    console.log(`[DEBUG] userResponse JSON length: ${userJson.length}`);
-    console.log(`[DEBUG] userResponse keys:`, Object.keys(userResponse));
-    if (userResponse.goals) console.log(`[DEBUG] goals count:`, Array.isArray(userResponse.goals) ? userResponse.goals.length : typeof userResponse.goals);
-    if (userResponse.chores) console.log(`[DEBUG] chores count:`, Array.isArray(userResponse.chores) ? userResponse.chores.length : typeof userResponse.chores);
-    if (userResponse.rewards) console.log(`[DEBUG] rewards count:`, Array.isArray(userResponse.rewards) ? userResponse.rewards.length : typeof userResponse.rewards);
-    if (userResponse.transactions) console.log(`[DEBUG] transactions count:`, Array.isArray(userResponse.transactions) ? userResponse.transactions.length : typeof userResponse.transactions);
-
-    console.log(`[${new Date().toISOString()}] Sending login success response. Status: 200`);
-    console.log('Response headers that will be sent:', res.getHeaders());
-    console.log('Response body:', userJson.slice(0, 200)); // limit log length
-
-    res.json(loginResponse);
-  } catch (error) {
-    // Error catcher: log ALL request inputs for debugging failed cases
-    console.error(`[${new Date().toISOString()}] Login error:`, error);
-    console.error('INPUT (caught error):', {
-      headers: req.headers,
-      body: req.body,
-      method: req.method,
-      originalUrl: req.originalUrl,
-      ip: req.ip
     });
+  } catch (error) {
+    console.error('Login error:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -248,7 +228,6 @@ router.post('/login', loginLimiter, async (req, res) => {
 // Get current user profile
 router.get('/profile', auth, async (req, res) => {
   try {
-    console.log('[PROFILE] Checking user profile for:', req.user._id, '| role:', req.user.role);
     const user = await User.findById(req.user._id)
       .populate('goals')
       .populate('chores')
@@ -433,7 +412,7 @@ router.post('/verify-otp', async (req, res) => {
  * Create child account (Parent-gated)
  * Requires authentication, only parents can create children
  */
-router.post('/create-child', auth, async (req, res) => {
+router.post('/create-child', auth, sanitizeInput, async (req, res) => {
   try {
     const { name, username, pin } = req.body;
 
@@ -515,6 +494,13 @@ router.post('/child-login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check if account is deactivated
+    if (user.status === 'deactivated') {
+      return res.status(403).json({
+        message: 'This account has been deactivated. Please contact support or reactivate your account.',
+        requiresReactivation: true
+      });
+    }
 
     // Check lockout: If lockoutUntil is in the future, reject the login attempt
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
@@ -567,15 +553,6 @@ router.post('/child-login', async (req, res) => {
     delete userResponse.pin;
     delete userResponse.loginAttempts;
     delete userResponse.lockoutUntil;
-
-    // Ensure 'id' is always present on user object for frontend consistency
-    if (!userResponse.id) {
-      userResponse.id = userResponse._id ? userResponse._id.toString() : undefined;
-      // Optionally, PATCH the DB to add missing id for legacy users
-      if (userResponse.id) {
-        await User.updateOne({ _id: userResponse._id }, { $set: { id: userResponse.id } });
-      }
-    }
 
     res.json({
       user: userResponse,

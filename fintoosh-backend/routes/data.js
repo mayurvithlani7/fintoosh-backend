@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 
 const User = require('../models/User');
 const Goal = require('../models/Goal');
@@ -14,9 +15,68 @@ const FamilyTimeline = require('../models/FamilyTimeline');
 const DreamBoard = require('../models/DreamBoard');
 const Notification = require('../models/Notification');
 const { auth, requireParent } = require('../middleware/auth');
+const {
+  sanitizeInput,
+  validateFinancialData,
+  validateMessage
+} = require('../middleware/validation');
+
+// Role-based rate limiting for authenticated users
+const createRoleBasedLimiter = (role) => {
+  const limits = {
+    parent: { windowMs: 15 * 60 * 1000, max: 100 }, // 100 requests per 15 minutes
+    child: { windowMs: 15 * 60 * 1000, max: 50 },   // 50 requests per 15 minutes
+    default: { windowMs: 15 * 60 * 1000, max: 30 }  // 30 requests per 15 minutes for anonymous
+  };
+
+  const limit = limits[role] || limits.default;
+
+  return rateLimit({
+    windowMs: limit.windowMs,
+    max: limit.max,
+    keyGenerator: (req) => `${req.user?.role || 'anonymous'}_${req.ip}`,
+    handler: (req, res) => {
+      const role = req.user?.role || 'anonymous';
+      const resetTime = new Date(Date.now() + limit.windowMs);
+      console.warn('Role-based rate limit exceeded', {
+        role,
+        ip: req.ip,
+        userId: req.user?.id,
+        endpoint: req.originalUrl,
+        method: req.method,
+        resetTime: resetTime.toISOString()
+      });
+      res.status(429).json({
+        message: 'Too many requests, please slow down',
+        retryAfter: Math.ceil(limit.windowMs / 1000),
+        role: role,
+        limit: limit.max,
+        windowMs: limit.windowMs
+      });
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+};
+
+// Apply role-based rate limiting to authenticated routes
+const roleBasedLimiter = (req, res, next) => {
+  const limiter = createRoleBasedLimiter(req.user?.role);
+  return limiter(req, res, next);
+};
+
+// Throttling for expensive operations (analytics, bulk operations)
+const expensiveOperationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Only 20 expensive operations per 15 minutes
+  keyGenerator: (req) => `${req.user?.role || 'anonymous'}_${req.ip}`,
+  message: 'Too many expensive operations, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Transaction routes
-router.get('/transactions/:userId', auth, async (req, res) => {
+router.get('/transactions/:userId', auth, roleBasedLimiter, async (req, res) => {
   try {
     const user = await User.findOne({ id: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -29,7 +89,7 @@ router.get('/transactions/:userId', auth, async (req, res) => {
   }
 });
 
-router.post('/transactions', auth, requireParent, async (req, res) => {
+router.post('/transactions', auth, requireParent, sanitizeInput, validateFinancialData, async (req, res) => {
   try {
     const { userId, type, description, amount, fromJar, toJar, reference } = req.body;
     console.log('DEBUG: Creating transaction', { userId, type, amount, reqUserId: req.user.id, reqUserRole: req.user.role });
@@ -269,11 +329,8 @@ router.get('/rewards/:userId', auth, async (req, res) => {
   }
 });
 
-router.post('/rewards', auth, requireParent, async (req, res) => {
+router.post('/rewards', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
-    // DEBUG log for parent token/role issues
-    console.log("POST /rewards headers:", req.headers);
-    console.log("POST /rewards req.user:", req.user);
     const { childId, name, description, cost, category } = req.body;
     console.log("DEBUG: Parent creating reward. AuthUser:", req.user, "childId:", childId);
     const child = await User.findOne({ _id: childId, familyId: req.user.familyId, role: 'child' });
@@ -288,10 +345,8 @@ router.post('/rewards', auth, requireParent, async (req, res) => {
       description,
       cost,
       category,
-      status: 'active',
     });
     const saved = await reward.save();
-    console.log('[create reward] saved reward:', saved);
     child.rewards = child.rewards || [];
     child.rewards.push(saved._id);
     await child.save();
@@ -302,7 +357,7 @@ router.post('/rewards', auth, requireParent, async (req, res) => {
 });
 
 // PATCH /rewards/:rewardId -- allow parents to edit rewards and handle reward claims
-router.patch('/rewards/:rewardId', auth, requireParent, async (req, res) => {
+router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
   try {
     const reward = await Reward.findById(req.params.rewardId);
     if (!reward) return res.status(404).json({ message: 'Reward not found' });
@@ -338,35 +393,7 @@ router.patch('/rewards/:rewardId', auth, requireParent, async (req, res) => {
       // Check points (but do not deduct yet)
       const currentPoints = rewardOwner.currentPoints || 0;
       if (currentPoints < reward.cost) {
-        // Deny approval if not enough points; re-activate reward for claiming
-        reward.available = true;
-        reward.purchased = false;
-        reward.status = 'active';
-        await reward.save();
-
-        // Optionally: also find an active ApprovalRequest for this reward and mark as Denied
-        try {
-          const ApprovalRequest = require('../models/ApprovalRequest');
-          const pendingReq = await ApprovalRequest.findOne({
-            rewardId: reward._id.toString(),
-            status: 'Pending'
-          });
-          if (pendingReq) {
-            pendingReq.status = 'Denied';
-            pendingReq.updatedAt = new Date();
-            pendingReq.messages.push({
-              sender: 'parent',
-              userId: req.user.id,
-              text: 'Denied: not enough points in jar for reward approval.',
-              timestamp: new Date()
-            });
-            await pendingReq.save();
-          }
-        } catch (e) {
-          console.log('Error marking approval request as Denied:', e);
-        }
-
-        return res.status(400).json({ message: 'Not enough points in the jar for this reward. The reward claim has been denied and will remain available for the child to claim again.' });
+        return res.status(400).json({ message: 'Not enough points to claim this reward.' });
       }
 
       // --- AUTO-APPROVAL LOGIC for reward claims ---
@@ -439,7 +466,6 @@ router.patch('/rewards/:rewardId', auth, requireParent, async (req, res) => {
       // Correct logic: always update available to false and save
       reward.available = false;
       reward.purchased = false;
-      reward.status = 'pending'; // Mark reward as pending approval
       await reward.save();
       // Reload and send updated reward after save
       const updatedReward = await Reward.findById(reward._id);
@@ -663,7 +689,7 @@ router.get('/goals/:childId', auth, async (req, res) => {
   }
 });
 
-router.post('/goals', auth, async (req, res) => {
+router.post('/goals', auth, sanitizeInput, async (req, res) => {
   console.log('[GOALS POST DEBUG] ===== START =====');
   console.log('[GOALS POST DEBUG] req.user exists:', !!req.user);
   console.log('[GOALS POST DEBUG] req.user.role:', JSON.stringify(req.user?.role));
@@ -739,37 +765,34 @@ router.patch('/goals/:goalId', auth, async (req, res) => {
     const update = req.body;
     const allowed = {};
 
-    // DEBUG: Log user role and id for troubleshooting
-    console.log('PATCH /goals/:goalId called by', req.user.role, 'userId:', req.user.id);
-
     // Find the goal and check for existence/ownership
     const goal = await Goal.findById(goalId);
     if (!goal) return res.status(404).json({ message: "Goal not found" });
 
+    // Parents can update all fields: name, description, targetAmount, jar, deadline, status
     if (req.user.role === 'parent') {
-      // Parents can update all fields: name, description, targetAmount, jar, deadline, status
+      // Check if goal belongs to parent's family
       const goalOwner = await User.findById(goal.user);
       if (!goalOwner || goalOwner.familyId !== req.user.familyId) {
         return res.status(403).json({ message: "Not authorized to modify this goal" });
       }
+      // Allow updating all goal fields
       if (update.name !== undefined) allowed.name = update.name;
       if (update.description !== undefined) allowed.description = update.description;
       if (update.targetAmount !== undefined) allowed.targetAmount = update.targetAmount;
       if (update.jar !== undefined) allowed.jar = update.jar;
       if (update.deadline !== undefined) allowed.deadline = update.deadline;
       if (update.status !== undefined) allowed.status = update.status;
-    } else if (req.user.role === 'child') {
-      // Child can only set status to 'pending' and only for their own goals
+    } else {
+      // Child can only set status to 'pending'
       if (update.status !== 'pending') {
         return res.status(403).json({ message: "Children can only set goal status to pending" });
       }
       if (!goal.user.equals(req.user._id)) {
         return res.status(403).json({ message: "Not authorized to modify this goal" });
       }
+      // Allow updating status for children
       if (update.status !== undefined) allowed.status = update.status;
-    } else {
-      // For all other roles, deny
-      return res.status(403).json({ message: "Not authorized to modify this goal" });
     }
 
     Object.assign(goal, allowed, { updatedAt: new Date() });
@@ -822,80 +845,6 @@ router.delete('/goals/:goalId', auth, async (req, res) => {
   } catch (error) {
     console.error('Error deleting goal:', error);
     res.status(500).json({ message: "Failed to delete goal", error: error.message });
-  }
-});
-
-// DELETE /chores/:choreId -- allow parents and children to delete chores with restrictions
-router.delete('/chores/:choreId', auth, async (req, res) => {
-  try {
-    const { choreId } = req.params;
-
-    // Find the chore and check for existence/ownership
-    const chore = await Chore.findById(choreId);
-    if (!chore) return res.status(404).json({ message: "Chore not found" });
-
-    // Check authorization based on user role
-    if (req.user.role === 'parent') {
-      const choreOwner = await User.findById(chore.user);
-      if (!choreOwner || choreOwner.familyId !== req.user.familyId) {
-        return res.status(403).json({ message: "Not authorized to delete this chore" });
-      }
-    } else if (req.user.role === 'child') {
-      if (!chore.user.equals(req.user._id)) {
-        return res.status(403).json({ message: "Not authorized to delete this chore" });
-      }
-    } else {
-      return res.status(403).json({ message: "Invalid user role for chore deletion" });
-    }
-
-    // Check status restrictions - can't delete if pending or completed
-    if (chore.status !== 'active') {
-      return res.status(400).json({ message: "Can only delete chores with status 'active'" });
-    }
-
-    await Chore.findByIdAndDelete(choreId);
-
-    res.json({ message: "Chore deleted successfully" });
-  } catch (error) {
-    console.error('Error deleting chore:', error);
-    res.status(500).json({ message: "Failed to delete chore", error: error.message });
-  }
-});
-
-// DELETE /rewards/:rewardId -- allow parents and children to delete rewards with restrictions
-router.delete('/rewards/:rewardId', auth, async (req, res) => {
-  try {
-    const { rewardId } = req.params;
-
-    // Find the reward and check for existence/ownership
-    const reward = await Reward.findById(rewardId);
-    if (!reward) return res.status(404).json({ message: "Reward not found" });
-
-    // Check authorization based on user role
-    if (req.user.role === 'parent') {
-      const rewardOwner = await User.findById(reward.user);
-      if (!rewardOwner || rewardOwner.familyId !== req.user.familyId) {
-        return res.status(403).json({ message: "Not authorized to delete this reward" });
-      }
-    } else if (req.user.role === 'child') {
-      if (!reward.user.equals(req.user._id)) {
-        return res.status(403).json({ message: "Not authorized to delete this reward" });
-      }
-    } else {
-      return res.status(403).json({ message: "Invalid user role for reward deletion" });
-    }
-
-    // Check status restrictions - can't delete if pending or purchased/claimed
-    if (reward.status !== 'active') {
-      return res.status(400).json({ message: "Can only delete rewards with status 'active'" });
-    }
-
-    await Reward.findByIdAndDelete(rewardId);
-
-    res.json({ message: "Reward deleted successfully" });
-  } catch (error) {
-    console.error('Error deleting reward:', error);
-    res.status(500).json({ message: "Failed to delete reward", error: error.message });
   }
 });
 
@@ -979,7 +928,6 @@ router.post('/chores', auth, requireParent, async (req, res) => {
       user: child._id,
       name,
       points,
-      status: 'active', // Ensure all new chores have status
     };
 
     // Add optional fields if provided
@@ -998,7 +946,7 @@ router.post('/chores', auth, requireParent, async (req, res) => {
 });
 
 // PATCH /chores/:choreId -- allow parents to edit chores and kids to mark their own chores as completed
-router.patch('/chores/:choreId', auth, requireParent, async (req, res) => {
+router.patch('/chores/:choreId', auth, sanitizeInput, async (req, res) => {
   try {
     const { choreId } = req.params;
     const update = req.body;
@@ -1085,8 +1033,6 @@ router.get('/requests', auth, requireParent, async (req, res) => {
   try {
     console.log("DEBUG: Parent fetching requests. AuthUser:", req.user);
     const ApprovalRequest = require('../models/ApprovalRequest');
-    // DEBUG fetch - log time and user for real-time issues
-    console.log("DEBUG /requests fetch at", new Date().toISOString(), "UserID:", req.user.id, "FamilyID:", req.user.familyId, "Role:", req.user.role, "req.user:", req.user);
     const User = require('../models/User');
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -1098,7 +1044,6 @@ router.get('/requests', auth, requireParent, async (req, res) => {
         { updatedAt: { $gte: thirtyDaysAgo } }
       ]
     }).sort({ createdAt: -1 });
-    console.log("DEBUG /requests results count:", requests.length);
 
     const usersById = {};
     const childIds = Array.from(new Set(requests.map(r => r.childId)));
@@ -1114,7 +1059,7 @@ router.get('/requests', auth, requireParent, async (req, res) => {
   }
 });
 
-router.post('/requests', auth, async (req, res) => {
+router.post('/requests', auth, sanitizeInput, async (req, res) => {
   try {
     const { userId, note } = req.body;
     const childUser = await User.findOne({ id: userId });
@@ -1320,36 +1265,6 @@ router.post('/requests', auth, async (req, res) => {
     }
 
     await approvalRequest.save();
-
-    // --- Set status to "pending" for chore and reward claims ---
-    if (type === 'chore' && typeof req.body.choreId === 'string' && approvalRequest.status === 'Pending') {
-      try {
-        const Chore = require('../models/Chore');
-        const chore = await Chore.findById(req.body.choreId);
-        if (chore) {
-          chore.status = 'pending';
-          await chore.save();
-        }
-      } catch (err) {
-        console.error('Error setting chore status to pending after claim:', err);
-      }
-    }
-    // Rewards: PATCH /rewards/:rewardId handles the ApprovalRequest & status update, not here
-
-    // --- Set goal.status = "pending" when a goal-completion ApprovalRequest is created ---
-    if (type === 'goal-completion' && typeof req.body.goalId === 'string' && approvalRequest.status === 'Pending') {
-      try {
-        const Goal = require('../models/Goal');
-        const goal = await Goal.findById(req.body.goalId);
-        if (goal) {
-          goal.status = 'pending';
-          await goal.save();
-        }
-      } catch (goalPendingError) {
-        console.error('Error setting goal status to pending after completion request:', goalPendingError);
-        // Allow the approval request to succeed anyway
-      }
-    }
 
     // Notify parent on approval request submission
     await Notification.create({
@@ -1561,25 +1476,11 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       user.transactions.unshift(...transactions);
       await user.save();
 
-      // Mark chore as approved and completed
+      // Mark chore as approved
       chore.approved = true;
       chore.approvedAt = new Date();
-      chore.status = 'completed';
       await chore.save();
-      console.log('DEBUG: Chore approved now set to', chore.approved, 'status:', chore.status, 'for Chore', chore._id);
-    }
-
-    // If denied and chore, reset status to active so it shows up as actionable again
-    if (status === 'Denied' && approval.type === 'chore') {
-      const Chore = require('../models/Chore');
-      if (approval.choreId) {
-        const chore = await Chore.findById(approval.choreId);
-        if (chore) {
-          chore.status = 'active';
-          await chore.save();
-          console.log('DEBUG Deny Chore - status reset to active for choreId:', approval.choreId);
-        }
-      }
+      console.log('DEBUG: Chore approved now set to', chore.approved, 'for Chore', chore._id);
     }
 
     // If approved and goal-completion, check points, deduct, set goal status to 'completed'
@@ -1599,24 +1500,12 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           const pointsField = jar + "Points";
           const target = goal.targetAmount || approval.amount || 0;
           if (!user[pointsField] || user[pointsField] < target) {
-            // Not enough points: deny and reset goal to active
+            // Reset goal status back to 'active' so child can try again
             goal.status = 'active';
             await goal.save();
 
-            // Mark ApprovalRequest as Denied, add message
-            approval.status = 'Denied';
-            approval.updatedAt = new Date();
-            approval.messages = approval.messages || [];
-            approval.messages.push({
-              sender: 'parent',
-              userId: req.user.id,
-              text: `Denied: not enough points in ${jar} jar for goal approval.`,
-              timestamp: new Date()
-            });
-            await approval.save();
-
             return res.status(400).json({
-              message: `Not enough points in ${jar} jar for goal completion. The goal claim has been denied and will remain available for the child to claim again.`
+              message: `Not enough points in ${jar} jar for goal completion. The child needs ${target - (user[pointsField] || 0)} more points. Goal has been reset to active status.`
             });
           }
           // Deduct points and complete goal
@@ -1637,9 +1526,8 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         if (reward) {
           reward.available = true;
           reward.purchased = false;
-          reward.status = 'active'; // Reset status to active on denial
           await reward.save();
-          console.log('DEBUG Deny Reward - updated:', { _id: reward._id, available: reward.available, purchased: reward.purchased, status: reward.status });
+          console.log('DEBUG Deny Reward - updated:', { _id: reward._id, available: reward.available, purchased: reward.purchased });
         } else {
           console.log('DEBUG Deny Reward - reward not found:', approval.rewardId);
         }
@@ -1667,7 +1555,7 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
 });
 
 // Send message on existing request without changing status
-router.post('/requests/:requestId/messages', auth, async (req, res) => {
+router.post('/requests/:requestId/messages', auth, validateMessage, async (req, res) => {
   try {
     const { text } = req.body;
     const ApprovalRequest = require('../models/ApprovalRequest');
@@ -1915,7 +1803,7 @@ router.get('/parent-milestones/:parentId/:childId', auth, requireParent, async (
   }
 });
 
-router.post('/parent-milestones/:parentId/:childId', auth, requireParent, async (req, res) => {
+router.post('/parent-milestones/:parentId/:childId', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
     const { parentId, childId } = req.params;
     const { milestoneId, title, achieved, progress, date, category, familyId } = req.body;
@@ -1995,7 +1883,7 @@ router.get('/family-discussions/:familyId', auth, requireParent, async (req, res
   }
 });
 
-router.post('/family-discussions', auth, requireParent, async (req, res) => {
+router.post('/family-discussions', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
     const {
       childId,
@@ -2049,7 +1937,7 @@ router.post('/family-discussions', auth, requireParent, async (req, res) => {
   }
 });
 
-router.patch('/family-discussions/:discussionId', auth, requireParent, async (req, res) => {
+router.patch('/family-discussions/:discussionId', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
     const { discussionId } = req.params;
     const update = req.body;
@@ -2122,7 +2010,7 @@ router.get('/family-timeline/:familyId/:childId', auth, requireParent, async (re
   }
 });
 
-router.post('/family-timeline/:familyId/:childId', auth, requireParent, async (req, res) => {
+router.post('/family-timeline/:familyId/:childId', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
     const { familyId, childId } = req.params;
     const { title, description, timeline, currentProjection, familyWisdom } = req.body;
@@ -2162,7 +2050,7 @@ router.post('/family-timeline/:familyId/:childId', auth, requireParent, async (r
   }
 });
 
-router.patch('/family-timeline/:timelineId', auth, requireParent, async (req, res) => {
+router.patch('/family-timeline/:timelineId', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
     const { timelineId } = req.params;
     const update = req.body;
@@ -2226,7 +2114,7 @@ router.get('/dream-board/:familyId/:childId', auth, requireParent, async (req, r
   }
 });
 
-router.post('/dream-board/:familyId/:childId', auth, requireParent, async (req, res) => {
+router.post('/dream-board/:familyId/:childId', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
     const { familyId, childId } = req.params;
     const { title, description, items, familyContributions, inspiration, backgroundTheme } = req.body;
@@ -2264,7 +2152,7 @@ router.post('/dream-board/:familyId/:childId', auth, requireParent, async (req, 
   }
 });
 
-router.patch('/dream-board/:dreamBoardId', auth, requireParent, async (req, res) => {
+router.patch('/dream-board/:dreamBoardId', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
     const { dreamBoardId } = req.params;
     const update = req.body;
@@ -2289,7 +2177,7 @@ router.patch('/dream-board/:dreamBoardId', auth, requireParent, async (req, res)
 });
 
 // Elder Wisdom routes
-router.post('/elder-wisdom/:familyId', auth, async (req, res) => {
+router.post('/elder-wisdom/:familyId', auth, sanitizeInput, async (req, res) => {
   try {
     const { familyId } = req.params;
     const { childId, elderName, advice } = req.body;
@@ -2473,7 +2361,7 @@ router.post('/fix-parent-child-relationships', auth, requireParent, async (req, 
 });
 
 // Analytics routes
-router.get('/analytics/family/:familyId', auth, async (req, res) => {
+router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async (req, res) => {
   try {
     const { familyId } = req.params;
     const { startDate, endDate } = req.query;
@@ -2483,10 +2371,11 @@ router.get('/analytics/family/:familyId', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to view analytics for this family' });
     }
 
-    // Find the child (role: 'child') in the family
-    const childUser = await User.findOne({ familyId, role: 'child' }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
-    if (!childUser) {
-      return res.status(404).json({ message: 'Child user not found for this family' });
+    // Get all family members
+    const familyMembers = await User.find({ familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
+
+    if (familyMembers.length === 0) {
+      return res.status(404).json({ message: 'No family members found' });
     }
 
     // Build date filter
@@ -2502,20 +2391,20 @@ router.get('/analytics/family/:familyId', auth, async (req, res) => {
       dateFilter = { $gte: thirtyDaysAgo };
     }
 
-    // Get only the child's transactions
+    // Get family transactions
     const transactions = await Transaction.find({
-      user: childUser._id,
+      user: { $in: familyMembers.map(m => m._id) },
       createdAt: dateFilter
     }).sort({ createdAt: -1 });
 
-    // Get only the child's chores
+    // Get family chores
     const chores = await Chore.find({
-      user: childUser._id
+      user: { $in: familyMembers.map(m => m._id) }
     }).select('name points frequency useDefaultSplit customSplit');
 
-    // Get only the child's goals
+    // Get family goals
     const goals = await Goal.find({
-      user: childUser._id,
+      user: { $in: familyMembers.map(m => m._id) },
       $or: [
         { status: 'active' },
         { status: 'completed' },
@@ -2523,20 +2412,23 @@ router.get('/analytics/family/:familyId', auth, async (req, res) => {
       ]
     }).select('name targetAmount currentAmount deadline status jar createdAt');
 
+    // Get one family member for settings (they should be the same)
+    const familyUser = familyMembers[0];
+
+    // Return aggregated data
     res.json({
       transactions,
       chores,
       goals,
-      user: childUser,
-      familyMembers: [ // keep for summary UI, if needed
-        {
-          id: childUser.id,
-          name: childUser.name,
-          role: childUser.role,
-          totalPoints: (childUser.currentPoints || 0) + (childUser.savePoints || 0) + (childUser.spendPoints || 0) + (childUser.donatePoints || 0) + (childUser.investPoints || 0)
-        }
-      ]
+      user: familyUser,
+      familyMembers: familyMembers.map(m => ({
+        id: m.id,
+        name: m.name,
+        role: m.role,
+        totalPoints: (m.currentPoints || 0) + (m.savePoints || 0) + (m.spendPoints || 0) + (m.donatePoints || 0) + (m.investPoints || 0)
+      }))
     });
+
   } catch (error) {
     console.error('Error fetching analytics data:', error);
     res.status(500).json({ message: 'Failed to fetch analytics data', error: error.message });
