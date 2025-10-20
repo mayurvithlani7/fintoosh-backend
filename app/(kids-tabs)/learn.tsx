@@ -159,7 +159,7 @@ export default function LearnScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}>
+    <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
       <RangoliPattern color="#FF9933" opacity={0.03} />
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

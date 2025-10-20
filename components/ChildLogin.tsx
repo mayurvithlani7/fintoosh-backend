@@ -21,6 +21,13 @@ const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
     try {
       setStatusMessage('Logging in...');
 
+      // console.log('[CHILDLOGIN] API_URL:', API_URL);
+      // console.log('[CHILDLOGIN] Sending login request:', {
+      //   url: `${API_URL}/auth/child-login`,
+      //   username: username.trim(),
+      //   pin: pin.trim(),
+      // });
+
       const response = await fetch(`${API_URL}/auth/child-login`, {
         method: 'POST',
         headers: {
@@ -35,7 +42,8 @@ const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
       let data;
       try {
         data = await response.json();
-      } catch {
+      } catch (err) {
+        console.error('[CHILDLOGIN] Error parsing response:', err);
         data = { message: 'Request failed' };
       }
 
@@ -69,7 +77,7 @@ const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
 
       await onLoginSuccess(data);
     } catch (error) {
-      console.error('Child login error:', error);
+      console.error('[CHILDLOGIN] Network or fetch error:', error);
       setStatusMessage('Network error. Please try again.');
     }
   };

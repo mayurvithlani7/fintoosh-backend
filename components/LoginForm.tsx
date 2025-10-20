@@ -43,7 +43,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
       setStatusMessage(`Too many failed attempts. Try again in ${waitMins} minute(s).`);
       return;
     }
-    if (email.trim().length === 0 || password.trim().length === 0) {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    if (cleanEmail.length === 0 || cleanPassword.length === 0) {
       setStatusMessage('Please enter both email and password.');
       return;
     }
@@ -57,8 +60,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: email.trim(),
-          password: password.trim(),
+          email: cleanEmail,
+          password: cleanPassword,
         }),
       });
 

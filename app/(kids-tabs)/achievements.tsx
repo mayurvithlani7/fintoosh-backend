@@ -27,7 +27,7 @@ export default function AchievementsScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
@@ -78,7 +78,20 @@ export default function AchievementsScreen() {
         </View>
       </View>
 
-      <AchievementSystem />
+      <View style={{
+        backgroundColor: themeColors.card,
+        borderRadius: 14,
+        marginBottom: 16,
+        padding: 18,
+        minWidth: 300,
+        width: '97%',
+        maxWidth: 520,
+        alignSelf: 'center',
+        elevation: 2,
+        shadowColor: themeColors.border,
+      }}>
+        <AchievementSystem />
+      </View>
 
       <HelpModal
         visible={helpModalVisible}

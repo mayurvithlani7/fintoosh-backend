@@ -16,6 +16,16 @@ import {
   View,
 } from 'react-native';
 
+/**
+ * Utility: dynamically namespace AsyncStorage keys by family/child
+ */
+function getFamilyKey(base: string, familyId?: string) {
+  return familyId ? `${base}_${familyId}` : base;
+}
+function getFamilyChildKey(base: string, familyId?: string, childId?: string) {
+  return familyId && childId ? `${base}_${familyId}_${childId}` : base;
+}
+
 export default function ParentsTeachingScreen() {
   const { themeColors } = useTheme();
   const [selectedGuide, setSelectedGuide] = useState<string | null>(null);
@@ -29,6 +39,7 @@ export default function ParentsTeachingScreen() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [familyTimeline, setFamilyTimeline] = useState<any>(null);
   const [dreamBoard, setDreamBoard] = useState<any>(null);
+  const [editingDreamId, setEditingDreamId] = useState<string | null>(null);
   const [showElderModal, setShowElderModal] = useState(false);
   const [showEventSelection, setShowEventSelection] = useState(false);
   const [showTopicSelection, setShowTopicSelection] = useState(false);
@@ -359,36 +370,118 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
     }
   };
 
-  // Load stored data from AsyncStorage immediately
-  const loadStoredData = async () => {
-    try {
-      console.log('Loading stored data from AsyncStorage...');
+/**
+ * Dream Board API helpers
+ */
+const fetchDreamBoardFromDB = async (famId: string, childId: string) => {
+  try {
+    const token = await getAuthToken();
+    if (!token || !famId || !childId) return null;
+    const res = await fetch(`${API_URL}/dream-board/${famId}/${childId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const dbDreamBoard = await res.json();
+      return dbDreamBoard;
+    }
+  } catch (error) {
+    console.error('Dream board fetch from DB failed:', error);
+  }
+  return null;
+};
 
-      // Load discussions from AsyncStorage
-      const savedDiscussions = await AsyncStorage.getItem('familyDiscussions');
+const saveDreamBoardToDB = async (dreamBoard: any, famId: string, childId: string, dreamBoardId?: string) => {
+  try {
+    const token = await getAuthToken();
+    if (!token || !famId || !childId) return;
+    const isUpdate = !!dreamBoardId;
+    if (isUpdate) {
+      // PATCH existing
+      const res = await fetch(`${API_URL}/dream-board/${dreamBoardId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(dreamBoard),
+      });
+      return await res.json();
+    } else {
+      // POST new
+      const res = await fetch(`${API_URL}/dream-board/${famId}/${childId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(dreamBoard),
+      });
+      return await res.json();
+    }
+  } catch (error) {
+    console.error('Dream board save to DB failed:', error);
+  }
+};
+
+/* ======================== */
+
+ // Load stored data from AsyncStorage immediately
+const loadStoredData = async () => {
+    try {
+      if (!currentUser) return;
+      const famId = currentUser.familyId;
+      const childId = selectedChild?.id;
+
+      // Load discussions (migrate legacy key on first run)
+      let savedDiscussions = await AsyncStorage.getItem(getFamilyKey('familyDiscussions', famId));
+      if (!savedDiscussions) {
+        savedDiscussions = await AsyncStorage.getItem('familyDiscussions');
+        if (savedDiscussions) {
+          // auto-migrate if legacy key found
+          await AsyncStorage.setItem(getFamilyKey('familyDiscussions', famId), savedDiscussions);
+          await AsyncStorage.removeItem('familyDiscussions');
+        }
+      }
       if (savedDiscussions) {
         const discussionsData = JSON.parse(savedDiscussions);
-        console.log('Loaded discussions from AsyncStorage:', discussionsData.length);
         setFamilyDiscussions(discussionsData);
       }
 
-      // Load dreamboard from AsyncStorage
-      const savedDreamBoard = await AsyncStorage.getItem('dreamBoard');
-      if (savedDreamBoard) {
-        const dreamBoardData = JSON.parse(savedDreamBoard);
-        console.log('Loaded dreamboard from AsyncStorage:', dreamBoardData.items?.length || 0, 'items');
-        setDreamBoard(dreamBoardData);
+      // DREAM BOARD (prefer DB over AsyncStorage)
+      let dreamBoardObj = null;
+      if (famId && childId) {
+        const dbDream = await fetchDreamBoardFromDB(famId, childId);
+        if (dbDream && dbDream._id) {
+          dreamBoardObj = dbDream;
+          // Also store/cache locally
+          await AsyncStorage.setItem(getFamilyKey('dreamBoard', famId), JSON.stringify(dreamBoardObj));
+        }
+      }
+      if (!dreamBoardObj) {
+        // fallback to AsyncStorage cache
+        let savedDreamBoard = await AsyncStorage.getItem(getFamilyKey('dreamBoard', famId));
+        if (!savedDreamBoard) {
+          savedDreamBoard = await AsyncStorage.getItem('dreamBoard');
+          if (savedDreamBoard) {
+            await AsyncStorage.setItem(getFamilyKey('dreamBoard', famId), savedDreamBoard);
+            await AsyncStorage.removeItem('dreamBoard');
+          }
+        }
+        if (savedDreamBoard) {
+          dreamBoardObj = JSON.parse(savedDreamBoard);
+        }
+      }
+      if (dreamBoardObj) {
+        setDreamBoard(dreamBoardObj);
       }
 
-      // Load family timeline from AsyncStorage
-      const savedTimeline = await AsyncStorage.getItem('familyTimeline');
+      // Load family timeline (per-family+child)
+      let savedTimeline = await AsyncStorage.getItem(getFamilyChildKey('familyTimeline', famId, childId));
+      if (!savedTimeline) {
+        savedTimeline = await AsyncStorage.getItem('familyTimeline');
+        if (savedTimeline) {
+          await AsyncStorage.setItem(getFamilyChildKey('familyTimeline', famId, childId), savedTimeline);
+          await AsyncStorage.removeItem('familyTimeline');
+        }
+      }
       if (savedTimeline) {
-        const timelineData = JSON.parse(savedTimeline);
-        console.log('Loaded timeline from AsyncStorage:', timelineData.timeline?.length || 0, 'entries');
-        setFamilyTimeline(timelineData);
+        setFamilyTimeline(JSON.parse(savedTimeline));
       }
-
-      console.log('Finished loading stored data');
     } catch (error) {
       console.error('Error loading stored data:', error);
     }
@@ -418,11 +511,25 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
 
       if (discussionsResponse.ok) {
         const discussionsData = await discussionsResponse.json();
-        if (discussionsData && discussionsData.length > 0) {
+        // Security check: all returned objects must match current familyId
+        if (
+          discussionsData &&
+          discussionsData.length > 0 &&
+          discussionsData.every((item: any) => item.familyId === currentUser.familyId)
+        ) {
           console.log('Loaded discussions from database:', discussionsData.length);
           setFamilyDiscussions(discussionsData);
           // Also save to AsyncStorage as backup
           AsyncStorage.setItem('familyDiscussions', JSON.stringify(discussionsData));
+        } else if (discussionsData && discussionsData.length > 0) {
+          // Detected familyId mismatch; force logout
+          console.warn('Security violation: API returned discussions from different familyId. Forcing logout.');
+          if (typeof window !== 'undefined' && window.location) {
+            window.location.href = '/login';
+          }
+          // Defensive: force logout/clear by importing on mismatch
+          const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+          await clearSensitiveAppData();
         }
       }
 
@@ -562,8 +669,12 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
   // Save milestones to database and AsyncStorage
   const saveMilestonesToDatabase = async (milestones: any[]) => {
     try {
-      // Always save to AsyncStorage first for immediate persistence
-      await AsyncStorage.setItem('teachingMilestones', JSON.stringify(milestones));
+      if (!currentUser || !selectedChild) return;
+      // Always save to AsyncStorage using family/child-specific key
+      await AsyncStorage.setItem(
+        getFamilyChildKey('teachingMilestones', currentUser.familyId, selectedChild.id),
+        JSON.stringify(milestones)
+      );
       console.log('Milestones saved to AsyncStorage:', milestones.length, 'milestones');
 
       // If user is authenticated, also save to backend database
@@ -609,7 +720,11 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
   const saveDiscussionsToDatabase = async (discussions: any[]) => {
     // Always save to AsyncStorage first for immediate persistence
     try {
-      await AsyncStorage.setItem('familyDiscussions', JSON.stringify(discussions));
+      if (!currentUser) return;
+      await AsyncStorage.setItem(
+        getFamilyKey('familyDiscussions', currentUser.familyId),
+        JSON.stringify(discussions)
+      );
       console.log('Discussions saved to AsyncStorage:', discussions.length);
     } catch (storageError) {
       console.error('Error saving discussions to AsyncStorage:', storageError);
@@ -691,7 +806,11 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
 
     // Always save to AsyncStorage as backup
     try {
-      await AsyncStorage.setItem('familyTimeline', JSON.stringify(timelineData));
+      if (!currentUser || !selectedChild) return;
+      await AsyncStorage.setItem(
+        getFamilyChildKey('familyTimeline', currentUser.familyId, selectedChild.id),
+        JSON.stringify(timelineData)
+      );
       console.log('Timeline saved to AsyncStorage:', timelineData);
     } catch (storageError) {
       console.error('Error saving timeline to AsyncStorage:', storageError);
@@ -1196,6 +1315,25 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
             {dreamBoard.items.slice(0, 6).map((item: any, index: number) => (
               <View key={index} style={[styles.dreamItem, { backgroundColor: item.color || themeColors.surface }]}>
                 <View style={styles.dreamItemHeader}>
+                  {/* Edit Dream Button */}
+                  <TouchableOpacity
+                    style={[styles.deleteButton, { backgroundColor: themeColors.primary, marginRight: 10 }]}
+                    onPress={() => {
+                      setDreamForm({
+                        title: item.title,
+                        targetAmount: item.targetAmount.toString(),
+                        monthlyCommitment: item.monthlyCommitment.toString(),
+                        category: item.category,
+                        description: item.description,
+                        deadline: item.deadline || ''
+                      });
+                      setShowDreamModal(true);
+                      // Save which dream is being edited
+                      setEditingDreamId(item.id);
+                    }}
+                  >
+                    <Text style={[styles.deleteButtonText, { color: themeColors.card }]}>✏️</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.deleteButton, { backgroundColor: themeColors.secondary }]}
                     onPress={() => {
@@ -1240,14 +1378,10 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                             {
                               text: 'Delete',
                               style: 'destructive',
-                              onPress: () => {
+                              onPress: async () => {
                                 console.log('Dream delete confirmed for:', item.id, item.title);
 
-                                // Simple direct approach - just remove the item without complex checks
                                 const updatedItems = dreamBoard.items.filter((dream: any) => dream.id !== item.id);
-                                console.log('Before delete:', dreamBoard.items.length, 'items');
-                                console.log('After delete:', updatedItems.length, 'items');
-
                                 const updatedDreamBoard = {
                                   ...dreamBoard,
                                   items: updatedItems,
@@ -1255,12 +1389,17 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                                   monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
                                 };
 
-                                console.log('Setting updated dream board...');
-                                setDreamBoard(updatedDreamBoard);
-                                console.log('Saving to AsyncStorage...');
-                                AsyncStorage.setItem('dreamBoard', JSON.stringify(updatedDreamBoard));
+                                let dbDreamBoard = dreamBoard;
+                                if (currentUser && selectedChild && dreamBoard && dreamBoard._id) {
+                                  dbDreamBoard = await saveDreamBoardToDB(updatedDreamBoard, currentUser.familyId, selectedChild.id, dreamBoard._id);
+                                  await AsyncStorage.setItem(getFamilyKey('dreamBoard', currentUser.familyId), JSON.stringify(dbDreamBoard));
+                                  setDreamBoard(dbDreamBoard);
+                                } else {
+                                  setDreamBoard(updatedDreamBoard);
+                                  await AsyncStorage.setItem(getFamilyKey('dreamBoard', currentUser.familyId), JSON.stringify(updatedDreamBoard));
+                                }
 
-                                console.log('Dream deleted successfully');
+                                console.log('Dream deleted and synced to backend');
                               }
                             }
                           ]
@@ -2034,67 +2173,85 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
 
                 <TouchableOpacity
                   style={[styles.saveButton, { backgroundColor: themeColors.primary }]}
-                  onPress={() => {
+                  onPress={async () => {
                     if (!dreamForm.title || !dreamForm.targetAmount || !dreamForm.category) {
                       const errorMessage = 'Please fill in title, target amount, and category.';
                       console.error('Validation Error:', errorMessage);
-
-                      // Try multiple approaches for error display
-                      if (typeof window !== 'undefined' && window.alert) {
-                        window.alert('Missing Information: ' + errorMessage);
-                      } else if (Alert && Alert.alert) {
-                        Alert.alert('Missing Information', errorMessage);
-                      } else {
-                        // Fallback: show error in console only
-                        console.error('Could not display error dialog - please fill in all required fields');
-                      }
+                      if (typeof window !== 'undefined' && window.alert) { window.alert('Missing Information: ' + errorMessage); }
+                      else if (Alert && Alert.alert) { Alert.alert('Missing Information', errorMessage); }
+                      else { console.error('Could not display error dialog - please fill in all required fields'); }
                       return;
                     }
 
                     const targetAmount = parseFloat(dreamForm.targetAmount);
                     const monthlyCommitment = dreamForm.monthlyCommitment ?
                       parseFloat(dreamForm.monthlyCommitment) :
-                      Math.ceil(targetAmount / 24); // Default to 2 years
+                      Math.ceil(targetAmount / 24);
 
                     const newDream = {
-                      id: Date.now().toString(),
+                      id: editingDreamId || Date.now().toString(),
                       title: dreamForm.title,
-                      targetAmount: targetAmount,
+                      targetAmount,
                       currentSavings: 0,
-                      monthlyCommitment: monthlyCommitment,
+                      monthlyCommitment,
                       category: dreamForm.category,
                       description: dreamForm.description,
                       deadline: dreamForm.deadline,
                       icon: dreamForm.category === 'vacation' ? '🏖️' :
-                            dreamForm.category === 'home' ? '🏠' :
-                            dreamForm.category === 'education' ? '🎓' :
-                            dreamForm.category === 'emergency' ? '🛡️' :
-                            dreamForm.category === 'vehicle' ? '🚗' :
-                            dreamForm.category === 'business' ? '💼' : '✨',
+                        dreamForm.category === 'home' ? '🏠' :
+                        dreamForm.category === 'education' ? '🎓' :
+                        dreamForm.category === 'emergency' ? '🛡️' :
+                        dreamForm.category === 'vehicle' ? '🚗' :
+                        dreamForm.category === 'business' ? '💼' : '✨',
                       color: dreamForm.category === 'vacation' ? '#FFEB3B' :
-                             dreamForm.category === 'home' ? '#2196F3' :
-                             dreamForm.category === 'education' ? '#4CAF50' :
-                             dreamForm.category === 'emergency' ? '#FF5722' :
-                             dreamForm.category === 'vehicle' ? '#9C27B0' :
-                             dreamForm.category === 'business' ? '#FF9800' : '#607D8B',
+                        dreamForm.category === 'home' ? '#2196F3' :
+                        dreamForm.category === 'education' ? '#4CAF50' :
+                        dreamForm.category === 'emergency' ? '#FF5722' :
+                        dreamForm.category === 'vehicle' ? '#9C27B0' :
+                        dreamForm.category === 'business' ? '#FF9800' : '#607D8B',
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
                     };
 
+                    let updatedItems, totalValue = 0, totalMonthly = 0;
+                    if (dreamBoard?.items && editingDreamId) {
+                      // Edit: Replace the item
+                      updatedItems = dreamBoard.items.map((d: any) =>
+                        d.id === editingDreamId ? { ...d, ...newDream } : d
+                      );
+                    } else {
+                      // Add
+                      updatedItems = dreamBoard?.items ? [newDream, ...dreamBoard.items] : [newDream];
+                    }
+                    // recalc totals
+                    updatedItems.forEach((d: any) => {
+                      totalValue += d.targetAmount;
+                      totalMonthly += d.monthlyCommitment;
+                    });
                     const updatedDreamBoard = {
-                      items: dreamBoard?.items ? [newDream, ...dreamBoard.items] : [newDream],
-                      totalDreamValue: (dreamBoard?.totalDreamValue || 0) + targetAmount,
-                      monthlyCommitment: (dreamBoard?.monthlyCommitment || 0) + monthlyCommitment,
+                      items: updatedItems,
+                      totalDreamValue: totalValue,
+                      monthlyCommitment: totalMonthly,
                       inspiration: dreamBoard?.inspiration || {
                         quote: "The future belongs to those who believe in the beauty of their dreams.",
                         author: "Eleanor Roosevelt"
                       }
                     };
 
-                    setDreamBoard(updatedDreamBoard);
-
-                    // Save to AsyncStorage for persistence
-                    AsyncStorage.setItem('dreamBoard', JSON.stringify(updatedDreamBoard));
+                    // Save to backend and cache result
+                    if (currentUser && selectedChild) {
+                      let dbDreamBoard = dreamBoard;
+                      if (dreamBoard && dreamBoard._id) {
+                        dbDreamBoard = await saveDreamBoardToDB(updatedDreamBoard, currentUser.familyId, selectedChild.id, dreamBoard._id);
+                      } else {
+                        dbDreamBoard = await saveDreamBoardToDB(updatedDreamBoard, currentUser.familyId, selectedChild.id);
+                      }
+                      await AsyncStorage.setItem(getFamilyKey('dreamBoard', currentUser.familyId), JSON.stringify(dbDreamBoard));
+                      setDreamBoard(dbDreamBoard);
+                    } else {
+                      setDreamBoard(updatedDreamBoard);
+                    }
+                    setEditingDreamId(null);
 
                     setShowDreamModal(false);
                     setDreamForm({
@@ -2107,8 +2264,12 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
                     });
 
                     Alert.alert(
-                      'Dream Added! 🎯',
-                      `"${dreamForm.title}" has been added to your Dream Board!`,
+                      editingDreamId
+                        ? 'Dream Updated! 📝'
+                        : 'Dream Added! 🎯',
+                      editingDreamId
+                        ? `"${dreamForm.title}" has been updated successfully!`
+                        : `"${dreamForm.title}" has been added to your Dream Board!`,
                       [{ text: 'Fantastic!', style: 'default' }]
                     );
                   }}

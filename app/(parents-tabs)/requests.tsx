@@ -4,6 +4,7 @@ import { API_URL } from '@/utils/config';
 import { formatDateTime } from '@/utils/dateUtils';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
+import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -39,6 +40,7 @@ export default function ParentsRequestsScreen() {
     comment: string;
   }>({ visible: false, request: null, approved: false, comment: '' });
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
 
   useEffect(() => {
     loadRequests();
@@ -76,6 +78,17 @@ export default function ParentsRequestsScreen() {
 
       const requestsData = await response.json();
 
+      // Security: reject if any requests returned (after transformation) for child not in parent's children (if available)
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const storedUser = await AsyncStorage.getItem('user');
+      let allowedChildNames: string[] = [];
+      if (storedUser) {
+        const parentProfile = JSON.parse(storedUser);
+        if (Array.isArray(parentProfile.children)) {
+          allowedChildNames = parentProfile.children.map((c: any) => c.name);
+        }
+      }
+
       // Transform the data for display
       const transformedRequests = requestsData.map((req: any) => ({
         id: req._id || req.id,
@@ -87,14 +100,24 @@ export default function ParentsRequestsScreen() {
         status: req.status,
         createdAt: req.createdAt,
         messages: req.messages || [],
-        // Include balance fields for Inter-Jar Requests and Approvals
         fromBalance: req.fromBalance,
         toBalance: req.toBalance,
         from: req.from,
         to: req.to
       }));
 
+      if (
+        allowedChildNames.length > 0 &&
+        transformedRequests.some((req: any) => req.childName && !allowedChildNames.includes(req.childName))
+      ) {
+        const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+        await clearSensitiveAppData();
+        if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
+        return;
+      }
+
       setRequests(transformedRequests);
+      markRefreshed();
     } catch (error) {
       console.error('Error loading requests:', error);
       // Check if it's a rate limiting error with specific message
@@ -177,13 +200,13 @@ export default function ParentsRequestsScreen() {
       setTimeout(() => {
         loadRequests();
         setFeedback('');
-      }, 2000);
+      }, 7000);
 
     } catch (error) {
       console.error('Error updating request:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to update request. Please try again.';
       setFeedback(errorMessage);
-      setTimeout(() => setFeedback(''), 5000); // Show error longer
+      setTimeout(() => setFeedback(''), 7000); // Show error for 7s
     }
   };
 
@@ -275,6 +298,11 @@ export default function ParentsRequestsScreen() {
           <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
       </View>
+      {showStaleWarning && (
+        <Text style={{ color: themeColors.warning, fontWeight: 'bold', fontSize: 15, backgroundColor: '#fffbe5', borderLeftWidth: 4, borderLeftColor: themeColors.warning, padding: 9, borderRadius: 6, marginBottom: 8, textAlign: 'center' }}>
+          Requests list may be outdated. Tap "Refresh" for latest status.
+        </Text>
+      )}
       <Text style={styles.title}>Child's Requests</Text>
 
       {/* Search and Filter Section */}

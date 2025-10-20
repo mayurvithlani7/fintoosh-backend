@@ -17,12 +17,18 @@ import {
   View
 } from "react-native";
 
+let DateTimePicker: any = null;
+if (Platform.OS !== "web") {
+  try {
+    DateTimePicker = require("@react-native-community/datetimepicker").default;
+  } catch (e) {}
+}
+
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 10,
     paddingHorizontal: 4,
-    backgroundColor: "#f6fafd",
     flex: 1,
     minHeight: "100%"
   },
@@ -31,10 +37,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 12,
     marginBottom: 10,
-    color: "#174389",
   },
   sectionCard: {
-    backgroundColor: "#fff",
     borderRadius: 16,
     marginBottom: 12,
     padding: 16,
@@ -42,36 +46,37 @@ const styles = StyleSheet.create({
     width: "98%",
     maxWidth: 560,
     elevation: 2,
-    shadowColor: "#aaa",
   },
   filtersRow: {
-    flexDirection: "row",
-    marginBottom: 8,
-    alignItems: "center",
+    flexDirection: Platform.OS === "web" ? "row" : "column",
+    flexWrap: "wrap",
+    alignItems: Platform.OS === "web" ? "center" : "stretch",
     justifyContent: "space-between",
-    gap: 8
+    gap: Platform.OS === "web" ? 8 : 0,
+    rowGap: Platform.OS === "web" ? undefined : 12,
+    marginBottom: Platform.OS === "web" ? 8 : 0,
   },
   filterInput: {
-    backgroundColor: "#fafafa",
     borderRadius: 7,
-    padding: 7,
-    flex: 1,
+    padding: 8,
     borderWidth: 1,
-    borderColor: "#cedbef",
     fontSize: 15,
-    marginRight: 5
+    marginRight: Platform.OS === "web" ? 5 : 0,
+    marginBottom: Platform.OS === "web" ? 0 : 10,
+    width: "100%",
+    backgroundColor: undefined,
+    borderColor: undefined,
+    color: undefined,
   },
   label: {
     fontWeight: "500",
     fontSize: 14,
-    color: "#48509b",
     marginRight: 3
   },
   list: {
     width: "100%"
   },
   txRow: {
-    backgroundColor: "#f8fafd",
     borderRadius: 9,
     marginBottom: 7,
     flexDirection: "row",
@@ -79,12 +84,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderLeftWidth: 5,
-    borderLeftColor: "#eee"
   },
   txChild: {
     fontWeight: "600",
     fontSize: 13,
-    color: "#693acd",
     minWidth: 45,
     marginRight: 6,
   },
@@ -97,37 +100,46 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 9,
     fontWeight: "500",
-    color: "#443d58"
   },
   txJar: {
     fontWeight: "bold",
-    color: "#238216",
     marginHorizontal: 5
   },
   txDate: {
     fontSize: 13,
-    color: "#8796ab",
     marginLeft: 8,
     minWidth: 74
   },
   filterLabel: {
     fontWeight: "500",
-    color: "#346",
     fontSize: 13,
     marginRight: 4
   },
   refreshBtn: {
-    marginLeft: 10,
+    minWidth: 40,
+    alignSelf: "center",
     paddingVertical: 7,
     paddingHorizontal: 13,
     borderRadius: 7,
-    backgroundColor: "#dcecf1"
+    marginTop: Platform.OS === "web" ? 0 : 10
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 8,
-    color: "#234",
+  },
+  dateFieldBtn: {
+    borderRadius: 7,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "flex-start",
+    height: 40,
+    paddingHorizontal: 10,
+    marginBottom: 4,
+    marginTop: 2
+  },
+  dateFieldText: {
+    fontSize: 15,
   },
 });
 
@@ -150,7 +162,6 @@ const jarNameMap: { [key: string]: string } = {
 };
 
 function TypeSelect({ value, onChange, themeColors }: { value: string; onChange: (val: string) => void; themeColors: any }) {
-  // Dropdown for web, otherwise Picker for native
   if (Platform.OS === "web") {
     return (
       <select
@@ -186,14 +197,15 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
       borderRadius: 7,
       borderWidth: 1,
       borderColor: themeColors.border,
-      marginRight: 5,
+      marginRight: 0,
       paddingVertical: 2,
-      minHeight: 35
+      minHeight: 35,
+      marginBottom: 10,
     }}>
       <Picker
         selectedValue={value}
         onValueChange={onChange}
-        style={{height: 33, fontSize: 15, width: "100%", color: themeColors.text}}
+        style={{ height: 33, fontSize: 15, width: "100%", color: themeColors.text }}
         dropdownIconColor={themeColors.primary}
         itemStyle={{ color: themeColors.text }}
       >
@@ -208,21 +220,78 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
         <Picker.Item label="Others" value="others" />
       </Picker>
     </View>
-  )
+  );
 }
 
-function DateInput({ value, onChange, placeholder }: {
-  value: string, onChange: (val: string) => void, placeholder?: string
+function DateInput({ value, onChange, placeholder, themeColors }: {
+  value: string, onChange: (val: string) => void, placeholder?: string, themeColors: any
 }) {
+  const [show, setShow] = useState(false);
+
+  if (Platform.OS === "web") {
+    return (
+      <input
+        type="date"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          backgroundColor: themeColors.surface,
+          borderRadius: 7,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          fontSize: 15,
+          padding: 8,
+          minHeight: 35,
+          minWidth: 110,
+          width: "100%",
+          color: themeColors.text,
+        }}
+        placeholder={placeholder}
+      />
+    );
+  }
+  // Native mobile: use button+modal for readability/tap, plus DateTimePicker popup
   return (
-    <TextInput
-      style={[styles.filterInput, { minWidth: 100 }]}
-      placeholder={placeholder || "YYYY-MM-DD"}
-      value={value}
-      onChangeText={onChange}
-      keyboardType="numeric"
-    />
-  )
+    <View style={{ width: "100%" }}>
+      <TouchableOpacity
+        style={[
+          styles.dateFieldBtn,
+          {
+            backgroundColor: themeColors.surface,
+            borderColor: themeColors.border,
+          }
+        ]}
+        onPress={() => setShow(true)}
+        activeOpacity={0.7}
+      >
+        <Text
+          style={[
+            styles.dateFieldText,
+            { color: value ? themeColors.text : themeColors.textSecondary }
+          ]}
+        >
+          {value ? value : (placeholder || "Select Date")}
+        </Text>
+      </TouchableOpacity>
+      {show && DateTimePicker && (
+        <DateTimePicker
+          value={value ? new Date(value) : new Date()}
+          mode="date"
+          display="default"
+          onChange={(_event: any, d?: Date) => {
+            setShow(false);
+            if (d) {
+              // Format as YYYY-MM-DD
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, "0");
+              const day = String(d.getDate()).padStart(2, "0");
+              onChange(`${year}-${month}-${day}`);
+            }
+          }}
+        />
+      )}
+    </View>
+  );
 }
 
 export default function ParentTransactionHistoryScreen() {
@@ -232,10 +301,8 @@ export default function ParentTransactionHistoryScreen() {
   const [type, setType] = useState("");
   const [loading, setLoading] = useState(true);
   const [childMap, setChildMap] = useState<{ [key: string]: string }>({});
-  // Date filter logic
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  // Help modal
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   const loadTransactions = async () => {
@@ -245,11 +312,10 @@ export default function ParentTransactionHistoryScreen() {
       const storedUser = await AsyncStorage.getItem('user');
       if (!token || !storedUser) throw new Error("Not authenticated.");
       const parent = JSON.parse(storedUser);
-      // Get all children
       const familyId = parent.familyId;
       const children = await fetchFamilyChildren(familyId, token);
       const childIdMap: { [key: string]: string } = {};
-      children.forEach((c: any) => { 
+      children.forEach((c: any) => {
         childIdMap[c._id] = c.name || c.id;
         childIdMap[c.id] = c.name || c.id;
       });
@@ -258,7 +324,7 @@ export default function ParentTransactionHistoryScreen() {
       let allTxs: any[] = [];
       for (const child of children) {
         const txs = await fetchTransactions(child.id, token);
-        allTxs = allTxs.concat((txs || []).map((t: any) => ({...t, childName: child.name || child.id})));
+        allTxs = allTxs.concat((txs || []).map((t: any) => ({ ...t, childName: child.name || child.id })));
       }
       setTransactions(allTxs);
     } catch {
@@ -271,11 +337,10 @@ export default function ParentTransactionHistoryScreen() {
     loadTransactions();
   }, []);
 
-  // Filtering logic: apply type/search/date range
+  // Filtering logic
   const filtered = transactions.filter(tx => {
     const txDateStr = tx.date || tx.createdAt || "";
     const txDate = new Date(txDateStr);
-    // Date logic
     let afterStart = true; let beforeEnd = true;
     if (startDate && startDate.trim()) {
       const startFilter = new Date(startDate.trim());
@@ -310,18 +375,27 @@ export default function ParentTransactionHistoryScreen() {
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Child's Points History</Text>
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card }]}>
-        <View style={[styles.filtersRow, { flexWrap: 'wrap', rowGap: 10 }]}>
-          <View style={{ flex: 1, minWidth: 140 }}>
-            <Text style={[styles.label, { color: themeColors.text } ]}>Search</Text>
+        {/* Filters, vertical on mobile, horizontal on web */}
+        <View style={styles.filtersRow}>
+          <View style={{ flex: 1, minWidth: 140, marginBottom: Platform.OS === "web" ? 0 : 16 }}>
+            <Text style={[styles.label, { color: themeColors.text }]}>Search</Text>
             <TextInput
               placeholder="Type to search..."
-              style={[styles.filterInput, { backgroundColor: themeColors.surface, borderColor: themeColors.border, color: themeColors.text }]}
+              style={[
+                styles.filterInput,
+                {
+                  backgroundColor: themeColors.surface,
+                  borderColor: themeColors.border,
+                  color: themeColors.text,
+                  maxWidth: 340,
+                }
+              ]}
               value={search}
               onChangeText={setSearch}
               placeholderTextColor={themeColors.textSecondary}
             />
           </View>
-          <View style={{ flex: 1, minWidth: 180 }}>
+          <View style={{ flex: 1, minWidth: 180, marginBottom: Platform.OS === "web" ? 0 : 16 }}>
             <Text style={[styles.label, { color: themeColors.text }]}>Filter by Type</Text>
             <TypeSelect value={type} onChange={setType} themeColors={themeColors} />
           </View>
@@ -329,12 +403,9 @@ export default function ParentTransactionHistoryScreen() {
             style={[
               styles.refreshBtn,
               {
-                alignSelf: "center",
-                minWidth: 40,
-                height: 40,
-                paddingVertical: 7,
-                marginTop: Platform.OS === "web" ? 0 : 10,
-                backgroundColor: themeColors.secondary
+                backgroundColor: themeColors.secondary,
+                marginRight: Platform.OS === "web" ? 0 : 0,
+                marginTop: Platform.OS === "web" ? 0 : 8
               }
             ]}
             onPress={loadTransactions}
@@ -344,33 +415,34 @@ export default function ParentTransactionHistoryScreen() {
           </TouchableOpacity>
         </View>
         {/* Date Range Filter */}
-        <View style={[styles.filtersRow, {marginTop: 4}]}>
-          <View style={{ flex: 1, minWidth: 120 }}>
+        <View style={styles.filtersRow}>
+          <View style={{ flex: 1, minWidth: 120, marginBottom: Platform.OS === "web" ? 0 : 16 }}>
             <Text style={[styles.label, { color: themeColors.text }]}>From Date</Text>
             <DateInput
               value={startDate}
               onChange={setStartDate}
               placeholder="YYYY-MM-DD"
+              themeColors={themeColors}
             />
           </View>
-          <View style={{ flex: 1, minWidth: 120 }}>
+          <View style={{ flex: 1, minWidth: 120, marginBottom: Platform.OS === "web" ? 0 : 16 }}>
             <Text style={[styles.label, { color: themeColors.text }]}>To Date</Text>
             <DateInput
               value={endDate}
               onChange={setEndDate}
               placeholder="YYYY-MM-DD"
+              themeColors={themeColors}
             />
           </View>
           {(startDate || endDate) && (
             <TouchableOpacity
-              style={[styles.refreshBtn, {backgroundColor: themeColors.surface, alignSelf: 'flex-end'}]}
-              onPress={() => {setStartDate(""); setEndDate("");}}
+              style={[styles.refreshBtn, { backgroundColor: themeColors.surface, alignSelf: 'flex-end' }]}
+              onPress={() => { setStartDate(""); setEndDate(""); }}
             >
               <Text style={{ color: themeColors.primary, fontWeight: "bold" }}>✕ Clear</Text>
             </TouchableOpacity>
           )}
         </View>
-        {/* Show validation if start > end */}
         {(startDate && endDate && startDate > endDate) && (
           <Text style={{ color: themeColors.error, fontWeight: "bold", marginLeft: 4, marginTop: 2, fontSize: 14 }}>
             Start date cannot be after end date.
@@ -388,9 +460,9 @@ export default function ParentTransactionHistoryScreen() {
             ) : (
               filtered
                 .sort((a, b) => {
-                  // @ts-ignore - TypeScript strict checking on Date constructor
+                  // @ts-ignore
                   const dateA = new Date(a.date || a.createdAt || "1970-01-01");
-                  // @ts-ignore - TypeScript strict checking on Date constructor
+                  // @ts-ignore
                   const dateB = new Date(b.date || b.createdAt || "1970-01-01");
                   return dateB.getTime() - dateA.getTime();
                 })
@@ -403,7 +475,7 @@ export default function ParentTransactionHistoryScreen() {
                         backgroundColor: themeColors.surface,
                         borderLeftColor:
                           tx.amount > 0 ? themeColors.success :
-                          tx.amount < 0 ? themeColors.error : themeColors.border,
+                            tx.amount < 0 ? themeColors.error : themeColors.border,
                       }
                     ]}
                   >

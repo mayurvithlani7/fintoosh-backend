@@ -337,6 +337,17 @@ export async function processAnalyticsData(
 
     const rawData = await response.json();
 
+    // DEBUG: Print received user and transaction data for verification
+    console.log('[ANALYTICS DEBUG] user:', rawData.user);
+    if (Array.isArray(rawData.transactions)) {
+      console.log('[ANALYTICS DEBUG] transactions count:', rawData.transactions.length);
+      if (rawData.transactions.length > 0) {
+        console.log('[ANALYTICS DEBUG] sample transaction:', rawData.transactions[0]);
+      }
+    } else {
+      console.log('[ANALYTICS DEBUG] transactions:', rawData.transactions);
+    }
+
     const spendingTrends = processSpendingTrends(rawData.transactions);
     const choreCompletion = processChoreCompletion(rawData.chores, rawData.transactions);
     const jarDistribution = processJarDistribution(rawData.user, rawData.transactions);

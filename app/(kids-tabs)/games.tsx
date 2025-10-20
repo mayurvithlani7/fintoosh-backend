@@ -1,4 +1,5 @@
 import HelpModal from '@/components/HelpModal';
+import { useTheme } from '@/utils/themeContext';
 import { router } from 'expo-router';
 import React, { useState } from "react";
 import {
@@ -11,7 +12,6 @@ import {
   View
 } from "react-native";
 import { AnimatedProgressBar } from '../../components/animations/AnimatedProgressBar';
-import { useTheme } from '../../utils/themeContext';
 import EntrepreneurStallGame from "./TheEntrepreneursStallGame";
 
 const createGameStyles = (themeColors: any) => StyleSheet.create({

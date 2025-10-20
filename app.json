@@ -20,6 +20,9 @@
         "NSCameraUsageDescription": "This app requires camera access for future features",
         "NSMicrophoneUsageDescription": "This app requires microphone access for future features",
         "NSPhotoLibraryUsageDescription": "This app requires photo library access for future features"
+      },
+      "runtimeVersion": {
+        "policy": "appVersion"
       }
     },
     "android": {
@@ -31,6 +34,7 @@
       },
       "package": "com.fintoosh.app",
       "versionCode": 1,
+      "enableOnBackInvokedCallback": true,
       "web": {
         "output": "static",
         "favicon": "./assets/images/favicon.png"
@@ -55,21 +59,20 @@
         "typedRoutes": true,
         "reactCompiler": true
       },
-      "extra": {
-        "router": {},
-        "eas": {
-          "projectId": "749948db-673c-41b7-a30f-8fae58203b4d"
-        }
-      }
-    },
-    "extra": {
-      "eas": {
-        "projectId": "749948db-673c-41b7-a30f-8fae58203b4d"
-      }
+      "runtimeVersion": "1.0.0"
     },
     "plugins": [
       "expo-router",
       "expo-video"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ecde9481-2d85-4cdc-90e1-a3d7e474e05c"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ecde9481-2d85-4cdc-90e1-a3d7e474e05c"
+    }
   }
 }

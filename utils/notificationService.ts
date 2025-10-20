@@ -1,3 +1,4 @@
+import type { CalendarTriggerInput, TimeIntervalTriggerInput } from 'expo-notifications';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
@@ -33,11 +34,12 @@ export class NotificationService {
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Chore Reminder',
-          body: `Don't forget to complete: ${choreTitle}`,
+          body: `You have a new chore to complete.`,
           sound: 'default',
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
-        trigger: dueDate,
+                // Use timeInterval trigger for Expo compatibility
+        trigger: { type: 'timeInterval', seconds: Math.max(1, Math.floor((dueDate.getTime() - Date.now()) / 1000)), repeats: false } as TimeIntervalTriggerInput,
       });
 
       return notificationId;
@@ -52,7 +54,7 @@ export class NotificationService {
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Achievement Unlocked! 🎉',
-          body: `Congratulations! You've earned: ${achievementTitle}`,
+          body: `You have a new achievement.`,
           sound: 'default',
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
@@ -73,15 +75,16 @@ export class NotificationService {
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Goal Deadline Approaching',
-          body: `${goalTitle} is due in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+          body: `A goal deadline is approaching in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`,
           sound: 'default',
           priority: Notifications.AndroidNotificationPriority.DEFAULT,
         },
         trigger: {
+          type: 'calendar',
           hour: 9, // 9 AM reminder
           minute: 0,
           repeats: false,
-        },
+        } as CalendarTriggerInput,
       });
 
       return notificationId;

@@ -319,6 +319,8 @@ const styles = StyleSheet.create({
 
 
 const KidsHomeScreen = memo(function KidsHomeScreen() {
+  // For quick actions show-more toggle
+  const [showMore, setShowMore] = useState(false);
   const { themeColors, theme, setTheme, themes } = useTheme();
   const { refreshIntervals, formatAmount } = useCurrency();
   // Theme validation test - toggle between themes to verify color changes
@@ -459,6 +461,16 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     }
   }, [themeColors]);
 
+  // Notification suppression (persistent):
+  const [notificationsSuppressed, setNotificationsSuppressed] = useState(false);
+  const NOTIF_CLEARED_KEY = 'kids_notifications_cleared_at';
+  useEffect(() => {
+    (async () => {
+      const clearedAt = await (await import('@react-native-async-storage/async-storage')).default.getItem(NOTIF_CLEARED_KEY);
+      if (clearedAt) setNotificationsSuppressed(true);
+    })();
+  }, []);
+
   // Load notifications for kid
   const loadNotifications = useCallback(async () => {
     try {
@@ -475,6 +487,21 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       const userId = user.id;
       const notifList = await fetchNotifications(userId, token);
       dispatch({ type: 'SET_NOTIFICATIONS', payload: notifList || [] });
+      // If there are new notifications, unsuppress
+      if (notifList && notifList.length > 0) {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const clearedAtStr = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
+        if (clearedAtStr) {
+          const clearedTime = Number(clearedAtStr);
+          const hasNewAfterClear = notifList.some((n: any) =>
+            n.createdAt && Number(new Date(n.createdAt)) > clearedTime
+          );
+          if (hasNewAfterClear) {
+            setNotificationsSuppressed(false);
+            await AsyncStorage.removeItem(NOTIF_CLEARED_KEY);
+          }
+        }
+      }
     } catch (err) {
       dispatch({ type: 'SET_NOTIFICATIONS_ERROR', payload: "Failed to load notifications." });
       dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
@@ -690,7 +717,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       >
 
       {/* Notifications */}
-      {(notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0) && (
+      {(!notificationsSuppressed && (notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0)) && (
         <View style={{
           backgroundColor: themeColors.surface,
           borderRadius: 15,
@@ -700,9 +727,35 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           width: '97%',
           maxWidth: 520,
           elevation: 2,
-          shadowColor: themeColors.border
+          shadowColor: themeColors.border,
         }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 6, color: themeColors.primary }}>Notifications</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 6, color: themeColors.primary }}>
+              Notifications
+            </Text>
+            {/* Hide clear button if loading or there are no notifications */}
+            {!notifLoading && notifications.length > 0 && (
+              <TouchableOpacity
+                onPress={async () => {
+                  dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
+                  setNotificationsSuppressed(true);
+                  const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+                  await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
+                }}
+                style={{
+                  backgroundColor: themeColors.error,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  marginBottom: 6,
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Clear all notifications"
+              >
+                <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Clear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           {notifLoading ? (
             <Text style={{ fontSize: 15, color: themeColors.textSecondary }}>Loading...</Text>
           ) : notifError ? (
@@ -901,40 +954,74 @@ onPress={() => router.push('./money-jars')}
       <View style={dynamicStyles.quickActionCard}>
         <Text style={dynamicStyles.sectionTitle}>What Can I Do?</Text>
 
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: themeColors.warning }]}
-        onPress={() => router.push('./money-jars')}
-        >
-          <Text style={styles.actionButtonText}>Move Points Between Pots</Text>
-        </TouchableOpacity>
+        {/* Quick Actions Buttons - Show two by default, expand to all */}
+        {(() => {
+          // Define actions in priority order
+          const actions = [
+            {
+              label: "Move Points Between Pots",
+              color: themeColors.warning,
+              onPress: () => router.push('./money-jars'),
+            },
+            {
+              label: "Check My Goals",
+              color: themeColors.success,
+              onPress: () => router.push('./goals'),
+            },
+            {
+              label: "Do Home Tasks for Points",
+              color: themeColors.secondary,
+              onPress: () => router.push('./chores'),
+            },
+            {
+              label: "Money Gyaan",
+              color: themeColors.error,
+              onPress: () => router.push('./learn'),
+            },
+            {
+              label: "Play Money Games",
+              color: themeColors.accent,
+              onPress: () => router.push('./games'),
+            }
+          ];
+          // Render buttons
+          const visibleCount = showMore ? actions.length : 2;
+          return (
+            <>
+              {actions.slice(0, visibleCount).map((a, i) => (
+                <TouchableOpacity
+                  key={a.label}
+                  style={[styles.actionButton, { backgroundColor: a.color }]}
+                  onPress={a.onPress}
+                  accessibilityRole="button"
+                  accessibilityLabel={a.label}
+                >
+                  <Text style={styles.actionButtonText}>{a.label}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                onPress={() => setShowMore(v => !v)}
+                accessibilityRole="button"
+                style={{
+                  marginTop: 6,
+                  alignItems: 'center',
+                  padding: 10,
+                  borderRadius: 8,
+                  alignSelf: 'center',
+                  backgroundColor: themeColors.surface,
+                  borderWidth: 1,
+                  borderColor: themeColors.border,
+                  minWidth: 110,
+                }}
+              >
+                <Text style={{ fontWeight: 'bold', color: themeColors.primary, fontSize: 15 }}>
+                  {showMore ? "Show Less ▲" : "Show More ▼"}
+                </Text>
+              </TouchableOpacity>
+            </>
+          );
+        })()}
 
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: themeColors.success }]}
-onPress={() => router.push('./goals')}
-        >
-          <Text style={styles.actionButtonText}>Check My Goals</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: themeColors.secondary }]}
-onPress={() => router.push('./chores')}
-        >
-          <Text style={styles.actionButtonText}>Do Home Tasks for Points</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: themeColors.error }]}
-onPress={() => router.push('./learn')}
-        >
-          <Text style={styles.actionButtonText}>Money Gyaan</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: themeColors.accent }]}
-onPress={() => router.push('./games')}
-        >
-          <Text style={styles.actionButtonText}>Play Money Games</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Recent Activity Feed */}

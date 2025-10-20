@@ -1,24 +1,28 @@
-import { AnalyticsChartsContainer } from '@/components/AnalyticsChart';
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { SpendingInsights } from '@/components/SpendingInsights';
-import { useThemeColor } from '@/hooks/use-theme-color';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthToken, getUserData } from '@/utils/secureStorage';
+import { useTheme } from '@/utils/themeContext';
+import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 import React, { useState } from 'react';
-import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
+import Svg, { Circle } from 'react-native-svg';
 import { fetchChores, fetchFamilyChildren, fetchGoals, fetchRewards, fetchUser } from '../../utils/api';
 
-export default function ParentsAnalyticsScreen() {
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
-  const cardColor = useThemeColor({}, 'card');
-  const accentColor = useThemeColor({}, 'accent');
-  const iconColor = useThemeColor({}, 'icon');
+const createStyles = (themeColors: any) => StyleSheet.create({
+  container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  sectionCard: { borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, backgroundColor: themeColors.card, shadowColor: themeColors.border },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
+  statusMessage: { fontSize: 15, fontWeight: '600', marginTop: 8, marginBottom: 16, textAlign: 'center', padding: 10, borderRadius: 8, width: '97%', maxWidth: 520, color: themeColors.success },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, marginBottom: 8 },
+});
 
-  const styles = createStyles({ background: backgroundColor, text: textColor, tint: tintColor });
+export default function ParentsAnalyticsScreen() {
+  const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [feedback, setFeedback] = useState('');
 
@@ -27,7 +31,6 @@ export default function ParentsAnalyticsScreen() {
   const handleExport = () => {
     const csvData = exportData();
     if (csvData) {
-      // In a real app, this would trigger a download or share
       setFeedback('Analytics data exported successfully!');
       setTimeout(() => setFeedback(''), 3000);
     } else {
@@ -36,17 +39,19 @@ export default function ParentsAnalyticsScreen() {
     }
   };
 
+  const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
   const handleRefresh = () => {
     refetch();
+    markRefreshed();
   };
 
   return (
-    <ScrollView style={{ backgroundColor }} contentContainerStyle={styles.container}>
+    <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
           style={{
-            backgroundColor: tintColor,
+            backgroundColor: themeColors.accent,
             borderRadius: 20,
             paddingHorizontal: 12,
             paddingVertical: 6,
@@ -54,47 +59,57 @@ export default function ParentsAnalyticsScreen() {
           }}
           onPress={() => setHelpModalVisible(true)}
         >
-          <Text style={{ color: backgroundColor, fontWeight: 'bold', fontSize: 14 }}>Help</Text>
+          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Help</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={[styles.title, { color: textColor }]}>Child's Progress Report</Text>
+      {showStaleWarning && (
+        <Text style={{
+          color: themeColors.warning,
+          fontWeight: 'bold',
+          fontSize: 15,
+          backgroundColor: themeColors.surface,
+          borderLeftWidth: 4,
+          borderLeftColor: themeColors.warning,
+          padding: 9,
+          borderRadius: 6,
+          marginBottom: 8,
+          textAlign: 'center'
+        }}>
+          Progress data may be outdated. Tap "Refresh" for the latest.
+        </Text>
+      )}
+      <Text style={styles.title}>Child's Progress Report</Text>
 
-      {feedback ? <Text style={[styles.statusMessage, { color: textColor }]}>{feedback}</Text> : null}
+      {feedback ? <Text style={styles.statusMessage}>{feedback}</Text> : null}
 
       {/* Simple Analytics Overview */}
       <AnalyticsOverview />
 
       {/* Separator */}
-      <View style={{ height: 2, backgroundColor: textColor, opacity: 0.3, marginVertical: 20, width: '90%', alignSelf: 'center' }} />
+      <View style={{ height: 2, backgroundColor: themeColors.text, opacity: 0.3, marginVertical: 20, width: '90%', alignSelf: 'center' }} />
 
-      <Text style={[styles.title, { color: textColor, fontSize: 24 }]}>Advanced Analytics Dashboard</Text>
+      <Text style={[styles.title, { fontSize: 24 }]}>Advanced Analytics Dashboard</Text>
 
       {/* AI-Powered Insights */}
-      <View style={[styles.sectionCard, { backgroundColor: cardColor }]}>
+      <View style={[styles.sectionCard]}>
         <SpendingInsights
           onExport={handleExport}
           onRefresh={handleRefresh}
         />
       </View>
 
-      {/* Charts Section */}
-      <View style={[styles.sectionCard, { backgroundColor: cardColor }]}>
-        <Text style={[styles.sectionTitle, { color: textColor }]}>📊 Data Visualizations</Text>
-        <AnalyticsChartsContainer analyticsData={analyticsData} />
-      </View>
-
       {/* Error Display */}
       {error && (
-        <View style={[styles.sectionCard, { backgroundColor: cardColor }]}>
-          <Text style={{ color: accentColor, fontSize: 16 }}>
+        <View style={styles.sectionCard}>
+          <Text style={{ color: themeColors.error, fontSize: 16 }}>
             ⚠️ Error loading analytics: {error}
           </Text>
           <TouchableOpacity
-            style={{ backgroundColor: accentColor, padding: 10, borderRadius: 6, marginTop: 10 }}
+            style={{ backgroundColor: themeColors.error, padding: 10, borderRadius: 6, marginTop: 10 }}
             onPress={handleRefresh}
           >
-            <Text style={{ color: backgroundColor, textAlign: 'center' }}>Retry</Text>
+            <Text style={{ color: themeColors.card, textAlign: 'center' }}>Retry</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -270,14 +285,10 @@ export default function ParentsAnalyticsScreen() {
   );
 }
 
-// AnalyticsOverview component
 const AnalyticsOverview = () => {
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
-  const cardColor = useThemeColor({}, 'card');
-  const accentColor = useThemeColor({}, 'accent');
-  const iconColor = useThemeColor({}, 'icon');
+  const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
+
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
   const [error, setError] = useState('');
@@ -286,14 +297,13 @@ const AnalyticsOverview = () => {
     setLoading(true);
     setError('');
     try {
-      const token = await AsyncStorage.getItem('authToken');
-      const parentRaw = await AsyncStorage.getItem('user');
-      if (!token || !parentRaw) {
+      const token = await getAuthToken();
+      const parent = await getUserData();
+      if (!token || !parent) {
         setError('Not authenticated');
         setLoading(false);
         return;
       }
-      const parent = JSON.parse(parentRaw);
       const familyId = parent.familyId;
       const children = await fetchFamilyChildren(familyId, token);
       if (!children || children.length === 0) {
@@ -311,7 +321,11 @@ const AnalyticsOverview = () => {
       const summaryObj = {
         totalPoints: user.currentPoints ?? 0,
         chores: chores.length,
-        completedChores: chores.filter((c: any) => c.completed).length,
+        completedChores: chores.filter((c: any) =>
+          c.completed === true ||
+          c.status === 'completed' ||
+          c.approved === true
+        ).length,
         goals: goals.length,
         completedGoals: goals.filter((g: any) => g.completed || g.status === 'completed').length,
         rewards: rewards.length,
@@ -323,7 +337,18 @@ const AnalyticsOverview = () => {
           donate: user.donatePoints ?? 0,
           invest: user.investPoints ?? 0
         },
-        name: kid.name
+        name: kid.name,
+        goalsList: goals.map((g: any) => ({
+          name: g.name || g.title || 'Goal',
+          // Use either direct percent or (currentValue / targetValue)
+          progress: g.completed || g.status === 'completed'
+            ? 1
+            : g.progress !== undefined
+              ? Math.max(0, Math.min(1, g.progress / 100))
+              : (g.current !== undefined && g.target !== undefined && g.target > 0)
+                ? Math.max(0, Math.min(1, g.current / g.target))
+                : 0,
+        })),
       };
       setSummary(summaryObj);
     } catch (err: any) {
@@ -336,23 +361,23 @@ const AnalyticsOverview = () => {
     loadAnalytics();
   }, []);
 
-  // Theme-aware colors from the theme API
-  const accentTextColor = backgroundColor;
-  const mainTextColor = textColor;
-  const secondaryTextColor = accentColor;
-  const mutedTextColor = iconColor;
-  const cardBackgroundColor = cardColor;
-  const shadowColor = backgroundColor;
+  // Theme-aware colors from the theme API (always use themeColors)
+  const accentTextColor = themeColors.card;
+  const mainTextColor = themeColors.text;
+  const secondaryTextColor = themeColors.warning;
+  const mutedTextColor = themeColors.textSecondary;
+  const cardBackgroundColor = themeColors.card;
+  const shadowColor = themeColors.border;
 
   return (
-    <View style={[createStyles({ background: cardBackgroundColor, text: textColor, tint: tintColor }).sectionCard, { backgroundColor: cardBackgroundColor, shadowColor }]}>
+    <View style={[styles.sectionCard, { backgroundColor: cardBackgroundColor, shadowColor }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <View style={{ flex: 1 }}>
-          <Text style={[createStyles({ background: cardBackgroundColor, text: textColor, tint: tintColor }).sectionTitle, { color: textColor }]}>Child's Progress Overview</Text>
+          <Text style={styles.sectionTitle}>Child's Progress Overview</Text>
         </View>
         <TouchableOpacity
           style={{
-            backgroundColor: accentColor,
+            backgroundColor: themeColors.accent,
             borderRadius: 6,
             paddingVertical: 7,
             paddingHorizontal: 14,
@@ -370,77 +395,289 @@ const AnalyticsOverview = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      {error ? <Text style={[createStyles({ background: cardBackgroundColor, text: textColor, tint: tintColor }).placeholder, { color: mutedTextColor }]}>{error}</Text> : null}
-      {loading ? <ActivityIndicator size="small" color={textColor} /> : null}
+      {error ? <Text style={[styles.placeholder, { color: mutedTextColor }]}>{error}</Text> : null}
+      {loading ? <ActivityIndicator size="small" color={mainTextColor} /> : null}
       {!loading && summary && (
         <>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 10 }}>
-            <View style={{ backgroundColor: cardBackgroundColor, padding: 8, borderRadius: 7, marginRight: 6, marginBottom: 7, minWidth: 130, alignItems: "center" }}>
-              <Text style={{ color: mainTextColor }}>Total Points: <Text style={{ fontWeight: "bold", color: secondaryTextColor }}>{summary.totalPoints}</Text></Text>
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-evenly',
+            alignItems: 'center',
+            marginVertical: 14,
+            flexWrap: 'wrap'
+          }}>
+            {/* Animated circular progress ring for chores */}
+            <View style={{ alignItems: "center", marginHorizontal: 10 }}>
+              <Text style={{ fontWeight: 'bold', color: mainTextColor, marginBottom: 4 }}>Tasks Completed</Text>
+              <ProgressRing
+                percent={summary.chores > 0 ? summary.completedChores / summary.chores : 0}
+                amount={`${summary.completedChores}/${summary.chores}`}
+                color={themeColors.success}
+                size={110}
+                strokeWidth={10}
+                labelColor={mainTextColor}
+                ringBackground={cardBackgroundColor}
+              />
             </View>
-            <View style={{ backgroundColor: cardBackgroundColor, padding: 8, borderRadius: 7, marginRight: 6, marginBottom: 7, minWidth: 130, alignItems: "center" }}>
-              <Text style={{ color: mainTextColor }}>Home Tasks Done: <Text style={{ fontWeight: "bold", color: secondaryTextColor }}>{summary.completedChores}/{summary.chores}</Text></Text>
+            {/* Animated circular progress ring for goals */}
+            <View style={{ alignItems: "center", marginHorizontal: 10 }}>
+              <Text style={{ fontWeight: 'bold', color: mainTextColor, marginBottom: 4 }}>Goals Completed</Text>
+              <ProgressRing
+                percent={summary.goals > 0 ? summary.completedGoals / summary.goals : 0}
+                amount={`${summary.completedGoals}/${summary.goals}`}
+                color={themeColors.primary}
+                size={110}
+                strokeWidth={10}
+                labelColor={mainTextColor}
+                ringBackground={cardBackgroundColor}
+              />
             </View>
-            <View style={{ backgroundColor: cardBackgroundColor, padding: 8, borderRadius: 7, marginRight: 6, marginBottom: 7, minWidth: 130, alignItems: "center" }}>
-              <Text style={{ color: mainTextColor }}>Goals Completed: <Text style={{ fontWeight: "bold", color: secondaryTextColor }}>{summary.completedGoals}/{summary.goals}</Text></Text>
-            </View>
-            <View style={{ backgroundColor: cardBackgroundColor, padding: 8, borderRadius: 7, marginRight: 6, marginBottom: 7, minWidth: 130, alignItems: "center" }}>
-              <Text style={{ color: mainTextColor }}>Rewards Claimed: <Text style={{ fontWeight: "bold", color: secondaryTextColor }}>{summary.completedRewards}/{summary.rewards}</Text></Text>
+            {/* Rewards Progress */}
+            <View style={{ alignItems: "center", marginHorizontal: 10 }}>
+              <Text style={{ fontWeight: 'bold', color: mainTextColor, marginBottom: 4 }}>Rewards Claimed</Text>
+              <ProgressRing
+                percent={summary.rewards > 0 ? summary.completedRewards / summary.rewards : 0}
+                amount={`${summary.completedRewards}/${summary.rewards}`}
+                color={themeColors.accent}
+                size={110}
+                strokeWidth={10}
+                labelColor={mainTextColor}
+                ringBackground={cardBackgroundColor}
+              />
             </View>
           </View>
-          <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 6, color: mainTextColor }}>Points by Pot</Text>
-          <View style={{ alignItems: "center", justifyContent: "center" }}>
-            <PieChart
-              data={Object.entries(summary.jars).map(([jar, points], i) => {
-                const jarNameMap: { [key: string]: string } = {
-                  current: 'Pocket Money',
-                  save: 'Savings Pot',
-                  spend: 'Spending Pot',
-                  donate: 'Help Others',
-                  invest: 'Grow Money Pot'
-                };
-                // Use theme accent, tint, icon, and card colors for chart slices
-                const themeColors = [accentColor, tintColor, iconColor, cardColor, textColor];
-                return {
-                  name: jarNameMap[jar] || jar[0].toUpperCase() + jar.slice(1),
-                  population: points as number,
-                  color: themeColors[i % themeColors.length] as any,
-                } as any;
-              })}
-              width={Math.min(Dimensions.get('window').width * 0.94, 340)}
-              height={230}
-              // @ts-ignore
-              chartConfig={{
-                color: (opacity = 1, index = 0) => {
-                  const themeColors = [accentColor, tintColor, iconColor, cardColor, textColor];
-                  return themeColors[index % themeColors.length];
-                },
-                labelColor: (opacity = 1) => mainTextColor,
-                backgroundColor: cardBackgroundColor,
-              }}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="14"
-              absolute
-            />
+
+          {/* Savings vs Spending Ratio */}
+          <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 4, marginTop: 10, color: mainTextColor }}>
+            Savings vs Spending Ratio
+          </Text>
+          <View style={{
+            padding: 14,
+            backgroundColor: cardBackgroundColor,
+            borderRadius: 10,
+            borderColor: themeColors.primary,
+            borderWidth: 1,
+            marginBottom: 8,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {summary.jars.save === 0 && summary.jars.spend === 0 ? (
+              <Text style={{ color: mutedTextColor, fontSize: 14 }}>
+                No savings or spending data available yet.
+              </Text>
+            ) : summary.jars.spend === 0 ? (
+              <Text style={{ color: themeColors.success, fontWeight: 'bold', fontSize: 16 }}>
+                All earnings have been saved!<Text style={{ color: mainTextColor, fontWeight: '400', fontSize: 14 }}> (No spending yet)</Text>
+              </Text>
+            ) : (
+              <>
+                <Text style={{ color: mainTextColor, fontWeight: '600', fontSize: 20, marginBottom: 6 }}>
+                  {`₹${summary.jars.save.toLocaleString()} saved vs ₹${summary.jars.spend.toLocaleString()} spent`}
+                </Text>
+                <Text style={{ color: secondaryTextColor, fontSize: 15 }}>
+                  {summary.jars.save > 0
+                    ? `Saved ${(summary.jars.save / summary.jars.spend).toFixed(2)}x as much as spent`
+                    : `Spent ${(summary.jars.spend / Math.max(1, summary.jars.save)).toFixed(2)}x as much as saved`}
+                </Text>
+              </>
+            )}
           </View>
-          <Text style={{ color: mutedTextColor, fontSize: 12, marginTop: 10 }}>
+          <Text style={{ color: mutedTextColor, fontSize: 12, marginTop: 8 }}>
             Child: {summary.name}
           </Text>
+
+          {/* Pie Chart: Points by Pot */}
+          <Text style={{ fontWeight: "bold", fontSize: 16, marginTop: 18, marginBottom: 7, color: mainTextColor }}>
+            Points by Pot
+          </Text>
+          <View style={{ alignItems: "center", justifyContent: "center" }}>
+            <PieChartPointsByPot jars={summary.jars} themeColors={themeColors} />
+          </View>
         </>
       )}
       {!loading && !summary && (
-        <Text style={[createStyles({ background: cardBackgroundColor, text: textColor, tint: tintColor }).placeholder, { color: mutedTextColor }]}>No progress data available yet.</Text>
+        <Text style={[styles.placeholder, { color: mutedTextColor }]}>No progress data available yet.</Text>
       )}
     </View>
   );
 };
 
-const createStyles = (themeColors: { background: string; text: string; tint: string }) => StyleSheet.create({
-  container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6 },
-  sectionCard: { borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3 },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12 },
-  statusMessage: { fontSize: 15, fontWeight: '600', marginTop: 8, marginBottom: 16, textAlign: 'center', padding: 10, borderRadius: 8, width: '97%', maxWidth: 520 },
-  placeholder: { color: '#999', fontStyle: 'italic', fontSize: 15, marginBottom: 8 },
-});
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+export function ProgressRing({
+  percent,
+  amount,
+  color,
+  size = 100,
+  strokeWidth = 13,
+  labelColor,
+  ringBackground = '#e0e0e0'
+}: {
+  percent: number,
+  amount: string,
+  color: string,
+  size?: number,
+  strokeWidth?: number,
+  labelColor?: string,
+  ringBackground?: string
+}) {
+  // Clamp
+  percent = Math.max(0, Math.min(1, percent || 0));
+
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: percent,
+      duration: 1000,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [percent]);
+
+  const strokeDashoffset = animatedValue.interpolate
+    ? animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [circumference, 0],
+      })
+    : circumference - circumference * percent;
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ position: 'absolute', left: 0, top: 0 }}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={ringBackground}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        <AnimatedCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={`${circumference},${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+        />
+      </Svg>
+      <Text style={{ fontWeight: 'bold', fontSize: 18, color: labelColor, marginBottom: 0 }}>
+        {amount}
+      </Text>
+      <Text style={{ fontSize: 13, color: color, fontWeight: '600' }}>
+        {Math.round(percent * 100)}%
+      </Text>
+    </View>
+  );
+}
+
+function PieChartPointsByPot({
+  jars,
+  themeColors
+}: {
+  jars: any,
+  themeColors: any
+}) {
+  const screenWidth = 340;
+  const jarNames: { [key: string]: string } = {
+    current: "Pocket Money",
+    save: "Savings Pot",
+    spend: "Spending Pot",
+    donate: "Help Others",
+    invest: "Grow Money Pot"
+  };
+
+  // Use jarColors from theme
+  const jarColors = themeColors.jarColors || {};
+  // Prepare pieData with color string for each jar
+  const pieData = Object.entries(jars)
+    .map(([jar, points]) => ({
+      name: jarNames[jar] || jar,
+      population: typeof points === "number" ? points : 0,
+      color: jarColors[jar] || themeColors.primary,
+      key: jar
+    }))
+    .filter(item => item.population > 0);
+
+  if (pieData.length === 0) {
+    return (
+      <Text style={{ color: themeColors.text, opacity: 0.7, marginTop: 4 }}>
+        No funds in pots yet.
+      </Text>
+    );
+  }
+
+  return (
+    <View style={{
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      marginVertical: 10,
+      paddingHorizontal: 0,
+      flexDirection: "column"
+    }}>
+      {/* Pie Chart centered */}
+      <View style={{
+        alignItems: "center",
+        justifyContent: "center",
+        width: 220,
+        height: 210
+      }}>
+        <PieChart
+          data={pieData}
+          width={220}
+          height={200}
+          chartConfig={{
+            color: (opacity = 1, index = 0) => pieData[index]?.color || themeColors.primary,
+            labelColor: () => themeColors.text,
+          } as any}
+          accessor="population"
+          backgroundColor="transparent"
+          paddingLeft="40"
+          absolute
+          hasLegend={false}
+        />
+      </View>
+      {/* Legend below */}
+      <View style={{
+        marginTop: 16,
+        width: "100%",
+        maxWidth: 300,
+        alignSelf: "center"
+      }}>
+        {pieData.map(item => (
+          <View
+            key={item.key}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 7,
+            }}
+          >
+            <View
+              style={{
+                width: 16,
+                height: 16,
+                backgroundColor: item.color,
+                borderRadius: 7,
+                marginRight: 8,
+                borderWidth: 1,
+                borderColor: themeColors.border,
+              }}
+            />
+            <Text style={{ color: themeColors.text, fontWeight: "600", fontSize: 13, minWidth: 62 }}>{item.name}</Text>
+            <Text style={{ color: themeColors.text, fontWeight: "700", fontSize: 14, marginLeft: 7 }}>
+              ₹{item.population.toLocaleString()}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}

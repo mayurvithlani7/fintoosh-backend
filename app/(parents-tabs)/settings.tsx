@@ -594,11 +594,22 @@ export default function ParentSettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
+      <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        width: '100%', 
+        maxWidth: 520, 
+        marginBottom: 22, 
+        marginTop: 6,
+        backgroundColor: themeColors.background,
+        borderRadius: 15,
+        padding: 8
+      }}>
         <BackButton label="Back to Dashboard" to="/(parents-tabs)" />
         <TouchableOpacity
           style={{
-            backgroundColor: '#6846b3',
+            backgroundColor: themeColors.secondary,
             borderRadius: 20,
             paddingHorizontal: 12,
             paddingVertical: 6,
@@ -606,7 +617,7 @@ export default function ParentSettingsScreen() {
           }}
           onPress={() => setHelpModalVisible(true)}
         >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
       </View>
       <Text style={styles.title}>⚙️ Family Settings</Text>

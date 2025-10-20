@@ -61,7 +61,7 @@ export default function ChoresScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}>
+    <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
@@ -225,6 +225,8 @@ export default function ChoresScreen() {
 }
 
 // --- Chores Section (list) ---
+import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
+
 function ChoresSection() {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
@@ -236,6 +238,7 @@ function ChoresSection() {
   // Tabs/archive for chores
   const [choresTab, setChoresTab] = useState<'Active' | 'Completed'>('Active');
   const [showArchive, setShowArchive] = useState(false);
+  const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
 
   // Helper: robust completion date
   function getChoreCompletedDate(c: any): Date {
@@ -278,10 +281,24 @@ function ChoresSection() {
         setLoading(false);
         return;
       }
-      setChores(await choresRes.json());
+      const choresData = await choresRes.json();
+      // Security: Only allow chores for this child session (user.id)
+      if (
+        user &&
+        choresData &&
+        choresData.length > 0 &&
+        choresData.some((c: any) => (c.childId && c.childId !== user.id))
+      ) {
+        const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+        await clearSensitiveAppData();
+        if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
+        return;
+      }
+      setChores(choresData);
       // Requests (for pending claim)
       const reqRes = await fetch(`${API_URL}/requests/${userId}`);
       if (reqRes.ok) setRequests(await reqRes.json());
+      markRefreshed();
     } catch (err) {
       showError("Could not load chores/user info.");
     } finally {
@@ -446,7 +463,37 @@ function ChoresSection() {
 
   return (
     <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+      {showStaleWarning && (
+        <Text style={{ color: themeColors.warning, fontWeight: 'bold', fontSize: 15, backgroundColor: '#fffbe5', borderLeftWidth: 4, borderLeftColor: themeColors.warning, padding: 9, borderRadius: 6, marginBottom: 8, textAlign: 'center' }}>
+          Your task list may be out of date. Tap Refresh for the latest status.
+        </Text>
+      )}
       <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Tasks</Text>
+      {/* Refresh Button */}
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 8 }}>
+        <TouchableOpacity
+          style={[
+            {
+              backgroundColor: loading ? "#ccc" : themeColors.secondary,
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              alignItems: "center"
+            },
+            loading && { opacity: 0.6 }
+          ]}
+          onPress={loadChoresUserAndRequests}
+          disabled={loading}
+        >
+          <Text style={{
+            color: loading ? "#666" : themeColors.card,
+            fontWeight: "bold",
+            fontSize: 12
+          }}>
+            {loading ? "Refreshing..." : "🔄 Refresh Tasks"}
+          </Text>
+        </TouchableOpacity>
+      </View>
       {/* Chores Tabs */}
       <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 10 }}>
         {["Active", "Completed"].map(t => (

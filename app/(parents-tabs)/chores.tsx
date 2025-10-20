@@ -2,12 +2,87 @@ import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import ValidationMessage from '@/components/ui/ValidationMessage';
 import { API_URL } from '@/utils/config';
-import { getAuthToken } from '@/utils/secureStorage';
+import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+const createStyles = (themeColors: any) => StyleSheet.create({
+  scroll: { backgroundColor: themeColors.background },
+  container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
+  formRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  formGroup: { flex: 1, marginHorizontal: 6 },
+  inputLabel: { fontWeight: '500', marginBottom: 4, color: themeColors.text, fontSize: 15 },
+  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
+  formBtn: { backgroundColor: themeColors.primary, padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
+  formBtnText: { fontWeight: '700', color: themeColors.card, fontSize: 15 },
+  validation: { color: themeColors.error, fontSize: 15, marginTop: 4 },
+  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success, marginTop: 4 },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
+  frequencySelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: 8, marginBottom: 8 },
+  frequencyButton: { backgroundColor: themeColors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, margin: 2, minWidth: 60, alignItems: 'center' },
+  frequencyButtonSelected: { backgroundColor: themeColors.secondary },
+  frequencyButtonText: { color: themeColors.text, fontSize: 12, fontWeight: '600' },
+  frequencyButtonTextSelected: { color: themeColors.card },
+  refreshBtn: {
+    backgroundColor: themeColors.secondary,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  refreshBtnDisabled: {
+    backgroundColor: themeColors.surface,
+  },
+  refreshBtnText: {
+    color: themeColors.card,
+    fontWeight: "bold",
+    fontSize: 12,
+  },
+  refreshBtnTextDisabled: {
+    color: themeColors.textSecondary,
+  },
+  cancelBtn: {
+    backgroundColor: themeColors.surface,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontWeight: '700',
+    color: themeColors.text,
+    fontSize: 15,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: themeColors.border,
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: themeColors.primary,
+  },
+  checkboxText: {
+    fontSize: 16,
+    color: themeColors.text,
+  },
+});
 
 export default function ParentsChoresScreen() {
   const { themeColors } = useTheme();
@@ -47,6 +122,8 @@ export default function ParentsChoresScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [lastRefreshed, setLastRefreshed] = useState(Date.now());
+  const [showStaleWarning, setShowStaleWarning] = useState(false);
   // Validation
   const [choreNameError, setChoreNameError] = useState<string | null>(null);
   const [pointsError, setPointsError] = useState<string | null>(null);
@@ -75,8 +152,30 @@ export default function ParentsChoresScreen() {
       if (selectedChild) {
         loadChores();
       }
+      // Mark as potentially not stale if loaded on focus
     }, [selectedChild])
   );
+
+  // If the tab loses focus, mark data as potentially stale
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const onBlur = () => setShowStaleWarning(true);
+      window.addEventListener('blur', onBlur);
+      return () => window.removeEventListener('blur', onBlur);
+    }
+    // No-op on native
+    return undefined;
+  }, []);
+
+  // Optionally, after certain time (e.g., 60s), show data might be stale
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (Date.now() - lastRefreshed > 60 * 1000) {
+        setShowStaleWarning(true);
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [lastRefreshed]);
 
   const loadChildren = async () => {
     try {
@@ -89,14 +188,11 @@ export default function ParentsChoresScreen() {
       console.log('Loading children with token:', token.substring(0, 20) + '...');
 
       // First get current user to get familyId
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const currentUserStr = await AsyncStorage.getItem('user');
-      if (!currentUserStr) {
+      const currentUser = await getUserData();
+      if (!currentUser) {
         console.log('No user data in storage');
         return;
       }
-
-      const currentUser = JSON.parse(currentUserStr);
       const familyId = currentUser.familyId;
       console.log('Loading children for familyId:', familyId);
 
@@ -147,7 +243,20 @@ export default function ParentsChoresScreen() {
 
       if (response.ok) {
         const choresData = await response.json();
+        // Security check: chores must belong to selectedChild
+        if (
+          choresData &&
+          choresData.length > 0 &&
+          choresData.some((c: any) => (c.childId && c.childId !== selectedChild))
+        ) {
+          const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+          await clearSensitiveAppData();
+          if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
+          return;
+        }
         setChores(choresData);
+        setLastRefreshed(Date.now());
+        setShowStaleWarning(false);
       }
     } catch (error) {
       console.error('Error loading chores:', error);
@@ -612,6 +721,11 @@ export default function ParentsChoresScreen() {
         {feedback ? <Text style={styles.statusMessage}>{feedback}</Text> : null}
       </View>
 
+      {showStaleWarning && (
+        <Text style={{ color: themeColors.warning, fontWeight: 'bold', fontSize: 15, backgroundColor: '#fffbe5', borderLeftWidth: 4, borderLeftColor: themeColors.warning, padding: 9, borderRadius: 6, marginBottom: 8, textAlign: 'center' }}>
+          Tasks data may be outdated. Tap "Refresh" for the latest status.
+        </Text>
+      )}
       {/* Current Chores - With Tabs/Filters */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -650,31 +764,33 @@ export default function ParentsChoresScreen() {
         </View>
         {loading ? (
           <Text style={styles.placeholder}>Loading chores...</Text>
-        ) : (
-          (() => {
+        ) : (() => {
             // DEBUG: Log all chores with status field for parent debugging
             console.log('Chores for rendering:', chores.map(c => ({ id: c._id, name: c.name, status: c.status })));
             // Filter logic with 90-day limit for completed
             let filteredChores;
             let showArchiveButton = false;
+            // Unified function: is a chore "Done"?
+            const isChoreDone = (c: any) =>
+              c.completed === true ||
+              c.status === 'completed' ||
+              c.approved === true;
+
             if (choresTab === 'To Do') {
-              filteredChores = chores.filter(c => !c.completed || !c.approved);
+              filteredChores = chores.filter(c => !isChoreDone(c));
             } else {
-              // "Done"
+              // "Done": last 90 days
               const now = new Date();
               const ninetyDaysAgo = new Date(now);
               ninetyDaysAgo.setDate(now.getDate() - 90);
               const filteredRecent = chores.filter(c =>
-                (c.completed && c.approved) &&
-                new Date(c.createdAt) >= ninetyDaysAgo
+                isChoreDone(c) && new Date(c.createdAt) >= ninetyDaysAgo
               );
               const filteredArchived = chores.filter(c =>
-                (c.completed && c.approved) &&
-                new Date(c.createdAt) < ninetyDaysAgo
+                isChoreDone(c) && new Date(c.createdAt) < ninetyDaysAgo
               );
               filteredChores = filteredRecent;
               showArchiveButton = filteredArchived.length > 0;
-              // If "Show All Completed Chores" is enabled, show all
               if (showAllCompleted) {
                 filteredChores = [...filteredRecent, ...filteredArchived].sort((a, b) =>
                   new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -719,7 +835,7 @@ export default function ParentsChoresScreen() {
                       </Text>
                     )}
                     <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>
-                      Status: {(c.completed && c.approved) ? 'Completed' : c.completed ? 'Pending Approval' : 'Active'} • Created: {new Date(c.createdAt).toLocaleDateString()}
+                      Status: {c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : ((c.completed && c.approved) ? 'Completed' : c.completed ? 'Pending Approval' : 'Active')} • Created: {new Date(c.createdAt).toLocaleDateString()}
                     </Text>
                     {/* Parent controls: edit/delete for active, pending indicator, nothing for completed/approved */}
                     {c.status === 'active' ? (
@@ -830,7 +946,7 @@ export default function ParentsChoresScreen() {
               </>
             );
           })()
-        )}
+        }
       </View>
 
       {/* Help Modal */}
@@ -1022,78 +1138,3 @@ export default function ParentsChoresScreen() {
     </ScrollView>
   );
 }
-
-const createStyles = (themeColors: any) => StyleSheet.create({
-  scroll: { backgroundColor: themeColors.background },
-  container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
-  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
-  formRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  formGroup: { flex: 1, marginHorizontal: 6 },
-  inputLabel: { fontWeight: '500', marginBottom: 4, color: themeColors.text, fontSize: 15 },
-  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
-  formBtn: { backgroundColor: themeColors.primary, padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
-  formBtnText: { fontWeight: '700', color: themeColors.card, fontSize: 15 },
-  validation: { color: themeColors.error, fontSize: 15, marginTop: 4 },
-  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success, marginTop: 4 },
-  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
-  frequencySelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: 8, marginBottom: 8 },
-  frequencyButton: { backgroundColor: themeColors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, margin: 2, minWidth: 60, alignItems: 'center' },
-  frequencyButtonSelected: { backgroundColor: themeColors.secondary },
-  frequencyButtonText: { color: themeColors.text, fontSize: 12, fontWeight: '600' },
-  frequencyButtonTextSelected: { color: themeColors.card },
-  refreshBtn: {
-    backgroundColor: themeColors.secondary,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  refreshBtnDisabled: {
-    backgroundColor: themeColors.surface,
-  },
-  refreshBtnText: {
-    color: themeColors.card,
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  refreshBtnTextDisabled: {
-    color: themeColors.textSecondary,
-  },
-  cancelBtn: {
-    backgroundColor: themeColors.surface,
-    borderWidth: 1,
-    borderColor: themeColors.border,
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    fontWeight: '700',
-    color: themeColors.text,
-    fontSize: 15,
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: themeColors.border,
-    borderRadius: 4,
-    marginRight: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkboxChecked: {
-    backgroundColor: themeColors.primary,
-  },
-  checkboxText: {
-    fontSize: 16,
-    color: themeColors.text,
-  },
-});

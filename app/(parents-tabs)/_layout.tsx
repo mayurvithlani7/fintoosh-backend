@@ -126,47 +126,71 @@ export default function ParentsTabLayout() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        const token = await AsyncStorage.getItem('authToken');
-        const userStr = await AsyncStorage.getItem('user');
+        console.log('[PARENTS LAYOUT] Starting auth check...');
+        const { getAuthToken, getUserData, clearAllAuthData } = await import('@/utils/secureStorage');
 
-        console.log('Parents layout auth check:', {
-          hasToken: !!token,
-          hasUserStr: !!userStr,
-          tokenLength: token?.length,
-          userStrLength: userStr?.length
-        });
+        // Check if auth token exists
+        const token = await getAuthToken();
+        console.log(`[PARENTS LAYOUT] Token retrieved: ${token ? 'present' : 'null'}, length: ${token?.length || 0}`);
 
-        if (token && userStr) {
-          const user = JSON.parse(userStr);
-          console.log('Parents layout parsed user:', {
-            role: user.role,
-            id: user.id,
-            isParent: user.role === 'parent'
-          });
+        // Check if user data exists with extra error handling
+        let user = null;
+        try {
+          user = await getUserData();
+          console.log(`[PARENTS LAYOUT] User data retrieved: ${user ? 'present' : 'null'}, type: ${typeof user}`);
 
-          // Check if token is expired (basic check)
+          // Additional validation - ensure user is a valid object
+          if (user && typeof user === 'object' && user.id) {
+            console.log(`[PARENTS LAYOUT] User validation passed, userId: ${user.id}, role: ${user.role}`);
+          } else if (user) {
+            console.warn('[PARENTS LAYOUT] User data exists but is invalid, clearing corrupted data');
+            await clearAllAuthData();
+            user = null;
+          }
+        } catch (userDataError) {
+          console.error('[PARENTS LAYOUT] Error retrieving user data:', userDataError);
+          // Clear corrupted data
+          try {
+            await clearAllAuthData();
+            console.log('[PARENTS LAYOUT] Cleared corrupted auth data');
+          } catch (clearError) {
+            console.error('[PARENTS LAYOUT] Failed to clear corrupted data:', clearError);
+          }
+          user = null;
+        }
+
+        console.log(`[PARENTS LAYOUT] Final check: hasToken=${!!token}, hasValidUser=${!!user}`);
+
+        if (token && user) {
+          // Check if user is parent
           if (user.role === 'parent') {
-            console.log('Parents layout: authentication successful');
+            console.log('[PARENTS LAYOUT] Auth data valid, user is parent, proceeding to authenticated screens');
             setIsAuthenticated(true);
           } else {
-            console.log('Parents layout: user is not parent, authentication failed');
+            console.log('[PARENTS LAYOUT] Auth data valid but user is not parent, redirecting to login');
             setIsAuthenticated(false);
           }
-        } else {
-          console.log('Parents layout: missing token or user data, authentication failed');
-          setIsAuthenticated(false);
+          return;
         }
+
+        console.log('[PARENTS LAYOUT] Auth data incomplete or invalid, redirecting to login');
+        setIsAuthenticated(false);
       } catch (error) {
-        console.error('Parents layout auth check failed:', error);
+        console.error('[PARENTS LAYOUT] Auth check error:', error);
+        // Try to clear potentially corrupted data
+        try {
+          const { clearAllAuthData } = await import('@/utils/secureStorage');
+          await clearAllAuthData();
+          console.log('[PARENTS LAYOUT] Cleared auth data after error');
+        } catch (clearError) {
+          console.error('[PARENTS LAYOUT] Failed to clear data after error:', clearError);
+        }
         setIsAuthenticated(false);
       }
     };
 
-    // Small delay to ensure storage is complete
-    setTimeout(() => {
-      checkAuth();
-    }, 500);
+    // Small delay to ensure storage is ready
+    setTimeout(checkAuth, 100);
   }, []);
 
   // Show loading or redirect while checking authentication
@@ -233,9 +257,9 @@ export default function ParentsTabLayout() {
                   borderRadius: 6,
                 }}
                 onPress={async () => {
-                  // Logout: clear all tokens and user data, then redirect
-                  const { clearAllAuthData } = await import('@/utils/secureStorage');
-                  await clearAllAuthData();
+                  // Logout: clear all tokens, user data, and user-specific persistent state, then redirect
+                  const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+                  await clearSensitiveAppData();
                   router.replace('/login');
                 }}
                 accessibilityRole="button"

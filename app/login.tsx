@@ -70,15 +70,36 @@ const features = [
 
 // --- LoginScreen COMPONENT ---
 export default function LoginScreen() {
+  console.log('[LOGIN] Component rendering started');
   const { themeColors } = useTheme();
   const [userType, setUserType] = useState<'parent' | 'child'>('parent');
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('email');
   const [isDeactivatedAccount, setIsDeactivatedAccount] = useState(false);
   const router = useRouter();
 
-  // Clear all authentication/session data when this screen mounts to avoid any stale user/token
   React.useEffect(() => {
-    clearAllAuthData();
+    console.log('[LOGIN] Login component mounted');
+    return () => console.log('[LOGIN] Login component unmounting');
+  }, []);
+
+  // Only clear auth data if we're not coming from a successful login/navigation
+  // This prevents clearing data when user navigates back to login screen
+  React.useEffect(() => {
+    const checkIfShouldClear = async () => {
+      // Check if we have valid auth data - if so, don't clear it
+      const { getAuthToken, getUserData } = await import('@/utils/secureStorage');
+      const token = await getAuthToken();
+      const user = await getUserData();
+
+      if (!token || !user) {
+        console.log('[LOGIN] No existing auth data found, clearing any stale data');
+        clearAllAuthData();
+      } else {
+        console.log('[LOGIN] Existing auth data found, preserving session');
+      }
+    };
+
+    checkIfShouldClear();
   }, []);
 
   const handleLoginSuccess = async (data: any) => {
@@ -92,12 +113,27 @@ export default function LoginScreen() {
     try {
       const { clearAllAuthData, getAuthToken, getUserData } = await import('@/utils/secureStorage');
       await clearAllAuthData();
-      console.log('Login response:', JSON.stringify(data));
-      await saveAuthToken(data.token);
-      await saveUserData(data.user);
-      console.log('Login successful: stored token and user data securely');
+      console.log('Login response token length:', data.token.length, 'user object size:', JSON.stringify(data.user).length);
 
-      // Ensure token and user data are actually stored 
+      // Store minimal user data to avoid SecureStore size limits
+      const minimalUserData = {
+        _id: data.user._id,
+        id: data.user.id,
+        familyId: data.user.familyId,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+        status: data.user.status,
+        avatar: data.user.avatar,
+        parentId: data.user.parentId,
+        username: data.user.username
+      };
+
+      await saveAuthToken(data.token);
+      await saveUserData(minimalUserData);
+      console.log('Login successful: stored token and minimal user data securely');
+
+      // Ensure token and user data are actually stored
       let retries = 0;
       const MAX_RETRIES = 8;
       const RETRY_INTERVAL = 250; // ms
@@ -109,9 +145,11 @@ export default function LoginScreen() {
         user = await getUserData();
         if (token && user) break;
         retries++;
+        console.log(`Storage verification retry #${retries}: token=${!!token}, user=${!!user}`);
         await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));
       }
       if (!token || !user) {
+        console.log('Storage verification failed:', { token: !!token, user: !!user, tokenLength: token?.length });
         storageErrorMessage = "App could not verify login session in storage. Please retry login. If problem persists, fully close and restart the app.";
       }
     } catch (storageError) {

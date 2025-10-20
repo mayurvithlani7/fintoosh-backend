@@ -6,6 +6,7 @@ import { API_URL } from '@/utils/config';
 import { useDataCache } from '@/utils/dataCacheContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
+import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -46,6 +47,7 @@ export default function ParentsGoalsScreen() {
   }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
   // Validation
   const [goalNameError, setGoalNameError] = useState<string | null>(null);
   const [pointsError, setPointsError] = useState<string | null>(null);
@@ -72,11 +74,13 @@ export default function ParentsGoalsScreen() {
     loadChildren();
   }, []);
 
+  // Auto-fetch goals whenever the screen is focused (parent tab switch), for real-time updates after child actions
   useFocusEffect(
     useCallback(() => {
       if (selectedChild) {
         loadGoals();
       }
+      // Always reload goals from backend on screen/tab focus
     }, [selectedChild])
   );
 
@@ -149,7 +153,19 @@ export default function ParentsGoalsScreen() {
 
       if (response.ok) {
         const goalsData = await response.json();
+        // Security check: All loaded goals must belong to selectedChild
+        if (
+          goalsData &&
+          goalsData.length > 0 &&
+          goalsData.some((g: any) => (g.childId && g.childId !== selectedChild))
+        ) {
+          const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+          await clearSensitiveAppData();
+          if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
+          return;
+        }
         setGoals(goalsData);
+        markRefreshed();
       }
     } catch (err) {
       console.error('Error loading goals:', err);
@@ -653,6 +669,11 @@ export default function ParentsGoalsScreen() {
         </View>
       </View>
 
+      {showStaleWarning && (
+        <Text style={{ color: themeColors.warning, fontWeight: 'bold', fontSize: 15, backgroundColor: '#fffbe5', borderLeftWidth: 4, borderLeftColor: themeColors.warning, padding: 9, borderRadius: 6, marginBottom: 8, textAlign: 'center' }}>
+          This goals data may be outdated. Tap "Refresh" for the latest status.
+        </Text>
+      )}
       {/* Current Goals - With Tabs/Filters */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

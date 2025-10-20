@@ -5,6 +5,7 @@ import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { fetchFamilyChildren, fetchRewards } from '../../utils/api';
@@ -64,14 +65,17 @@ export default function ParentsRewardsScreen() {
     loadChildren();
   }, []);
 
-  useEffect(() => {
-    if (selectedChildId) {
-      const selectedChild = children.find(child => child._id === selectedChildId);
-      if (selectedChild) {
-        loadRewards(selectedChild.id);
+  // Auto-fetch rewards whenever the screen is focused (parent tab switch), for real-time updates after kid claims
+  useFocusEffect(
+    React.useCallback(() => {
+      if (selectedChildId) {
+        const selectedChild = children.find(child => child._id === selectedChildId);
+        if (selectedChild) {
+          loadRewards(selectedChild.id);
+        }
       }
-    }
-  }, [selectedChildId, children]);
+    }, [selectedChildId, children])
+  );
 
   async function loadChildren() {
     try {
@@ -112,6 +116,31 @@ export default function ParentsRewardsScreen() {
         return;
       }
       const data: Reward[] = await fetchRewards(childId, token as any);
+      // Security: Validate rewards belong to this family
+      const storedUser = await AsyncStorage.getItem('user');
+      if (storedUser) {
+        const parentProfile = JSON.parse(storedUser);
+        const allowedChildIds = children.map(c => c.id);
+        if (
+          data &&
+          data.length > 0 &&
+          data.some(
+            r =>
+              typeof (r as any).childId !== 'undefined' &&
+              (typeof (r as any).childId === 'object'
+                ? !(allowedChildIds.includes((r as any).childId.id))
+                : !(allowedChildIds.includes((r as any).childId)))
+          )
+        ) {
+          // Detected a cross-family/child data leak/misconfig, force logout and clear
+          const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+          await clearSensitiveAppData();
+          if (typeof window !== 'undefined' && window.location) {
+            window.location.href = '/login';
+          }
+          return;
+        }
+      }
       setRewards(data);
     } catch (err: any) {
       showError('Failed to load rewards.');

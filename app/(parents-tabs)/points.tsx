@@ -17,7 +17,7 @@ export default function ParentsPointsScreen() {
   const styles = createStyles(themeColors);
   const { showError, showFeedback } = useGlobalFeedback();
   const [amount, setAmount] = useState('');
-  const [toJar, setToJar] = useState<'current' | 'save' | 'spend' | 'donate' | 'invest'>('current');
+  const [toJar, setToJar] = useState<string>('');
   const [childData, setChildData] = useState<{
     name: string;
     currentPoints: number;
@@ -269,6 +269,7 @@ export default function ParentsPointsScreen() {
                   value={toJar}
                   onChange={e => setToJar(e.target.value as any)}
                 >
+                  <option value="">Select --</option>
                   {jarOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
@@ -293,6 +294,7 @@ export default function ParentsPointsScreen() {
                   dropdownIconColor={themeColors.primary}
                   itemStyle={{ color: themeColors.text }}
                 >
+                  <Picker.Item label="Select --" value="" />
                   {jarOptions.map(opt => (
                     <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
                   ))}

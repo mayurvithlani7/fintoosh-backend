@@ -83,6 +83,21 @@ export default function ParentsOverviewScreen() {
   const [notifications, setNotifications] = useState<{ _id?: string; message: string; isRead?: boolean }[]>([]);
   const [notifLoading, setNotifLoading] = useState(true);
   const [notifError, setNotifError] = useState<string | null>(null);
+  // Local persistent state: suppress notifications if cleared until new ones arrive
+  const [notificationsSuppressed, setNotificationsSuppressed] = useState(false);
+
+  // Utility for persisting "cleared at" time
+  const NOTIF_CLEARED_KEY = 'parents_notifications_cleared_at';
+
+  // On mount, check if persisted clear is present
+  React.useEffect(() => {
+    (async () => {
+      const clearedAt = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
+      if (clearedAt) {
+        setNotificationsSuppressed(true);
+      }
+    })();
+  }, []);
 
   // Progressive loading states
   const [loadingPhase, setLoadingPhase] = useState<'critical' | 'secondary' | 'complete'>('critical');
@@ -146,6 +161,23 @@ export default function ParentsOverviewScreen() {
       }
       const notifList = await fetchNotifications(currentUser.id, token);
       setNotifications(notifList || []);
+      // If there are new notifications, unsuppress
+      if (notifList && notifList.length > 0) {
+        // Only unsuppress if suppressed (was cleared) and new notification is newer
+        const clearedAtStr = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
+        if (clearedAtStr) {
+          // Assume all backend notifs have createdAt, but if not, just length check
+          const clearedTime = Number(clearedAtStr);
+          // Here, unsuppress only if any notif is newer than cleared time
+          const hasNewAfterClear = notifList.some((n: any) =>
+            n.createdAt && Number(new Date(n.createdAt)) > clearedTime
+          );
+          if (hasNewAfterClear) {
+            setNotificationsSuppressed(false);
+            await AsyncStorage.removeItem(NOTIF_CLEARED_KEY);
+          }
+        }
+      }
     } catch {
       setNotifError("Failed to load notifications.");
       setNotifications([]);
@@ -167,14 +199,38 @@ export default function ParentsOverviewScreen() {
       }
     >
       {/* Notifications section */}
-      {(notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0) && (
+      {(!notificationsSuppressed && (notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0)) && (
         <View style={[styles.notificationSection, {
           backgroundColor: themeColors.surface,
           borderColor: themeColors.border,
           borderWidth: 1,
           shadowColor: themeColors.border
         }]}>
-          <Text style={[styles.notificationTitle, { color: themeColors.primary }]}>Notifications</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={[styles.notificationTitle, { color: themeColors.primary }]}>Notifications</Text>
+            {/* Hide clear button if loading or there are no notifications */}
+            {!notifLoading && notifications.length > 0 && (
+              <TouchableOpacity
+                onPress={async () => {
+                  setNotifications([]);
+                  setNotificationsSuppressed(true);
+                  // Persist the time of clear for future reloads
+                  await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
+                }}
+                style={{
+                  backgroundColor: themeColors.error,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  marginBottom: 6,
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Clear all notifications"
+              >
+                <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Clear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           {notifLoading ? (
             <Text style={[styles.notificationText, { color: themeColors.textSecondary }]}>Loading...</Text>
           ) : notifError ? (

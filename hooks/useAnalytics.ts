@@ -71,25 +71,29 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
       setLastFetch(now);
 
       // Cache in localStorage for persistence across sessions
-      localStorage.setItem(cacheKey, JSON.stringify({
-        data,
-        timestamp: now
-      }));
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          data,
+          timestamp: now
+        }));
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch analytics data';
       setError(errorMessage);
 
       // Try to load from cache if available
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        try {
-          const { data, timestamp } = JSON.parse(cached);
-          if (now - timestamp < cacheTime * 2) { // Allow slightly older cache on error
-            setAnalyticsData(data);
-            setError(`${errorMessage} (showing cached data)`);
+      if (typeof localStorage !== "undefined") {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          try {
+            const { data, timestamp } = JSON.parse(cached);
+            if (now - timestamp < cacheTime * 2) { // Allow slightly older cache on error
+              setAnalyticsData(data);
+              setError(`${errorMessage} (showing cached data)`);
+            }
+          } catch (cacheErr) {
+            // Ignore cache parsing errors
           }
-        } catch (cacheErr) {
-          // Ignore cache parsing errors
         }
       }
     } finally {
@@ -107,28 +111,32 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
   }, [analyticsData]);
 
   const clearCache = useCallback(() => {
-    localStorage.removeItem(cacheKey);
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(cacheKey);
+    }
     setAnalyticsData(null);
     setLastFetch(0);
   }, [cacheKey]);
 
   // Load cached data on mount
   useEffect(() => {
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const { data, timestamp } = JSON.parse(cached);
-        const now = Date.now();
-        if (now - timestamp < cacheTime) {
-          setAnalyticsData(data);
-          setLastFetch(timestamp);
-        } else {
-          // Cache expired, remove it
+    if (typeof localStorage !== "undefined") {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const { data, timestamp } = JSON.parse(cached);
+          const now = Date.now();
+          if (now - timestamp < cacheTime) {
+            setAnalyticsData(data);
+            setLastFetch(timestamp);
+          } else {
+            // Cache expired, remove it
+            localStorage.removeItem(cacheKey);
+          }
+        } catch (err) {
+          // Invalid cache, remove it
           localStorage.removeItem(cacheKey);
         }
-      } catch (err) {
-        // Invalid cache, remove it
-        localStorage.removeItem(cacheKey);
       }
     }
   }, [cacheKey, cacheTime]);

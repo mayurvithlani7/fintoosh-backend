@@ -24,6 +24,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 4,
+    backgroundColor: themeColors.background,
   },
   title: {
     fontSize: 28,
@@ -266,6 +267,8 @@ export default function GoalsScreen() {
 }
 
 // --- KidGoalsRewardsSection (loads from database, allows claiming) ---
+import { useStaleDataWarning } from "@/utils/useStaleDataWarning";
+
 function KidGoalsRewardsSection() {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
@@ -286,6 +289,7 @@ function KidGoalsRewardsSection() {
   const [showArchive, setShowArchive] = useState(false);
   // Goal templates modal
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
 
   // Handle template selection
   const handleTemplateSelect = async (template: any) => {
@@ -412,24 +416,31 @@ function KidGoalsRewardsSection() {
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json();
         console.log('[KIDS GOALS] Fetched goals from server:', JSON.stringify(goalsData, null, 2));
-
+        // Security check: All loaded goals must belong to this user (kid)
+        if (
+          user &&
+          goalsData &&
+          goalsData.length > 0 &&
+          goalsData.some((g: any) => (g.childId && g.childId !== user.id))
+        ) {
+          const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+          await clearSensitiveAppData();
+          if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
+          return;
+        }
         // Use the freshly loaded requests data for pending status logic
         const pendingGoalRequests = requestsData.filter((req: any) =>
           req.type === 'goal-completion' && req.status === 'Pending'
         );
-
         setGoals(currentGoals => {
           return goalsData.map((serverGoal: any) => {
             const localGoal = currentGoals.find(g => g._id === serverGoal._id);
-
             // Check if this goal has a pending approval request
             const hasPendingRequest = pendingGoalRequests.some((req: any) => req.goalId === serverGoal._id);
-
             if (hasPendingRequest) {
               // Goal has a pending approval request - show as pending regardless of server status
               return { ...serverGoal, status: 'pending' };
             }
-
             // No pending request, use server status
             return serverGoal;
           });

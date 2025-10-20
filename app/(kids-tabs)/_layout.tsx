@@ -113,47 +113,67 @@ export default function KidsTabLayout() {
 
   // Check authentication and backend connectivity on mount
   useEffect(() => {
-    const checkAuthAndBackend = async () => {
+    const checkAuth = async () => {
       try {
-        // Import functions dynamically to avoid formatter issues
-        const { getAuthToken } = await import('@/utils/secureStorage');
-        const { API_URL } = await import('@/utils/config');
+        console.log('[KIDS LAYOUT] Starting auth check...');
+        const { getAuthToken, getUserData, clearAllAuthData } = await import('@/utils/secureStorage');
 
         // Check if auth token exists
         const token = await getAuthToken();
-        if (!token) {
-          setIsAuthenticated(false);
+        console.log(`[KIDS LAYOUT] Token retrieved: ${token ? 'present' : 'null'}, length: ${token?.length || 0}`);
+
+        // Check if user data exists with extra error handling
+        let user = null;
+        try {
+          user = await getUserData();
+          console.log(`[KIDS LAYOUT] User data retrieved: ${user ? 'present' : 'null'}, type: ${typeof user}`);
+
+          // Additional validation - ensure user is a valid object
+          if (user && typeof user === 'object' && user.id) {
+            console.log(`[KIDS LAYOUT] User validation passed, userId: ${user.id}`);
+          } else if (user) {
+            console.warn('[KIDS LAYOUT] User data exists but is invalid, clearing corrupted data');
+            await clearAllAuthData();
+            user = null;
+          }
+        } catch (userDataError) {
+          console.error('[KIDS LAYOUT] Error retrieving user data:', userDataError);
+          // Clear corrupted data
+          try {
+            await clearAllAuthData();
+            console.log('[KIDS LAYOUT] Cleared corrupted auth data');
+          } catch (clearError) {
+            console.error('[KIDS LAYOUT] Failed to clear corrupted data:', clearError);
+          }
+          user = null;
+        }
+
+        console.log(`[KIDS LAYOUT] Final check: hasToken=${!!token}, hasValidUser=${!!user}`);
+
+        if (token && user) {
+          console.log('[KIDS LAYOUT] Auth data valid, proceeding to authenticated screens');
+          setIsAuthenticated(true);
           return;
         }
 
-        // Check if backend is reachable by making a simple request
-        try {
-          const response = await fetch(`${API_URL}/auth/profile`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-            // Short timeout to avoid hanging
-            signal: AbortSignal.timeout(5000),
-          });
-
-          if (response.ok) {
-            setIsAuthenticated(true);
-          } else {
-            setIsAuthenticated(false);
-          }
-        } catch (backendError) {
-          // Backend not reachable
-          console.log('Backend not reachable:', backendError);
-          setIsAuthenticated(false);
-        }
+        console.log('[KIDS LAYOUT] Auth data incomplete or invalid, redirecting to login');
+        setIsAuthenticated(false);
       } catch (error) {
-        console.log('Auth check error:', error);
+        console.error('[KIDS LAYOUT] Auth check error:', error);
+        // Try to clear potentially corrupted data
+        try {
+          const { clearAllAuthData } = await import('@/utils/secureStorage');
+          await clearAllAuthData();
+          console.log('[KIDS LAYOUT] Cleared auth data after error');
+        } catch (clearError) {
+          console.error('[KIDS LAYOUT] Failed to clear data after error:', clearError);
+        }
         setIsAuthenticated(false);
       }
     };
 
-    checkAuthAndBackend();
+    // Small delay to ensure storage is ready
+    setTimeout(checkAuth, 100);
   }, []);
 
   // Show loading or redirect while checking authentication
@@ -220,9 +240,9 @@ export default function KidsTabLayout() {
                   borderRadius: 6,
                 }}
                 onPress={async () => {
-                  // Clear all auth/session data and redirect to login
-                  const { clearAllAuthData } = await import('@/utils/secureStorage');
-                  await clearAllAuthData();
+                  // Clear all persistent and secure user/session data and redirect to login
+                  const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+                  await clearSensitiveAppData();
                   // Use expo-router navigation
                   router.replace('/login');
                 }}

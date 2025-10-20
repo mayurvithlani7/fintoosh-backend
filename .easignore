@@ -1,0 +1,65 @@
+# EAS Build: Exclude unnecessary files to reduce archive size
+
+# Node dependencies and build output
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Git
+.git/
+.gitignore
+
+# Environment files and config secrets
+.env
+.env.*
+*.env
+
+# Back-end and server-only directories
+backend/
+fintoosh-backend/
+scripts/
+test/
+tests/
+__tests__/
+
+# Unused/large asset folders (adjust as needed)
+assets/videos/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Temporary and system files
+*.log
+*.tmp
+*.DS_Store
+Thumbs.db
+
+# Documentation, design, and project management
+README.md
+CHANGELOG.md
+*.md
+*.psd
+*.ai
+*.sketch
+*.zip
+
+# VSCode/IDE
+.vscode/
+.idea/
+
+# OS/app specific
+.DS_Store
+
+# Expo/Build output
+dist/
+build/
+.expo/
+web-build/
+web-dist/
+
+# Remove if you use these folders for app code
+# components/   # (Commented, KEEP THESE UNLESS unused)
+# assets/images/ # (Commented, KEEP app images; EXCLUDE only if not used in production)

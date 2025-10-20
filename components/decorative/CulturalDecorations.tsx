@@ -1,7 +1,7 @@
+import { useTheme } from '@/utils/themeContext';
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
-import { LotusIcon, PeacockIcon, DiyaIcon, MangoIcon } from '../icons/CulturalIcons';
-import { useTheme } from '../../utils/themeContext';
+import { StyleSheet, View, ViewStyle } from 'react-native';
+import { DiyaIcon, LotusIcon, MangoIcon, PeacockIcon } from '../icons/CulturalIcons';
 
 interface CulturalBorderProps {
   children: React.ReactNode;

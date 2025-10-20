@@ -21,21 +21,22 @@ import {
   View
 } from "react-native";
 
-const styles = StyleSheet.create({
+const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 4,
+    backgroundColor: themeColors.background,
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 22,
     marginTop: 6,
-    // Color overridden in render
+    color: themeColors.primary,
   },
   sectionCard: {
-    backgroundColor: "#fff",
+    backgroundColor: themeColors.card,
     borderRadius: 14,
     marginBottom: 16,
     padding: 18,
@@ -43,35 +44,35 @@ const styles = StyleSheet.create({
     width: "97%",
     maxWidth: 520,
     elevation: 2,
-    shadowColor: "#aaa",
+    shadowColor: themeColors.border,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
     marginBottom: 8,
-    color: "#234",
+    color: themeColors.text,
   },
   jarBox: {
     minWidth: 85,
     alignItems: "center",
-    backgroundColor: "#f6faff",
+    backgroundColor: themeColors.surface,
     padding: 8,
     borderRadius: 8,
     margin: 8,
     borderWidth: 1,
-    borderColor: "#abe",
+    borderColor: themeColors.border,
   },
   jarLabel: {
     fontWeight: "bold",
     marginBottom: 2,
-    color: "#167",
+    color: themeColors.primary,
     fontSize: 16,
   },
   jarPoints: {
     fontWeight: "700",
     fontSize: 21,
     marginBottom: 1,
-    color: "#201828",
+    color: themeColors.text,
   },
   formRow: {
     flexDirection: "row",
@@ -83,39 +84,40 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontWeight: "500",
     marginBottom: 4,
-    color: "#234",
+    color: themeColors.text,
     fontSize: 14,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#aaa",
+    borderColor: themeColors.border,
     borderRadius: 7,
     padding: 8,
     fontSize: 16,
     marginBottom: 2,
-    backgroundColor: "#f5fafd",
-    color: "#112",
+    backgroundColor: themeColors.surface,
+    color: themeColors.text,
   },
   webSelect: {
     width: "100%",
     minHeight: 38,
     borderRadius: 7,
-    borderColor: "#abc",
+    borderColor: themeColors.border,
     borderWidth: 1,
     fontSize: 16,
     padding: 8,
     marginTop: 1,
-    backgroundColor: "#f8fafd",
-    color: "#112",
+    backgroundColor: themeColors.surface,
+    color: themeColors.text,
   } as any,
-  formBtn: { backgroundColor: "#ffc46b", padding: 14, borderRadius: 8, marginTop: 7, marginHorizontal: 4, alignSelf: "flex-end" },
-  formBtnText: { fontWeight: "700", color: "#6d3a00", fontSize: 15 },
-  placeholder: { color: "#99a", fontStyle: "italic", fontSize: 15, marginBottom: 2, marginTop: 2, minHeight: 26 },
-  statusMessage: { fontSize: 15, fontWeight: "600", marginTop: 3, color: "#18722a" }
+  formBtn: { backgroundColor: themeColors.warning, padding: 14, borderRadius: 8, marginTop: 7, marginHorizontal: 4, alignSelf: "flex-end" },
+  formBtnText: { fontWeight: "700", color: themeColors.text, fontSize: 15 },
+  placeholder: { color: themeColors.textSecondary, fontStyle: "italic", fontSize: 15, marginBottom: 2, marginTop: 2, minHeight: 26 },
+  statusMessage: { fontSize: 15, fontWeight: "600", marginTop: 3, color: themeColors.success }
 });
 
 export default function MoneyJarsScreen() {
   const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
   const { formatAmount, showDenominations, convertToINR, interestRule } = useCurrency();
   const [jars, setJars] = useState([
     { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
@@ -126,11 +128,10 @@ export default function MoneyJarsScreen() {
   ]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [optimisticRequests, setOptimisticRequests] = useState<any[]>([]); // For optimistic updates
+  const [optimisticRequests, setOptimisticRequests] = useState<any[]>([]);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const router = useRouter();
 
-  // Consolidated data loading function to prevent race conditions
   const loadUserData = async (showErrors = true) => {
     try {
       const token = await getAuthToken();
@@ -180,7 +181,6 @@ export default function MoneyJarsScreen() {
     }
   };
 
-  // Single useFocusEffect to handle all data loading scenarios
   useFocusEffect(
     React.useCallback(() => {
       loadUserData();
@@ -189,18 +189,17 @@ export default function MoneyJarsScreen() {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await loadUserData(false); // Don't show errors on refresh
+    await loadUserData(false);
   }, []);
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background }]}>
         <Text style={styles.title}>Loading...</Text>
       </View>
     );
   }
 
-  // Helper needed before use, TS fix
   function daysUntilPayout(rule: InterestRuleType): number {
     const now = new Date();
     let daysToAdd = rule.frequency === "monthly" ? 30 : 7;
@@ -210,6 +209,7 @@ export default function MoneyJarsScreen() {
   return (
     <ScrollView
       contentContainerStyle={styles.container}
+      style={{ backgroundColor: themeColors.background }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
@@ -256,12 +256,12 @@ export default function MoneyJarsScreen() {
           </TouchableOpacity>
         </View>
         <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.title, { color: themeColors.primary }]}>🏺 My Money Pots</Text>
+          <Text style={styles.title}>🏺 My Money Pots</Text>
         </View>
       </View>
 
       {/* Refresh Button */}
-      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+      <View style={[styles.sectionCard]}>
         <TouchableOpacity
           style={[styles.formBtn, { backgroundColor: themeColors.primary, alignSelf: 'center', minWidth: 200 }]}
           onPress={onRefresh}
@@ -278,29 +278,21 @@ export default function MoneyJarsScreen() {
       </View>
 
       {/* JARS DISPLAY */}
-      <View style={{flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 18}}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 18 }}>
         {jars.map(jar => (
           <View
             key={jar.label}
-            style={{
-              backgroundColor: themeColors.jarColors[jar.key as keyof typeof themeColors.jarColors] || themeColors.surface,
-              borderRadius: 14,
-              padding: 16,
-              minWidth: 100,
-              alignItems: "center",
-              marginHorizontal: 8,
-              marginBottom: 8,
-              borderWidth: 1.2,
-              borderColor: themeColors.border
-            }}
+            style={[
+              styles.jarBox,
+              { backgroundColor: jar.color || themeColors.surface, borderColor: themeColors.border }
+            ]}
           >
             <Text style={{ fontSize: 25, marginBottom: 3 }}>{jar.icon}</Text>
-            <Text style={{ fontWeight: "700", fontSize: 18, marginBottom: 3, color: themeColors.text }}>{formatAmount(jar.value)}</Text>
-            <Text style={{ fontWeight: "bold", color: themeColors.primary, fontSize: 13 }}>{jar.label}</Text>
+            <Text style={[styles.jarPoints]}>{formatAmount(jar.value)}</Text>
+            <Text style={[styles.jarLabel]}>{jar.label}</Text>
             {showDenominations && (
               <RupeeDenominations amount={convertToINR(jar.value)} />
             )}
-            {/* Show projected interest for Savings Pot */}
             {jar.key === "save" && interestRule && (
               <Text style={{
                 marginTop: 4,
@@ -458,10 +450,6 @@ export default function MoneyJarsScreen() {
 
 /**
  * Move Points Section
- * Allows transferring points between jars, updating local state.
- * Props:
- *  - jars: Array of { key, label, value, color, icon }
- *  - setJars: Setter to update jars array by state
  */
 function MovePointsSection({ jars, setJars }: {
   jars: { key: string; label: string; value: number; color: string; icon: string }[],
@@ -479,7 +467,7 @@ function MovePointsSection({ jars, setJars }: {
   const [fromError, setFromError] = React.useState<string | null>(null);
   const [toError, setToError] = React.useState<string | null>(null);
 
-  // Validation functions
+  // Validation functions (unchanged...)
   const validateAmount = (value: string) => {
     const num = Number(value);
     if (!value.trim()) {
@@ -533,9 +521,8 @@ function MovePointsSection({ jars, setJars }: {
     return true;
   };
 
-  // Input handlers with validation
+  // Input handlers (unchanged...)
   const handleAmountChange = (value: string) => {
-    // Only allow numeric input
     const numericValue = value.replace(/[^0-9]/g, '');
     setAmount(numericValue);
     if (numericValue) {
@@ -549,7 +536,6 @@ function MovePointsSection({ jars, setJars }: {
     setFrom(value);
     if (value) {
       validateFromJar(value);
-      // Re-validate destination if it conflicts
       if (to && value === to) {
         setToError("Cannot move points to the same jar");
       } else if (to) {
@@ -570,7 +556,6 @@ function MovePointsSection({ jars, setJars }: {
   };
 
   async function handleMovePoints() {
-    // Run all validations
     const amountValid = validateAmount(amount);
     const fromValid = validateFromJar(from);
     const toValid = validateToJar(to, from);
@@ -580,7 +565,6 @@ function MovePointsSection({ jars, setJars }: {
       return;
     }
 
-    // Additional validation: check if user has enough points
     const amt = Number(amount);
     const fromJar = jars.find(j => j.key === from);
     if (!fromJar || fromJar.value < amt) {
@@ -588,7 +572,6 @@ function MovePointsSection({ jars, setJars }: {
       return;
     }
 
-    // Optimistic update: Clear form and show pending status immediately
     const originalAmount = amount;
     const originalFrom = from;
     const originalTo = to;
@@ -601,13 +584,11 @@ function MovePointsSection({ jars, setJars }: {
     setStatus({ type: "ok", msg: "Sending request..." });
 
     try {
-      // Get stored user data and token
       const token = await getAuthToken();
       const storedUser = await AsyncStorage.getItem('user');
 
       if (!token || !storedUser) {
         setStatus({ type: "error", msg: "Not authenticated. Please login again." });
-        // Revert form on error
         setAmount(originalAmount);
         setFrom(originalFrom);
         setTo(originalTo);
@@ -616,9 +597,8 @@ function MovePointsSection({ jars, setJars }: {
       }
 
       const user = JSON.parse(storedUser);
-      const userId = user.id; // Use custom user ID for API calls
+      const userId = user.id;
 
-      // Submit approval request for moving points
       const toJar = jars.find(j => j.key === to);
       const requestData: any = {
         userId: userId,
@@ -648,7 +628,6 @@ function MovePointsSection({ jars, setJars }: {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         setStatus({ type: "error", msg: errorData.message || "Failed to submit request." });
-        // Revert form on error
         setAmount(originalAmount);
         setFrom(originalFrom);
         setTo(originalTo);
@@ -662,7 +641,6 @@ function MovePointsSection({ jars, setJars }: {
     } catch (error) {
       console.error('Error submitting move points request:', error);
       setStatus({ type: "error", msg: "Network error. Please try again." });
-      // Revert form on error
       setAmount(originalAmount);
       setFrom(originalFrom);
       setTo(originalTo);
@@ -671,154 +649,210 @@ function MovePointsSection({ jars, setJars }: {
   }
 
   return (
-      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Move Points Between Pots</Text>
-        <View style={{ marginBottom: 10, alignItems: "center", width: "100%" }}>
+    <View style={[{
+      backgroundColor: themeColors.card,
+      borderRadius: 14,
+      marginBottom: 16,
+      padding: 18,
+      minWidth: 300,
+      width: "97%",
+      maxWidth: 520,
+      elevation: 2,
+      shadowColor: themeColors.border,
+    }]}>
+      <Text style={{
+        fontSize: 20,
+        fontWeight: "600",
+        marginBottom: 8,
+        color: themeColors.text,
+      }}>Move Points Between Pots</Text>
+      <View style={{ marginBottom: 10, alignItems: "center", width: "100%" }}>
 
-          <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
-            <Text style={styles.inputLabel}>Points to Move:</Text>
-            <TextInput
-              placeholder="Enter points"
-              value={amount}
-              onChangeText={handleAmountChange}
-              keyboardType="numeric"
-              style={[styles.input, {
-                width: "100%",
-                borderColor: amountError ? themeColors.error : "#aaa"
-              }]}
-              accessibilityLabel="Points to move"
-              accessibilityHint="Enter the number of points you want to transfer between money pots"
-            />
-            {amountError && (
-              <Text style={{
-                color: themeColors.error,
-                fontSize: 12,
-                marginTop: 2,
-                textAlign: 'center'
-              }}>
-                {amountError}
-              </Text>
-            )}
-          </View>
-
-          <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
-            <Text style={styles.inputLabel}>From Which Pot?</Text>
-            <View style={{
+        <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
+          <Text style={{
+            fontWeight: "500",
+            marginBottom: 4,
+            color: themeColors.text,
+            fontSize: 14,
+          }}>Points to Move:</Text>
+          <TextInput
+            placeholder="Enter points"
+            value={amount}
+            onChangeText={handleAmountChange}
+            keyboardType="numeric"
+            style={{
               borderWidth: 1,
-              borderColor: fromError ? themeColors.error : themeColors.border,
+              borderColor: amountError ? themeColors.error : themeColors.border,
               borderRadius: 7,
-              width: "100%",
-              alignSelf: "center"
-            }}>
-              <Picker
-                selectedValue={from}
-                onValueChange={handleFromChange}
-                style={{ height: 37, minWidth: 120, width: "100%" }}
-                accessibilityLabel="Source money pot"
-                accessibilityHint="Select which money pot to take points from"
-              >
-                <Picker.Item label="Choose a Pot" value="" />
-                {jars.map(j => (
-                  <Picker.Item label={`${j.label} (${j.value})`} value={j.key} key={j.key} />
-                ))}
-              </Picker>
-            </View>
-            {fromError && (
-              <Text style={{
-                color: themeColors.error,
-                fontSize: 12,
-                marginTop: 2,
-                textAlign: 'center'
-              }}>
-                {fromError}
-              </Text>
-            )}
-          </View>
-
-          <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
-            <Text style={styles.inputLabel}>To Which Pot?</Text>
-            <View style={{
-              borderWidth: 1,
-              borderColor: toError ? themeColors.error : themeColors.border,
-              borderRadius: 7,
-              width: "100%",
-              alignSelf: "center"
-            }}>
-              <Picker
-                selectedValue={to}
-                onValueChange={handleToChange}
-                style={{ height: 37, minWidth: 120, width: "100%" }}
-                accessibilityLabel="Destination money pot"
-                accessibilityHint="Select which money pot to send points to"
-              >
-                <Picker.Item label="Choose a Pot" value="" />
-                {jars.map(j => (
-                  <Picker.Item label={j.label} value={j.key} key={j.key} />
-                ))}
-              </Picker>
-            </View>
-            {toError && (
-              <Text style={{
-                color: themeColors.error,
-                fontSize: 12,
-                marginTop: 2,
-                textAlign: 'center'
-              }}>
-                {toError}
-              </Text>
-            )}
-          </View>
-
-          <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
-            <Text style={styles.inputLabel}>Note to Parent (Optional):</Text>
-            <TextInput
-              placeholder="Why do you want to move these points?"
-              value={note}
-              onChangeText={setNote}
-              multiline={true}
-              numberOfLines={2}
-              maxLength={200}
-              style={[styles.input, { minHeight: 60, textAlignVertical: 'top', width: "100%" }]}
-              accessibilityLabel="Optional note to parent"
-              accessibilityHint="Add a message explaining why you want to move these points"
-            />
-          </View>
-
-          <View style={{ width: "100%", maxWidth: 220 }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: themeColors.warning + "33",
-                borderRadius: 8,
-                paddingVertical: 8,
-                marginTop: 7,
-                alignItems: "center",
-                width: "100%"
-              }}
-              onPress={handleMovePoints}
-              accessibilityRole="button"
-              accessibilityLabel="Submit point transfer request"
-              accessibilityHint="Send request to parent to move points between money pots"
-            >
-              <Text style={{ color: themeColors.warning, fontWeight: "bold", fontSize: 16 }}>
-                Ask to Move Points
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {status && (
-            <Text style={{
-              marginTop: 7,
-              color: status.type === "error" ? themeColors.error : themeColors.success,
-              fontWeight: "bold",
-              textAlign: "center"
+              padding: 8,
+              fontSize: 16,
+              marginBottom: 2,
+              backgroundColor: themeColors.surface,
+              color: themeColors.text,
+              width: "100%"
             }}
-            accessibilityLabel={`${status.type === "error" ? "Error" : "Success"}: ${status.msg}`}
-            >
-              {status.msg}
+            placeholderTextColor={themeColors.textSecondary}
+            accessibilityLabel="Points to move"
+            accessibilityHint="Enter the number of points you want to transfer between money pots"
+          />
+          {amountError && (
+            <Text style={{
+              color: themeColors.error,
+              fontSize: 12,
+              marginTop: 2,
+              textAlign: 'center'
+            }}>
+              {amountError}
             </Text>
           )}
-
         </View>
+
+        <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
+          <Text style={{
+            fontWeight: "500",
+            marginBottom: 4,
+            color: themeColors.text,
+            fontSize: 14,
+          }}>From Which Pot?</Text>
+          <View style={{
+            borderWidth: 1,
+            borderColor: fromError ? themeColors.error : themeColors.border,
+            borderRadius: 7,
+            width: "100%",
+            alignSelf: "center"
+          }}>
+            <Picker
+              selectedValue={from}
+              onValueChange={handleFromChange}
+              style={{ height: 37, minWidth: 120, width: "100%" }}
+              accessibilityLabel="Source money pot"
+              accessibilityHint="Select which money pot to take points from"
+            >
+              <Picker.Item label="Select Pot" value="" />
+              {jars.map(j => (
+                <Picker.Item label={`${j.label} (${j.value})`} value={j.key} key={j.key} />
+              ))}
+            </Picker>
+          </View>
+          {fromError && (
+            <Text style={{
+              color: themeColors.error,
+              fontSize: 12,
+              marginTop: 2,
+              textAlign: 'center'
+            }}>
+              {fromError}
+            </Text>
+          )}
+        </View>
+
+        <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
+          <Text style={{
+            fontWeight: "500",
+            marginBottom: 4,
+            color: themeColors.text,
+            fontSize: 14,
+          }}>To Which Pot?</Text>
+          <View style={{
+            borderWidth: 1,
+            borderColor: toError ? themeColors.error : themeColors.border,
+            borderRadius: 7,
+            width: "100%",
+            alignSelf: "center"
+          }}>
+            <Picker
+              selectedValue={to}
+              onValueChange={handleToChange}
+              style={{ height: 37, minWidth: 120, width: "100%" }}
+              accessibilityLabel="Destination money pot"
+              accessibilityHint="Select which money pot to send points to"
+            >
+              <Picker.Item label="Select Pot" value="" />
+              {jars.map(j => (
+                <Picker.Item label={j.label} value={j.key} key={j.key} />
+              ))}
+            </Picker>
+          </View>
+          {toError && (
+            <Text style={{
+              color: themeColors.error,
+              fontSize: 12,
+              marginTop: 2,
+              textAlign: 'center'
+            }}>
+              {toError}
+            </Text>
+          )}
+        </View>
+
+        <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
+          <Text style={{
+            fontWeight: "500",
+            marginBottom: 4,
+            color: themeColors.text,
+            fontSize: 14,
+          }}>Note to Parent (Optional):</Text>
+          <TextInput
+            placeholder="Why do you want to move these points?"
+            value={note}
+            onChangeText={setNote}
+            multiline={true}
+            numberOfLines={2}
+            maxLength={200}
+            style={{
+              borderWidth: 1,
+              borderColor: themeColors.border,
+              borderRadius: 7,
+              padding: 8,
+              fontSize: 16,
+              marginBottom: 2,
+              backgroundColor: themeColors.surface,
+              color: themeColors.text,
+              minHeight: 60,
+              textAlignVertical: 'top',
+              width: "100%"
+            }}
+            placeholderTextColor={themeColors.textSecondary}
+            accessibilityLabel="Optional note to parent"
+            accessibilityHint="Add a message explaining why you want to move these points"
+          />
+        </View>
+
+        <View style={{ width: "100%", maxWidth: 220 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.warning + "33",
+              borderRadius: 8,
+              paddingVertical: 8,
+              marginTop: 7,
+              alignItems: "center",
+              width: "100%"
+            }}
+            onPress={handleMovePoints}
+            accessibilityRole="button"
+            accessibilityLabel="Submit point transfer request"
+            accessibilityHint="Send request to parent to move points between money pots"
+          >
+            <Text style={{ color: themeColors.warning, fontWeight: "bold", fontSize: 16 }}>
+              Ask to Move Points
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {status && (
+          <Text style={{
+            marginTop: 7,
+            color: status.type === "error" ? themeColors.error : themeColors.success,
+            fontWeight: "bold",
+            textAlign: "center"
+          }}
+          accessibilityLabel={`${status.type === "error" ? "Error" : "Success"}: ${status.msg}`}
+          >
+            {status.msg}
+          </Text>
+        )}
+
       </View>
+    </View>
   );
 }

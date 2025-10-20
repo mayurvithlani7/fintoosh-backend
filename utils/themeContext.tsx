@@ -401,7 +401,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
         const savedAnimations = await AsyncStorage.getItem('animationSettings');
         if (savedAnimations) {
-          setAnimationSettings(prev => ({ ...prev, ...JSON.parse(savedAnimations) }));
+          try {
+            const parsedAnimations = JSON.parse(savedAnimations);
+            setAnimationSettings(prev => ({ ...prev, ...parsedAnimations }));
+          } catch (parseError) {
+            console.error('Failed to parse animation settings from AsyncStorage:', parseError);
+            // Clear corrupted data
+            try {
+              await AsyncStorage.removeItem('animationSettings');
+              console.log('Cleared corrupted animation settings data');
+            } catch (clearError) {
+              console.error('Failed to clear corrupted animation settings:', clearError);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading theme or animation settings:', error);
