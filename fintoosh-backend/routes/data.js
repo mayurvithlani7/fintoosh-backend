@@ -2822,11 +2822,20 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     }).select('name targetAmount currentAmount deadline status jar createdAt');
 
     // Get family rewards - get all rewards for progress overview
+    console.log('Analytics - looking for rewards with user IDs:', familyMembers.map(m => m._id.toString()));
     const rewards = await Reward.find({
       user: { $in: familyMembers.map(m => m._id) }
-    }).select('name cost category purchased approved approvedAt purchasedAt');
+    }).select('name cost category purchased approved approvedAt purchasedAt status available completed');
 
-    console.log('Analytics - found rewards:', rewards.length, rewards.map(r => ({ name: r.name, purchased: r.purchased, approved: r.approved })));
+    console.log('Analytics - found rewards:', rewards.length, rewards.map(r => ({
+      name: r.name,
+      user: r.user?.toString(),
+      purchased: r.purchased,
+      approved: r.approved,
+      status: r.status,
+      available: r.available,
+      completed: r.completed
+    })));
 
     // Get one family member for settings (they should be the same)
     const familyUser = familyMembers[0];
