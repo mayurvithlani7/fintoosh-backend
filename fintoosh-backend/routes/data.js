@@ -1120,7 +1120,103 @@ router.patch('/chores/:choreId', auth, sanitizeInput, async (req, res) => {
       // Allow updating completed and completedAt fields for kids
       if (update.completed !== undefined) allowed.completed = update.completed;
       if (update.completedAt !== undefined) allowed.completedAt = update.completedAt;
-      if (update.completed === true) allowed.status = 'pending'; // Set status to pending when child marks as completed
+      if (update.completed === true) {
+        allowed.status = 'pending'; // Set status to pending when child marks as completed
+
+        // Create approval request for chore completion (if not auto-approved)
+        try {
+          const childUser = await User.findById(req.user._id);
+          const parentId = childUser?.parentId;
+
+          if (parentId) {
+            // Check for auto-approval
+            let autoApproved = false;
+            const parent = await User.findOne({ id: parentId });
+            let autoApprovalRules = (parent && parent.autoApprovalRules) || childUser.autoApprovalRules || {};
+            const choreClaimMax = autoApprovalRules.choreClaimMax;
+
+            if (typeof choreClaimMax === 'number' && choreClaimMax >= 0 && chore.points <= choreClaimMax) {
+              // Auto-approve immediately
+              allowed.completed = true;
+              allowed.approved = true;
+              allowed.approvedAt = new Date();
+              allowed.status = 'completed'; // Override to completed for auto-approved
+
+              // Award points
+              const split = childUser.defaultSplit || { current: 100, save: 0, spend: 0, donate: 0, invest: 0 };
+              const jarFieldMap = {
+                current: 'currentPoints',
+                save: 'savePoints',
+                spend: 'spendPoints',
+                donate: 'donatePoints',
+                invest: 'investPoints'
+              };
+              for (const [jar, pct] of Object.entries(split)) {
+                if (pct > 0) {
+                  const awarded = Math.round((chore.points * pct) / 100);
+                  if (awarded > 0 && jarFieldMap[jar]) {
+                    childUser[jarFieldMap[jar]] = (childUser[jarFieldMap[jar]] || 0) + awarded;
+                  }
+                }
+              }
+              await childUser.save();
+
+              // Create transaction
+              const txn = new Transaction({
+                type: 'chore-completed',
+                description: `Auto-approved chore "${chore.name}" for ${chore.points} points`,
+                amount: chore.points,
+                toJar: 'current', // Default to current for now
+                user: childUser._id,
+                date: new Date().toLocaleString()
+              });
+              await txn.save();
+              childUser.transactions.unshift(txn._id);
+              await childUser.save();
+
+              // Notify child
+              await Notification.create({
+                familyId: childUser.familyId,
+                userId: req.user.id,
+                type: 'chore_auto_approved',
+                message: `Your chore "${chore.name}" was auto-approved!`,
+                isRead: false
+              });
+
+              autoApproved = true;
+            }
+
+            if (!autoApproved) {
+              // Create approval request
+              const approvalRequest = new (require('../models/ApprovalRequest'))({
+                familyId: childUser.familyId,
+                childId: req.user.id,
+                parentId: parentId,
+                type: 'chore',
+                name: `Chore: ${chore.name}`,
+                amount: chore.points,
+                status: 'Pending',
+                choreId: chore._id.toString(),
+                createdAt: new Date()
+              });
+              await approvalRequest.save();
+
+              // Notify parent
+              await Notification.create({
+                familyId: childUser.familyId,
+                userId: parentId,
+                type: 'request_submitted',
+                message: `New chore completion request from ${childUser.name || req.user.id}.`,
+                referenceId: approvalRequest._id,
+                isRead: false
+              });
+            }
+          }
+        } catch (approvalError) {
+          console.error('Error creating chore approval request:', approvalError);
+          // Continue with the chore update even if approval creation fails
+        }
+      }
     }
 
     Object.assign(chore, allowed, { updatedAt: new Date() });
