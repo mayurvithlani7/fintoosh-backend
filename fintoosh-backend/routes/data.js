@@ -727,8 +727,16 @@ router.get('/goal-templates', auth, async (req, res) => {
 // Goal routes
 router.get('/goals/:childId', auth, async (req, res) => {
   try {
-    // Find user by MongoDB ObjectId
-    const user = await User.findById(req.params.childId);
+    // Support lookup by MongoDB _id or custom user id
+    let user;
+    if (req.params.childId.match(/^[0-9a-fA-F]{24}$/)) {
+      // If it's a valid ObjectId format, try _id
+      user = await User.findById(req.params.childId);
+    }
+    if (!user) {
+      // Fallback: try custom id field
+      user = await User.findOne({ id: req.params.childId });
+    }
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     // Pagination, filtering, archiving
