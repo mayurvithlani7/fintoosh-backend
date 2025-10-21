@@ -44,7 +44,7 @@ export default function SignupScreen() {
         return '';
       case 'mobileNumber':
         if (!value.trim()) return 'Mobile Number is required';
-        if (!/^\+91\d{10}$/.test(value)) return 'Please enter a valid 10-digit mobile number';
+        if (!/^\+91[6-9]\d{9}$/.test(value)) return 'Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9';
         return '';
       case 'password':
         if (!value.trim()) return 'Password is required';

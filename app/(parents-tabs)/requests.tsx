@@ -237,7 +237,7 @@ export default function ParentsRequestsScreen() {
   }
 
   const renderRequestCard = ({ item: request }: { item: any }) => (
-    <View key={request.id} style={styles.sectionCard}>
+    <View style={[styles.sectionCard, { alignSelf: 'center', width: '97%', maxWidth: 520, minWidth: 320 }]}>
       <Text style={styles.sectionTitle}>{request.type} Request</Text>
       <Text style={styles.requestText}>
         <Text style={styles.boldText}>Child:</Text> {request.childName}
@@ -268,6 +268,7 @@ export default function ParentsRequestsScreen() {
             request.messages.map(
               (
                 msg: {
+                  id?: string | number;
                   sender: string;
                   userId: string;
                   text: string;
@@ -275,10 +276,17 @@ export default function ParentsRequestsScreen() {
                 },
                 index: number
               ) => (
-                <View key={index} style={[
-                  styles.messageBubble,
-                  msg.sender === 'child' ? styles.childMessage : styles.parentMessage
-                ]}>
+                <View
+                  key={
+                    msg.id
+                      ? msg.id
+                      : `${msg.timestamp}-${msg.sender}-${msg.userId}-${index}`
+                  }
+                  style={[
+                    styles.messageBubble,
+                    msg.sender === 'child' ? styles.childMessage : styles.parentMessage
+                  ]}
+                >
                   <Text style={[styles.messageText, { color: themeColors.text }]}>{msg.text}</Text>
                   <Text style={[styles.messageTime, { color: themeColors.textSecondary }]}>
                     {new Date(msg.timestamp).toLocaleDateString()} {new Date(msg.timestamp).toLocaleTimeString()}
@@ -457,11 +465,11 @@ export default function ParentsRequestsScreen() {
       </View>
 
       {/* Pull-to-refresh and FlatList for Requests */}
-      <FlatList
+<FlatList
         data={displayedRequests}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
         renderItem={renderRequestCard}
-        contentContainerStyle={{ alignItems: 'center', paddingBottom: 50 }}
+        contentContainerStyle={{ paddingBottom: 50 }}
         refreshControl={
           <RefreshControl refreshing={pagination.refreshing} onRefresh={onRefresh} />
         }
@@ -480,7 +488,7 @@ export default function ParentsRequestsScreen() {
           pagination.loading ? (
             <ActivityIndicator style={{ margin: 48 }} />
           ) : (
-            <View style={styles.sectionCard}>
+            <View style={[styles.sectionCard, { alignSelf: 'center', width: '97%', maxWidth: 520, minWidth: 320 }]}>
               <Text style={styles.placeholder}>
                 {pagination.filter === "approved"
                   ? showArchived

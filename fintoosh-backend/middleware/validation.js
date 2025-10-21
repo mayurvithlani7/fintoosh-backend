@@ -98,7 +98,7 @@ const validateMobileNumber = (req, res, next) => {
     // Allow both +91 prefixed and non-prefixed Indian mobile numbers
     const mobileRegex = /^(\+91)?[6-9]\d{9}$/;
     if (!mobileRegex.test(number.replace(/\s+/g, ''))) {
-      return res.status(400).json({ message: 'Please enter a valid 10-digit mobile number' });
+      return res.status(400).json({ message: 'Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9' });
     }
   }
 

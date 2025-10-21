@@ -215,14 +215,19 @@ export default function ParentsOverviewScreen() {
                     if (currentUserStr && token) {
                       const currentUser = JSON.parse(currentUserStr);
                       if (currentUser.id) {
-                        await fetch(`${API_URL}/notifications/mark-all-read?userId=${currentUser.id}`, {
+                        const response = await fetch(`${API_URL}/notifications/mark-all-read?userId=${currentUser.id}`, {
                           method: "PATCH",
                           headers: { "Authorization": "Bearer " + token }
                         });
-                        setNotifications([]);
-                        setNotificationsSuppressed(true);
-                        // Persist the time of clear for future reloads
-                        await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
+                        if (response.ok) {
+                          setNotifications([]);
+                          setNotificationsSuppressed(true);
+                          // Persist the time of clear for future reloads
+                          await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
+                        } else {
+                          console.error('Failed to mark notifications as read on server');
+                          // Optionally show error to user
+                        }
                       }
                     }
                   } catch (err) {
