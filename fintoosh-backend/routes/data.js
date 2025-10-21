@@ -1504,6 +1504,16 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
       }
     }
 
+    // For chore requests, update chore status to pending
+    if (req.body.type === 'chore' && req.body.choreId) {
+      const Chore = require('../models/Chore');
+      const chore = await Chore.findById(req.body.choreId);
+      if (chore) {
+        chore.status = 'pending';
+        await chore.save();
+      }
+    }
+
     const approvalRequest = new (require('../models/ApprovalRequest'))({
       ...req.body,
       familyId: childUser.familyId,
