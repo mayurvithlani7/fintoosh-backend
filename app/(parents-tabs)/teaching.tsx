@@ -504,13 +504,16 @@ const loadStoredData = async () => {
       console.log('Loading data from database for user:', currentUser.id);
 
       // Load discussions from database
+      console.log('Loading discussions from database for family:', currentUser.familyId);
       const discussionsResponse = await fetch(`${API_URL}/family-discussions/${currentUser.familyId}`, {
         method: 'GET',
         headers,
       });
 
+      console.log('Discussions API response status:', discussionsResponse.status);
       if (discussionsResponse.ok) {
         const discussionsData = await discussionsResponse.json();
+        console.log('Discussions API response data:', discussionsData);
         // Security check: all returned objects must match current familyId
         if (
           discussionsData &&
@@ -530,7 +533,12 @@ const loadStoredData = async () => {
           // Defensive: force logout/clear by importing on mismatch
           const { clearSensitiveAppData } = await import('@/utils/secureStorage');
           await clearSensitiveAppData();
+        } else {
+          console.log('No discussions found in database, keeping AsyncStorage data');
         }
+      } else {
+        const errorText = await discussionsResponse.text();
+        console.error('Failed to load discussions from database:', discussionsResponse.status, errorText);
       }
 
       // Load dreamboard from database
@@ -765,18 +773,29 @@ const loadStoredData = async () => {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      for (const discussion of discussions) {
-        await fetch(`${API_URL}/family-discussions/${currentUser.familyId}`, {
+    for (const discussion of discussions) {
+        console.log('Saving discussion to database:', discussion);
+        console.log('Discussion childId type:', typeof discussion.childId, 'value:', discussion.childId);
+        const requestBody = {
+          ...discussion,
+          familyId: currentUser.familyId,
+          parentId: currentUser.id
+        };
+        console.log('Request body being sent:', JSON.stringify(requestBody, null, 2));
+        const response = await fetch(`${API_URL}/family-discussions`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({
-            ...discussion,
-            familyId: currentUser.familyId,
-            parentId: currentUser.id
-          }),
+          body: JSON.stringify(requestBody),
         });
+        console.log('Discussion save response status:', response.status);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to save discussion:', response.status, errorText);
+        } else {
+          console.log('Discussion saved successfully');
+        }
       }
-      console.log('Discussions saved to database');
+      console.log('All discussions saved to database');
     } catch (error) {
       console.error('Error saving discussions to database:', error);
       // Data already saved to AsyncStorage, so no additional fallback needed
@@ -1148,7 +1167,7 @@ const loadStoredData = async () => {
               </View>
 
               <Text style={[styles.discussionChild, { color: themeColors.primary }]}>
-                with {discussion.childId?.name || 'Child'}
+                with Child
               </Text>
 
               {discussion.mood && (
@@ -1792,22 +1811,24 @@ const loadStoredData = async () => {
                       return;
                     }
 
+                    // Extract child ID as string (handle both string and object cases)
+                    const childId = typeof discussionForm.childId === 'object' && discussionForm.childId && typeof discussionForm.childId.id === 'string'
+                      ? discussionForm.childId.id
+                      : String(discussionForm.childId || '');
+
                     // Create discussion object
                     const newDiscussion = {
                       _id: Date.now().toString(), // Mock ID for frontend
                       familyId: 'family1', // Mock family ID
                       parentId: 'parent1', // Mock parent ID
-                      childId: {
-                        id: discussionForm.childId,
-                        name: 'Demo Child' // Mock child name
-                      },
+                      childId: childId, // Ensure it's always a string
                       topic: discussionForm.topic,
                       customTopic: discussionForm.customTopic || null,
                       discussionDate: new Date().toISOString(),
                       duration: parseInt(discussionForm.duration) || 15,
                       participants: [
                         { userId: 'parent1', role: 'parent', attended: true },
-                        { userId: discussionForm.childId, role: 'child', attended: true }
+                        { userId: childId, role: 'child', attended: true }
                       ],
                       keyLearnings: discussionForm.keyLearnings ? [discussionForm.keyLearnings] : [],
                       mood: discussionForm.mood,

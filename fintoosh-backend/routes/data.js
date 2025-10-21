@@ -2788,6 +2788,17 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       ]
     }).select('name targetAmount currentAmount deadline status jar createdAt');
 
+    // Get family rewards
+    const rewards = await Reward.find({
+      user: { $in: familyMembers.map(m => m._id) },
+      $or: [
+        { createdAt: dateFilter },
+        { approvedAt: dateFilter },
+        { purchasedAt: dateFilter },
+        { updatedAt: dateFilter }
+      ]
+    }).select('name cost category purchased approvedAt purchasedAt');
+
     // Get one family member for settings (they should be the same)
     const familyUser = familyMembers[0];
 
