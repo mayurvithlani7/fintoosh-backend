@@ -81,9 +81,28 @@ router.get('/transactions/:userId', auth, roleBasedLimiter, async (req, res) => 
     const user = await User.findOne({ id: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination info
+    const totalTransactions = await Transaction.countDocuments({ user: user._id });
+
     const transactions = await Transaction.find({ user: user._id })
-      .sort({ createdAt: -1 });
-    res.json(transactions);
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      transactions,
+      pagination: {
+        page,
+        limit,
+        total: totalTransactions,
+        totalPages: Math.ceil(totalTransactions / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -804,7 +823,9 @@ router.post('/goals', auth, sanitizeInput, async (req, res) => {
     if (!childId) {
       return res.status(400).json({ message: "childId is required for parent goal creation." });
     }
-    const child = await User.findOne({ id: childId, familyId: req.user.familyId, role: 'child' });
+    console.log('[GOALS POST DEBUG] Looking for child:', { childId, parentFamilyId: req.user.familyId, parentId: req.user.id });
+    const child = await User.findOne({ _id: childId, familyId: req.user.familyId, role: 'child' });
+    console.log('[GOALS POST DEBUG] Child query result:', child ? { id: child.id, name: child.name, familyId: child.familyId, role: child.role } : 'NOT FOUND');
     if (!child) {
       return res.status(404).json({ message: "Child not found or does not belong to your family." });
     }
