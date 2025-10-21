@@ -581,17 +581,10 @@ function ChoresSection() {
 
   // Helper for rendering a chore row
   function renderChore(c: any) {
-    // Backend fields: completed, approved (booleans)
-    // Is there a pending ApprovalRequest for this chore?
-    const hasPendingApproval = requests.some(
-      (r: any) => r.type === "chore" && r.choreId === c._id && r.status === "Pending"
-    );
-    // Remove check/toggle logic: always show Claim for active, not completed, not approved, not pending
-    const canClaim = !c.completed && !c.approved && !hasPendingApproval;
-    // Show Pending if not approved and there is a pending approval
-    const showPending = !c.approved && hasPendingApproval;
-    // Show Completed/achieved if approved: parent's approval is source of truth
-    const showCompleted = c.approved;
+    // Use status field from database for consistency
+    const canClaim = c.status === 'active';
+    const showPending = c.status === 'pending';
+    const showCompleted = c.status === 'completed';
     return (
       <View key={c._id} style={{
         flexDirection: "row",
