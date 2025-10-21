@@ -2,14 +2,12 @@ import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { SpendingInsights } from '@/components/SpendingInsights';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
+
 import React, { useState } from 'react';
 import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 import Svg, { Circle } from 'react-native-svg';
-import { fetchChores, fetchFamilyChildren, fetchGoals, fetchRewards, fetchUser } from '../../utils/api';
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
@@ -39,11 +37,11 @@ export default function ParentsAnalyticsScreen() {
     }
   };
 
-  const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
-  const handleRefresh = () => {
-    refetch();
-    markRefreshed();
+  const handleRefresh = async () => {
+    await refetch();
   };
+
+
 
   return (
     <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
@@ -63,28 +61,13 @@ export default function ParentsAnalyticsScreen() {
         </TouchableOpacity>
       </View>
 
-      {showStaleWarning && (
-        <Text style={{
-          color: themeColors.warning,
-          fontWeight: 'bold',
-          fontSize: 15,
-          backgroundColor: themeColors.surface,
-          borderLeftWidth: 4,
-          borderLeftColor: themeColors.warning,
-          padding: 9,
-          borderRadius: 6,
-          marginBottom: 8,
-          textAlign: 'center'
-        }}>
-          Progress data may be outdated. Tap "Refresh" for the latest.
-        </Text>
-      )}
+
       <Text style={styles.title}>Child's Progress Report</Text>
 
       {feedback ? <Text style={styles.statusMessage}>{feedback}</Text> : null}
 
       {/* Simple Analytics Overview */}
-      <AnalyticsOverview />
+      <AnalyticsOverview analyticsData={analyticsData} analyticsLoading={loading} />
 
       {/* Separator */}
       <View style={{ height: 2, backgroundColor: themeColors.text, opacity: 0.3, marginVertical: 20, width: '90%', alignSelf: 'center' }} />
@@ -285,81 +268,69 @@ export default function ParentsAnalyticsScreen() {
   );
 }
 
-const AnalyticsOverview = () => {
+const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData: any, analyticsLoading: boolean }) => {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
 
-  const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<any>(null);
-  const [error, setError] = useState('');
+  if (analyticsLoading) {
+    return (
+      <View style={[styles.sectionCard]}>
+        <ActivityIndicator size="small" color={themeColors.text} />
+        <Text style={[styles.placeholder, { color: themeColors.textSecondary }]}>Loading analytics...</Text>
+      </View>
+    );
+  }
 
-  const loadAnalytics = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const token = await getAuthToken();
-      const parent = await getUserData();
-      if (!token || !parent) {
-        setError('Not authenticated');
-        setLoading(false);
-        return;
-      }
-      const familyId = parent.familyId;
-      const children = await fetchFamilyChildren(familyId, token);
-      if (!children || children.length === 0) {
-        setError('No child linked to your account.');
-        setLoading(false);
-        return;
-      }
-      const kid = children[0];
-      const user = await fetchUser(kid.id, token);
-      const chores = await fetchChores(kid.id, token);
-      const goals = await fetchGoals(kid.id, token);
-      const rewards = await fetchRewards(kid.id, token);
+  if (!analyticsData) {
+    return (
+      <View style={[styles.sectionCard]}>
+        <Text style={[styles.placeholder, { color: themeColors.textSecondary }]}>No analytics data available yet.</Text>
+      </View>
+    );
+  }
 
-      // Single child summary
-      const summaryObj = {
-        totalPoints: user.currentPoints ?? 0,
-        chores: chores.length,
-        completedChores: chores.filter((c: any) =>
-          c.completed === true ||
-          c.status === 'completed' ||
-          c.approved === true
-        ).length,
-        goals: goals.length,
-        completedGoals: goals.filter((g: any) => g.completed || g.status === 'completed').length,
-        rewards: rewards.length,
-        completedRewards: rewards.filter((r: any) => r.purchased).length,
-        jars: {
-          current: user.currentPoints ?? 0,
-          save: user.savePoints ?? 0,
-          spend: user.spendPoints ?? 0,
-          donate: user.donatePoints ?? 0,
-          invest: user.investPoints ?? 0
-        },
-        name: kid.name,
-        goalsList: goals.map((g: any) => ({
-          name: g.name || g.title || 'Goal',
-          // Use either direct percent or (currentValue / targetValue)
-          progress: g.completed || g.status === 'completed'
-            ? 1
-            : g.progress !== undefined
-              ? Math.max(0, Math.min(1, g.progress / 100))
-              : (g.current !== undefined && g.target !== undefined && g.target > 0)
-                ? Math.max(0, Math.min(1, g.current / g.target))
-                : 0,
-        })),
-      };
-      setSummary(summaryObj);
-    } catch (err: any) {
-      setError('Failed to load analytics');
-    }
-    setLoading(false);
+  // Build summary from analytics data
+  console.log('AnalyticsOverview - analyticsData:', analyticsData);
+  const user = analyticsData.user || {};
+  const chores = analyticsData.chores || [];
+  const goals = analyticsData.goals || [];
+  const familyMembers = analyticsData.familyMembers || [];
+  console.log('AnalyticsOverview - familyMembers:', familyMembers);
+  const child = familyMembers.find((m: any) => m.role === 'child') || familyMembers.find((m: any) => m.role !== 'parent');
+  console.log('AnalyticsOverview - found child:', child);
+  console.log('AnalyticsOverview - child name:', child ? child.name : 'No child found');
+
+  const summary = {
+    totalPoints: user.currentPoints ?? 0,
+    chores: chores.length,
+    completedChores: chores.filter((c: any) =>
+      c.completed === true ||
+      c.status === 'completed' ||
+      c.approved === true
+    ).length,
+    goals: goals.length,
+    completedGoals: goals.filter((g: any) => g.completed || g.status === 'completed').length,
+    rewards: 0, // Not available in analytics data
+    completedRewards: 0,
+    jars: {
+      current: user.currentPoints ?? 0,
+      save: user.savePoints ?? 0,
+      spend: user.spendPoints ?? 0,
+      donate: user.donatePoints ?? 0,
+      invest: user.investPoints ?? 0
+    },
+    name: child ? child.name : 'Child',
+    goalsList: goals.map((g: any) => ({
+      name: g.name || g.title || 'Goal',
+      progress: g.completed || g.status === 'completed'
+        ? 1
+        : g.progress !== undefined
+          ? Math.max(0, Math.min(1, g.progress / 100))
+          : (g.current !== undefined && g.target !== undefined && g.target > 0)
+            ? Math.max(0, Math.min(1, g.current / g.target))
+            : 0,
+    })),
   };
-
-  React.useEffect(() => {
-    loadAnalytics();
-  }, []);
 
   // Theme-aware colors from the theme API (always use themeColors)
   const accentTextColor = themeColors.card;
@@ -371,33 +342,8 @@ const AnalyticsOverview = () => {
 
   return (
     <View style={[styles.sectionCard, { backgroundColor: cardBackgroundColor, shadowColor }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.sectionTitle}>Child's Progress Overview</Text>
-        </View>
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 6,
-            paddingVertical: 7,
-            paddingHorizontal: 14,
-            minWidth: 38,
-            maxWidth: 120,
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: 36
-          }}
-          onPress={loadAnalytics}
-          disabled={loading}
-        >
-          <Text style={{ color: accentTextColor, fontWeight: 'bold', fontSize: 13 }}>
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-      {error ? <Text style={[styles.placeholder, { color: mutedTextColor }]}>{error}</Text> : null}
-      {loading ? <ActivityIndicator size="small" color={mainTextColor} /> : null}
-      {!loading && summary && (
+      <Text style={styles.sectionTitle}>Child's Progress Overview</Text>
+      {summary && (
         <>
           <View style={{
             flexDirection: 'row',
@@ -494,9 +440,6 @@ const AnalyticsOverview = () => {
             <PieChartPointsByPot jars={summary.jars} themeColors={themeColors} />
           </View>
         </>
-      )}
-      {!loading && !summary && (
-        <Text style={[styles.placeholder, { color: mutedTextColor }]}>No progress data available yet.</Text>
       )}
     </View>
   );

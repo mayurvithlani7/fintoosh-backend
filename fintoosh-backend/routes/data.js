@@ -2746,7 +2746,9 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     }
 
     // Get all family members
+    console.log('Analytics - looking for familyId:', familyId, 'req.user.familyId:', req.user.familyId);
     const familyMembers = await User.find({ familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
+    console.log('Analytics - found familyMembers:', familyMembers.length, familyMembers.map(m => ({ id: m.id, role: m.role })));
 
     if (familyMembers.length === 0) {
       return res.status(404).json({ message: 'No family members found' });
