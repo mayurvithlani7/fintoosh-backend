@@ -494,17 +494,17 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       const userId = user.id;
       const notifList = await fetchNotifications(userId, token);
       dispatch({ type: 'SET_NOTIFICATIONS', payload: notifList || [] });
-      // If there are new notifications, unsuppress only if ALL notifications are newer than clear time
+      // If there are new notifications, unsuppress if ANY notification is newer than clear time
       if (notifList && notifList.length > 0) {
         const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
         const clearedAtStr = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
         if (clearedAtStr) {
           const clearedTime = Number(clearedAtStr);
-          // Only unsuppress if ALL notifications are newer than cleared time (meaning they arrived after clear)
-          const allNewAfterClear = notifList.every((n: any) =>
+          // Show notifications if ANY notification arrived after clearing
+          const hasNewAfterClear = notifList.some((n: any) =>
             n.createdAt && Number(new Date(n.createdAt)) > clearedTime
           );
-          if (allNewAfterClear) {
+          if (hasNewAfterClear) {
             setNotificationsSuppressed(false);
             await AsyncStorage.removeItem(NOTIF_CLEARED_KEY);
           }
