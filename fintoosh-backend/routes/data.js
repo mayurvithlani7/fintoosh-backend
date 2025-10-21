@@ -727,8 +727,8 @@ router.get('/goal-templates', auth, async (req, res) => {
 // Goal routes
 router.get('/goals/:childId', auth, async (req, res) => {
   try {
-    // Find user by custom ID to get MongoDB ObjectId
-    const user = await User.findOne({ id: req.params.childId });
+    // Find user by MongoDB ObjectId
+    const user = await User.findById(req.params.childId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     // Pagination, filtering, archiving

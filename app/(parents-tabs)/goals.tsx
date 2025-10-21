@@ -16,15 +16,9 @@ import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 export default function ParentsGoalsScreen() {
-  console.log('ParentsGoalsScreen component rendered');
-
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const { childData, fetchChildData } = useDataCache();
-
-  console.log('Goals screen - childData:', childData);
-  console.log('Goals screen - childData?.id:', childData?.id);
-  console.log('Goals screen - childData?.name:', childData?.name);
 
   const [goal, setGoal] = useState('');
   const [description, setDescription] = useState('');
@@ -35,8 +29,6 @@ export default function ParentsGoalsScreen() {
   const [selectedChild, setSelectedChild] = useState(childData?.id || '');
   const [children, setChildren] = useState<{ id: string; name: string }[]>(childData ? [{ id: childData.id, name: childData.name }] : []);
 
-  console.log('Goals screen - selectedChild:', selectedChild);
-  console.log('Goals screen - children:', children);
   const [goals, setGoals] = useState<{
     _id: string;
     name: string;
@@ -50,11 +42,11 @@ export default function ParentsGoalsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
+
   // Validation
   const [goalNameError, setGoalNameError] = useState<string | null>(null);
   const [pointsError, setPointsError] = useState<string | null>(null);
 
-  // No auto suggestions; cleaned out.
   // New: Tab/filter for goals
   const [goalsTab, setGoalsTab] = useState<'Active' | 'Completed'>('Active');
   // Show/hide archive for Completed
@@ -101,16 +93,6 @@ export default function ParentsGoalsScreen() {
     }
   }, []);
 
-  // Auto-fetch goals whenever the screen is focused (parent tab switch), for real-time updates after child actions
-  useFocusEffect(
-    useCallback(() => {
-      if (selectedChild) {
-        loadGoals();
-      }
-      // Always reload goals from backend on screen/tab focus
-    }, [selectedChild])
-  );
-
   const loadChildren = async () => {
     try {
       const token = await getAuthToken();
@@ -142,12 +124,13 @@ export default function ParentsGoalsScreen() {
         const childUsers = await response.json();
         console.log('Family children fetched:', childUsers.length, 'children');
 
-        setChildren(childUsers.map((child: any) => ({ id: child.id, name: child.name })));
+        setChildren(childUsers.map((child: any) => ({ id: child._id || child.id, name: child.name })));
 
         // Auto-select first child if available
-        if (childUsers.length > 0 && !selectedChild) {
-          console.log('Auto-selecting first child:', childUsers[0].name, 'with ID:', childUsers[0].id);
-          setSelectedChild(childUsers[0].id);
+        if (childUsers.length > 0) {
+          const childId = childUsers[0]._id || childUsers[0].id;
+          console.log('Auto-selecting first child:', childUsers[0].name, 'with ID:', childId);
+          setSelectedChild(childId);
         }
       } else {
         console.error('Failed to load children, status:', response.status);
@@ -159,26 +142,29 @@ export default function ParentsGoalsScreen() {
     }
   };
 
-  const loadGoals = async () => {
+  const loadGoals = useCallback(async (isRefresh = false) => {
     if (!selectedChild) {
-      setRefreshing(false);
+      if (isRefresh) setRefreshing(false);
       return;
     }
 
     try {
-      setLoading(true);
+      if (!isRefresh) setLoading(true);
       const token = await getAuthToken();
       if (!token) {
-        setRefreshing(false);
+        if (isRefresh) setRefreshing(false);
         return;
       }
 
+      console.log('[PARENTS GOALS] Loading goals for child:', selectedChild, isRefresh ? '(refresh)' : '(initial)');
       const response = await fetch(`${API_URL}/goals/${selectedChild}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
       if (response.ok) {
-        const goalsData = await response.json();
+        const responseData = await response.json();
+        // Handle both old format (array) and new format ({ data: [...], pagination: {...} })
+        const goalsData = responseData.data || responseData;
         // Security check: All loaded goals must belong to selectedChild
         if (
           goalsData &&
@@ -190,21 +176,35 @@ export default function ParentsGoalsScreen() {
           if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
           return;
         }
-        setGoals(goalsData);
+        console.log('[PARENTS GOALS] Loaded goals:', goalsData.length, 'goals');
+        setGoals(Array.isArray(goalsData) ? goalsData : []);
         markRefreshed();
+      } else {
+        console.error('[PARENTS GOALS] Failed to load goals:', response.status);
       }
     } catch (err) {
-      console.error('Error loading goals:', err);
+      console.error('[PARENTS GOALS] Error loading goals:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
+      if (isRefresh) setRefreshing(false);
     }
-  };
+  }, [selectedChild, markRefreshed]);
 
   const onRefresh = useCallback(() => {
+    console.log('[PARENTS GOALS] Manual refresh triggered');
     setRefreshing(true);
-    loadGoals();
-  }, [selectedChild]);
+    loadGoals(true);
+  }, [loadGoals]);
+
+  // Auto-fetch goals whenever the screen is focused (parent tab switch), for real-time updates after child actions
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedChild) {
+        loadGoals();
+      }
+      // Always reload goals from backend on screen/tab focus
+    }, [selectedChild, loadGoals])
+  );
 
   const { showError, showFeedback } = useGlobalFeedback();
   const handleAddGoal = async () => {
@@ -219,6 +219,12 @@ export default function ParentsGoalsScreen() {
     if (!goal.trim() || !pointsNeeded.trim()) {
       console.log('[PARENTS GOALS] Validation failed: missing goal or points');
       showError('Please enter a goal and points amount.');
+      return;
+    }
+
+    if (!selectedChild) {
+      console.log('[PARENTS GOALS] Validation failed: no child selected');
+      showError('Please wait for children to load.');
       return;
     }
 
@@ -273,9 +279,7 @@ export default function ParentsGoalsScreen() {
       let response;
       let apiUrl;
       if (editingGoal) {
-        // Update existing goal
         apiUrl = `${API_URL}/goals/${editingGoal._id}`;
-        console.log('[PARENTS GOALS] Updating goal:', apiUrl, requestBody);
         response = await fetch(apiUrl, {
           method: 'PATCH',
           headers: {
@@ -285,10 +289,8 @@ export default function ParentsGoalsScreen() {
           body: JSON.stringify(requestBody),
         });
       } else {
-        // Add new goal
         requestBody.childId = selectedChild;
         apiUrl = `${API_URL}/goals`;
-        console.log('[PARENTS GOALS] Creating goal:', apiUrl, requestBody);
         response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
@@ -307,12 +309,8 @@ export default function ParentsGoalsScreen() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: editingGoal ? 'Failed to update goal' : 'Failed to add goal' }));
-        console.log('[PARENTS GOALS] API Error:', errorData);
         throw new Error(errorData.message || (editingGoal ? 'Failed to update goal' : 'Failed to add goal'));
       }
-
-      const responseData = await response.json();
-      console.log('[PARENTS GOALS] API Success:', responseData);
 
       setGoal('');
       setDescription('');
@@ -322,10 +320,8 @@ export default function ParentsGoalsScreen() {
       setEditingGoal(null);
       showFeedback(editingGoal ? 'Goal updated successfully!' : 'Goal added successfully!');
 
-      // Refresh goals list
       loadGoals();
     } catch (err: any) {
-      console.error('[PARENTS GOALS] Error saving goal:', err);
       showError(err.message || (editingGoal ? 'Failed to update goal. Please try again.' : 'Failed to add goal. Please try again.'));
     }
   };
@@ -336,37 +332,28 @@ export default function ParentsGoalsScreen() {
 
   // Handle template selection for parents
   const handleTemplateSelect = (template: any) => {
-    // Pre-populate the form with template data
     setGoal(template.name);
     setPointsNeeded(template.targetAmount.toString());
     setDescription(template.description);
 
-    // Set jar to the one with highest allocation
     const jarAllocations = template.jarAllocations as Record<string, number>;
     const primaryJar = Object.entries(jarAllocations).reduce((a, b) => jarAllocations[a[0]] > jarAllocations[b[0]] ? a : b)[0];
     setSelectedJar(primaryJar);
 
-    // Calculate deadline from duration
     const deadlineDate = new Date(Date.now() + template.duration * 24 * 60 * 60 * 1000);
     const formattedDeadline = deadlineDate.toISOString().split('T')[0];
     setDeadline(formattedDeadline);
 
-    // Close modal
     setShowTemplates(false);
 
-    // Clear any validation errors
     setGoalNameError(null);
     setPointsError(null);
 
-    // Scroll to top to show the form
     scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
   };
 
   const handleDeleteGoal = async (goalId: string, goalName: string) => {
-    console.log('[PARENTS GOALS] handleDeleteGoal fired for:', goalId, goalName);
-
     if (Platform.OS === 'web') {
-      // Web fallback: use window.confirm
       const confirmed = window.confirm(`Are you sure you want to delete "${goalName}"? This action cannot be undone.`);
       if (!confirmed) return;
       try {
@@ -388,9 +375,7 @@ export default function ParentsGoalsScreen() {
           try {
             const errorData = await response.json();
             errorMessage = errorData.message || errorMessage;
-          } catch {
-            // If JSON parsing fails, use default message
-          }
+          } catch { }
           showError(errorMessage);
           return;
         }
@@ -398,11 +383,9 @@ export default function ParentsGoalsScreen() {
         showFeedback(`Goal "${goalName}" deleted successfully.`);
         loadGoals();
       } catch (error) {
-        console.error('Error deleting goal:', error);
         showError('Failed to delete goal.');
       }
     } else {
-      // Native - use Alert.alert
       Alert.alert(
         'Delete Goal',
         `Are you sure you want to delete "${goalName}"? This action cannot be undone.`,
@@ -431,9 +414,7 @@ export default function ParentsGoalsScreen() {
                   try {
                     const errorData = await response.json();
                     errorMessage = errorData.message || errorMessage;
-                  } catch {
-                    // If JSON parsing fails, use default message
-                  }
+                  } catch { }
                   showError(errorMessage);
                   return;
                 }
@@ -441,7 +422,6 @@ export default function ParentsGoalsScreen() {
                 showFeedback(`Goal "${goalName}" deleted successfully.`);
                 loadGoals();
               } catch (error) {
-                console.error('Error deleting goal:', error);
                 showError('Failed to delete goal.');
               }
             }
@@ -480,17 +460,17 @@ export default function ParentsGoalsScreen() {
       <Text style={[styles.title, { color: themeColors.primary }]}>Set Child Goals</Text>
 
       {/* Child Name Display - Single Child per Parent */}
-{children.length === 1 && (
-  <View style={{
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginBottom: 14,
-    marginTop: 6,
-    width: '100%',
-  }}>
-    <Text style={{ fontSize: 15, color: themeColors.primary, fontWeight: '600', marginRight: 4 }}>Child:</Text>
+      {children.length === 1 && (
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          marginBottom: 14,
+          marginTop: 6,
+          width: '100%',
+        }}>
+          <Text style={{ fontSize: 15, color: themeColors.primary, fontWeight: '600', marginRight: 4 }}>Child:</Text>
           <Text
             style={{
               backgroundColor: themeColors.primary,
@@ -510,8 +490,8 @@ export default function ParentsGoalsScreen() {
           >
             {children[0].name}
           </Text>
-  </View>
-)}
+        </View>
+      )}
 
       {/* Add/Edit Goal Form */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
@@ -529,7 +509,6 @@ export default function ParentsGoalsScreen() {
             </TouchableOpacity>
           )}
         </View>
-
         <View style={styles.formRow}>
           <View style={styles.formGroup}>
             <Text style={styles.inputLabel}>Goal Name</Text>
@@ -567,7 +546,6 @@ export default function ParentsGoalsScreen() {
             <ValidationMessage message={pointsError} type={pointsError ? "error" : "success"} />
           </View>
         </View>
-
         <Text style={styles.inputLabel}>Description (Optional)</Text>
         <TextInput
           style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
@@ -577,7 +555,6 @@ export default function ParentsGoalsScreen() {
           multiline
           numberOfLines={3}
         />
-
         <Text style={styles.inputLabel}>Deadline (Optional)</Text>
         {Platform.OS === "web" ? (
           <View style={{ width: '100%' }}>
@@ -643,7 +620,6 @@ export default function ParentsGoalsScreen() {
             )}
           </>
         )}
-
         <Text style={styles.inputLabel}>Which Pot?</Text>
         <View style={styles.jarSelector}>
           {jarOptions.map(jar => (
@@ -664,7 +640,6 @@ export default function ParentsGoalsScreen() {
             </TouchableOpacity>
           ))}
         </View>
-
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <TouchableOpacity
             style={[styles.formBtn, { backgroundColor: themeColors.primary, flex: editingGoal ? 0.6 : 1 }]}
@@ -740,13 +715,11 @@ export default function ParentsGoalsScreen() {
           <Text style={styles.placeholder}>Loading goals...</Text>
         ) : (
           (() => {
-            // Filter logic with 90-day limit for completed
             let filteredGoals;
             let showArchiveButton = false;
             if (goalsTab === 'Active') {
               filteredGoals = goals.filter(g => g.status !== 'completed');
             } else {
-              // "Completed"
               const now = new Date();
               const ninetyDaysAgo = new Date(now);
               ninetyDaysAgo.setDate(now.getDate() - 90);
@@ -760,7 +733,6 @@ export default function ParentsGoalsScreen() {
               );
               filteredGoals = filteredRecent;
               showArchiveButton = filteredArchived.length > 0;
-              // If "Show All Completed Goals" is enabled, show all
               if (showAllCompleted) {
                 filteredGoals = [...filteredRecent, ...filteredArchived].sort((a, b) =>
                   new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -780,7 +752,7 @@ export default function ParentsGoalsScreen() {
               <View>
                 {filteredGoals.map(g => {
                   // DEBUG LOG for goal state
-                  console.log('[PARENTS GOALS] Rendering goal:', g.name, '| _id:', g._id, '| status:', g.status, '| full:', g);
+            //      console.log('[PARENTS GOALS] Rendering goal:', g.name, '| _id:', g._id, '| status:', g.status, '| full:', g);
                   return (
                     <View
                       key={g._id}
@@ -810,7 +782,6 @@ export default function ParentsGoalsScreen() {
                       <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
                         Status: {g.status} • Created: {new Date(g.createdAt).toLocaleDateString()}
                       </Text>
-                      {/* Status indicator and controls for parent */}
                       {g.status === 'active' && (
                         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                           <TouchableOpacity
@@ -828,7 +799,6 @@ export default function ParentsGoalsScreen() {
                               setPointsNeeded(g.targetAmount.toString());
                               setSelectedJar(g.jar);
                               setDeadline(g.deadline ? g.deadline.split('T')[0] : '');
-                              // Scroll to top to show the form
                               scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
                             }}
                           >
@@ -851,7 +821,7 @@ export default function ParentsGoalsScreen() {
                       {g.status === 'pending' && (
                         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                           <Text style={{
-                            color: themeColors.warning, // warning color for pending
+                            color: themeColors.warning,
                             fontWeight: 'bold',
                             fontSize: 13,
                             backgroundColor: themeColors.surface,
@@ -866,7 +836,6 @@ export default function ParentsGoalsScreen() {
                     </View>
                   );
                 })}
-                {/* Archive Toggle for completed goals */}
                 {goalsTab === 'Completed' && showArchiveButton && !showAllCompleted && (
                   <TouchableOpacity
                     style={{
@@ -902,151 +871,149 @@ export default function ParentsGoalsScreen() {
           })()
         )}
       </View>
-
-      {/* Help Modal */}
       <HelpModal
         visible={helpModalVisible}
         onClose={() => setHelpModalVisible(false)}
         title="🎯 Set Child Goals - Help"
         tabs={[
           {
-            title: "Understanding Goals",
+            title: "Creating Goals for Your Child",
             content: [
               {
                 type: "text",
-                text: "Goals are powerful teaching tools that help children learn financial planning, delayed gratification, and the satisfaction of achievement through consistent saving.",
+                text: "Goals help your child learn about delayed gratification, planning, and achieving long-term objectives. Set meaningful targets that teach valuable financial lessons.",
                 icon: "🎯"
               },
               {
                 type: "bullet",
-                text: "Children earn points through chores and tasks to work toward their goals"
+                text: "Choose goals that match your child's interests and age level"
               },
               {
                 type: "bullet",
-                text: "Goals can be short-term (weeks) or long-term (months) savings targets"
+                text: "Set realistic point amounts and deadlines"
               },
               {
                 type: "bullet",
-                text: "You can set deadlines to create urgency and time management skills"
+                text: "Use different money pots to teach various financial concepts"
               },
               {
                 type: "bullet",
-                text: "Goals automatically complete when the target points are reached"
+                text: "Add descriptions to explain why the goal matters"
               },
               {
                 type: "highlight",
-                text: "Goals transform everyday tasks into meaningful achievements!",
-                icon: "🏆"
+                text: "Goals create excitement and motivation for saving and financial planning!",
+                icon: "💰"
               }
             ]
           },
           {
-            title: "Setting Effective Goals",
+            title: "Understanding Money Pots",
             content: [
               {
                 type: "text",
-                text: "Create motivating goals that match your child's interests and abilities:",
-                icon: "✏️"
-              },
-              {
-                type: "bullet",
-                text: "🎯 Specific Names: 'New Bicycle' or 'Art Supplies Set' instead of just 'Toy'"
-              },
-              {
-                type: "bullet",
-                text: "💰 Realistic Costs: Match points to what your child can reasonably earn"
-              },
-              {
-                type: "bullet",
-                text: "⏰ Optional Deadlines: Create time pressure for better planning skills"
-              },
-              {
-                type: "bullet",
-                text: "📝 Rich Descriptions: Explain why the goal matters and what it includes"
-              },
-              {
-                type: "bullet",
-                text: "🎭 Age-Appropriate: Consider your child's attention span and interests"
-              },
-              {
-                type: "highlight",
-                text: "The best goals are exciting, achievable, and personally meaningful!",
-                icon: "⭐"
-              }
-            ]
-          },
-          {
-            title: "Choosing Money Pots Wisely",
-            content: [
-              {
-                type: "text",
-                text: "Each money pot teaches different financial concepts - choose strategically:",
+                text: "Each goal is assigned to a specific money pot, teaching different financial concepts:",
                 icon: "🏺"
               },
               {
                 type: "bullet",
-                text: "💰 Pocket Money - Immediate spending for small treats and wants"
+                text: "🤑 Pocket Money - Quick treats and immediate gratification"
               },
               {
                 type: "bullet",
-                text: "🐷 Savings Pot - Long-term goals requiring patience (bikes, tablets)"
+                text: "🐷 Savings Pot - Big purchases and long-term goals"
               },
               {
                 type: "bullet",
-                text: "🛍️ Spending Pot - Fun purchases that aren't essential"
+                text: "🛍️ Spending Pot - Fun items and entertainment"
               },
               {
                 type: "bullet",
-                text: "❤️ Help Others Pot - Charity and giving back to community"
+                text: "❤️ Help Others Pot - Charitable giving and generosity"
               },
               {
                 type: "bullet",
-                text: "📈 Grow Money Pot - Learning about investments and compound growth"
+                text: "📈 Grow Money Pot - Investment and financial growth"
               },
               {
                 type: "highlight",
-                text: "The pot choice teaches whether money is for needs, wants, or helping others!",
-                icon: "🧠"
+                text: "Choose the pot that best fits the goal's purpose and learning objective!",
+                icon: "🎓"
               }
             ]
           },
           {
-            title: "Managing & Tracking Goals",
+            title: "Goal Templates",
             content: [
               {
                 type: "text",
-                text: "Monitor progress and help your child stay motivated:",
+                text: "Use our pre-built goal templates for inspiration:",
+                icon: "📋"
+              },
+              {
+                type: "bullet",
+                text: "Bike Fund - Learning about big purchases and saving"
+              },
+              {
+                type: "bullet",
+                text: "Family Vacation - Group goals and shared experiences"
+              },
+              {
+                type: "bullet",
+                text: "Charity Drive - Teaching generosity and giving back"
+              },
+              {
+                type: "bullet",
+                text: "Book Collection - Educational and personal development"
+              },
+              {
+                type: "bullet",
+                text: "Sports Equipment - Health and physical activity goals"
+              },
+              {
+                type: "highlight",
+                text: "Templates include suggested point amounts and pot allocations - customize them for your child!",
+                icon: "⚡"
+              }
+            ]
+          },
+          {
+            title: "Managing Goal Progress",
+            content: [
+              {
+                type: "text",
+                text: "Track and manage your child's goal progress:",
                 icon: "📊"
               },
               {
                 type: "bullet",
-                text: "Active Tab - Shows current goals your child is working toward"
+                text: "Active goals can be edited or deleted by parents"
               },
               {
                 type: "bullet",
-                text: "Completed Tab - Past achievements (shows last 90 days by default)"
+                text: "Children can request to mark goals as pending for completion"
               },
               {
                 type: "bullet",
-                text: "Edit Button - Modify goal details anytime (name, cost, deadline)"
+                text: "Parents approve goal completions and transfer points"
               },
               {
                 type: "bullet",
-                text: "Progress Tracking - See how many points earned vs. target needed"
+                text: "Completed goals move to history for review"
               },
               {
                 type: "bullet",
-                text: "Automatic Completion - Goals finish when target points are reached"
+                text: "Expired goals teach about planning and deadlines"
               },
               {
                 type: "highlight",
-                text: "Regular check-ins help children stay focused and motivated!",
-                icon: "�"
+                text: "Regular check-ins help children stay motivated and on track!",
+                icon: "🎯"
               }
             ]
           },
           {
-            title: "Goal Setting Best Practices",
+            title: "Tips for Success",
             content: [
               {
                 type: "text",
@@ -1055,101 +1022,34 @@ export default function ParentsGoalsScreen() {
               },
               {
                 type: "bullet",
-                text: "Start Small: Begin with achievable goals to build confidence"
+                text: "Start with small, achievable goals to build confidence"
               },
               {
                 type: "bullet",
-                text: "Family Input: Discuss and choose goals together as a family"
+                text: "Discuss progress regularly during family time"
               },
               {
                 type: "bullet",
-                text: "Realistic Timelines: Don't set impossible deadlines"
+                text: "Celebrate milestones and completed goals together"
               },
               {
                 type: "bullet",
-                text: "Progress Celebrations: Praise effort and small milestones"
+                text: "Use goals to teach patience and delayed gratification"
               },
               {
                 type: "bullet",
-                text: "Flexible Adjustments: Modify goals if they're too hard or easy"
+                text: "Adjust goals as your child grows and learns"
               },
               {
                 type: "highlight",
-                text: "Goals should excite, not overwhelm - adjust as your child grows!",
-                icon: "🌱"
-              }
-            ]
-          },
-          {
-            title: "Teaching Financial Lessons",
-            content: [
-              {
-                type: "text",
-                text: "Use goals to build lifelong money management skills:",
-                icon: "📚"
-              },
-              {
-                type: "bullet",
-                text: "Delayed Gratification: Waiting and saving for bigger rewards"
-              },
-              {
-                type: "bullet",
-                text: "Planning Ahead: Setting deadlines and working backward"
-              },
-              {
-                type: "bullet",
-                text: "Budgeting: Allocating points across different goals"
-              },
-              {
-                type: "bullet",
-                text: "Achievement Satisfaction: Pride in earned accomplishments"
-              },
-              {
-                type: "bullet",
-                text: "Resilience: Learning from setbacks and trying again"
-              },
-              {
-                type: "highlight",
-                text: "Goals teach that consistent effort leads to meaningful success!",
+                text: "Goals are powerful teachers - they show that hard work and planning lead to success!",
                 icon: "🌟"
-              }
-            ]
-          },
-          {
-            title: "Goal Achievement Examples",
-            content: [
-              {
-                type: "text",
-                text: "Real-world goal examples for different ages and interests:",
-                icon: "🎁"
-              },
-              {
-                type: "bullet",
-                text: "Young Children (5-8): Art supplies set (200 pts), new storybook (150 pts)"
-              },
-              {
-                type: "bullet",
-                text: "Middle Childhood (9-12): Board game (300 pts), sports equipment (400 pts)"
-              },
-              {
-                type: "bullet",
-                text: "Pre-Teens (13-15): Headphones (600 pts), bicycle accessories (500 pts)"
-              },
-              {
-                type: "bullet",
-                text: "Charitable Goals: Donate to animal shelter (250 pts), school supplies for needy kids (350 pts)"
-              },
-              {
-                type: "highlight",
-                text: "Mix material goals with charitable ones to teach giving back!",
-                icon: "❤️"
               }
             ]
           }
         ]}
       />
 
-      {/* Goal Templates Modal */}
       <GoalTemplates
         visible={showTemplates}
         onSelect={handleTemplateSelect}
@@ -1175,17 +1075,17 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success, marginTop: 4 },
   placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
   childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
-childButton: {
-  backgroundColor: themeColors.surface,
-  paddingHorizontal: 16,
-  paddingVertical: 8,
-  borderRadius: 20,
-  margin: 4,
-  minWidth: 80,
-  maxWidth: 180,
-  alignItems: 'center',
-  overflow: 'hidden',
-},
+  childButton: {
+    backgroundColor: themeColors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    margin: 4,
+    minWidth: 80,
+    maxWidth: 180,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
   childButtonSelected: { backgroundColor: themeColors.primary },
   childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
   childButtonTextSelected: { color: themeColors.card },
