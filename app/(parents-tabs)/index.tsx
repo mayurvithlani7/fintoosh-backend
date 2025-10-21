@@ -160,21 +160,21 @@ export default function ParentsOverviewScreen() {
       }
       const notifList = await fetchNotifications(currentUser.id, token);
       setNotifications(notifList || []);
-      // If there are new notifications, unsuppress only if ALL notifications are newer than clear time
-      if (notifList && notifList.length > 0) {
-        const clearedAtStr = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
-        if (clearedAtStr) {
-          const clearedTime = Number(clearedAtStr);
-          // Only unsuppress if ALL notifications are newer than cleared time (meaning they arrived after clear)
-          const allNewAfterClear = notifList.every((n: any) =>
-            n.createdAt && Number(new Date(n.createdAt)) > clearedTime
-          );
-          if (allNewAfterClear) {
-            setNotificationsSuppressed(false);
-            await AsyncStorage.removeItem(NOTIF_CLEARED_KEY);
-          }
+    // If there are new notifications, unsuppress if ANY notification is newer than clear time
+    if (notifList && notifList.length > 0) {
+      const clearedAtStr = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
+      if (clearedAtStr) {
+        const clearedTime = Number(clearedAtStr);
+        // Show notifications if ANY notification arrived after clearing
+        const hasNewAfterClear = notifList.some((n: any) =>
+          n.createdAt && Number(new Date(n.createdAt)) > clearedTime
+        );
+        if (hasNewAfterClear) {
+          setNotificationsSuppressed(false);
+          await AsyncStorage.removeItem(NOTIF_CLEARED_KEY);
         }
       }
+    }
     } catch {
       setNotifError("Failed to load notifications.");
       setNotifications([]);
