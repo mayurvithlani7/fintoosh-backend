@@ -16,11 +16,12 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 4,
@@ -34,6 +35,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     color: themeColors.primary,
   },
   sectionCard: {
+    flex: 1,
     backgroundColor: themeColors.card,
     borderRadius: 14,
     marginBottom: 16,
@@ -85,7 +87,7 @@ export default function GoalsScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
@@ -262,7 +264,7 @@ export default function GoalsScreen() {
           }
         ]}
       />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -415,36 +417,23 @@ function KidGoalsRewardsSection() {
 
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json();
-        console.log('[KIDS GOALS] Fetched goals from server:', JSON.stringify(goalsData, null, 2));
+        // Support for backend returning { data: [...] } OR a direct array (legacy)
+        const goalsArray = Array.isArray(goalsData?.data) ? goalsData.data : Array.isArray(goalsData) ? goalsData : [];
+        console.log('[KIDS GOALS] Fetched goals from server:', JSON.stringify(goalsArray, null, 2));
         // Security check: All loaded goals must belong to this user (kid)
         if (
           user &&
-          goalsData &&
-          goalsData.length > 0 &&
-          goalsData.some((g: any) => (g.childId && g.childId !== user.id))
+          goalsArray &&
+          goalsArray.length > 0 &&
+          goalsArray.some((g: any) => (g.childId && g.childId !== user.id))
         ) {
           const { clearSensitiveAppData } = await import('@/utils/secureStorage');
           await clearSensitiveAppData();
           if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
           return;
         }
-        // Use the freshly loaded requests data for pending status logic
-        const pendingGoalRequests = requestsData.filter((req: any) =>
-          req.type === 'goal-completion' && req.status === 'Pending'
-        );
-        setGoals(currentGoals => {
-          return goalsData.map((serverGoal: any) => {
-            const localGoal = currentGoals.find(g => g._id === serverGoal._id);
-            // Check if this goal has a pending approval request
-            const hasPendingRequest = pendingGoalRequests.some((req: any) => req.goalId === serverGoal._id);
-            if (hasPendingRequest) {
-              // Goal has a pending approval request - show as pending regardless of server status
-              return { ...serverGoal, status: 'pending' };
-            }
-            // No pending request, use server status
-            return serverGoal;
-          });
-        });
+        // Goals now have the correct status from the database, so we can use them directly
+        setGoals(goalsArray);
       }
 
       // Load available rewards
@@ -776,7 +765,11 @@ function KidGoalsRewardsSection() {
   }
 
   return (
-    <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+    <ScrollView
+      style={{ backgroundColor: themeColors.card, borderRadius: 14, marginBottom: 16, alignSelf: 'center', maxWidth: 520, width: "97%", shadowColor: themeColors.border, elevation: 2 }}
+      contentContainerStyle={{ padding: 18, paddingBottom: 40 }}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>My Goals</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -852,15 +845,22 @@ function KidGoalsRewardsSection() {
         let completedGoalsAll = goals.filter(g => getGoalStatus(g) === "completed");
 
         if (tab === "Active") {
-          if (activeGoals.length === 0)
-            return <Text style={styles.placeholder}>No active goals.</Text>;
           return (
             <FlatList
+              ListHeaderComponent={
+                <>
+                  {activeGoals.length === 0 ? (
+                    <Text style={styles.placeholder}>No active goals.</Text>
+                  ) : null}
+                </>
+              }
               data={activeGoals}
               keyExtractor={(item) => item._id}
               renderItem={({ item }) => renderGoal(item)}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 10 }}
+              style={{ flex: 1 }}
+              scrollEnabled={false }
             />
           );
         }
@@ -887,6 +887,8 @@ function KidGoalsRewardsSection() {
               renderItem={({ item }) => renderGoal(item)}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 10 }}
+              style={{ flex: 1 }}
+              scrollEnabled={false }
             />
             {completedArchived.length > 0 && !showArchive && (
               <TouchableOpacity
@@ -996,6 +998,8 @@ function KidGoalsRewardsSection() {
                 renderItem={({ item }) => renderReward(item)}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 10 }}
+                style={{ flex: 1 }}
+              scrollEnabled={false }
               />
             );
           }
@@ -1010,6 +1014,8 @@ function KidGoalsRewardsSection() {
                 renderItem={({ item }) => renderReward(item)}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 10 }}
+                style={{ flex: 1 }}
+              scrollEnabled={false }
               />
               {claimedArchived.length > 0 && !showRewardsArchive && (
                 <TouchableOpacity
@@ -1050,6 +1056,7 @@ function KidGoalsRewardsSection() {
         })()}
       </View>
 
+
       {msg ? <Text style={styles.statusMessage}>{msg}</Text> : null}
 
       {/* Goal Templates Modal */}
@@ -1058,7 +1065,7 @@ function KidGoalsRewardsSection() {
         onSelect={handleTemplateSelect}
         onClose={() => setShowTemplates(false)}
       />
-    </View>
+    </ScrollView>
   );
 
 

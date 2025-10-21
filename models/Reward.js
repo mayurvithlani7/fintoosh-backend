@@ -7,6 +7,7 @@ const rewardSchema = new mongoose.Schema({
   description: { type: String },
   cost: { type: Number, required: true },
   category: { type: String, enum: ['experience', 'privilege', 'item'], default: 'experience' },
+  status: { type: String, enum: ['active', 'pending', 'claimed'], default: 'active' },
   available: { type: Boolean, default: true },
   purchased: { type: Boolean, default: false },
   approvedAt: { type: Date }, // The date when the parent approved the reward fulfillment

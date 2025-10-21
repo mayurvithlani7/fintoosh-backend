@@ -7,6 +7,7 @@ const choreSchema = new mongoose.Schema({
   description: { type: String },
   points: { type: Number, required: true },
   frequency: { type: String, enum: ['daily', 'weekly', 'monthly', 'once'], default: 'once' },
+  status: { type: String, enum: ['active', 'pending', 'completed'], default: 'active' },
   deadline: { type: Date },
   completed: { type: Boolean, default: false },
   approved: { type: Boolean, default: false },

@@ -482,9 +482,10 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
         return res.status(400).json({ message: 'A reward approval request is already pending for this reward.' });
       }
 
-      // Correct logic: always update available to false and save
+      // Correct logic: always update available to false, purchased to false, status to pending and save
       reward.available = false;
       reward.purchased = false;
+      reward.status = 'pending'; // Mark reward as pending approval
       await reward.save();
       // Reload and send updated reward after save
       const updatedReward = await Reward.findById(reward._id);
@@ -551,7 +552,7 @@ router.delete('/rewards/:rewardId', auth, async (req, res) => {
       return res.status(403).json({ message: "Invalid user role for reward deletion" });
     }
 
-    // Check status restrictions - can't delete if pending or purchased/claimed
+    // Check status restrictions - can't delete if pending or claimed
     if (reward.status !== 'active') {
       console.log('[DELETE REWARD] Cannot delete non-active reward:', { status: reward.status, expected: 'active' });
       return res.status(400).json({ message: "Can only delete rewards with status 'active'" });
@@ -792,7 +793,7 @@ router.get('/goals/:childId', auth, async (req, res) => {
     // Pagination metadata
     const totalPages = Math.ceil(totalGoals / limit);
     res.json({
-      data: updatedGoals,
+      data: Array.isArray(updatedGoals) ? updatedGoals : [],
       pagination: {
         total: totalGoals,
         page,
@@ -803,7 +804,7 @@ router.get('/goals/:childId', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ data: [], message: error.message });
   }
 });
 
@@ -1119,6 +1120,7 @@ router.patch('/chores/:choreId', auth, sanitizeInput, async (req, res) => {
       // Allow updating completed and completedAt fields for kids
       if (update.completed !== undefined) allowed.completed = update.completed;
       if (update.completedAt !== undefined) allowed.completedAt = update.completedAt;
+      if (update.completed === true) allowed.status = 'pending'; // Set status to pending when child marks as completed
     }
 
     Object.assign(chore, allowed, { updatedAt: new Date() });
@@ -1396,6 +1398,16 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
     }
     // ---------------- END AUTO-APPROVAL LOGIC ----------------
 
+    // For goal-completion requests, update goal status to pending
+    if (req.body.type === 'goal-completion' && req.body.goalId) {
+      const Goal = require('../models/Goal');
+      const goal = await Goal.findById(req.body.goalId);
+      if (goal) {
+        goal.status = 'pending';
+        await goal.save();
+      }
+    }
+
     const approvalRequest = new (require('../models/ApprovalRequest'))({
       ...req.body,
       familyId: childUser.familyId,
@@ -1539,11 +1551,12 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         await txn.save();
         user.transactions.unshift(txn._id);
 
-        // Update reward fulfillment
+        // Update reward fulfillment and status
         if (rewardDoc) {
           rewardDoc.approvedAt = new Date();
           rewardDoc.purchased = true;
           rewardDoc.purchasedAt = new Date();
+          rewardDoc.status = 'claimed'; // Update status to claimed
           await rewardDoc.save();
         }
 
@@ -1627,11 +1640,12 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       user.transactions.unshift(...transactions);
       await user.save();
 
-      // Mark chore as approved
+      // Mark chore as approved and set status to completed
       chore.approved = true;
       chore.approvedAt = new Date();
+      chore.status = 'completed';
       await chore.save();
-      console.log('DEBUG: Chore approved now set to', chore.approved, 'for Chore', chore._id);
+      console.log('DEBUG: Chore approved now set to', chore.approved, 'and status', chore.status, 'for Chore', chore._id);
     }
 
     // If approved and goal-completion, check points, deduct, set goal status to 'completed'
@@ -1667,7 +1681,7 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         }
       }
     }
-    // If denied and reward, reset reward availability
+    // If denied and reward, reset reward availability and status
     if (status === 'Denied' && approval.type === 'reward') {
       console.log('DEBUG: Inside reward deny handler.', { status, approvalType: approval.type, approvalId: approval._id });
       const RewardModel = require('../models/Reward');
@@ -1677,8 +1691,9 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         if (reward) {
           reward.available = true;
           reward.purchased = false;
+          reward.status = 'active'; // Reset status to active so child can try again
           await reward.save();
-          console.log('DEBUG Deny Reward - updated:', { _id: reward._id, available: reward.available, purchased: reward.purchased });
+          console.log('DEBUG Deny Reward - updated:', { _id: reward._id, available: reward.available, purchased: reward.purchased, status: reward.status });
         } else {
           console.log('DEBUG Deny Reward - reward not found:', approval.rewardId);
         }
