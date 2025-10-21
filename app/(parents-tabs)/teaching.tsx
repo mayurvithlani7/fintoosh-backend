@@ -396,6 +396,10 @@ const saveDreamBoardToDB = async (dreamBoard: any, famId: string, childId: strin
     const token = await getAuthToken();
     if (!token || !famId || !childId) return;
     const isUpdate = !!dreamBoardId;
+
+    console.log('Saving dream board:', { dreamBoardId, isUpdate, famId, childId });
+    console.log('Dream board data:', JSON.stringify(dreamBoard, null, 2));
+
     if (isUpdate) {
       // PATCH existing
       const res = await fetch(`${API_URL}/dream-board/${dreamBoardId}`, {
@@ -403,6 +407,11 @@ const saveDreamBoardToDB = async (dreamBoard: any, famId: string, childId: strin
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(dreamBoard),
       });
+      console.log('Dream board PATCH response status:', res.status);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Dream board PATCH failed:', res.status, errorText);
+      }
       return await res.json();
     } else {
       // POST new
@@ -411,6 +420,11 @@ const saveDreamBoardToDB = async (dreamBoard: any, famId: string, childId: strin
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(dreamBoard),
       });
+      console.log('Dream board POST response status:', res.status);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Dream board POST failed:', res.status, errorText);
+      }
       return await res.json();
     }
   } catch (error) {
@@ -1812,9 +1826,12 @@ const loadStoredData = async () => {
                     }
 
                     // Extract child ID as string (handle both string and object cases)
-                    const childId = typeof discussionForm.childId === 'object' && discussionForm.childId && typeof discussionForm.childId.id === 'string'
-                      ? discussionForm.childId.id
-                      : String(discussionForm.childId || '');
+                    let childId: string;
+                    if (typeof discussionForm.childId === 'object' && discussionForm.childId && 'id' in discussionForm.childId) {
+                      childId = String(discussionForm.childId.id);
+                    } else {
+                      childId = String(discussionForm.childId || '');
+                    }
 
                     // Create discussion object
                     const newDiscussion = {
@@ -1826,10 +1843,7 @@ const loadStoredData = async () => {
                       customTopic: discussionForm.customTopic || null,
                       discussionDate: new Date().toISOString(),
                       duration: parseInt(discussionForm.duration) || 15,
-                      participants: [
-                        { userId: 'parent1', role: 'parent', attended: true },
-                        { userId: childId, role: 'child', attended: true }
-                      ],
+                      // Don't send participants - let backend create them with proper ObjectIds
                       keyLearnings: discussionForm.keyLearnings ? [discussionForm.keyLearnings] : [],
                       mood: discussionForm.mood,
                       notes: discussionForm.notes,

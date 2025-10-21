@@ -2463,23 +2463,46 @@ router.patch('/dream-board/:dreamBoardId', auth, requireParent, sanitizeInput, a
 
     // Transform items if they exist in the update
     if (update.items) {
-      update.items = update.items.map(item => ({
-        title: item.title,
-        description: item.description || '',
-        category: item.category,
-        targetAmount: item.targetAmount,
-        currentSavings: item.currentSavings || 0,
-        monthlyContribution: item.monthlyCommitment || item.monthlyContribution || 0, // Handle frontend naming
-        targetDate: item.deadline ? new Date(item.deadline) : item.targetDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        priority: item.priority || 'medium',
-        status: item.status || 'planning',
-        icon: item.icon || '🎯',
-        color: item.color || '#4fc1e9',
-        position: item.position || { x: 0, y: 0 },
-        tags: item.tags || [],
-        notes: item.notes || '',
-        _id: item.id || item._id // Preserve existing ID if present
-      }));
+      update.items = update.items.map(item => {
+        // Map frontend categories to valid backend enum values
+        let category = item.category || 'custom';
+        if (category === 'vacation') category = 'travel'; // Map vacation to travel
+
+        const transformedItem = {
+          title: item.title,
+          description: item.description || 'No description provided',
+          category: category,
+          targetAmount: item.targetAmount,
+          currentSavings: item.currentSavings || 0,
+          monthlyContribution: item.monthlyCommitment || item.monthlyContribution || 0, // Handle frontend naming
+          priority: item.priority || 'medium',
+          status: item.status || 'planning',
+          icon: item.icon || '🎯',
+          color: item.color || '#4fc1e9',
+          position: item.position || { x: 0, y: 0 },
+          tags: item.tags || [],
+          notes: item.notes || ''
+        };
+
+        // Handle targetDate carefully
+        try {
+          if (item.deadline) {
+            transformedItem.targetDate = new Date(item.deadline);
+          } else if (item.targetDate) {
+            transformedItem.targetDate = new Date(item.targetDate);
+          } else {
+            transformedItem.targetDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+          }
+        } catch (dateError) {
+          console.error('Error parsing date for dream item:', item, dateError);
+          transformedItem.targetDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+        }
+
+        // NEVER set _id from frontend - let MongoDB handle it
+        // This prevents ObjectId casting errors from invalid strings
+
+        return transformedItem;
+      });
     }
 
     Object.assign(dreamBoard, update, { updatedAt: new Date() });
