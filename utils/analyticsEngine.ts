@@ -42,6 +42,7 @@ export interface AnalyticsData {
   jarDistribution: JarAnalytics[];
   goalProgress: GoalMetrics[];
   predictions: PredictionData;
+  familyMembers?: any[];
 }
 
 // Simple linear regression for trend prediction
@@ -77,11 +78,17 @@ export function processSpendingTrends(transactions: any[], days: number = 30): T
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
 
-  const filteredTransactions = transactions.filter(t =>
-    new Date(t.createdAt) >= cutoffDate &&
-    t.type === 'spending' &&
-    t.amount > 0
-  );
+  const filteredTransactions = transactions.filter(t => {
+    try {
+      const transactionDate = new Date(t.createdAt);
+      return !isNaN(transactionDate.getTime()) &&
+             transactionDate >= cutoffDate &&
+             t.type === 'spending' &&
+             t.amount > 0;
+    } catch {
+      return false;
+    }
+  });
 
   const dailySpending: { [date: string]: number } = {};
   const categorySpending: { [date: string]: { [category: string]: number } } = {};
@@ -127,7 +134,16 @@ export function processChoreCompletion(chores: any[], transactions: any[], days:
 
   // Count completions from transactions
   transactions
-    .filter(t => t.type === 'chore-completion' && new Date(t.createdAt) >= cutoffDate)
+    .filter(t => {
+      try {
+        const transactionDate = new Date(t.createdAt);
+        return !isNaN(transactionDate.getTime()) &&
+               t.type === 'chore-completion' &&
+               transactionDate >= cutoffDate;
+      } catch {
+        return false;
+      }
+    })
     .forEach(transaction => {
       const choreId = transaction.choreId;
       if (choreStats[choreId]) {
@@ -162,7 +178,14 @@ export function processJarDistribution(user: any, transactions: any[], days: num
     invest: { deposits: 0, withdrawals: 0, current: user.investPoints || 0 }
   };
 
-  const recentTransactions = transactions.filter(t => new Date(t.createdAt) >= cutoffDate);
+  const recentTransactions = transactions.filter(t => {
+    try {
+      const transactionDate = new Date(t.createdAt);
+      return !isNaN(transactionDate.getTime()) && transactionDate >= cutoffDate;
+    } catch {
+      return false;
+    }
+  });
 
   recentTransactions.forEach(transaction => {
     if (transaction.toJar && jarStats[transaction.toJar]) {
@@ -296,12 +319,12 @@ export function generatePredictions(
   };
 }
 
-// Main analytics processing function
-export async function processAnalyticsData(
+// Fetch raw analytics data without processing
+export async function fetchAnalyticsRawData(
   familyId: string,
   startDate?: string,
   endDate?: string
-): Promise<AnalyticsData> {
+): Promise<any> {
   try {
     const queryParams = new URLSearchParams();
     if (startDate) queryParams.append('startDate', startDate);
@@ -348,23 +371,45 @@ export async function processAnalyticsData(
       console.log('[ANALYTICS DEBUG] transactions:', rawData.transactions);
     }
 
-    const spendingTrends = processSpendingTrends(rawData.transactions);
-    const choreCompletion = processChoreCompletion(rawData.chores, rawData.transactions);
-    const jarDistribution = processJarDistribution(rawData.user, rawData.transactions);
-    const goalProgress = processGoalProgress(rawData.goals);
-    const predictions = generatePredictions(spendingTrends, jarDistribution, goalProgress);
-
-    return {
-      spendingTrends,
-      choreCompletion,
-      jarDistribution,
-      goalProgress,
-      predictions
-    };
+    return rawData;
   } catch (error) {
-    console.error('Error processing analytics data:', error);
+    console.error('Error fetching analytics raw data:', error);
     throw error;
   }
+}
+
+// Process raw analytics data into final format
+export function processAnalyticsRawData(rawData: any): AnalyticsData {
+  // Validate and provide defaults for raw data
+  const transactions = Array.isArray(rawData.transactions) ? rawData.transactions : [];
+  const chores = Array.isArray(rawData.chores) ? rawData.chores : [];
+  const goals = Array.isArray(rawData.goals) ? rawData.goals : [];
+  const user = rawData.user || {};
+
+  const spendingTrends = processSpendingTrends(transactions);
+  const choreCompletion = processChoreCompletion(chores, transactions);
+  const jarDistribution = processJarDistribution(user, transactions);
+  const goalProgress = processGoalProgress(goals);
+  const predictions = generatePredictions(spendingTrends, jarDistribution, goalProgress);
+
+  return {
+    spendingTrends,
+    choreCompletion,
+    jarDistribution,
+    goalProgress,
+    predictions,
+    familyMembers: rawData.familyMembers || []
+  };
+}
+
+// Main analytics processing function (kept for backward compatibility)
+export async function processAnalyticsData(
+  familyId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<AnalyticsData> {
+  const rawData = await fetchAnalyticsRawData(familyId, startDate, endDate);
+  return processAnalyticsRawData(rawData);
 }
 
 // Export data for reports
