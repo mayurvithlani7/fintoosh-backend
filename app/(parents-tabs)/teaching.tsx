@@ -533,8 +533,30 @@ const loadStoredData = async () => {
         }
       }
 
-      // Load dreamboard from database (if endpoint exists)
-      // For now, rely on AsyncStorage for dreamboard persistence
+      // Load dreamboard from database
+      if (selectedChild && selectedChild.id) {
+        console.log('Loading dream board for child:', selectedChild.id, 'in family:', currentUser.familyId);
+        const dreamBoardResponse = await fetch(`${API_URL}/dream-board/${currentUser.familyId}/${selectedChild.id}`, {
+          method: 'GET',
+          headers,
+        });
+
+        console.log('Dream board API response status:', dreamBoardResponse.status);
+        if (dreamBoardResponse.ok) {
+          const dreamBoardData = await dreamBoardResponse.json();
+          console.log('Loaded dream board data from database:', dreamBoardData);
+          if (dreamBoardData) {
+            setDreamBoard(dreamBoardData);
+            AsyncStorage.setItem(getFamilyKey('dreamBoard', currentUser.familyId), JSON.stringify(dreamBoardData));
+          }
+        } else {
+          const errorText = await dreamBoardResponse.text();
+          console.error('Dream board API error:', dreamBoardResponse.status, errorText);
+          // Don't show error to user - dream board is optional feature
+        }
+      } else {
+        console.log('No selected child available for dream board loading');
+      }
 
       // Load family timeline from database
       if (selectedChild && selectedChild.id) {
@@ -734,12 +756,19 @@ const loadStoredData = async () => {
     if (!currentUser) return;
 
     try {
+      const token = await getAuthToken();
+      const headers: any = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       for (const discussion of discussions) {
         await fetch(`${API_URL}/family-discussions/${currentUser.familyId}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
             ...discussion,
             familyId: currentUser.familyId,
@@ -756,62 +785,97 @@ const loadStoredData = async () => {
 
   // Save timeline to database
   const saveTimelineToDatabase = async (timelineData: any) => {
-    if (!currentUser || !selectedChild) return;
+    if (!currentUser || !selectedChild) {
+      console.error('Cannot save timeline: missing currentUser or selectedChild');
+      return;
+    }
 
     try {
       const token = await getAuthToken();
       if (!token) {
         console.error('No auth token available for timeline save');
-        return;
+        // Still save to AsyncStorage even without token
+      } else {
+        // First, get the existing timeline to ensure it exists and get its ID
+        const getResponse = await fetch(`${API_URL}/family-timeline/${currentUser.familyId}/${selectedChild.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        });
+
+        console.log('Timeline GET response status:', getResponse.status);
+
+        if (!getResponse.ok) {
+          const errorText = await getResponse.text();
+          console.error('Failed to get timeline:', getResponse.status, errorText);
+          // Try to create a new timeline instead
+          const postResponse = await fetch(`${API_URL}/family-timeline/${currentUser.familyId}/${selectedChild.id}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              title: 'Our Family Money Journey',
+              description: 'Tracking our family\'s financial milestones and achievements over time',
+              timeline: timelineData.timeline,
+              currentProjection: timelineData.currentProjection || {
+                childAge: selectedChild.age || 8,
+                monthlySavings: 100,
+                annualGrowth: 0.05,
+                targetAmount: 50000,
+                yearsToTarget: 10
+              }
+            }),
+          });
+
+          if (postResponse.ok) {
+            const createdTimeline = await postResponse.json();
+            console.log('Timeline created successfully in database:', createdTimeline._id);
+          } else {
+            const postErrorText = await postResponse.text();
+            console.error('Failed to create timeline:', postResponse.status, postErrorText);
+          }
+          return;
+        }
+
+        const existingTimeline = await getResponse.json();
+        console.log('Existing timeline found:', existingTimeline._id);
+
+        // Now update the timeline using PATCH with the timeline ID
+        const patchResponse = await fetch(`${API_URL}/family-timeline/${existingTimeline._id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            timeline: timelineData.timeline
+          }),
+        });
+
+        console.log('Timeline PATCH response status:', patchResponse.status);
+
+        if (!patchResponse.ok) {
+          const errorText = await patchResponse.text();
+          console.error('Failed to update timeline:', patchResponse.status, errorText);
+        } else {
+          console.log('Timeline updated successfully in database');
+        }
       }
-
-      // First, get the existing timeline to ensure it exists and get its ID
-      const getResponse = await fetch(`${API_URL}/family-timeline/${currentUser.familyId}/${selectedChild.id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
-
-      if (!getResponse.ok) {
-        console.error('Failed to get timeline:', getResponse.status);
-        return;
-      }
-
-      const existingTimeline = await getResponse.json();
-
-      // Now update the timeline using PATCH with the timeline ID
-      const patchResponse = await fetch(`${API_URL}/family-timeline/${existingTimeline._id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          timeline: timelineData.timeline
-        }),
-      });
-
-      if (!patchResponse.ok) {
-        const errorText = await patchResponse.text();
-        console.error('Failed to update timeline:', patchResponse.status, errorText);
-        return;
-      }
-
-      console.log('Timeline updated successfully in database');
     } catch (error) {
-      console.error('Error saving timeline to database, using local storage:', error);
+      console.error('Error saving timeline to database:', error);
     }
 
     // Always save to AsyncStorage as backup
     try {
-      if (!currentUser || !selectedChild) return;
       await AsyncStorage.setItem(
         getFamilyChildKey('familyTimeline', currentUser.familyId, selectedChild.id),
         JSON.stringify(timelineData)
       );
-      console.log('Timeline saved to AsyncStorage:', timelineData);
+      console.log('Timeline saved to AsyncStorage:', timelineData.timeline?.length, 'entries');
     } catch (storageError) {
       console.error('Error saving timeline to AsyncStorage:', storageError);
     }
@@ -1007,24 +1071,72 @@ const loadStoredData = async () => {
                 <View style={styles.discussionActions}>
                   <TouchableOpacity
                     style={[styles.deleteButton, { backgroundColor: themeColors.secondary }]}
-                    onPress={() => {
+                    onPress={async () => {
                       console.log('Delete discussion button pressed for:', discussion._id);
-                      console.log('Current discussions count:', familyDiscussions.length);
 
-                      // Directly delete without Alert confirmation for testing
-                      console.log('Deleting discussion:', discussion._id);
-                      const updatedDiscussions = familyDiscussions.filter(d => d._id !== discussion._id);
-                      console.log('Updated discussions count:', updatedDiscussions.length);
-                      console.log('Discussion to delete:', discussion);
-                      console.log('Filtered discussions:', updatedDiscussions);
+                      // Confirm deletion
+                      const confirmed = await new Promise((resolve) => {
+                        Alert.alert(
+                          'Delete Discussion',
+                          'Are you sure you want to delete this discussion?',
+                          [
+                            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+                            { text: 'Delete', style: 'destructive', onPress: () => resolve(true) }
+                          ]
+                        );
+                      });
+                      if (!confirmed) return;
 
-                      // Force re-render by creating a completely new array
-                      setFamilyDiscussions([...updatedDiscussions]);
-                      console.log('State updated, new discussions count:', updatedDiscussions.length);
-                      console.log('Force re-render triggered');
+                      try {
+                        const token = await getAuthToken();
+                        if (token) {
+                          const deleteResponse = await fetch(`${API_URL}/family-discussions/${discussion._id}`, {
+                            method: 'DELETE',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                            },
+                          });
 
-                      saveDiscussionsToDatabase(updatedDiscussions);
-                      console.log('AsyncStorage save initiated');
+                          if (deleteResponse.ok) {
+                            console.log('Discussion deleted from database successfully');
+                            // Update local state
+                            const updatedDiscussions = familyDiscussions.filter(d => d._id !== discussion._id);
+                            setFamilyDiscussions(updatedDiscussions);
+                            // Also update AsyncStorage
+                            await AsyncStorage.setItem(
+                              getFamilyKey('familyDiscussions', currentUser.familyId),
+                              JSON.stringify(updatedDiscussions)
+                            );
+                          } else {
+                            console.error('Failed to delete discussion from database');
+                            // Still update local state for better UX
+                            const updatedDiscussions = familyDiscussions.filter(d => d._id !== discussion._id);
+                            setFamilyDiscussions(updatedDiscussions);
+                            await AsyncStorage.setItem(
+                              getFamilyKey('familyDiscussions', currentUser.familyId),
+                              JSON.stringify(updatedDiscussions)
+                            );
+                          }
+                        } else {
+                          // No token, just update local state
+                          const updatedDiscussions = familyDiscussions.filter(d => d._id !== discussion._id);
+                          setFamilyDiscussions(updatedDiscussions);
+                          await AsyncStorage.setItem(
+                            getFamilyKey('familyDiscussions', currentUser.familyId),
+                            JSON.stringify(updatedDiscussions)
+                          );
+                        }
+                      } catch (error) {
+                        console.error('Error deleting discussion:', error);
+                        // Still update local state for better UX
+                        const updatedDiscussions = familyDiscussions.filter(d => d._id !== discussion._id);
+                        setFamilyDiscussions(updatedDiscussions);
+                        await AsyncStorage.setItem(
+                          getFamilyKey('familyDiscussions', currentUser.familyId),
+                          JSON.stringify(updatedDiscussions)
+                        );
+                      }
                     }}
                   >
                     <Text style={[styles.deleteButtonText, { color: themeColors.card }]}>🗑️</Text>
@@ -1336,73 +1448,94 @@ const loadStoredData = async () => {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.deleteButton, { backgroundColor: themeColors.secondary }]}
-                    onPress={() => {
+                    onPress={async () => {
                       console.log('Dream delete button pressed for:', item.id, item.title);
-                      console.log('Dream board items before delete:', dreamBoard.items?.length || 0);
 
-                      // Use appropriate confirmation method for platform
-                      if (typeof window !== 'undefined' && window.confirm) {
-                        // Web: use browser confirm dialog
-                        const confirmed = window.confirm(`Are you sure you want to delete "${item.title}" from your Dream Board?`);
-                        if (confirmed) {
-                          console.log('Dream delete confirmed for:', item.id, item.title);
+                      // Confirm deletion
+                      const confirmed = await new Promise((resolve) => {
+                        Alert.alert(
+                          'Delete Dream',
+                          `Are you sure you want to delete "${item.title}" from your Dream Board?`,
+                          [
+                            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+                            { text: 'Delete', style: 'destructive', onPress: () => resolve(true) }
+                          ]
+                        );
+                      });
+                      if (!confirmed) return;
 
-                          // Simple direct approach - just remove the item without complex checks
-                          const updatedItems = dreamBoard.items.filter((dream: any) => dream.id !== item.id);
-                          console.log('Before delete:', dreamBoard.items.length, 'items');
-                          console.log('After delete:', updatedItems.length, 'items');
+                      try {
+                        const token = await getAuthToken();
+                        if (token && dreamBoard && dreamBoard._id) {
+                          const deleteResponse = await fetch(`${API_URL}/dream-board/${dreamBoard._id}`, {
+                            method: 'DELETE',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                            },
+                          });
 
+                          if (deleteResponse.ok) {
+                            console.log('Dream deleted from database successfully');
+                            // Update local state
+                            const updatedItems = dreamBoard.items.filter((dream: any) => dream._id !== item._id);
+                            const updatedDreamBoard = {
+                              ...dreamBoard,
+                              items: updatedItems,
+                              totalDreamValue: dreamBoard.totalDreamValue - item.targetAmount,
+                              monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
+                            };
+                            setDreamBoard(updatedDreamBoard);
+                            // Also update AsyncStorage
+                            await AsyncStorage.setItem(
+                              getFamilyKey('dreamBoard', currentUser.familyId),
+                              JSON.stringify(updatedDreamBoard)
+                            );
+                          } else {
+                            console.error('Failed to delete dream from database');
+                            // Still update local state for better UX
+                            const updatedItems = dreamBoard.items.filter((dream: any) => dream._id !== item._id);
+                            const updatedDreamBoard = {
+                              ...dreamBoard,
+                              items: updatedItems,
+                              totalDreamValue: dreamBoard.totalDreamValue - item.targetAmount,
+                              monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
+                            };
+                            setDreamBoard(updatedDreamBoard);
+                            await AsyncStorage.setItem(
+                              getFamilyKey('dreamBoard', currentUser.familyId),
+                              JSON.stringify(updatedDreamBoard)
+                            );
+                          }
+                        } else {
+                          // No token or no dream board ID, just update local state
+                          const updatedItems = dreamBoard.items.filter((dream: any) => dream._id !== item._id);
                           const updatedDreamBoard = {
                             ...dreamBoard,
                             items: updatedItems,
                             totalDreamValue: dreamBoard.totalDreamValue - item.targetAmount,
                             monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
                           };
-
-                          console.log('Setting updated dream board...');
                           setDreamBoard(updatedDreamBoard);
-                          console.log('Saving to AsyncStorage...');
-                          AsyncStorage.setItem('dreamBoard', JSON.stringify(updatedDreamBoard));
-
-                          console.log('Dream deleted successfully');
-                        } else {
-                          console.log('Dream delete cancelled');
+                          await AsyncStorage.setItem(
+                            getFamilyKey('dreamBoard', currentUser.familyId),
+                            JSON.stringify(updatedDreamBoard)
+                          );
                         }
-                      } else {
-                        // Mobile: use Alert.alert
-                        Alert.alert(
-                          'Delete Dream',
-                          `Are you sure you want to delete "${item.title}" from your Dream Board?`,
-                          [
-                            { text: 'Cancel', style: 'cancel', onPress: () => console.log('Dream delete cancelled') },
-                            {
-                              text: 'Delete',
-                              style: 'destructive',
-                              onPress: async () => {
-                                console.log('Dream delete confirmed for:', item.id, item.title);
-
-                                const updatedItems = dreamBoard.items.filter((dream: any) => dream.id !== item.id);
-                                const updatedDreamBoard = {
-                                  ...dreamBoard,
-                                  items: updatedItems,
-                                  totalDreamValue: dreamBoard.totalDreamValue - item.targetAmount,
-                                  monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
-                                };
-
-                                let dbDreamBoard = dreamBoard;
-                                if (currentUser && selectedChild && dreamBoard && dreamBoard._id) {
-                                  dbDreamBoard = await saveDreamBoardToDB(updatedDreamBoard, currentUser.familyId, selectedChild.id, dreamBoard._id);
-                                  await AsyncStorage.setItem(getFamilyKey('dreamBoard', currentUser.familyId), JSON.stringify(dbDreamBoard));
-                                  setDreamBoard(dbDreamBoard);
-                                } else {
-                                  setDreamBoard(updatedDreamBoard);
-                                  await AsyncStorage.setItem(getFamilyKey('dreamBoard', currentUser.familyId), JSON.stringify(updatedDreamBoard));
-                                }
-
-                                console.log('Dream deleted and synced to backend');
-                              }
-                            }
-                          ]
+                      } catch (error) {
+                        console.error('Error deleting dream:', error);
+                        // Still update local state for better UX
+                        const updatedItems = dreamBoard.items.filter((dream: any) => dream._id !== item._id);
+                        const updatedDreamBoard = {
+                          ...dreamBoard,
+                          items: updatedItems,
+                          totalDreamValue: dreamBoard.totalDreamValue - item.targetAmount,
+                          monthlyCommitment: dreamBoard.monthlyCommitment - item.monthlyCommitment
+                        };
+                        setDreamBoard(updatedDreamBoard);
+                        await AsyncStorage.setItem(
+                          getFamilyKey('dreamBoard', currentUser.familyId),
+                          JSON.stringify(updatedDreamBoard)
                         );
                       }
                     }}

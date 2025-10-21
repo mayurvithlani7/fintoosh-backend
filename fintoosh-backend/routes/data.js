@@ -2236,6 +2236,28 @@ router.patch('/family-discussions/:discussionId', auth, requireParent, sanitizeI
   }
 });
 
+router.delete('/family-discussions/:discussionId', auth, requireParent, async (req, res) => {
+  try {
+    const { discussionId } = req.params;
+
+    const discussion = await FamilyDiscussion.findById(discussionId);
+    if (!discussion) {
+      return res.status(404).json({ message: 'Discussion not found' });
+    }
+
+    // Verify ownership
+    if (!discussion.parentId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to delete this discussion' });
+    }
+
+    await FamilyDiscussion.findByIdAndDelete(discussionId);
+
+    res.json({ message: 'Discussion deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete discussion', error: error.message });
+  }
+});
+
 // Family Timeline routes
 router.get('/family-timeline/:familyId/:childId', auth, requireParent, async (req, res) => {
   try {
@@ -2439,14 +2461,61 @@ router.patch('/dream-board/:dreamBoardId', auth, requireParent, sanitizeInput, a
       return res.status(403).json({ message: 'Not authorized to update this dream board' });
     }
 
+    // Transform items if they exist in the update
+    if (update.items) {
+      update.items = update.items.map(item => ({
+        title: item.title,
+        description: item.description || '',
+        category: item.category,
+        targetAmount: item.targetAmount,
+        currentSavings: item.currentSavings || 0,
+        monthlyContribution: item.monthlyCommitment || item.monthlyContribution || 0, // Handle frontend naming
+        targetDate: item.deadline ? new Date(item.deadline) : item.targetDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        priority: item.priority || 'medium',
+        status: item.status || 'planning',
+        icon: item.icon || '🎯',
+        color: item.color || '#4fc1e9',
+        position: item.position || { x: 0, y: 0 },
+        tags: item.tags || [],
+        notes: item.notes || '',
+        _id: item.id || item._id // Preserve existing ID if present
+      }));
+    }
+
     Object.assign(dreamBoard, update, { updatedAt: new Date() });
     await dreamBoard.save();
 
     res.json(dreamBoard);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error updating dream board:', error);
+    res.status(400).json({ message: 'Failed to update dream board', error: error.message });
   }
 });
+
+router.delete('/dream-board/:dreamBoardId', auth, requireParent, async (req, res) => {
+  try {
+    const { dreamBoardId } = req.params;
+
+    const dreamBoard = await DreamBoard.findById(dreamBoardId);
+    if (!dreamBoard) {
+      return res.status(404).json({ message: 'Dream board not found' });
+    }
+
+    // Verify ownership
+    if (!dreamBoard.parentId.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to delete this dream board' });
+    }
+
+    await DreamBoard.findByIdAndDelete(dreamBoardId);
+
+    res.json({ message: 'Dream board deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting dream board:', error);
+    res.status(500).json({ message: 'Failed to delete dream board', error: error.message });
+  }
+});
+
+
 
 // Elder Wisdom routes
 router.post('/elder-wisdom/:familyId', auth, sanitizeInput, async (req, res) => {
