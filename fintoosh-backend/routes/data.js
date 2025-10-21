@@ -2777,9 +2777,9 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     }
 
     // Get all family members
-    console.log('Analytics - looking for familyId:', familyId, 'req.user.familyId:', req.user.familyId);
+    console.log('Analytics - REQUEST familyId:', familyId, 'USER familyId:', req.user.familyId, 'USER id:', req.user.id);
     const familyMembers = await User.find({ familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
-    console.log('Analytics - found familyMembers:', familyMembers.length, familyMembers.map(m => ({ id: m.id, role: m.role })));
+    console.log('Analytics - found familyMembers:', familyMembers.length, familyMembers.map(m => ({ id: m.id, role: m.role, familyId: m.familyId })));
 
     if (familyMembers.length === 0) {
       return res.status(404).json({ message: 'No family members found' });
@@ -2809,6 +2809,8 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       user: { $in: familyMembers.map(m => m._id) }
     }).select('name points frequency useDefaultSplit customSplit');
 
+    console.log('Analytics - found chores:', chores.length, chores.map(c => ({ name: c.name, completed: c.completed, approved: c.approved })));
+
     // Get family goals
     const goals = await Goal.find({
       user: { $in: familyMembers.map(m => m._id) },
@@ -2823,6 +2825,8 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     const rewards = await Reward.find({
       user: { $in: familyMembers.map(m => m._id) }
     }).select('name cost category purchased approved approvedAt purchasedAt');
+
+    console.log('Analytics - found rewards:', rewards.length, rewards.map(r => ({ name: r.name, purchased: r.purchased, approved: r.approved })));
 
     // Get one family member for settings (they should be the same)
     const familyUser = familyMembers[0];
