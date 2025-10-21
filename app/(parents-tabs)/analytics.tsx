@@ -301,6 +301,15 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
   const choreCompletion = analyticsData.choreCompletion || [];
   const goalProgress = analyticsData.goalProgress || [];
   const jarDistribution = analyticsData.jarDistribution || [];
+  const rewards = analyticsData.rewards || [];
+  console.log('AnalyticsOverview - choreCompletion:', choreCompletion);
+  console.log('AnalyticsOverview - choreCompletion details:', choreCompletion.map(c => ({ name: c.choreName, completed: c.completedCount })));
+  console.log('AnalyticsOverview - goalProgress:', goalProgress);
+  console.log('AnalyticsOverview - goalProgress details:', goalProgress.map(g => ({ name: g.goalName, progress: g.progress, status: g.projectedCompletion })));
+  console.log('AnalyticsOverview - jarDistribution:', jarDistribution);
+  console.log('AnalyticsOverview - jarDistribution details:', jarDistribution.map(j => ({ name: j.jarName, balance: j.currentBalance, deposits: j.totalDeposits })));
+  console.log('AnalyticsOverview - rewards:', rewards);
+  console.log('AnalyticsOverview - rewards details:', rewards.map(r => ({ name: r.name, purchased: r.purchased, approved: r.approved })));
 
   // Get current points from jar distribution
   const currentJar = jarDistribution.find(jar => jar.jarName === 'Pocket Money');
@@ -406,23 +415,23 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            {summary.jars.save === 0 && summary.jars.spend === 0 ? (
+            {saveJar?.totalDeposits === 0 && spendJar?.totalDeposits === 0 ? (
               <Text style={{ color: mutedTextColor, fontSize: 14 }}>
                 No savings or spending data available yet.
               </Text>
-            ) : summary.jars.spend === 0 ? (
+            ) : spendJar?.totalDeposits === 0 ? (
               <Text style={{ color: themeColors.success, fontWeight: 'bold', fontSize: 16 }}>
                 All earnings have been saved!<Text style={{ color: mainTextColor, fontWeight: '400', fontSize: 14 }}> (No spending yet)</Text>
               </Text>
             ) : (
               <>
                 <Text style={{ color: mainTextColor, fontWeight: '600', fontSize: 20, marginBottom: 6 }}>
-                  {`₹${summary.jars.save.toLocaleString()} saved vs ₹${summary.jars.spend.toLocaleString()} spent`}
+                  {`₹${(saveJar?.totalDeposits || 0).toLocaleString()} saved vs ₹${(spendJar?.totalDeposits || 0).toLocaleString()} spent`}
                 </Text>
                 <Text style={{ color: secondaryTextColor, fontSize: 15 }}>
-                  {summary.jars.save > 0
-                    ? `Saved ${(summary.jars.save / summary.jars.spend).toFixed(2)}x as much as spent`
-                    : `Spent ${(summary.jars.spend / Math.max(1, summary.jars.save)).toFixed(2)}x as much as saved`}
+                  {(saveJar?.totalDeposits || 0) > 0
+                    ? `Saved ${((saveJar?.totalDeposits || 0) / (spendJar?.totalDeposits || 1)).toFixed(2)}x as much as spent`
+                    : `Spent ${((spendJar?.totalDeposits || 0) / Math.max(1, saveJar?.totalDeposits || 0)).toFixed(2)}x as much as saved`}
                 </Text>
               </>
             )}
@@ -436,7 +445,7 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
             Points by Pot
           </Text>
           <View style={{ alignItems: "center", justifyContent: "center" }}>
-            <PieChartPointsByPot jars={summary.jars} themeColors={themeColors} />
+            <PieChartPointsByPot jarDistribution={jarDistribution} themeColors={themeColors} />
           </View>
         </>
       )}
@@ -520,32 +529,32 @@ export function ProgressRing({
 }
 
 function PieChartPointsByPot({
-  jars,
+  jarDistribution,
   themeColors
 }: {
-  jars: any,
+  jarDistribution: any,
   themeColors: any
 }) {
   const screenWidth = 340;
-  const jarNames: { [key: string]: string } = {
-    current: "Pocket Money",
-    save: "Savings Pot",
-    spend: "Spending Pot",
-    donate: "Help Others",
-    invest: "Grow Money Pot"
+
+  // Define specific colors for each jar type
+  const jarColorMap = {
+    'Pocket Money': '#4CAF50',      // Green
+    'Savings Pot': '#2196F3',       // Blue
+    'Spending Pot': '#FF9800',      // Orange
+    'Help Others Pot': '#9C27B0',   // Purple
+    'Grow Money Pot': '#FF5722'     // Red
   };
 
-  // Use jarColors from theme
-  const jarColors = themeColors.jarColors || {};
-  // Prepare pieData with color string for each jar
-  const pieData = Object.entries(jars)
-    .map(([jar, points]) => ({
-      name: jarNames[jar] || jar,
-      population: typeof points === "number" ? points : 0,
-      color: jarColors[jar] || themeColors.primary,
-      key: jar
+  // Prepare pieData using total deposits to show historical pot allocation
+  const pieData = jarDistribution
+    .map((jar: any) => ({
+      name: jar.jarName,
+      population: jar.totalDeposits || 0,
+      color: jarColorMap[jar.jarName as keyof typeof jarColorMap] || themeColors.primary,
+      key: jar.jarName.toLowerCase().replace(' pot', '').replace(' money', '')
     }))
-    .filter(item => item.population > 0);
+    .filter((item: any) => item.population > 0);
 
   if (pieData.length === 0) {
     return (
