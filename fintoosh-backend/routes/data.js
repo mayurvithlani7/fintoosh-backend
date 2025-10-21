@@ -2438,6 +2438,39 @@ router.patch('/notifications/:notifId', auth, async (req, res) => {
 });
 
 /**
+ * PATCH /notifications/mark-all-read?userId=...
+ * Mark all unread notifications as read for a user.
+ */
+router.patch('/notifications/mark-all-read', auth, async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+    // Check authorization
+    const targetUser = await User.findOne({ id: userId });
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (
+      req.user.id !== userId &&
+      (req.user.role !== 'parent' || req.user.familyId !== targetUser.familyId)
+    ) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    await Notification.updateMany(
+      { userId, isRead: false },
+      { isRead: true }
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to mark notifications as read' });
+  }
+});
+
+/**
  * GET /api/users/children - Get all children for a parent
  * Requires authentication, only returns children belonging to the authenticated parent
  */

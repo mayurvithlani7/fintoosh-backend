@@ -387,16 +387,36 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       const user = storedUser;
       const userId = user.id;
 
-      const response = await fetch(`${API_URL}/users/${userId}`, {
+      // Use regular API calls to fetch user data and transactions
+      const userResponse = await fetch(`${API_URL}/users/${userId}`, {
         signal: controller.signal,
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (!response.ok) throw new Error('Failed to load user data');
-      const data = await response.json();
+      if (!userResponse.ok) throw new Error('Failed to load user data');
+      const data = await userResponse.json();
+
+      let transactions: any[] = [];
+
+      // Try to load recent transactions for activity feed
+      try {
+        const transactionsResponse = await fetch(`${API_URL}/transactions/${userId}`, {
+          signal: controller.signal,
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (transactionsResponse.ok && !controller.signal.aborted) {
+          transactions = await transactionsResponse.json();
+        }
+      } catch (txError) {
+        if (!controller.signal.aborted) {
+          console.log('Could not load transactions, using mock activities');
+        }
+      }
 
       // Only update state if this request wasn't cancelled
       if (!controller.signal.aborted) {
+
         // Calculate total points for fallback
         const currentTotalPoints = (data.currentPoints || 0) +
                                   (data.savePoints || 0) +
@@ -406,33 +426,20 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
         let activities: Activity[] = [];
 
-        // Try to load recent transactions for activity feed
-        try {
-          const transactionsResponse = await fetch(`${API_URL}/transactions/${userId}`, {
-            signal: controller.signal,
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-
-          if (transactionsResponse.ok && !controller.signal.aborted) {
-            const transactions = await transactionsResponse.json();
-            // Take the 5 most recent transactions
-            activities = transactions.slice(0, 5).map((tx: any) => ({
-              id: tx._id,
-              type: tx.type,
-              amount: tx.amount,
-              description: tx.description || getTransactionDescription(tx),
-              timestamp: tx.createdAt,
-              icon: getTransactionIcon(tx.type)
-            }));
-          } else if (!controller.signal.aborted) {
-            // Fallback to mock activities if no transactions
-            activities = generateMockActivities(currentTotalPoints);
-          }
-        } catch (txError) {
-          if (!controller.signal.aborted) {
-            console.log('Could not load transactions, using mock activities');
-            activities = generateMockActivities(currentTotalPoints);
-          }
+        // Use transactions from batch response for activity feed
+        if (transactions && transactions.length > 0) {
+          // Take the 5 most recent transactions
+          activities = transactions.slice(0, 5).map((tx: any) => ({
+            id: tx._id,
+            type: tx.type,
+            amount: tx.amount,
+            description: tx.description || getTransactionDescription(tx),
+            timestamp: tx.createdAt,
+            icon: getTransactionIcon(tx.type)
+          }));
+        } else {
+          // Fallback to mock activities if no transactions
+          activities = generateMockActivities(currentTotalPoints);
         }
 
         const jars = [
@@ -738,10 +745,23 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             {!notifLoading && notifications.length > 0 && (
               <TouchableOpacity
                 onPress={async () => {
-                  dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
-                  setNotificationsSuppressed(true);
-                  const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-                  await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
+                  try {
+                    const token = await getAuthToken();
+                    const storedUser = await getUserData();
+                    if (token && storedUser) {
+                      const userId = storedUser.id;
+                      await fetch(`${API_URL}/notifications/mark-all-read?userId=${userId}`, {
+                        method: "PATCH",
+                        headers: { "Authorization": "Bearer " + token }
+                      });
+                      dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
+                      setNotificationsSuppressed(true);
+                      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+                      await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
+                    }
+                  } catch (err) {
+                    console.error('Failed to mark all notifications as read:', err);
+                  }
                 }}
                 style={{
                   backgroundColor: themeColors.error,

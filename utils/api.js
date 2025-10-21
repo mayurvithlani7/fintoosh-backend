@@ -3,6 +3,7 @@
  * Handles requests, chores, goals, rewards, point jars, and transactions.
  * Uses token from AsyncStorage (React Native).
  */
+import * as Sentry from '@sentry/react-native';
 import { API_URL } from './config';
 
 
@@ -42,10 +43,10 @@ export async function fetchRequestsForUser(userId, token = null) {
     }
     return res.json();
   } catch (error) {
-    Sentry.captureException(error, {
-      tags: { feature: 'requests', action: 'fetch' },
-      extra: { userId, hasToken: !!token }
-    });
+    // Sentry.captureException(error, {
+    //   tags: { feature: 'requests', action: 'fetch' },
+    //   extra: { userId, hasToken: !!token }
+    // });
     throw error;
   }
 }
@@ -72,10 +73,10 @@ export async function submitRequest(requestData, token = null) {
     }
     return res.json();
   } catch (error) {
-    Sentry.captureException(error, {
-      tags: { feature: 'requests', action: 'submit' },
-      extra: { requestData, hasToken: !!token }
-    });
+    // Sentry.captureException(error, {
+    //   tags: { feature: 'requests', action: 'submit' },
+    //   extra: { requestData, hasToken: !!token }
+    // });
     throw error;
   }
 }
@@ -94,10 +95,10 @@ export async function fetchChores(userId, token = null) {
     }
     return res.json();
   } catch (error) {
-    Sentry.captureException(error, {
-      tags: { feature: 'chores', action: 'fetch' },
-      extra: { userId, hasToken: !!token }
-    });
+    // Sentry.captureException(error, {
+    //   tags: { feature: 'chores', action: 'fetch' },
+    //   extra: { userId, hasToken: !!token }
+    // });
     throw error;
   }
 }
@@ -122,10 +123,10 @@ export async function patchChore(choreId, patchFields, token = null) {
     }
     return res.json();
   } catch (error) {
-    Sentry.captureException(error, {
-      tags: { feature: 'chores', action: 'update' },
-      extra: { choreId, patchFields, hasToken: !!token }
-    });
+    // Sentry.captureException(error, {
+    //   tags: { feature: 'chores', action: 'update' },
+    //   extra: { choreId, patchFields, hasToken: !!token }
+    // });
     throw error;
   }
 }
@@ -144,10 +145,10 @@ export async function fetchGoals(userId, token = null) {
     }
     return res.json();
   } catch (error) {
-    Sentry.captureException(error, {
-      tags: { feature: 'goals', action: 'fetch' },
-      extra: { userId, hasToken: !!token }
-    });
+    // Sentry.captureException(error, {
+    //   tags: { feature: 'goals', action: 'fetch' },
+    //   extra: { userId, hasToken: !!token }
+    // });
     throw error;
   }
 }
@@ -166,10 +167,10 @@ export async function fetchRewards(userId, token = null) {
     }
     return res.json();
   } catch (error) {
-    Sentry.captureException(error, {
-      tags: { feature: 'rewards', action: 'fetch' },
-      extra: { userId, hasToken: !!token }
-    });
+    // Sentry.captureException(error, {
+    //   tags: { feature: 'rewards', action: 'fetch' },
+    //   extra: { userId, hasToken: !!token }
+    // });
     throw error;
   }
 }
@@ -386,6 +387,32 @@ export async function markNotificationRead(notifId, token = null) {
   }
 }
 
+export async function markAllNotificationsRead(userId, token = null) {
+  try {
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": "Bearer " + token } : {})
+    };
+    const res = await fetch(`${API_URL}/notifications/mark-all-read?userId=${userId}`, {
+      method: "PATCH",
+      headers
+    });
+    if (!res.ok) {
+      if (res.status >= 400 && res.status < 600 && globalShowError) {
+        globalShowError("Failed to mark notifications as read");
+      }
+      throw new Error("Failed to mark all notifications as read");
+    }
+    return res.json();
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: 'notifications', action: 'mark-all-read' },
+      extra: { userId, hasToken: !!token }
+    });
+    throw error;
+  }
+}
+
 export default {
   fetchRequestsForUser,
   submitRequest,
@@ -396,5 +423,6 @@ export default {
   fetchUser,
   fetchFamilyChildren,
   fetchNotifications,
-  markNotificationRead
+  markNotificationRead,
+  markAllNotificationsRead
 };

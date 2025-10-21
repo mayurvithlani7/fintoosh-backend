@@ -1,6 +1,7 @@
 import HelpModal from '@/components/HelpModal';
 import SkeletonJar from '@/components/ui/SkeletonJar';
 import { fetchNotifications, markNotificationRead } from '@/utils/api';
+import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { useDataCache } from '@/utils/dataCacheContext';
 import { getAuthToken } from '@/utils/secureStorage';
@@ -208,10 +209,25 @@ export default function ParentsOverviewScreen() {
             {!notifLoading && notifications.length > 0 && (
               <TouchableOpacity
                 onPress={async () => {
-                  setNotifications([]);
-                  setNotificationsSuppressed(true);
-                  // Persist the time of clear for future reloads
-                  await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
+                  try {
+                    const currentUserStr = await AsyncStorage.getItem('user');
+                    const token = await getAuthToken();
+                    if (currentUserStr && token) {
+                      const currentUser = JSON.parse(currentUserStr);
+                      if (currentUser.id) {
+                        await fetch(`${API_URL}/notifications/mark-all-read?userId=${currentUser.id}`, {
+                          method: "PATCH",
+                          headers: { "Authorization": "Bearer " + token }
+                        });
+                        setNotifications([]);
+                        setNotificationsSuppressed(true);
+                        // Persist the time of clear for future reloads
+                        await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
+                      }
+                    }
+                  } catch (err) {
+                    console.error('Failed to mark all notifications as read:', err);
+                  }
                 }}
                 style={{
                   backgroundColor: themeColors.error,
