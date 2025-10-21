@@ -27,6 +27,10 @@ const FamilyTimelineEntrySchema = new mongoose.Schema({
       'first_job',
       'house_down_payment',
       'retirement_planning',
+      'big_purchase',
+      'financial_mistake',
+      'charity_donation',
+      'investment_start',
       'custom'
     ]
   },
