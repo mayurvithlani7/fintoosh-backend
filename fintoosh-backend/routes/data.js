@@ -499,6 +499,56 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
   }
 });
 
+// DELETE /rewards/:rewardId -- allow parents and children to delete rewards with restrictions
+router.delete('/rewards/:rewardId', auth, async (req, res) => {
+  try {
+    const { rewardId } = req.params;
+    console.log('[DELETE REWARD] Starting deletion for rewardId:', rewardId, 'by user:', req.user.id, 'role:', req.user.role);
+
+    // Find the reward and check for existence/ownership
+    const reward = await Reward.findById(rewardId);
+    if (!reward) {
+      console.log('[DELETE REWARD] Reward not found:', rewardId);
+      return res.status(404).json({ message: "Reward not found" });
+    }
+    console.log('[DELETE REWARD] Found reward:', { id: reward._id, name: reward.name, status: reward.status, user: reward.user });
+
+    // Check authorization based on user role
+    if (req.user.role === 'parent') {
+      const rewardOwner = await User.findById(reward.user);
+      if (!rewardOwner || rewardOwner.familyId !== req.user.familyId) {
+        console.log('[DELETE REWARD] Parent not authorized:', { parentFamilyId: req.user.familyId, rewardOwnerFamilyId: rewardOwner?.familyId });
+        return res.status(403).json({ message: "Not authorized to delete this reward" });
+      }
+      console.log('[DELETE REWARD] Parent authorization confirmed');
+    } else if (req.user.role === 'child') {
+      if (!reward.user.equals(req.user._id)) {
+        console.log('[DELETE REWARD] Child not authorized:', { childId: req.user._id, rewardUserId: reward.user });
+        return res.status(403).json({ message: "Not authorized to delete this reward" });
+      }
+      console.log('[DELETE REWARD] Child authorization confirmed');
+    } else {
+      console.log('[DELETE REWARD] Invalid user role:', req.user.role);
+      return res.status(403).json({ message: "Invalid user role for reward deletion" });
+    }
+
+    // Check status restrictions - can't delete if pending or purchased/claimed
+    if (reward.status !== 'active') {
+      console.log('[DELETE REWARD] Cannot delete non-active reward:', { status: reward.status, expected: 'active' });
+      return res.status(400).json({ message: "Can only delete rewards with status 'active'" });
+    }
+    console.log('[DELETE REWARD] Status check passed, proceeding with deletion');
+
+    await Reward.findByIdAndDelete(rewardId);
+    console.log('[DELETE REWARD] Successfully deleted reward:', rewardId);
+
+    res.json({ message: "Reward deleted successfully" });
+  } catch (error) {
+    console.error('[DELETE REWARD] Error deleting reward:', error);
+    res.status(500).json({ message: "Failed to delete reward", error: error.message });
+  }
+});
+
 // Goal template routes
 router.get('/goal-templates', auth, async (req, res) => {
   try {
@@ -662,28 +712,69 @@ router.get('/goals/:childId', auth, async (req, res) => {
     const user = await User.findOne({ id: req.params.childId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Pagination, filtering, archiving
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const skip = (page - 1) * limit;
+    const status = req.query.status;
+    const archive = req.query.archive === 'true';
     const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const goals = await Goal.find({
-      user: user._id,
-      $or: [
-        { createdAt: { $gte: thirtyDaysAgo } },
-        { completedAt: { $gte: thirtyDaysAgo } },
-        { updatedAt: { $gte: thirtyDaysAgo } }
-      ]
-    });
+    const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+    // Build query
+    let dateFilter;
+    if (archive) {
+      // Only archived goals: completed/expired/updated > 90 days ago
+      dateFilter = { $lte: ninetyDaysAgo };
+    } else {
+      // Recent (not archived): within last 90 days
+      dateFilter = { $gte: ninetyDaysAgo };
+    }
+
+    const goalQuery = { user: user._id };
+    // Date range filter: apply to createdAt, completedAt, or updatedAt
+    goalQuery.$or = [
+      { createdAt: dateFilter },
+      { completedAt: dateFilter },
+      { updatedAt: dateFilter }
+    ];
+    // Status filter
+    if (status && status !== 'all') {
+      if (status === 'active') goalQuery.status = 'active';
+      else if (status === 'completed') goalQuery.status = 'completed';
+      else if (status === 'expired') goalQuery.status = 'expired';
+    }
+
+    // Get total count for metadata
+    const totalGoals = await Goal.countDocuments(goalQuery);
+    // Get paginated results
+    const goals = await Goal.find(goalQuery)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     // Check for expired goals and update them
     const updatedGoals = await Promise.all(goals.map(async (goal) => {
       if (goal.deadline && goal.status === 'active' && new Date(goal.deadline) < now) {
-        // Mark goal as expired
         goal.status = 'expired';
         await goal.save();
       }
       return goal;
     }));
 
-    res.json(updatedGoals);
+    // Pagination metadata
+    const totalPages = Math.ceil(totalGoals / limit);
+    res.json({
+      data: updatedGoals,
+      pagination: {
+        total: totalGoals,
+        page,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+        limit
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -2463,6 +2554,270 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
   } catch (error) {
     console.error('Error fetching analytics data:', error);
     res.status(500).json({ message: 'Failed to fetch analytics data', error: error.message });
+  }
+});
+
+// Batch data fetching endpoint for optimized loading
+router.post('/batch', auth, async (req, res) => {
+  try {
+    const { userId, endpoints } = req.body;
+
+    console.log('[BATCH API] Starting batch fetch for user:', userId, 'endpoints:', endpoints);
+
+    // Validate required parameters
+    if (!userId || !Array.isArray(endpoints)) {
+      return res.status(400).json({
+        message: 'userId and endpoints array are required'
+      });
+    }
+
+    // Verify user has access to this data
+    const user = await User.findOne({ id: userId });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Only allow parents to fetch data for their family, or users to fetch their own data
+    if (req.user.role === 'parent' && req.user.familyId !== user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to access this user\'s data' });
+    }
+    if (req.user.role !== 'parent' && req.user.id !== userId) {
+      return res.status(403).json({ message: 'Not authorized to access other users\' data' });
+    }
+
+    const results = {};
+    const errors = [];
+
+    // Process each endpoint in parallel for better performance
+    const endpointPromises = endpoints.map(async (endpoint) => {
+      try {
+        switch (endpoint) {
+          case 'user':
+            console.log('[BATCH API] Fetching user data');
+            const userData = await User.findOne({ id: userId })
+              .populate('goals')
+              .populate('chores')
+              .populate({ path: 'rewards', model: 'Reward' })
+              .populate('transactions')
+              .select('-password');
+            results.user = userData;
+            break;
+
+          case 'chores':
+            console.log('[BATCH API] Fetching chores data');
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const chores = await Chore.find({
+              user: user._id,
+              $or: [
+                { createdAt: { $gte: thirtyDaysAgo } },
+                { completedAt: { $gte: thirtyDaysAgo } },
+                { approvedAt: { $gte: thirtyDaysAgo } },
+                { updatedAt: { $gte: thirtyDaysAgo } }
+              ]
+            });
+
+            // Add welcome task for first-time users
+            let choresWithWelcome = [...chores];
+            if (user.isFirstTimeUser && user.role === 'child') {
+              // Check if welcome task already exists
+              const existingWelcomeTask = chores.find(c =>
+                c.name === '🎉 Customize Your Avatar!' &&
+                !c.completed &&
+                !c.approved
+              );
+
+              if (!existingWelcomeTask) {
+                // Create welcome task as a virtual chore (not saved to DB)
+                const welcomeTask = {
+                  _id: 'welcome-task-' + user.id,
+                  name: '🎉 Customize Your Avatar!',
+                  points: 25,
+                  description: 'Welcome to Money Pots! Start by customizing your avatar to make the app your own.',
+                  completed: false,
+                  approved: false,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  user: user._id,
+                  isWelcomeTask: true,
+                  useDefaultSplit: true,
+                  customSplit: null
+                };
+                choresWithWelcome.unshift(welcomeTask);
+              }
+            }
+            results.chores = choresWithWelcome;
+            break;
+
+          case 'goals':
+            console.log('[BATCH API] Fetching goals data');
+            const goalsNow = new Date();
+            const goalsThirtyDaysAgo = new Date(goalsNow.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const goals = await Goal.find({
+              user: user._id,
+              $or: [
+                { createdAt: { $gte: goalsThirtyDaysAgo } },
+                { completedAt: { $gte: goalsThirtyDaysAgo } },
+                { updatedAt: { $gte: goalsThirtyDaysAgo } }
+              ]
+            });
+
+            // Check for expired goals and update them
+            const updatedGoals = await Promise.all(goals.map(async (goal) => {
+              if (goal.deadline && goal.status === 'active' && new Date(goal.deadline) < goalsNow) {
+                goal.status = 'expired';
+                await goal.save();
+              }
+              return goal;
+            }));
+            results.goals = updatedGoals;
+            break;
+
+          case 'requests':
+            console.log('[BATCH API] Fetching requests data');
+            const ApprovalRequest = require('../models/ApprovalRequest');
+            const requestsNow = new Date();
+            const requestsThirtyDaysAgo = new Date(requestsNow.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const requests = await ApprovalRequest.find({
+              childId: userId,
+              $or: [
+                { createdAt: { $gte: requestsThirtyDaysAgo } },
+                { actedAt: { $gte: requestsThirtyDaysAgo } },
+                { updatedAt: { $gte: requestsThirtyDaysAgo } }
+              ]
+            }).sort({ createdAt: -1 });
+            results.requests = requests;
+            break;
+
+          case 'transactions':
+            console.log('[BATCH API] Fetching transactions data');
+            const transactions = await Transaction.find({ user: user._id })
+              .sort({ createdAt: -1 })
+              .limit(20); // Limit to recent transactions for performance
+            results.transactions = transactions;
+            break;
+
+          case 'notifications':
+            console.log('[BATCH API] Fetching notifications data');
+            const notifications = await Notification.find({ userId })
+              .sort({ createdAt: -1 })
+              .limit(50);
+            results.notifications = notifications;
+            break;
+
+          case 'rewards':
+            console.log('[BATCH API] Fetching rewards data');
+            const rewardsNow = new Date();
+            const rewardsThirtyDaysAgo = new Date(rewardsNow.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const rewards = await Reward.find({
+              user: user._id,
+              $or: [
+                { createdAt: { $gte: rewardsThirtyDaysAgo } },
+                { approvedAt: { $gte: rewardsThirtyDaysAgo } },
+                { purchasedAt: { $gte: rewardsThirtyDaysAgo } },
+                { updatedAt: { $gte: rewardsThirtyDaysAgo } }
+              ]
+            });
+            results.rewards = rewards;
+            break;
+
+          case 'children':
+            console.log('[BATCH API] Fetching children data');
+            // For children endpoint, we need familyId from the request body
+            const { familyId } = req.body;
+            if (!familyId) {
+              errors.push({
+                endpoint: 'children',
+                error: 'familyId is required for children endpoint'
+              });
+              break;
+            }
+
+            // Only allow parents to fetch children data for their family
+            if (req.user.role === 'parent' && req.user.familyId !== familyId) {
+              errors.push({
+                endpoint: 'children',
+                error: 'Not authorized to access children data for this family'
+              });
+              break;
+            }
+
+            const children = await User.find({
+              familyId,
+              role: 'child'
+            }).select('-password');
+            results.children = children;
+            break;
+
+          default:
+            console.log(`[BATCH API] Unknown endpoint: ${endpoint}`);
+            break;
+        }
+      } catch (endpointError) {
+        console.error(`[BATCH API] Error fetching ${endpoint}:`, endpointError);
+        errors.push({
+          endpoint,
+          error: endpointError.message
+        });
+      }
+    });
+
+    // Wait for all endpoints to complete
+    await Promise.all(endpointPromises);
+
+    console.log(`[BATCH API] Completed batch fetch. Results keys:`, Object.keys(results), 'Errors:', errors.length);
+
+    // Return results with any errors
+    res.json({
+      success: true,
+      data: results,
+      errors: errors.length > 0 ? errors : undefined,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[BATCH API] Fatal error:', error);
+    res.status(500).json({
+      message: 'Batch fetch failed',
+      error: error.message
+    });
+  }
+});
+
+// DELETE /chores/:choreId -- allow parents and children to delete chores with restrictions
+router.delete('/chores/:choreId', auth, async (req, res) => {
+  try {
+    const { choreId } = req.params;
+
+    // Find the chore and check for existence/ownership
+    const chore = await Chore.findById(choreId);
+    if (!chore) return res.status(404).json({ message: "Chore not found" });
+
+    // Check authorization based on user role
+    if (req.user.role === 'parent') {
+      const choreOwner = await User.findById(chore.user);
+      if (!choreOwner || choreOwner.familyId !== req.user.familyId) {
+        return res.status(403).json({ message: "Not authorized to delete this chore" });
+      }
+    } else if (req.user.role === 'child') {
+      if (!chore.user.equals(req.user._id)) {
+        return res.status(403).json({ message: "Not authorized to delete this chore" });
+      }
+    } else {
+      return res.status(403).json({ message: "Invalid user role for chore deletion" });
+    }
+
+    // Check status restrictions - can't delete if pending or completed
+    if (chore.status !== 'active') {
+      return res.status(400).json({ message: "Can only delete chores with status 'active'" });
+    }
+
+    await Chore.findByIdAndDelete(choreId);
+
+    res.json({ message: "Chore deleted successfully" });
+  } catch (error) {
+    console.error('Error deleting chore:', error);
+    res.status(500).json({ message: "Failed to delete chore", error: error.message });
   }
 });
 
