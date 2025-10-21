@@ -1565,6 +1565,11 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to modify this request' });
     }
 
+    // Only allow updating if the request is still pending
+    if (approval.status !== 'Pending') {
+      return res.status(400).json({ message: 'Request has already been processed' });
+    }
+
     // Only allow messaging if status is changing from 'Pending'
     if (parentComment && parentComment.trim() && approval.status === 'Pending' && (status === 'Approved' || status === 'Denied')) {
       approval.messages.push({
