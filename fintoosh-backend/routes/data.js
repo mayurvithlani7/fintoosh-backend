@@ -2837,6 +2837,11 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
         id: m.id,
         name: m.name,
         role: m.role,
+        currentPoints: m.currentPoints || 0,
+        savePoints: m.savePoints || 0,
+        spendPoints: m.spendPoints || 0,
+        donatePoints: m.donatePoints || 0,
+        investPoints: m.investPoints || 0,
         totalPoints: (m.currentPoints || 0) + (m.savePoints || 0) + (m.spendPoints || 0) + (m.donatePoints || 0) + (m.investPoints || 0)
       }))
     });
