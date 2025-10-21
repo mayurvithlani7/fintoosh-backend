@@ -1664,6 +1664,8 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
 
         // Update reward fulfillment and status
         if (rewardDoc) {
+          rewardDoc.completed = true;
+          rewardDoc.approved = true;
           rewardDoc.approvedAt = new Date();
           rewardDoc.purchased = true;
           rewardDoc.purchasedAt = new Date();
@@ -1752,6 +1754,7 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       await user.save();
 
       // Mark chore as approved and set status to completed
+      chore.completed = true;
       chore.approved = true;
       chore.approvedAt = new Date();
       chore.status = 'completed';
@@ -2816,16 +2819,10 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       ]
     }).select('name targetAmount currentAmount deadline status jar createdAt');
 
-    // Get family rewards
+    // Get family rewards - get all rewards for progress overview
     const rewards = await Reward.find({
-      user: { $in: familyMembers.map(m => m._id) },
-      $or: [
-        { createdAt: dateFilter },
-        { approvedAt: dateFilter },
-        { purchasedAt: dateFilter },
-        { updatedAt: dateFilter }
-      ]
-    }).select('name cost category purchased approvedAt purchasedAt');
+      user: { $in: familyMembers.map(m => m._id) }
+    }).select('name cost category purchased approved approvedAt purchasedAt');
 
     // Get one family member for settings (they should be the same)
     const familyUser = familyMembers[0];
