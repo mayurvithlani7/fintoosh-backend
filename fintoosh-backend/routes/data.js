@@ -2823,28 +2823,40 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
 
     // Get family rewards - get all rewards for progress overview
     console.log('Analytics - looking for rewards with user IDs:', familyMembers.map(m => m._id.toString()));
-    const rewards = await Reward.find({
+    const rawRewards = await Reward.find({
       user: { $in: familyMembers.map(m => m._id) }
-    }).select('name cost category purchased approved approvedAt purchasedAt status available completed');
+    }).select('name cost category purchased approved approvedAt purchasedAt status available completed').lean();
 
-    console.log('Analytics - found rewards:', rewards.length, rewards.map(r => ({
+    // Convert to plain objects to ensure serialization
+    const rewards = rawRewards.map(r => ({
+      _id: r._id?.toString(),
       name: r.name,
-      user: r.user?.toString(),
+      cost: r.cost,
+      category: r.category,
       purchased: r.purchased,
       approved: r.approved,
+      approvedAt: r.approvedAt,
+      purchasedAt: r.purchasedAt,
       status: r.status,
       available: r.available,
+      completed: r.completed
+    }));
+
+    console.log('Analytics - processed rewards:', rewards.length, rewards.map(r => ({
+      name: r.name,
+      purchased: r.purchased,
+      approved: r.approved,
       completed: r.completed
     })));
 
     // Get one family member for settings (they should be the same)
     const familyUser = familyMembers[0];
 
-    // Return aggregated data
-    res.json({
+    const responseData = {
       transactions,
       chores,
       goals,
+      rewards,
       user: familyUser,
       familyMembers: familyMembers.map(m => ({
         id: m.id,
@@ -2857,7 +2869,16 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
         investPoints: m.investPoints || 0,
         totalPoints: (m.currentPoints || 0) + (m.savePoints || 0) + (m.spendPoints || 0) + (m.donatePoints || 0) + (m.investPoints || 0)
       }))
-    });
+    };
+
+    console.log('Analytics - response data rewards:', responseData.rewards?.length || 0);
+    console.log('Analytics - sending response with rewards count:', responseData.rewards?.length || 0);
+
+    // Double-check right before sending
+    console.log('Analytics - FINAL responseData.rewards sample:', responseData.rewards?.slice(0, 2));
+
+    // Return aggregated data
+    res.json(responseData);
 
   } catch (error) {
     console.error('Error fetching analytics data:', error);
