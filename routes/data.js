@@ -21,9 +21,28 @@ router.get('/transactions/:userId', auth, async (req, res) => {
     const user = await User.findOne({ id: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination info
+    const totalTransactions = await Transaction.countDocuments({ user: user._id });
+
     const transactions = await Transaction.find({ user: user._id })
-      .sort({ createdAt: -1 });
-    res.json(transactions);
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      transactions,
+      pagination: {
+        page,
+        limit,
+        total: totalTransactions,
+        totalPages: Math.ceil(totalTransactions / limit)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -2492,6 +2511,233 @@ router.get('/analytics/family/:familyId', auth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching analytics data:', error);
     res.status(500).json({ message: 'Failed to fetch analytics data', error: error.message });
+  }
+});
+
+// Batch data fetching endpoint for optimized loading
+router.post('/batch', auth, async (req, res) => {
+  try {
+    const { userId, endpoints } = req.body;
+
+    console.log('[BATCH API] Starting batch fetch for user:', userId, 'endpoints:', endpoints);
+
+    // Validate required parameters
+    if (!userId || !Array.isArray(endpoints)) {
+      return res.status(400).json({
+        message: 'userId and endpoints array are required'
+      });
+    }
+
+    // Verify user has access to this data
+    const user = await User.findOne({ id: userId });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Only allow parents to fetch data for their family, or users to fetch their own data
+    if (req.user.role === 'parent' && req.user.familyId !== user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to access this user\'s data' });
+    }
+    if (req.user.role !== 'parent' && req.user.id !== userId) {
+      return res.status(403).json({ message: 'Not authorized to access other users\' data' });
+    }
+
+    const results = {};
+    const errors = [];
+
+    // Process each endpoint in parallel for better performance
+    const endpointPromises = endpoints.map(async (endpoint) => {
+      try {
+        switch (endpoint) {
+          case 'user':
+            console.log('[BATCH API] Fetching user data');
+            const userData = await User.findOne({ id: userId })
+              .populate('goals')
+              .populate('chores')
+              .populate({ path: 'rewards', model: 'Reward' })
+              .populate('transactions')
+              .select('-password');
+            results.user = userData;
+            break;
+
+          case 'chores':
+            console.log('[BATCH API] Fetching chores data');
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const chores = await Chore.find({
+              user: user._id,
+              $or: [
+                { createdAt: { $gte: thirtyDaysAgo } },
+                { completedAt: { $gte: thirtyDaysAgo } },
+                { approvedAt: { $gte: thirtyDaysAgo } },
+                { updatedAt: { $gte: thirtyDaysAgo } }
+              ]
+            });
+
+            // Add welcome task for first-time users
+            let choresWithWelcome = [...chores];
+            if (user.isFirstTimeUser && user.role === 'child') {
+              // Check if welcome task already exists
+              const existingWelcomeTask = chores.find(c =>
+                c.name === '🎉 Customize Your Avatar!' &&
+                !c.completed &&
+                !c.approved
+              );
+
+              if (!existingWelcomeTask) {
+                // Create welcome task as a virtual chore (not saved to DB)
+                const welcomeTask = {
+                  _id: 'welcome-task-' + user.id,
+                  name: '🎉 Customize Your Avatar!',
+                  points: 25,
+                  description: 'Welcome to Money Pots! Start by customizing your avatar to make the app your own.',
+                  completed: false,
+                  approved: false,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  user: user._id,
+                  isWelcomeTask: true,
+                  useDefaultSplit: true,
+                  customSplit: null
+                };
+                choresWithWelcome.unshift(welcomeTask);
+              }
+            }
+            results.chores = choresWithWelcome;
+            break;
+
+          case 'goals':
+            console.log('[BATCH API] Fetching goals data');
+            const goalsNow = new Date();
+            const goalsThirtyDaysAgo = new Date(goalsNow.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const goals = await Goal.find({
+              user: user._id,
+              $or: [
+                { createdAt: { $gte: goalsThirtyDaysAgo } },
+                { completedAt: { $gte: goalsThirtyDaysAgo } },
+                { updatedAt: { $gte: goalsThirtyDaysAgo } }
+              ]
+            });
+
+            // Check for expired goals and update them
+            const updatedGoals = await Promise.all(goals.map(async (goal) => {
+              if (goal.deadline && goal.status === 'active' && new Date(goal.deadline) < goalsNow) {
+                goal.status = 'expired';
+                await goal.save();
+              }
+              return goal;
+            }));
+            results.goals = updatedGoals;
+            break;
+
+          case 'requests':
+            console.log('[BATCH API] Fetching requests data');
+            const ApprovalRequest = require('../models/ApprovalRequest');
+            const requestsNow = new Date();
+            const requestsThirtyDaysAgo = new Date(requestsNow.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const requests = await ApprovalRequest.find({
+              childId: userId,
+              $or: [
+                { createdAt: { $gte: requestsThirtyDaysAgo } },
+                { actedAt: { $gte: requestsThirtyDaysAgo } },
+                { updatedAt: { $gte: requestsThirtyDaysAgo } }
+              ]
+            }).sort({ createdAt: -1 });
+            results.requests = requests;
+            break;
+
+          case 'transactions':
+            console.log('[BATCH API] Fetching transactions data');
+            const transactions = await Transaction.find({ user: user._id })
+              .sort({ createdAt: -1 })
+              .limit(20); // Limit to recent transactions for performance
+            results.transactions = transactions;
+            break;
+
+          case 'notifications':
+            console.log('[BATCH API] Fetching notifications data');
+            const notifications = await Notification.find({ userId })
+              .sort({ createdAt: -1 })
+              .limit(50);
+            results.notifications = notifications;
+            break;
+
+          case 'rewards':
+            console.log('[BATCH API] Fetching rewards data');
+            const rewardsNow = new Date();
+            const rewardsThirtyDaysAgo = new Date(rewardsNow.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const rewards = await Reward.find({
+              user: user._id,
+              $or: [
+                { createdAt: { $gte: rewardsThirtyDaysAgo } },
+                { approvedAt: { $gte: rewardsThirtyDaysAgo } },
+                { purchasedAt: { $gte: rewardsThirtyDaysAgo } },
+                { updatedAt: { $gte: rewardsThirtyDaysAgo } }
+              ]
+            });
+            results.rewards = rewards;
+            break;
+
+          case 'children':
+            console.log('[BATCH API] Fetching children data');
+            // For children endpoint, we need familyId from the request body
+            const { familyId } = req.body;
+            if (!familyId) {
+              errors.push({
+                endpoint: 'children',
+                error: 'familyId is required for children endpoint'
+              });
+              break;
+            }
+
+            // Only allow parents to fetch children data for their family
+            if (req.user.role === 'parent' && req.user.familyId !== familyId) {
+              errors.push({
+                endpoint: 'children',
+                error: 'Not authorized to access children data for this family'
+              });
+              break;
+            }
+
+            const children = await User.find({
+              familyId,
+              role: 'child'
+            }).select('-password');
+            results.children = children;
+            break;
+
+          default:
+            console.log(`[BATCH API] Unknown endpoint: ${endpoint}`);
+            break;
+        }
+      } catch (endpointError) {
+        console.error(`[BATCH API] Error fetching ${endpoint}:`, endpointError);
+        errors.push({
+          endpoint,
+          error: endpointError.message
+        });
+      }
+    });
+
+    // Wait for all endpoints to complete
+    await Promise.all(endpointPromises);
+
+    console.log(`[BATCH API] Completed batch fetch. Results keys:`, Object.keys(results), 'Errors:', errors.length);
+
+    // Return results with any errors
+    res.json({
+      success: true,
+      data: results,
+      errors: errors.length > 0 ? errors : undefined,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[BATCH API] Fatal error:', error);
+    res.status(500).json({
+      message: 'Batch fetch failed',
+      error: error.message
+    });
   }
 });
 
