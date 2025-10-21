@@ -1031,29 +1031,60 @@ router.get('/requests/:userId', async (req, res) => {
 
 router.get('/requests', auth, requireParent, async (req, res) => {
   try {
-    console.log("DEBUG: Parent fetching requests. AuthUser:", req.user);
-    const ApprovalRequest = require('../models/ApprovalRequest');
-    const User = require('../models/User');
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const statusFilter = req.query.status;
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const requests = await ApprovalRequest.find({
+
+    // Build query
+    let query = {
       familyId: req.user.familyId,
       $or: [
         { createdAt: { $gte: thirtyDaysAgo } },
         { actedAt: { $gte: thirtyDaysAgo } },
         { updatedAt: { $gte: thirtyDaysAgo } }
       ]
-    }).sort({ createdAt: -1 });
+    };
+    if (statusFilter && statusFilter !== 'all') {
+      if (statusFilter === 'pending') query.status = 'Pending';
+      else if (statusFilter === 'approved') query.status = 'Approved';
+      else if (statusFilter === 'denied') query.status = 'Denied';
+    }
+
+    // Total count for pagination
+    const ApprovalRequest = require('../models/ApprovalRequest');
+    const User = require('../models/User');
+    const totalRequests = await ApprovalRequest.countDocuments(query);
+
+    const requests = await ApprovalRequest.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     const usersById = {};
     const childIds = Array.from(new Set(requests.map(r => r.childId)));
     const foundUsers = await User.find({ id: { $in: childIds } }, 'id name');
     foundUsers.forEach(u => { usersById[u.id] = u.name; });
+
     const enriched = requests.map(req => ({
       ...req.toObject(),
       userName: usersById[req.childId] || 'Unknown User'
     }));
-    res.json(enriched);
+
+    res.json({
+      requests: enriched,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalRequests / limit),
+        totalRequests,
+        hasNextPage: page < Math.ceil(totalRequests / limit),
+        hasPrevPage: page > 1,
+        limit
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

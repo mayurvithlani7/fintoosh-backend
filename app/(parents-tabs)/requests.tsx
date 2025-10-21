@@ -8,138 +8,150 @@ import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function ParentsRequestsScreen() {
   const router = useRouter();
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
-  const [requests, setRequests] = useState<{
-    id: string;
-    childName: string;
-    type: string;
-    name: string;
-    amount?: number;
-    reason?: string;
-    status: string;
-    createdAt: string;
-    messages?: {
-      sender: string;
-      userId: string;
-      text: string;
-      timestamp: string;
-    }[];
-  }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    hasNextPage: true,
+    loading: true,
+    loadingMore: false,
+    refreshing: false,
+    filter: 'pending',
+    searchQuery: '',
+  });
+  const [paginationMeta, setPaginationMeta] = useState<any | null>(null);
   const [feedback, setFeedback] = useState('');
-  const [approvalModal, setApprovalModal] = useState<{
-    visible: boolean;
-    request: any;
-    approved: boolean;
-    comment: string;
-  }>({ visible: false, request: null, approved: false, comment: '' });
+  const [approvalModal, setApprovalModal] = useState({
+    visible: false,
+    request: null as any,
+    approved: false,
+    comment: '',
+  });
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
+  const [showArchived, setShowArchived] = useState(false);
+  const [errorState, setErrorState] = useState<{
+    type: 'network' | 'auth' | 'server' | null;
+    message: string;
+    retryAction?: () => void;
+  } | null>(null);
 
-  useEffect(() => {
-    loadRequests();
-  }, []);
+  // Load requests when component mounts or filter/search/pagination changes
+  const loadRequests = async (opts?: { page?: number; reset?: boolean; filter?: string; searchQuery?: string }) => {
+    const page = opts?.page || 1;
+    const reset = opts?.reset || false;
+    const filter = opts?.filter ?? pagination.filter;
+    const searchQuery = opts?.searchQuery ?? pagination.searchQuery;
 
-  useFocusEffect(
-    useCallback(() => {
-      loadRequests();
-    }, [])
-  );
-
-  const loadRequests = async () => {
     try {
+      if (reset) setPagination((prev) => ({ ...prev, loading: true, currentPage: 1, hasNextPage: true, refreshing: false }));
+      else if (page === 1) setPagination((prev) => ({ ...prev, loading: true, loadingMore: false, refreshing: false }));
+      else setPagination((prev) => ({ ...prev, loadingMore: true }));
+
       const token = await getAuthToken();
       if (!token) {
         Alert.alert('Error', 'Not authenticated. Please login again.');
         return;
       }
+      let url = `${API_URL}/requests?page=${page}&limit=20&status=${filter}`;
+      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
 
-      const response = await fetch(`${API_URL}/requests`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+      if (!response.ok) throw new Error('Failed to load requests');
 
-      if (!response.ok) {
-        // Handle rate limiting specifically
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-          throw new Error(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
+      const json = await response.json();
+      const newRequests = json.requests ?? [];
+      const meta = json.pagination ?? {};
+
+      // Security: reject if any requests returned for child not in parent's children list
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const storedUser = await AsyncStorage.getItem('user');
+        let allowedChildNames: string[] = [];
+        if (storedUser) {
+          const parentProfile = JSON.parse(storedUser);
+          if (Array.isArray(parentProfile.children)) {
+            allowedChildNames = parentProfile.children.map((c: any) => c.name);
+          }
         }
-        throw new Error('Failed to load requests');
+        if (
+          allowedChildNames.length > 0 &&
+          newRequests.some((req: any) => req.childName && !allowedChildNames.includes(req.childName))
+        ) {
+          const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+          await clearSensitiveAppData();
+          if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
+          return;
+        }
+      } catch (err) {
+        // fail safe: continue
       }
 
-      const requestsData = await response.json();
+      setPaginationMeta(meta);
 
-      // Security: reject if any requests returned (after transformation) for child not in parent's children (if available)
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const storedUser = await AsyncStorage.getItem('user');
-      let allowedChildNames: string[] = [];
-      if (storedUser) {
-        const parentProfile = JSON.parse(storedUser);
-        if (Array.isArray(parentProfile.children)) {
-          allowedChildNames = parentProfile.children.map((c: any) => c.name);
-        }
-      }
-
-      // Transform the data for display
-      const transformedRequests = requestsData.map((req: any) => ({
-        id: req._id || req.id,
-        childName: req.userName || 'Unknown Child',
-        type: req.type,
-        name: req.name,
-        amount: req.amount,
-        reason: req.reason,
-        status: req.status,
-        createdAt: req.createdAt,
-        messages: req.messages || [],
-        fromBalance: req.fromBalance,
-        toBalance: req.toBalance,
-        from: req.from,
-        to: req.to
+      setRequests((prev) =>
+        reset || page === 1 ? newRequests : [...prev, ...newRequests.filter((r: any) => !prev.some((old) => old.id === r.id))]
+      );
+      setPagination((prev) => ({
+        ...prev,
+        loading: false,
+        loadingMore: false,
+        hasNextPage: !!meta.hasNextPage,
+        currentPage: meta.currentPage || page,
+        refreshing: false,
       }));
-
-      if (
-        allowedChildNames.length > 0 &&
-        transformedRequests.some((req: any) => req.childName && !allowedChildNames.includes(req.childName))
-      ) {
-        const { clearSensitiveAppData } = await import('@/utils/secureStorage');
-        await clearSensitiveAppData();
-        if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
-        return;
-      }
-
-      setRequests(transformedRequests);
       markRefreshed();
-    } catch (error) {
-      console.error('Error loading requests:', error);
-      // Check if it's a rate limiting error with specific message
-      if (error instanceof Error && error.message.includes('Too many requests')) {
-        Alert.alert('Error', error.message);
-      } else {
-        Alert.alert('Error', 'Failed to load requests. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    } catch (error: any) {
+      setPagination((prev) => ({
+        ...prev,
+        loading: false,
+        loadingMore: false,
+        refreshing: false,
+      }));
+      setErrorState({
+        type: 'network',
+        message: error?.message || 'Failed to load requests.',
+        retryAction: () => loadRequests({ page: 1, reset: true }),
+      });
     }
   };
 
+  useEffect(() => {
+    loadRequests({ page: 1, reset: true });
+    // eslint-disable-next-line
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadRequests({ page: 1, reset: true });
+    }, [])
+  );
+
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadRequests();
+    setPagination((prev) => ({ ...prev, refreshing: true }));
+    loadRequests({ page: 1, reset: true });
   }, []);
 
   const handleApproval = async () => {
     if (!approvalModal.request) return;
-
     try {
       const token = await getAuthToken();
       if (!token) {
@@ -148,142 +160,228 @@ export default function ParentsRequestsScreen() {
       }
 
       const body: any = {
-        status: approvalModal.approved ? 'Approved' : 'Denied'
+        status: approvalModal.approved ? 'Approved' : 'Denied',
       };
-
       if (approvalModal.comment.trim()) {
         body.parentComment = approvalModal.comment.trim();
       }
-
-    
 
       const response = await fetch(`${API_URL}/requests/${approvalModal.request.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
       });
-
       if (!response.ok) {
-        // Handle rate limiting specifically
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
-          throw new Error(`Too many requests. Please wait ${waitTime} seconds before trying again.`);
-        }
-        // Handle other errors
         let errorMessage = 'Failed to update request';
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
-        } catch {
-          // If JSON parsing fails, use default message
-        }
+        } catch { }
         throw new Error(errorMessage);
       }
-
-      // Update local state
-      setRequests(prev =>
-        prev.map(req =>
-          req.id === approvalModal.request.id
-            ? { ...req, status: approvalModal.approved ? 'Approved' : 'Denied' }
-            : req
-        )
-      );
 
       setFeedback(`Request ${approvalModal.approved ? 'approved' : 'denied'}.`);
       setApprovalModal({ visible: false, request: null, approved: false, comment: '' });
 
-      // Refresh after a short delay to show updated data
-      setTimeout(() => {
-        loadRequests();
-        setFeedback('');
-      }, 7000);
-
-    } catch (error) {
-      console.error('Error updating request:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update request. Please try again.';
-      setFeedback(errorMessage);
-      setTimeout(() => setFeedback(''), 7000); // Show error for 7s
+      setTimeout(() => { loadRequests({ page: 1, reset: true }); setFeedback(''); }, 2500);
+    } catch (error: any) {
+      setFeedback(error?.message || 'Failed to update request. Please try again.');
+      setTimeout(() => setFeedback(''), 4000);
     }
   };
 
-  const [filter, setFilter] = useState<'pending' | 'approved' | 'denied'>('pending');
-  const [showArchived, setShowArchived] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [errorState, setErrorState] = useState<{
-    type: 'network' | 'auth' | 'server' | null;
-    message: string;
-    retryAction?: () => void;
-  } | null>(null);
+  // Filtering options (pending, approved, denied)
+  const handleFilterChange = (newFilter: 'pending' | 'approved' | 'denied') => {
+    setPagination((prev) => ({ ...prev, filter: newFilter, currentPage: 1, hasNextPage: true }));
+    setShowArchived(false);
+    loadRequests({ page: 1, reset: true, filter: newFilter });
+  };
 
-  const now = new Date();
-  const ninetyDaysAgo = new Date(now);
-  ninetyDaysAgo.setDate(now.getDate() - 90);
+  // FlatList: load next page when reaching end
+  const loadMore = () => {
+    if (pagination.hasNextPage && !pagination.loadingMore && !pagination.loading) {
+      loadRequests({ page: pagination.currentPage + 1 });
+    }
+  };
 
-  // Simplified filtering logic
-  let baseRequests: typeof requests = [];
-  let showArchiveButton = false;
+  const archiveThreshold = (() => {
+    const now = new Date();
+    now.setDate(now.getDate() - 90);
+    return now;
+  })();
 
-  if (filter === "approved" || filter === "denied") {
-    const statusLabel = filter === "approved" ? "Approved" : "Denied";
-    const recent = requests.filter(r => r.status === statusLabel && new Date(r.createdAt) >= ninetyDaysAgo);
-    const archived = requests.filter(r => r.status === statusLabel && new Date(r.createdAt) < ninetyDaysAgo);
-    baseRequests = showArchived ? [...recent, ...archived] : recent;
-    showArchiveButton = archived.length > 0;
+  // Filter for archived/active approved/denied
+  let displayedRequests: any[] = [];
+  if (pagination.filter === 'approved' || pagination.filter === 'denied') {
+    const statusLabel = pagination.filter === 'approved' ? 'Approved' : 'Denied';
+    const recent = requests.filter((r) =>
+      r.status === statusLabel && new Date(r.createdAt) >= archiveThreshold
+    );
+    const archived = requests.filter((r) =>
+      r.status === statusLabel && new Date(r.createdAt) < archiveThreshold
+    );
+    displayedRequests = showArchived ? [...recent, ...archived] : recent;
   } else {
-    // Pending filter
-    baseRequests = requests.filter(req => req.status === 'Pending');
+    displayedRequests = requests.filter((r) => r.status === 'Pending');
+  }
+  if (pagination.searchQuery) {
+    displayedRequests = displayedRequests.filter(
+      (req) =>
+        req.childName?.toLowerCase().includes(pagination.searchQuery.toLowerCase()) ||
+        req.name?.toLowerCase().includes(pagination.searchQuery.toLowerCase()) ||
+        req.type?.toLowerCase().includes(pagination.searchQuery.toLowerCase())
+    );
   }
 
-  // Apply search filter
-  const searchedRequests = baseRequests.filter(req =>
-    searchQuery === '' ||
-    req.childName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    req.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    req.type.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredRequests = searchedRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  // Error display component
-  const ErrorDisplay = () => (
-    errorState ? (
-      <View style={styles.sectionCard}>
-        <View style={styles.errorContainer}>
-          <Text style={[styles.errorTitle, { color: themeColors.error }]}>
-            ⚠️ {errorState.type === 'network' ? 'Connection Problem' :
-                errorState.type === 'auth' ? 'Authentication Required' :
-                'Something Went Wrong'}
+  const renderRequestCard = ({ item: request }: { item: any }) => (
+    <View key={request.id} style={styles.sectionCard}>
+      <Text style={styles.sectionTitle}>{request.type} Request</Text>
+      <Text style={styles.requestText}>
+        <Text style={styles.boldText}>Child:</Text> {request.childName}
+      </Text>
+      <Text style={styles.requestText}>
+        <Text style={styles.boldText}>Request:</Text> {request.name}
+      </Text>
+      {request.amount && (
+        <Text style={styles.requestText}>
+          <Text style={styles.boldText}>Amount:</Text> {request.amount} points
+        </Text>
+      )}
+      {request.reason && (
+        <View>
+          <Text style={styles.requestText}>
+            <Text style={styles.boldText}>Reason:</Text> {request.reason}
           </Text>
-          <Text style={[styles.errorMessage, { color: themeColors.text }]}>{errorState.message}</Text>
-          {errorState.retryAction && (
+          <Text style={styles.requestText}>
+            <Text style={styles.boldText}>Date & Time:</Text> {formatDateTime(request.createdAt)}
+          </Text>
+        </View>
+      )}
+      {/* Messages */}
+      {(request.messages && request.messages.length > 0) || request.status === 'Pending' ? (
+        <View style={styles.messagesContainer}>
+          <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 8 }]}>Messages:</Text>
+          {request.messages && request.messages.length > 0 ? (
+            request.messages.map(
+              (
+                msg: {
+                  sender: string;
+                  userId: string;
+                  text: string;
+                  timestamp: string;
+                },
+                index: number
+              ) => (
+                <View key={index} style={[
+                  styles.messageBubble,
+                  msg.sender === 'child' ? styles.childMessage : styles.parentMessage
+                ]}>
+                  <Text style={[styles.messageText, { color: themeColors.text }]}>{msg.text}</Text>
+                  <Text style={[styles.messageTime, { color: themeColors.textSecondary }]}>
+                    {new Date(msg.timestamp).toLocaleDateString()} {new Date(msg.timestamp).toLocaleTimeString()}
+                  </Text>
+                </View>
+              )
+            )
+          ) : (
+            <Text style={[styles.messageText, { fontStyle: 'italic', color: themeColors.textSecondary }]}>
+              No messages yet. Start a conversation!
+            </Text>
+          )}
+
+          {/* Message Input */}
+          <View style={styles.messageInputContainer}>
+            <TextInput
+              style={[styles.messageInput, { backgroundColor: themeColors.surface, color: themeColors.text }]}
+              placeholder="Type your message..."
+              placeholderTextColor={themeColors.textSecondary}
+              value={approvalModal.comment}
+              onChangeText={(text) => setApprovalModal(prev => ({ ...prev, comment: text }))}
+              multiline={true}
+              maxLength={500}
+            />
             <TouchableOpacity
-              style={[styles.retryButton, { backgroundColor: themeColors.primary }]}
-              onPress={() => {
-                setErrorState(null);
-                errorState.retryAction!();
+              style={[styles.sendButton, { backgroundColor: themeColors.primary }]}
+              onPress={async () => {
+                if (!approvalModal.comment.trim()) return;
+
+                try {
+                  const token = await getAuthToken();
+                  if (!token) {
+                    Alert.alert('Error', 'Not authenticated. Please login again.');
+                    return;
+                  }
+                  const response = await fetch(`${API_URL}/requests/${request.id}/messages`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      text: approvalModal.comment.trim(),
+                    }),
+                  });
+                  if (!response.ok) throw new Error('Failed to send message');
+                  const newMessage = await response.json();
+                  setRequests(prev =>
+                    prev.map(req =>
+                      req.id === request.id
+                        ? { ...req, messages: [...(req.messages || []), newMessage.newMessage] }
+                        : req
+                    )
+                  );
+                  setApprovalModal(prev => ({ ...prev, comment: '' }));
+                  loadRequests({ page: 1, reset: true });
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to send message. Please try again.');
+                }
               }}
             >
-              <Text style={[styles.retryButtonText, { color: themeColors.card }]}>Try Again</Text>
+              <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>Send</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
-      </View>
-    ) : null
+      ) : null}
+
+      {request.status === 'Pending' ? (
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: themeColors.success }]}
+            onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 16 }}>Approve</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: themeColors.error }]}
+            onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 16 }}>Deny</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Text
+          style={{
+            marginTop: 10,
+            fontWeight: 'bold',
+            color:
+              request.status === 'Approved' ? themeColors.success :
+                request.status === 'Denied' ? themeColors.error : themeColors.textSecondary,
+            fontSize: 15,
+            textAlign: 'right'
+          }}
+        >
+          Status: {request.status}
+        </Text>
+      )}
+    </View>
   );
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
+    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6, alignSelf: 'center' }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
           style={{
@@ -308,283 +406,104 @@ export default function ParentsRequestsScreen() {
       {/* Search and Filter Section */}
       <View style={styles.sectionCard}>
         <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Find Requests</Text>
-
-        {/* Search Input */}
         <TextInput
           style={[styles.searchInput, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
           placeholder="Search by child name, request type..."
           placeholderTextColor={themeColors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+          value={pagination.searchQuery}
+          onChangeText={(text) => {
+            setPagination((prev) => ({ ...prev, searchQuery: text }));
+            // Debounce search calls, simplified here
+            setTimeout(() => loadRequests({ page: 1, reset: true, searchQuery: text }), 300);
+          }}
         />
 
-        {/* Filter Chips */}
         <View style={styles.filterChips}>
           <TouchableOpacity
-            style={[styles.chip, { backgroundColor: filter === 'pending' ? themeColors.primary : themeColors.surface }]}
-            onPress={() => setFilter('pending')}
+            style={[styles.chip, { backgroundColor: pagination.filter === 'pending' ? themeColors.primary : themeColors.surface }]}
+            onPress={() => handleFilterChange('pending')}
           >
-            <Text style={[styles.chipText, { color: filter === 'pending' ? themeColors.card : themeColors.text }]}>
-              🕐 Pending ({requests.filter(r => r.status === 'Pending').length})
+            <Text style={[styles.chipText, { color: pagination.filter === 'pending' ? themeColors.card : themeColors.text }]}>
+              🕐 Pending
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[styles.chip, { backgroundColor: filter === 'approved' ? themeColors.success : themeColors.surface }]}
-            onPress={() => setFilter('approved')}
+            style={[styles.chip, { backgroundColor: pagination.filter === 'approved' ? themeColors.success : themeColors.surface }]}
+            onPress={() => handleFilterChange('approved')}
           >
-            <Text style={[styles.chipText, { color: filter === 'approved' ? themeColors.card : themeColors.text }]}>
-              ✅ Approved ({requests.filter(r => r.status === 'Approved').length})
+            <Text style={[styles.chipText, { color: pagination.filter === 'approved' ? themeColors.card : themeColors.text }]}>
+              ✅ Approved
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[styles.chip, { backgroundColor: filter === 'denied' ? themeColors.error : themeColors.surface }]}
-            onPress={() => setFilter('denied')}
+            style={[styles.chip, { backgroundColor: pagination.filter === 'denied' ? themeColors.error : themeColors.surface }]}
+            onPress={() => handleFilterChange('denied')}
           >
-            <Text style={[styles.chipText, { color: filter === 'denied' ? themeColors.card : themeColors.text }]}>
-              ❌ Denied ({requests.filter(r => r.status === 'Denied').length})
+            <Text style={[styles.chipText, { color: pagination.filter === 'denied' ? themeColors.card : themeColors.text }]}>
+              ❌ Denied
             </Text>
           </TouchableOpacity>
-
-          {(filter === "approved" || filter === "denied") && showArchiveButton && (
+          {(pagination.filter === "approved" || pagination.filter === "denied") && (
             <TouchableOpacity
               style={[styles.chip, { backgroundColor: showArchived ? themeColors.accent : themeColors.surface }]}
               onPress={() => setShowArchived(!showArchived)}
             >
               <Text style={[styles.chipText, { color: showArchived ? themeColors.card : themeColors.text }]}>
-                📁 {showArchived ? 'Show Recent' : 'Show Archive'}
+                📁 {showArchived ? "Show Recent" : "Show Archive"}
               </Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Refresh Button */}
-      <View style={styles.sectionCard}>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: themeColors.primary, alignSelf: 'center', minWidth: 200 }]}
-          onPress={onRefresh}
-          disabled={refreshing}
-        >
-          <Text style={[styles.actionBtnText, { color: themeColors.card }]}>
-            {refreshing ? 'Refreshing...' : '🔄 Check for New Requests'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {filteredRequests.length === 0 ? (
-        <View style={styles.sectionCard}>
-          <Text style={styles.placeholder}>
-            {filter === "approved"
-              ? showArchived
-                ? "No approved requests found."
-                : "No approved requests in the past 90 days."
-              : filter === "denied"
-                ? showArchived
-                  ? "No denied requests found."
-                  : "No denied requests in the past 90 days."
-                : searchQuery ? `No ${filter.toLowerCase()} requests match "${searchQuery}".` : `No ${filter.toLowerCase()} requests.`}
-          </Text>
-        </View>
-      ) : (
-        <>
-          {filteredRequests.map((request: any) => (
-            <View key={request.id} style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>{request.type} Request</Text>
-              <Text style={styles.requestText}>
-                <Text style={styles.boldText}>Child:</Text> {request.childName}
+      {/* Pull-to-refresh and FlatList for Requests */}
+      <FlatList
+        data={displayedRequests}
+        keyExtractor={(item) => item.id}
+        renderItem={renderRequestCard}
+        contentContainerStyle={{ alignItems: 'center', paddingBottom: 50 }}
+        refreshControl={
+          <RefreshControl refreshing={pagination.refreshing} onRefresh={onRefresh} />
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        initialNumToRender={20}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        getItemLayout={(_, index) => ({ length: 280, offset: 280 * index, index })} // Approx height
+        ListFooterComponent={
+          pagination.loadingMore ? (
+            <ActivityIndicator style={{ marginVertical: 18 }} />
+          ) : null
+        }
+        ListEmptyComponent={
+          pagination.loading ? (
+            <ActivityIndicator style={{ margin: 48 }} />
+          ) : (
+            <View style={styles.sectionCard}>
+              <Text style={styles.placeholder}>
+                {pagination.filter === "approved"
+                  ? showArchived
+                    ? "No approved requests found."
+                    : "No approved requests in the past 90 days."
+                  : pagination.filter === "denied"
+                    ? showArchived
+                      ? "No denied requests found."
+                      : "No denied requests in the past 90 days."
+                    : pagination.searchQuery ? `No ${pagination.filter.toLowerCase()} requests match "${pagination.searchQuery}".` : `No ${pagination.filter.toLowerCase()} requests.`}
               </Text>
-              <Text style={styles.requestText}>
-                <Text style={styles.boldText}>Request:</Text> {request.name}
-              </Text>
-              {request.amount && (
-                <Text style={styles.requestText}>
-                  <Text style={styles.boldText}>Amount:</Text> {request.amount} points
-                </Text>
-              )}
-              {request.reason && (
-                <View>
-                  <Text style={styles.requestText}>
-                    <Text style={styles.boldText}>Reason:</Text> {request.reason}
-                  </Text>
-                  <Text style={styles.requestText}>
-                    <Text style={styles.boldText}>Date & Time:</Text> {formatDateTime(request.createdAt)}
-                  </Text>
-                </View>
-              )}
-              {/* Message Thread */}
-              {(request.messages && request.messages.length > 0) || request.status === 'Pending' ? (
-                <View style={styles.messagesContainer}>
-                  <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 8 }]}>Messages:</Text>
-                  {request.messages && request.messages.length > 0 ? (
-                    request.messages.map(
-                      (
-                        msg: {
-                          sender: string;
-                          userId: string;
-                          text: string;
-                          timestamp: string;
-                        },
-                        index: number
-                      ) => (
-                        <View key={index} style={[
-                          styles.messageBubble,
-                          msg.sender === 'child' ? styles.childMessage : styles.parentMessage
-                        ]}>
-                          <Text style={[styles.messageText, { color: themeColors.text }]}>{msg.text}</Text>
-                          <Text style={[styles.messageTime, { color: themeColors.textSecondary }]}>
-                            {new Date(msg.timestamp).toLocaleDateString()} {new Date(msg.timestamp).toLocaleTimeString()}
-                          </Text>
-                        </View>
-                      )
-                    )
-                  ) : (
-                    <Text style={[styles.messageText, { fontStyle: 'italic', color: themeColors.textSecondary }]}>No messages yet. Start a conversation!</Text>
-                  )}
-
-                  {/* Message Input */}
-                  <View style={styles.messageInputContainer}>
-                    <TextInput
-                      style={[styles.messageInput, { backgroundColor: themeColors.surface, color: themeColors.text }]}
-                      placeholder="Type your message..."
-                      placeholderTextColor={themeColors.textSecondary}
-                      value={approvalModal.comment} // Reusing the comment state for simplicity
-                      onChangeText={(text) => setApprovalModal(prev => ({ ...prev, comment: text }))}
-                      multiline={true}
-                      maxLength={500}
-                    />
-                    <TouchableOpacity
-                      style={[styles.sendButton, { backgroundColor: themeColors.primary }]}
-                      onPress={async () => {
-                        if (!approvalModal.comment.trim()) return;
-
-                        try {
-                          const token = await getAuthToken();
-                          if (!token) {
-                            Alert.alert('Error', 'Not authenticated. Please login again.');
-                            return;
-                          }
-
-                          const response = await fetch(`${API_URL}/requests/${request.id}/messages`, {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${token}`,
-                            },
-                            body: JSON.stringify({
-                              text: approvalModal.comment.trim(),
-                            }),
-                          });
-
-                          if (!response.ok) {
-                            throw new Error('Failed to send message');
-                          }
-
-                          // Update local state to show the new message
-                          const newMessage = await response.json();
-                          setRequests(prev =>
-                            prev.map(req =>
-                              req.id === request.id
-                                ? { ...req, messages: [...(req.messages || []), newMessage.newMessage] }
-                                : req
-                            )
-                          );
-
-                          // Clear the input
-                          setApprovalModal(prev => ({ ...prev, comment: '' }));
-
-                          // Refresh to get updated data
-                          loadRequests();
-                        } catch (error) {
-                          console.error('Error sending message:', error);
-                          Alert.alert('Error', 'Failed to send message. Please try again.');
-                        }
-                      }}
-                    >
-                      <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>Send</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : null}
-
-              {request.status === 'Pending' ? (
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: themeColors.success }]}
-                    onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
-                  >
-                    <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 16 }}>Approve</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: themeColors.error }]}
-                    onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
-                  >
-                    <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 16 }}>Deny</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <Text
-                  style={{
-                    marginTop: 10,
-                    fontWeight: 'bold',
-                    color:
-                      request.status === 'Approved' ? themeColors.success :
-                        request.status === 'Denied' ? themeColors.error : themeColors.textSecondary,
-                    fontSize: 15,
-                    textAlign: 'right'
-                  }}
-                >
-                  Status: {request.status}
-                </Text>
-              )}
             </View>
-          ))}
-          {/* Archive toggle */}
-          {(filter === "approved" || filter === "denied") && showArchiveButton && !showArchived && (
-            <TouchableOpacity
-              style={{
-                marginTop: 12,
-                alignSelf: 'center',
-                backgroundColor: themeColors.accent + "22",
-                paddingHorizontal: 20,
-                paddingVertical: 8,
-                borderRadius: 16
-              }}
-              onPress={() => setShowArchived(true)}
-            >
-              <Text style={{ color: themeColors.primary, fontWeight: '600' }}>
-                Show All {filter === "approved" ? "Approved" : "Denied"} Requests
-              </Text>
-            </TouchableOpacity>
-          )}
-          {(filter === "approved" || filter === "denied") && showArchiveButton && showArchived && (
-            <TouchableOpacity
-              style={{
-                marginTop: 10,
-                alignSelf: 'center',
-                backgroundColor: themeColors.surface,
-                paddingHorizontal: 14,
-                paddingVertical: 7,
-                borderRadius: 16
-              }}
-              onPress={() => setShowArchived(false)}
-            >
-              <Text style={{ color: themeColors.primary, fontWeight: '500' }}>
-                Show Only Last 90 Days
-              </Text>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
+          )
+        }
+      />
 
+      {/* Feedback and modals */}
       {feedback ? (
         <View style={[styles.feedbackCard, { backgroundColor: themeColors.secondary + "22" }]}>
           <Text style={[styles.feedbackText, { color: themeColors.secondary }]}>{feedback}</Text>
         </View>
       ) : null}
 
-      {/* Approval Modal */}
       <Modal
         visible={approvalModal.visible}
         transparent={true}
@@ -596,7 +515,6 @@ export default function ParentsRequestsScreen() {
             <Text style={styles.modalTitle}>
               {approvalModal.approved ? 'Approve' : 'Deny'} Request
             </Text>
-
             {approvalModal.request && (
               <View style={styles.modalRequestSummary}>
                 <Text style={styles.modalRequestText}>
@@ -610,8 +528,6 @@ export default function ParentsRequestsScreen() {
                     <Text style={styles.boldText}>Amount:</Text> {approvalModal.request.amount} points
                   </Text>
                 )}
-
-                {/* Before & After Summary for move-points requests */}
                 {approvalModal.request.type === 'move-points' && approvalModal.request.fromBalance !== undefined && approvalModal.request.toBalance !== undefined && (
                   <View style={{ marginTop: 12, padding: 10, backgroundColor: '#f0f8ff', borderRadius: 8 }}>
                     <Text style={[styles.modalRequestText, { fontWeight: 'bold', marginBottom: 8, textAlign: 'center' }]}>
@@ -622,10 +538,10 @@ export default function ParentsRequestsScreen() {
                         <Text style={[styles.modalRequestText, { fontSize: 14, textAlign: 'center' }]}>
                           <Text style={styles.boldText}>From: </Text>
                           {approvalModal.request.from === 'current' ? 'Pocket Money' :
-                           approvalModal.request.from === 'save' ? 'Savings Pot' :
-                           approvalModal.request.from === 'spend' ? 'Spending Pot' :
-                           approvalModal.request.from === 'donate' ? 'Help Others Pot' :
-                           approvalModal.request.from === 'invest' ? 'Grow Money Pot' : approvalModal.request.from}
+                            approvalModal.request.from === 'save' ? 'Savings Pot' :
+                              approvalModal.request.from === 'spend' ? 'Spending Pot' :
+                                approvalModal.request.from === 'donate' ? 'Help Others Pot' :
+                                  approvalModal.request.from === 'invest' ? 'Grow Money Pot' : approvalModal.request.from}
                         </Text>
                         <Text style={[styles.modalRequestText, { fontSize: 14, textAlign: 'center', color: '#d32f2f' }]}>
                           {approvalModal.request.fromBalance} → {approvalModal.request.fromBalance - approvalModal.request.amount}
@@ -635,10 +551,10 @@ export default function ParentsRequestsScreen() {
                         <Text style={[styles.modalRequestText, { fontSize: 14, textAlign: 'center' }]}>
                           <Text style={styles.boldText}>To: </Text>
                           {approvalModal.request.to === 'current' ? 'Pocket Money' :
-                           approvalModal.request.to === 'save' ? 'Savings Pot' :
-                           approvalModal.request.to === 'spend' ? 'Spending Pot' :
-                           approvalModal.request.to === 'donate' ? 'Help Others Pot' :
-                           approvalModal.request.to === 'invest' ? 'Grow Money Pot' : approvalModal.request.to}
+                            approvalModal.request.to === 'save' ? 'Savings Pot' :
+                              approvalModal.request.to === 'spend' ? 'Spending Pot' :
+                                approvalModal.request.to === 'donate' ? 'Help Others Pot' :
+                                  approvalModal.request.to === 'invest' ? 'Grow Money Pot' : approvalModal.request.to}
                         </Text>
                         <Text style={[styles.modalRequestText, { fontSize: 14, textAlign: 'center', color: '#2e7d32' }]}>
                           {approvalModal.request.toBalance} → {approvalModal.request.toBalance + approvalModal.request.amount}
@@ -649,10 +565,7 @@ export default function ParentsRequestsScreen() {
                 )}
               </View>
             )}
-
-            <Text style={styles.modalLabel}>
-              Add a Note (Optional):
-            </Text>
+            <Text style={styles.modalLabel}>Add a Note (Optional):</Text>
             <TextInput
               style={styles.commentInput}
               placeholder="Add a note for your child..."
@@ -662,7 +575,6 @@ export default function ParentsRequestsScreen() {
               numberOfLines={3}
               maxLength={200}
             />
-
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.cancelBtn]}
@@ -838,7 +750,7 @@ export default function ParentsRequestsScreen() {
           }
         ]}
       />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -865,7 +777,6 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   filterBtnActive: { backgroundColor: themeColors.primary },
   filterBtnText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
   filterBtnTextActive: { color: themeColors.card },
-  // New styles for search and filter chips
   searchInput: {
     borderWidth: 1,
     borderRadius: 12,
@@ -921,7 +832,6 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   messageInput: { flex: 1, borderWidth: 1, borderColor: themeColors.border, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, textAlignVertical: 'top', backgroundColor: themeColors.surface, color: themeColors.text },
   sendButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, minWidth: 60, alignItems: 'center', backgroundColor: themeColors.primary },
   sendButtonText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
-  // Error display styles
   errorContainer: {
     alignItems: 'center',
     paddingVertical: 20,
