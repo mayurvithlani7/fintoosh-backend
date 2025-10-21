@@ -289,46 +289,45 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
     );
   }
 
-  // Build summary from analytics data
+  // Build summary from processed analytics data
   console.log('AnalyticsOverview - analyticsData:', analyticsData);
-  const user = analyticsData.user || {};
-  const chores = analyticsData.chores || [];
-  const goals = analyticsData.goals || [];
   const familyMembers = analyticsData.familyMembers || [];
   console.log('AnalyticsOverview - familyMembers:', familyMembers);
   const child = familyMembers.find((m: any) => m.role === 'child') || familyMembers.find((m: any) => m.role !== 'parent');
   console.log('AnalyticsOverview - found child:', child);
   console.log('AnalyticsOverview - child name:', child ? child.name : 'No child found');
 
+  // Use processed data for summary
+  const choreCompletion = analyticsData.choreCompletion || [];
+  const goalProgress = analyticsData.goalProgress || [];
+  const jarDistribution = analyticsData.jarDistribution || [];
+
+  // Get current points from jar distribution
+  const currentJar = jarDistribution.find(jar => jar.jarName === 'Pocket Money');
+  const saveJar = jarDistribution.find(jar => jar.jarName === 'Savings Pot');
+  const spendJar = jarDistribution.find(jar => jar.jarName === 'Spending Pot');
+  const donateJar = jarDistribution.find(jar => jar.jarName === 'Help Others Pot');
+  const investJar = jarDistribution.find(jar => jar.jarName === 'Grow Money Pot');
+
   const summary = {
-    totalPoints: user.currentPoints ?? 0,
-    chores: chores.length,
-    completedChores: chores.filter((c: any) =>
-      c.completed === true ||
-      c.status === 'completed' ||
-      c.approved === true
-    ).length,
-    goals: goals.length,
-    completedGoals: goals.filter((g: any) => g.completed || g.status === 'completed').length,
+    totalPoints: (currentJar?.currentBalance || 0) + (saveJar?.currentBalance || 0) + (spendJar?.currentBalance || 0) + (donateJar?.currentBalance || 0) + (investJar?.currentBalance || 0),
+    chores: choreCompletion.length,
+    completedChores: choreCompletion.reduce((sum, chore) => sum + (chore.completedCount || 0), 0),
+    goals: goalProgress.length,
+    completedGoals: goalProgress.filter((g: any) => g.progress === 100 || g.projectedCompletion === 'Completed').length,
     rewards: 0, // Not available in analytics data
     completedRewards: 0,
     jars: {
-      current: user.currentPoints ?? 0,
-      save: user.savePoints ?? 0,
-      spend: user.spendPoints ?? 0,
-      donate: user.donatePoints ?? 0,
-      invest: user.investPoints ?? 0
+      current: currentJar?.currentBalance || 0,
+      save: saveJar?.currentBalance || 0,
+      spend: spendJar?.currentBalance || 0,
+      donate: donateJar?.currentBalance || 0,
+      invest: investJar?.currentBalance || 0
     },
     name: child ? child.name : 'Child',
-    goalsList: goals.map((g: any) => ({
-      name: g.name || g.title || 'Goal',
-      progress: g.completed || g.status === 'completed'
-        ? 1
-        : g.progress !== undefined
-          ? Math.max(0, Math.min(1, g.progress / 100))
-          : (g.current !== undefined && g.target !== undefined && g.target > 0)
-            ? Math.max(0, Math.min(1, g.current / g.target))
-            : 0,
+    goalsList: goalProgress.map((g: any) => ({
+      name: g.goalName || 'Goal',
+      progress: Math.max(0, Math.min(1, (g.progress || 0) / 100)),
     })),
   };
 
