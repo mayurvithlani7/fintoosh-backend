@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -188,7 +187,7 @@ export default function ParentsGoalsScreen() {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
     }
-  }, [selectedChild, markRefreshed]);
+  }, [selectedChild]);
 
   const onRefresh = useCallback(() => {
     console.log('[PARENTS GOALS] Manual refresh triggered');
@@ -196,15 +195,7 @@ export default function ParentsGoalsScreen() {
     loadGoals(true);
   }, [loadGoals]);
 
-  // Auto-fetch goals whenever the screen is focused (parent tab switch), for real-time updates after child actions
-  useFocusEffect(
-    useCallback(() => {
-      if (selectedChild) {
-        loadGoals();
-      }
-      // Always reload goals from backend on screen/tab focus
-    }, [selectedChild, loadGoals])
-  );
+
 
   const { showError, showFeedback } = useGlobalFeedback();
   const handleAddGoal = async () => {
