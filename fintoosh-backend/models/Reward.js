@@ -12,6 +12,8 @@ const rewardSchema = new mongoose.Schema({
   approvedAt: { type: Date }, // The date when the parent approved the reward fulfillment
   purchasedAt: { type: Date },
   status: { type: String, default: "active" }, // Ensure status field is present and defaults to 'active'
+  completed: { type: Boolean, default: false },
+  approved: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

@@ -416,6 +416,13 @@ EXPO_PUBLIC_SENTRY_DSN=your_sentry_dsn_here
 ## Known Issues
 - None identified yet
 
+## ✅ **COMPLETED: Chore and Reward Approval Field Updates**
+- **Backend Logic Updated**: Modified `PUT /requests/:requestId` approval handlers for both chores and rewards
+- **Chore Fields**: Both `completed: true` and `approved: true` now set when parent approves chore request
+- **Reward Model Extended**: Added `completed` and `approved` Boolean fields to Reward schema
+- **Reward Fields**: Both `completed: true` and `approved: true` now set when parent approves reward request
+- **Consistency**: Manual approval now matches auto-approval behavior for both chores and rewards
+
 ## Future Considerations
 - UI for viewing split history per chore
 - Analytics on jar distribution effectiveness
