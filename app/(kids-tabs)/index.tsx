@@ -12,6 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { memo, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
+  FlatList,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -782,33 +783,38 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           ) : notifError ? (
             <Text style={{ fontSize: 15, color: themeColors.error }}>{notifError}</Text>
           ) : (
-            notifications.filter(n => !n.isRead).slice(0, 4).map((notif, idx) => (
-              <TouchableOpacity
-                key={notif._id || idx}
-                style={{
-                  padding: 8,
-                  marginBottom: 3,
-                  backgroundColor: themeColors.card,
-                  borderRadius: 7,
-                  elevation: 1,
-                  borderWidth: 1,
-                  borderColor: themeColors.border,
-                }}
-                onPress={async () => {
-                  try {
-                    const token = await getAuthToken();
-                    if (notif._id && token) {
-                      await markNotificationRead(notif._id, token);
-                      await loadNotifications();
-                    }
-                  } catch (err) {}
-                }}
-              >
-                <Text style={{ fontSize: 15, fontWeight: "bold", color: themeColors.warning }}>
-                  {notif.message}
-                </Text>
-              </TouchableOpacity>
-            ))
+            <FlatList
+              data={notifications.filter(n => !n.isRead).slice(0, 4)}
+              keyExtractor={(item, index) => item._id || index.toString()}
+              renderItem={({ item: notif, index }) => (
+                <TouchableOpacity
+                  style={{
+                    padding: 8,
+                    marginBottom: 3,
+                    backgroundColor: themeColors.card,
+                    borderRadius: 7,
+                    elevation: 1,
+                    borderWidth: 1,
+                    borderColor: themeColors.border,
+                  }}
+                  onPress={async () => {
+                    try {
+                      const token = await getAuthToken();
+                      if (notif._id && token) {
+                        await markNotificationRead(notif._id, token);
+                        await loadNotifications();
+                      }
+                    } catch (err) {}
+                  }}
+                >
+                  <Text style={{ fontSize: 15, fontWeight: "bold", color: themeColors.warning }}>
+                    {notif.message}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={false}
+            />
           )}
         </View>
       )}

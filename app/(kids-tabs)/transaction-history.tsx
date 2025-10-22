@@ -388,7 +388,7 @@ export default function TransactionHistoryScreen() {
 
   // Performance enhancements
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Removed isRefreshing state - no longer needed without pull-to-refresh
   const [visibleCount, setVisibleCount] = useState(20); // Lazy loading chunk size
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
@@ -679,11 +679,7 @@ export default function TransactionHistoryScreen() {
                 No transactions found.
               </Text>
             }
-            refreshing={isRefreshing}
-            onRefresh={() => {
-              setIsRefreshing(true);
-              loadTransactions(false, 1).finally(() => setIsRefreshing(false));
-            }}
+            // Pull-to-refresh removed to prevent auto-refresh during scrolling
             onEndReached={() => {
               // Load more data when reaching the end
               const currentPage = Math.ceil(transactions.length / 50) + 1;

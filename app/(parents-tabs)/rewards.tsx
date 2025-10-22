@@ -435,8 +435,8 @@ export default function ParentsRewardsScreen() {
             );
           }
           return (
-            <>
-              {filteredRewards.map(r => (
+            <View>
+              {filteredRewards.map((r) => (
                 <View
                   key={r._id}
                   style={{
@@ -601,7 +601,7 @@ export default function ParentsRewardsScreen() {
                   <Text style={{ color: '#5837a7', fontWeight: '500' }}>Show Only Last 90 Days</Text>
                 </TouchableOpacity>
               )}
-            </>
+            </View>
           );
         })()}
       </View>

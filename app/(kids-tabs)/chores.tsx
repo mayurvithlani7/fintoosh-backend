@@ -523,7 +523,11 @@ function ChoresSection() {
         if (choresTab === "Active") {
           if (activeChores.length === 0)
             return <Text style={styles.placeholder}>No active tasks.</Text>;
-          return activeChores.map(renderChore);
+          return (
+            <View>
+              {activeChores.map((c) => renderChore(c))}
+            </View>
+          );
         }
         // Completed: filter last 90 days by best-available date, rest archived
         const now = new Date();
@@ -537,8 +541,9 @@ function ChoresSection() {
         if (choresToShow.length === 0)
           return <Text style={styles.placeholder}>No completed tasks in last 90 days.</Text>;
         return (
-          <>
-            {choresToShow.map(renderChore)}
+          <View>
+            {choresToShow.map((c) => renderChore(c))}
+            {/* Archive toggle for completed chores */}
             {archived.length > 0 && !showArchive && (
               <TouchableOpacity
                 style={{
@@ -573,7 +578,7 @@ function ChoresSection() {
                 <Text style={{ color: themeColors.primary, fontWeight: "500" }}>Show Only Last 90 Days</Text>
               </TouchableOpacity>
             )}
-          </>
+          </View>
         );
       })()}
     </View>

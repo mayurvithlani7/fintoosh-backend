@@ -411,7 +411,7 @@ export default function ParentTransactionHistoryScreen() {
   const [endDate, setEndDate] = useState("");
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Removed isRefreshing state - no longer needed without pull-to-refresh
 
   const loadTransactions = async (page = 1, append = false) => {
     if (!append) setLoading(true);
@@ -634,11 +634,7 @@ export default function ParentTransactionHistoryScreen() {
                 No points activity found.
               </Text>
             }
-            refreshing={isRefreshing}
-            onRefresh={() => {
-              setIsRefreshing(true);
-              loadTransactions(1, false).finally(() => setIsRefreshing(false));
-            }}
+            // Pull-to-refresh removed to prevent auto-refresh during scrolling
             onEndReached={() => {
               // Load more data when reaching the end
               const currentPage = Math.ceil(transactions.length / 50) + 1;

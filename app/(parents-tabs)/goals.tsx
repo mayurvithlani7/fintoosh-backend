@@ -136,6 +136,7 @@ export default function ParentsGoalsScreen() {
         const errorText = await response.text();
         console.error('Error response:', errorText);
       }
+      
     } catch (err) {
       console.error('Error loading children:', err);
     }
@@ -748,106 +749,103 @@ export default function ParentsGoalsScreen() {
             }
             return (
               <View>
-                {filteredGoals.map(g => {
-                  // DEBUG LOG for goal state
-            //      console.log('[PARENTS GOALS] Rendering goal:', g.name, '| _id:', g._id, '| status:', g.status, '| full:', g);
-                  return (
-                    <View
-                      key={g._id}
-                      style={{
-                        backgroundColor: themeColors.surface,
-                        marginVertical: 5,
-                        padding: 12,
-                        borderRadius: 7,
-                      }}
-                    >
-                      <Text style={{ marginBottom: 4 }}>
-                        <Text style={{ fontWeight: 'bold', color: themeColors.text, fontSize: 16 }}>{g.name}</Text>
+                {filteredGoals.map((g) => (
+                  <View
+                    key={g._id}
+                    style={{
+                      backgroundColor: themeColors.surface,
+                      marginVertical: 5,
+                      padding: 12,
+                      borderRadius: 7,
+                    }}
+                  >
+                    <Text style={{ marginBottom: 4 }}>
+                      <Text style={{ fontWeight: 'bold', color: themeColors.text, fontSize: 16 }}>{g.name}</Text>
+                    </Text>
+                    {g.description && (
+                      <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginBottom: 6 }}>
+                        {g.description}
                       </Text>
-                      {g.description && (
-                        <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginBottom: 6 }}>
-                          {g.description}
-                        </Text>
-                      )}
-                      <Text style={{ color: themeColors.textSecondary, fontSize: 14 }}>
-                        Target: {g.targetAmount} points in {jarOptions.find(j => j.value === g.jar)?.label || g.jar} pot
-                      </Text>
-                      {g.deadline && (
-                        <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                          Deadline: {new Date(g.deadline).toLocaleDateString()}
-                        </Text>
-                      )}
+                    )}
+                    <Text style={{ color: themeColors.textSecondary, fontSize: 14 }}>
+                      Target: {g.targetAmount} points in {jarOptions.find(j => j.value === g.jar)?.label || g.jar} pot
+                    </Text>
+                    {g.deadline && (
                       <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
-                        Status: {g.status} • Created: {new Date(g.createdAt).toLocaleDateString()}
+                        Deadline: {new Date(g.deadline).toLocaleDateString()}
                       </Text>
-                      {g.status === 'active' && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
-                          <TouchableOpacity
-                            style={{
-                              backgroundColor: themeColors.primary,
-                              paddingHorizontal: 12,
-                              paddingVertical: 6,
-                              borderRadius: 6,
-                              marginLeft: 8
-                            }}
-                            onPress={() => {
-                              setEditingGoal(g);
-                              setGoal(g.name);
-                              setDescription(g.description || '');
-                              setPointsNeeded(g.targetAmount.toString());
-                              setSelectedJar(g.jar);
-                              setDeadline(g.deadline ? g.deadline.split('T')[0] : '');
-                              scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
-                            }}
-                          >
-                            <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={{
-                              backgroundColor: themeColors.error,
-                              paddingHorizontal: 10,
-                              paddingVertical: 6,
-                              borderRadius: 6,
-                              marginLeft: 8
-                            }}
-                            onPress={() => handleDeleteGoal(g._id, g.name)}
-                          >
-                            <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                      {g.status === 'pending' && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
-                          <Text style={{
-                            color: themeColors.warning,
-                            fontWeight: 'bold',
-                            fontSize: 13,
-                            backgroundColor: themeColors.surface,
-                            paddingVertical: 7,
-                            paddingHorizontal: 14,
-                            borderRadius: 7,
-                          }}>
-                            Pending Approval
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
+                    )}
+                    <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                      Status: {g.status} • Created: {new Date(g.createdAt).toLocaleDateString()}
+                    </Text>
+                    {g.status === 'active' && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                        <TouchableOpacity
+                          style={{
+                            backgroundColor: themeColors.primary,
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 6,
+                            marginLeft: 8
+                          }}
+                          onPress={() => {
+                            setEditingGoal(g);
+                            setGoal(g.name);
+                            setDescription(g.description || '');
+                            setPointsNeeded(g.targetAmount.toString());
+                            setSelectedJar(g.jar);
+                            setDeadline(g.deadline ? g.deadline.split('T')[0] : '');
+                            scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+                          }}
+                        >
+                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={{
+                            backgroundColor: themeColors.error,
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                            borderRadius: 6,
+                            marginLeft: 8
+                          }}
+                          onPress={() => handleDeleteGoal(g._id, g.name)}
+                        >
+                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {g.status === 'pending' && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
+                        <Text style={{
+                          color: themeColors.warning,
+                          fontWeight: 'bold',
+                          fontSize: 13,
+                          backgroundColor: themeColors.surface,
+                          paddingVertical: 7,
+                          paddingHorizontal: 14,
+                          borderRadius: 7,
+                        }}>
+                          Pending Approval
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+                {/* Archive toggle for completed goals */}
                 {goalsTab === 'Completed' && showArchiveButton && !showAllCompleted && (
                   <TouchableOpacity
                     style={{
                       marginTop: 10,
                       alignSelf: 'center',
-                    backgroundColor: themeColors.surface,
-                    paddingHorizontal: 14,
-                    paddingVertical: 7,
-                    borderRadius: 16
-                  }}
-                  onPress={() => setShowAllCompleted(true)}
-                >
-                  <Text style={{ color: themeColors.primary, fontWeight: '500' }}>Show All Completed Goals</Text>
-                </TouchableOpacity>
+                      backgroundColor: themeColors.surface,
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      borderRadius: 16
+                    }}
+                    onPress={() => setShowAllCompleted(true)}
+                  >
+                    <Text style={{ color: themeColors.primary, fontWeight: '500' }}>Show All Completed Goals</Text>
+                  </TouchableOpacity>
                 )}
                 {goalsTab === 'Completed' && showAllCompleted && (
                   <TouchableOpacity

@@ -506,13 +506,10 @@ function MyAchievementsSection() {
           </Text>
         </View>
       ) : (
-        <View style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}>
-          {badges.map((badge, index) => (
-            <View key={index} style={{
+        badges.map((badge, index) => (
+          <View
+            key={`badge-${index}`}
+            style={{
               width: "45%",
               margin: "2.5%",
               backgroundColor: themeColors.surface,
@@ -522,50 +519,50 @@ function MyAchievementsSection() {
               borderWidth: 2,
               borderColor: themeColors.success,
               minHeight: 100,
+            }}
+          >
+            <Text style={{ fontSize: 32, marginBottom: 8 }}>{badge.icon || '🏆'}</Text>
+            <Text style={{
+              fontWeight: "bold",
+              fontSize: 14,
+              textAlign: "center",
+              color: themeColors.success,
+              marginBottom: 4
             }}>
-              <Text style={{ fontSize: 32, marginBottom: 8 }}>{badge.icon || '🏆'}</Text>
+              {badge.title}
+            </Text>
+            {badge.description && (
               <Text style={{
-                fontWeight: "bold",
-                fontSize: 14,
+                fontSize: 12,
                 textAlign: "center",
-                color: themeColors.success,
+                color: themeColors.textSecondary,
                 marginBottom: 4
               }}>
-                {badge.title}
+                {badge.description}
               </Text>
-              {badge.description && (
-                <Text style={{
-                  fontSize: 12,
-                  textAlign: "center",
-                  color: themeColors.textSecondary,
-                  marginBottom: 4
-                }}>
-                  {badge.description}
-                </Text>
-              )}
-              {badge.pointsAwarded > 0 && (
-                <Text style={{
-                  fontSize: 12,
-                  fontWeight: "bold",
-                  color: themeColors.warning,
-                  textAlign: "center"
-                }}>
-                  +{badge.pointsAwarded} points!
-                </Text>
-              )}
-              {badge.unlockedAt && (
-                <Text style={{
-                  fontSize: 10,
-                  color: themeColors.textSecondary,
-                  textAlign: "center",
-                  marginTop: 4
-                }}>
-                  {new Date(badge.unlockedAt).toLocaleDateString()}
-                </Text>
-              )}
-            </View>
-          ))}
-        </View>
+            )}
+            {badge.pointsAwarded > 0 && (
+              <Text style={{
+                fontSize: 12,
+                fontWeight: "bold",
+                color: themeColors.warning,
+                textAlign: "center"
+              }}>
+                +{badge.pointsAwarded} points!
+              </Text>
+            )}
+            {badge.unlockedAt && (
+              <Text style={{
+                fontSize: 10,
+                color: themeColors.textSecondary,
+                textAlign: "center",
+                marginTop: 4
+              }}>
+                {new Date(badge.unlockedAt).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
+        ))
       )}
 
       <TouchableOpacity

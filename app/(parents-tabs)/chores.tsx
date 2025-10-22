@@ -836,8 +836,8 @@ export default function ParentsChoresScreen() {
               );
             }
             return (
-              <>
-                {filteredChores.map(c => (
+              <View>
+                {filteredChores.map((c) => (
                   <View
                     key={c._id}
                     style={{
@@ -972,7 +972,7 @@ export default function ParentsChoresScreen() {
                     <Text style={{ color: '#5837a7', fontWeight: '500' }}>Show Only Last 90 Days</Text>
                   </TouchableOpacity>
                 )}
-              </>
+              </View>
             );
           })()
         }

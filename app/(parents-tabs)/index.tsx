@@ -1,7 +1,6 @@
 import HelpModal from '@/components/HelpModal';
 import SkeletonJar from '@/components/ui/SkeletonJar';
 import { fetchNotifications, markNotificationRead } from '@/utils/api';
-import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { useDataCache } from '@/utils/dataCacheContext';
 import { getAuthToken } from '@/utils/secureStorage';
@@ -86,7 +85,7 @@ export default function ParentsOverviewScreen() {
   // Notifications state
   const [notifications, setNotifications] = useState<{ _id?: string; message: string; isRead?: boolean }[]>([]);
   const [notifLoading, setNotifLoading] = useState(true);
-  const [notifError, setNotifError] = useState<string | null | undefined>(null);
+  const [notifError, setNotifError] = useState<string | null>(null);
   // Local persistent state: suppress notifications if cleared until new ones arrive
   const [notificationsSuppressed, setNotificationsSuppressed] = useState<boolean>(false);
 
@@ -136,6 +135,21 @@ export default function ParentsOverviewScreen() {
     fetchChildData(true).finally(() => setRefreshing(false));
     loadNotifications();
   }, [fetchChildData]);
+
+  // Handle notification press - separate function to avoid issues in renderItem
+  const handleNotificationPress = useCallback(async (notif: { _id?: string; message: string; isRead?: boolean }) => {
+    try {
+      const currentUserStr = await AsyncStorage.getItem('user');
+      const token = await getAuthToken();
+      if (notif._id && token && currentUserStr) {
+        await markNotificationRead(notif._id, token);
+        await loadNotifications();
+      }
+    } catch (err) {
+      // Silent fail for notification marking
+    }
+    router.push('/(parents-tabs)/requests');
+  }, [router]);
 
   // Use context only in components, not in event/callback bodies!
   // childData is now handled globally (cache), no local error/loading for jars panel needed
@@ -215,29 +229,43 @@ export default function ParentsOverviewScreen() {
                     if (currentUserStr && token) {
                       const currentUser = JSON.parse(currentUserStr);
                       if (currentUser.id) {
-                        const response = await fetch(`${API_URL}/notifications/mark-all-read?userId=${currentUser.id}`, {
-                          method: "PATCH",
-                          headers: { "Authorization": "Bearer " + token }
+                        // Mark all unread notifications as read individually
+                        const unreadNotifications = notifications.filter(n => !n.isRead);
+                        const markPromises = unreadNotifications.map(async (notif) => {
+                          if (notif._id) {
+                            try {
+                              await markNotificationRead(notif._id, token);
+                              return true;
+                            } catch {
+                              return false;
+                            }
+                          }
+                          return false;
                         });
-                        if (response.ok) {
+
+                        const results = await Promise.all(markPromises);
+                        const successCount = results.filter(Boolean).length;
+
+                        if (successCount > 0) {
+                          // Successfully marked some/all notifications as read
                           setNotifications([]);
                           setNotificationsSuppressed(true);
                           // Persist the time of clear for future reloads
                           await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
-                        } else {
-                          // Try to get error message from response
-                          let errorMessage = 'Failed to clear notifications. Please try again.';
-                          try {
-                            const errorData = await response.json();
-                            errorMessage = errorData.message || errorMessage;
-                          } catch (parseError) {
-                            // Ignore parse error, use default message
+
+                          if (successCount < unreadNotifications.length) {
+                            // Partial success - some notifications failed to mark
+                            Alert.alert(
+                              'Partial Success',
+                              `Cleared ${successCount} of ${unreadNotifications.length} notifications. Some may still appear.`,
+                              [{ text: 'OK' }]
+                            );
                           }
-                          console.error('Failed to mark notifications as read on server:', response.status, errorMessage);
-                          // Show error to user
+                        } else {
+                          // No notifications were successfully marked
                           Alert.alert(
-                            'Clear Notifications Failed',
-                            errorMessage,
+                            'Clear Failed',
+                            'Unable to clear notifications. Please try again.',
                             [{ text: 'OK' }]
                           );
                         }
@@ -271,27 +299,16 @@ export default function ParentsOverviewScreen() {
           ) : notifError ? (
             <Text style={[styles.notificationText, { color: themeColors.textSecondary }]}>{notifError}</Text>
           ) : (
-            notifications.filter(n => !n.isRead).slice(0, 4).map((notif, idx) => (
+            notifications.filter(n => !n.isRead).slice(0, 4).map((notif, index) => (
               <TouchableOpacity
-                key={notif._id || idx}
+                key={notif._id || `notif-${index}`}
                 style={[styles.notificationCard, {
                   backgroundColor: themeColors.card,
                   borderColor: themeColors.border,
                   borderWidth: 1,
                   shadowColor: themeColors.border
                 }]}
-                onPress={async () => {
-                  // Mark as read (backend), reload list and then navigate
-                  try {
-                    const currentUserStr = await AsyncStorage.getItem('user');
-                    const token = await getAuthToken();
-                    if (notif._id && token && currentUserStr) {
-                      await markNotificationRead(notif._id, token);
-                      await loadNotifications();
-                    }
-                  } catch {}
-                  router.push('/(parents-tabs)/requests');
-                }}
+                onPress={() => handleNotificationPress(notif)}
               >
                 <Text style={[styles.notificationText, styles.notificationUnread, { color: themeColors.warning }]}>
                   {notif.message}
