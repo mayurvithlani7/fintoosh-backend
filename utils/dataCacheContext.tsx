@@ -70,7 +70,7 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [lastFetched]
   );
 
-  // Example API GET requests: customize endpoints as needed
+  // Batch API request for optimized data fetching
   const fetchChildData = useCallback(async (force = false) => {
     if (!force && !isDataStale('childData')) return;
     setChildDataStatus('loading');
@@ -88,10 +88,20 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       const currentUser = JSON.parse(currentUserStr);
       const familyId = currentUser.familyId;
+      const userId = currentUser.id;
 
-      console.log('fetchChildData: currentUser familyId:', familyId, 'userId:', currentUser.id);
+      console.log('fetchChildData: currentUser role:', currentUser.role, 'familyId:', familyId, 'userId:', userId);
 
-      // Fetch children in the family
+      // If no familyId, set childData to null
+      if (!familyId) {
+        console.log('fetchChildData: No familyId, setting childData to null');
+        setChildData(null);
+        setLastFetched(prev => ({ ...prev, childData: Math.floor(Date.now() / 1000) }));
+        setChildDataStatus('idle');
+        return;
+      }
+
+      // Use regular API to fetch children data for the family
       const apiUrl = `${API_URL}/users?familyId=${familyId}&role=child`;
       console.log('fetchChildData: API URL:', apiUrl);
 
@@ -116,11 +126,11 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       const children = await res.json();
-      console.log('fetchChildData: received children:', children.length, 'children');
 
       // For now, return the first child (assuming single child per family)
       // TODO: Update UI to handle multiple children
-      const childData = children.length > 0 ? children[0] : null;
+      const childData = children && children.length > 0 ? children[0] : null;
+
       console.log('fetchChildData: setting childData:', childData?.name || 'null');
       setChildData(childData);
       setLastFetched(prev => ({ ...prev, childData: Math.floor(Date.now() / 1000) }));

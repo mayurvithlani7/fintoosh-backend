@@ -501,25 +501,51 @@ export default function ParentsRewardsScreen() {
                           marginLeft: 8
                         }}
                         onPress={async () => {
+                          console.log('[FRONTEND DELETE REWARD] Starting deletion for reward:', r._id, r.name);
                           showError('');
                           showFeedback('');
                           try {
                             const token = await getAuthToken();
-                            const response = await fetch(`${API_URL}/rewards/${r._id}`, {
+                            console.log('[FRONTEND DELETE REWARD] Got token:', token ? 'present' : 'missing');
+
+                            const deleteUrl = `${API_URL}/rewards/${r._id}`;
+                            console.log('[FRONTEND DELETE REWARD] Making DELETE request to:', deleteUrl);
+
+                            const response = await fetch(deleteUrl, {
                               method: 'DELETE',
                               headers: { 'Authorization': `Bearer ${token}` }
                             });
+
+                            console.log('[FRONTEND DELETE REWARD] Response status:', response.status);
+                            console.log('[FRONTEND DELETE REWARD] Response ok:', response.ok);
+
                             if (!response.ok) {
-                              const data = await response.json().catch(() => ({}));
-                              throw new Error(data.message || 'Failed to delete reward.');
+                              let errorMessage = 'Failed to delete reward.';
+                              try {
+                                const errorData = await response.json();
+                                console.log('[FRONTEND DELETE REWARD] Error response data:', errorData);
+                                errorMessage = errorData.message || errorMessage;
+                              } catch (parseError) {
+                                console.log('[FRONTEND DELETE REWARD] Could not parse error response:', parseError);
+                                const errorText = await response.text();
+                                console.log('[FRONTEND DELETE REWARD] Raw error response:', errorText);
+                              }
+                              throw new Error(errorMessage);
                             }
+
+                            const responseData = await response.json().catch(() => ({}));
+                            console.log('[FRONTEND DELETE REWARD] Success response:', responseData);
+
                             showFeedback('Reward deleted successfully.');
                             setTimeout(() => showFeedback(''), 3000);
+
                             const selectedChild = children.find(child => child._id === selectedChildId);
                             if (selectedChild) {
+                              console.log('[FRONTEND DELETE REWARD] Reloading rewards for child:', selectedChild.id);
                               await loadRewards(selectedChild.id);
                             }
                           } catch (err: any) {
+                            console.error('[FRONTEND DELETE REWARD] Error:', err);
                             showError(err.message || 'Failed to delete reward.');
                           }
                         }}

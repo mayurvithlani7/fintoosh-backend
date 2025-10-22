@@ -5,7 +5,7 @@ import { usePredictions } from '../hooks/useAnalytics';
 
 interface SpendingInsightsProps {
   onExport?: () => void;
-  onRefresh?: () => void;
+  onRefresh?: () => void | Promise<void>;
 }
 
 export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps) {
@@ -120,9 +120,9 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
             backgroundColor: surfaceColor,
             borderRadius: 8
           }}>
-            <Text style={{ color: mainTextColor, fontSize: 14 }}>Next Month Spending</Text>
+            <Text style={{ color: mainTextColor, fontSize: 14 }}>Next Month Savings Pot</Text>
             <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600' }}>
-              ₹{predictions.nextMonthSpending.toLocaleString()}
+              ₹{predictions.nextMonthSavingsPot.toLocaleString()}
             </Text>
           </View>
 
@@ -134,9 +134,9 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
             backgroundColor: surfaceColor,
             borderRadius: 8
           }}>
-            <Text style={{ color: mainTextColor, fontSize: 14 }}>Recommended Savings Target</Text>
+            <Text style={{ color: mainTextColor, fontSize: 14 }}>Next Month Spending Pot</Text>
             <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600' }}>
-              ₹{predictions.savingsPotential.toLocaleString()}
+              ₹{predictions.nextMonthSpendingPot.toLocaleString()}
             </Text>
           </View>
         </View>
@@ -212,7 +212,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
 export function SpendingInsightsCard({ analyticsData, onExport, onRefresh }: {
   analyticsData: any;
   onExport?: () => void;
-  onRefresh?: () => void;
+  onRefresh?: () => void | Promise<void>;
 }) {
   if (!analyticsData) {
     return (

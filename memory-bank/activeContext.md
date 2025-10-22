@@ -108,6 +108,20 @@
 - Message functionality fully operational
 - Achievement system integrated and working
 
+## ✅ FIXED: AI Financial Insights Projections Bug - Complete
+- **Issue**: "AI Financial Insights -- key Projections" showing 0 for spend pot and save pot despite having money
+- **Root Cause**: Analytics was only using first family member's jar balances instead of aggregating across all family members
+- **First Fix**: Created `processFamilyJarDistribution()` function that aggregates jar balances across all family members
+- **Second Fix**: Updated "Key Projections" to show predictions for next month instead of current amounts
+- **Third Fix**: Improved prediction algorithm to never show less than current balance when no recent activity
+- **Fourth Fix**: Removed "Next Month Spending" field, keeping only pot-specific predictions
+- **Impact**: Now shows "Next Month Savings Pot" and "Next Month Spending Pot" predictions that reflect actual family balances
+- **Files Modified**:
+  - `utils/analyticsEngine.ts` - Added family aggregation + conservative prediction calculations
+  - `components/SpendingInsights.tsx` - Updated UI to show only pot predictions
+  - `hooks/useAnalytics.ts` - Updated default prediction structure
+  - `fintoosh-backend/routes/data.js` - Added individual jar balances to analytics response
+
 ## Next Steps (Optional Future Enhancements)
 - Add split history visualization
 - Analytics on jar distribution effectiveness

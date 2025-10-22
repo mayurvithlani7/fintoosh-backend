@@ -31,7 +31,8 @@ export interface GoalMetrics {
 
 export interface PredictionData {
   nextMonthSpending: number;
-  savingsPotential: number;
+  nextMonthSavingsPot: number;
+  nextMonthSpendingPot: number;
   recommendations: string[];
   riskLevel: 'low' | 'medium' | 'high';
 }
@@ -43,6 +44,7 @@ export interface AnalyticsData {
   goalProgress: GoalMetrics[];
   predictions: PredictionData;
   familyMembers?: any[];
+  rewards?: any[];
 }
 
 // Simple linear regression for trend prediction
@@ -138,14 +140,14 @@ export function processChoreCompletion(chores: any[], transactions: any[], days:
       try {
         const transactionDate = new Date(t.createdAt);
         return !isNaN(transactionDate.getTime()) &&
-               t.type === 'chore-completion' &&
+               (t.type === 'chore-completion' || t.type === 'chore-completed') &&
                transactionDate >= cutoffDate;
       } catch {
         return false;
       }
     })
     .forEach(transaction => {
-      const choreId = transaction.choreId;
+      const choreId = transaction.choreId || transaction.reference;
       if (choreStats[choreId]) {
         choreStats[choreId].completed += 1;
         choreStats[choreId].points += transaction.amount || 0;
@@ -165,7 +167,7 @@ export function processChoreCompletion(chores: any[], transactions: any[], days:
   }).sort((a, b) => b.totalPoints - a.totalPoints);
 }
 
-// Process jar distribution analytics
+// Process jar distribution analytics for a single user
 export function processJarDistribution(user: any, transactions: any[], days: number = 30): JarAnalytics[] {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
@@ -176,6 +178,69 @@ export function processJarDistribution(user: any, transactions: any[], days: num
     spend: { deposits: 0, withdrawals: 0, current: user.spendPoints || 0 },
     donate: { deposits: 0, withdrawals: 0, current: user.donatePoints || 0 },
     invest: { deposits: 0, withdrawals: 0, current: user.investPoints || 0 }
+  };
+
+  const recentTransactions = transactions.filter(t => {
+    try {
+      const transactionDate = new Date(t.createdAt);
+      return !isNaN(transactionDate.getTime()) && transactionDate >= cutoffDate;
+    } catch {
+      return false;
+    }
+  });
+
+  recentTransactions.forEach(transaction => {
+    if (transaction.toJar && jarStats[transaction.toJar]) {
+      jarStats[transaction.toJar].deposits += transaction.amount;
+    }
+    if (transaction.fromJar && jarStats[transaction.fromJar]) {
+      jarStats[transaction.fromJar].withdrawals += transaction.amount;
+    }
+  });
+
+  const jarNames = {
+    current: 'Pocket Money',
+    save: 'Savings Pot',
+    spend: 'Spending Pot',
+    donate: 'Help Others Pot',
+    invest: 'Grow Money Pot'
+  };
+
+  return Object.entries(jarStats).map(([jar, stats]) => {
+    const previousBalance = stats.current - stats.deposits + stats.withdrawals;
+    const growthRate = previousBalance > 0 ?
+      ((stats.current - previousBalance) / previousBalance) * 100 : 0;
+
+    return {
+      jarName: jarNames[jar as keyof typeof jarNames],
+      currentBalance: stats.current,
+      totalDeposits: stats.deposits,
+      totalWithdrawals: stats.withdrawals,
+      growthRate: Math.round(growthRate * 100) / 100
+    };
+  });
+}
+
+// Process jar distribution analytics for entire family (aggregates balances across all family members)
+export function processFamilyJarDistribution(familyMembers: any[], transactions: any[], days: number = 30): JarAnalytics[] {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  // Aggregate current balances across all family members
+  const aggregatedBalances = {
+    current: familyMembers.reduce((sum, member) => sum + (member.currentPoints || 0), 0),
+    save: familyMembers.reduce((sum, member) => sum + (member.savePoints || 0), 0),
+    spend: familyMembers.reduce((sum, member) => sum + (member.spendPoints || 0), 0),
+    donate: familyMembers.reduce((sum, member) => sum + (member.donatePoints || 0), 0),
+    invest: familyMembers.reduce((sum, member) => sum + (member.investPoints || 0), 0)
+  };
+
+  const jarStats: { [jar: string]: { deposits: number; withdrawals: number; current: number } } = {
+    current: { deposits: 0, withdrawals: 0, current: aggregatedBalances.current },
+    save: { deposits: 0, withdrawals: 0, current: aggregatedBalances.save },
+    spend: { deposits: 0, withdrawals: 0, current: aggregatedBalances.spend },
+    donate: { deposits: 0, withdrawals: 0, current: aggregatedBalances.donate },
+    invest: { deposits: 0, withdrawals: 0, current: aggregatedBalances.invest }
   };
 
   const recentTransactions = transactions.filter(t => {
@@ -284,8 +349,11 @@ export function generatePredictions(
   // Calculate savings potential based on current jar distribution
   const totalBalance = jarDistribution.reduce((sum, jar) => sum + jar.currentBalance, 0);
   const savingsJar = jarDistribution.find(jar => jar.jarName === 'Savings Pot');
+  const spendingJar = jarDistribution.find(jar => jar.jarName === 'Spending Pot');
   const savingsRate = savingsJar ? (savingsJar.currentBalance / totalBalance) * 100 : 0;
   const savingsPotential = Math.round(totalBalance * 0.3); // Target 30% in savings
+  const savingsPotAmount = savingsJar ? savingsJar.currentBalance : 0;
+  const spendingPotAmount = spendingJar ? spendingJar.currentBalance : 0;
 
   // Generate recommendations
   const recommendations: string[] = [];
@@ -311,9 +379,23 @@ export function generatePredictions(
     riskLevel = 'medium';
   }
 
+  // Predict next month balances using recent trends
+  const recentDeposits = jarDistribution.map(jar => jar.totalDeposits).reduce((sum, dep) => sum + dep, 0);
+  const recentWithdrawals = jarDistribution.map(jar => jar.totalWithdrawals).reduce((sum, wit) => sum + wit, 0);
+  const monthlyGrowth = recentDeposits - recentWithdrawals;
+
+  // Simple prediction: current balance + expected monthly growth, but never below current balance
+  // If no recent activity, assume balance stays the same
+  const savingsGrowth = monthlyGrowth > 0 ? monthlyGrowth * 0.4 : 0;
+  const spendingGrowth = monthlyGrowth > 0 ? monthlyGrowth * 0.3 : 0;
+
+  const nextMonthSavingsPot = Math.max(savingsJar?.currentBalance || 0, (savingsJar?.currentBalance || 0) + savingsGrowth);
+  const nextMonthSpendingPot = Math.max(spendingJar?.currentBalance || 0, (spendingJar?.currentBalance || 0) + spendingGrowth);
+
   return {
     nextMonthSpending,
-    savingsPotential,
+    nextMonthSavingsPot: Math.round(nextMonthSavingsPot),
+    nextMonthSpendingPot: Math.round(nextMonthSpendingPot),
     recommendations: recommendations.length > 0 ? recommendations : ['Financial habits are on track!'],
     riskLevel
   };
@@ -362,6 +444,7 @@ export async function fetchAnalyticsRawData(
 
     // DEBUG: Print received user and transaction data for verification
     console.log('[ANALYTICS DEBUG] user:', rawData.user);
+    console.log('[ANALYTICS DEBUG] familyMembers:', rawData.familyMembers);
     if (Array.isArray(rawData.transactions)) {
       console.log('[ANALYTICS DEBUG] transactions count:', rawData.transactions.length);
       if (rawData.transactions.length > 0) {
@@ -380,26 +463,44 @@ export async function fetchAnalyticsRawData(
 
 // Process raw analytics data into final format
 export function processAnalyticsRawData(rawData: any): AnalyticsData {
+  console.log('[ANALYTICS PROCESS] Raw data received:', {
+    hasTransactions: !!rawData.transactions,
+    hasChores: !!rawData.chores,
+    hasGoals: !!rawData.goals,
+    hasRewards: !!rawData.rewards,
+    rewardsLength: Array.isArray(rawData.rewards) ? rawData.rewards.length : 'not array',
+    rewards: rawData.rewards
+  });
+
   // Validate and provide defaults for raw data
   const transactions = Array.isArray(rawData.transactions) ? rawData.transactions : [];
   const chores = Array.isArray(rawData.chores) ? rawData.chores : [];
   const goals = Array.isArray(rawData.goals) ? rawData.goals : [];
   const user = rawData.user || {};
+  const familyMembers = Array.isArray(rawData.familyMembers) ? rawData.familyMembers : [];
+  const rewards = Array.isArray(rawData.rewards) ? rawData.rewards : [];
+
+  console.log('[ANALYTICS PROCESS] Processed rewards:', rewards);
 
   const spendingTrends = processSpendingTrends(transactions);
   const choreCompletion = processChoreCompletion(chores, transactions);
-  const jarDistribution = processJarDistribution(user, transactions);
+  const jarDistribution = processFamilyJarDistribution(familyMembers, transactions);
   const goalProgress = processGoalProgress(goals);
   const predictions = generatePredictions(spendingTrends, jarDistribution, goalProgress);
 
-  return {
+  const result = {
     spendingTrends,
     choreCompletion,
     jarDistribution,
     goalProgress,
     predictions,
-    familyMembers: rawData.familyMembers || []
+    familyMembers: familyMembers,
+    rewards: rewards
   };
+
+  console.log('[ANALYTICS PROCESS] Final result rewards:', result.rewards);
+
+  return result;
 }
 
 // Main analytics processing function (kept for backward compatibility)
@@ -452,7 +553,8 @@ export function exportAnalyticsData(data: AnalyticsData): string {
     [''],
     ['Predictions'],
     ['Next Month Spending', data.predictions.nextMonthSpending.toString()],
-    ['Savings Potential', data.predictions.savingsPotential.toString()],
+    ['Next Month Savings Pot', data.predictions.nextMonthSavingsPot.toString()],
+    ['Next Month Spending Pot', data.predictions.nextMonthSpendingPot.toString()],
     ['Risk Level', data.predictions.riskLevel],
     ['Recommendations', data.predictions.recommendations.join('; ')]
   ];

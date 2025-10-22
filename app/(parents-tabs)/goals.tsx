@@ -195,6 +195,13 @@ export default function ParentsGoalsScreen() {
     loadGoals(true);
   }, [loadGoals]);
 
+  // Fetch goals every time the selected child changes
+  useEffect(() => {
+    if (selectedChild) {
+      loadGoals();
+    }
+  }, [selectedChild, loadGoals]);
+
 
 
   const { showError, showFeedback } = useGlobalFeedback();

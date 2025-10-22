@@ -416,12 +416,51 @@ EXPO_PUBLIC_SENTRY_DSN=your_sentry_dsn_here
 ## Known Issues
 - None identified yet
 
+## ✅ **COMPLETED: Msg91 OTP Integration for Free SMS Delivery**
+
+### **Free SMS Service Implementation:**
+1. **✅ Msg91 Account Setup**
+   - Free account created with 100 SMS/day, 5,000 SMS/month
+   - Auth Key: `474493AB9XKiGl68f85454P1`
+   - Sender ID: `FINTOO` configured
+
+2. **✅ OTP Service Integration**
+   - Replaced Twilio with Msg91 API in `utils/otpService.js`
+   - Updated `sendOTP()` method to use Msg91's HTTP API
+   - Added proper error handling and logging
+   - Maintains existing OTP UI and backend endpoints
+
+3. **✅ Environment Configuration**
+   - Added Msg91 credentials to `fintoosh-backend/.env`
+   - Development mode fallback when credentials not configured
+   - Production-ready configuration
+
+4. **✅ Indian SMS Optimization**
+   - Optimized for +91 mobile numbers
+   - Removes country code for Msg91 API
+   - High delivery success rates for Indian carriers
+   - Cost: ₹0.18 per SMS after free tier
+
+### **Key Features:**
+- **100 SMS FREE per day** for development/testing
+- **5,000 SMS FREE per month** for initial production
+- **Indian telecom optimized** delivery
+- **Zero frontend changes** - existing OTP UI works perfectly
+- **Production ready** with proper error handling
+
 ## ✅ **COMPLETED: Chore and Reward Approval Field Updates**
 - **Backend Logic Updated**: Modified `PUT /requests/:requestId` approval handlers for both chores and rewards
 - **Chore Fields**: Both `completed: true` and `approved: true` now set when parent approves chore request
 - **Reward Model Extended**: Added `completed` and `approved` Boolean fields to Reward schema
 - **Reward Fields**: Both `completed: true` and `approved: true` now set when parent approves reward request
 - **Consistency**: Manual approval now matches auto-approval behavior for both chores and rewards
+
+## ✅ **COMPLETED: Snackbar Message Positioning Fix**
+- **Issue**: Error, success, approval, and request messages appearing at bottom of screen
+- **Solution**: Moved GlobalSnackbar from bottom to top positioning for better visibility
+- **Implementation**: Changed `bottom: 20` to `top: 20` in `components/GlobalSnackbar.tsx`
+- **UX Improvement**: Messages now appear at top of screen following mobile design best practices
+- **Impact**: All feedback messages (showError, showFeedback) now display at top for better user attention
 
 ## Future Considerations
 - UI for viewing split history per chore

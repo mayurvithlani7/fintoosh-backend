@@ -24,7 +24,7 @@ export default function ParentsAnalyticsScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [feedback, setFeedback] = useState('');
 
-  const { analyticsData, loading, error, refetch, exportData } = useAnalytics();
+  const { analyticsData, loading, error, refetch, exportData, clearCache } = useAnalytics();
 
   const handleExport = () => {
     const csvData = exportData();
@@ -38,6 +38,7 @@ export default function ParentsAnalyticsScreen() {
   };
 
   const handleRefresh = async () => {
+    clearCache(); // Clear cached data first
     await refetch();
   };
 
@@ -302,6 +303,8 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
   const goalProgress = analyticsData.goalProgress || [];
   const jarDistribution = analyticsData.jarDistribution || [];
   const rewards = analyticsData.rewards || [];
+
+  console.log('AnalyticsOverview - raw analyticsData:', analyticsData);
   console.log('AnalyticsOverview - choreCompletion:', choreCompletion);
   console.log('AnalyticsOverview - choreCompletion details:', choreCompletion.map(c => ({ name: c.choreName, completed: c.completedCount })));
   console.log('AnalyticsOverview - goalProgress:', goalProgress);
@@ -309,7 +312,8 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
   console.log('AnalyticsOverview - jarDistribution:', jarDistribution);
   console.log('AnalyticsOverview - jarDistribution details:', jarDistribution.map(j => ({ name: j.jarName, balance: j.currentBalance, deposits: j.totalDeposits })));
   console.log('AnalyticsOverview - rewards:', rewards);
-  console.log('AnalyticsOverview - rewards details:', rewards.map(r => ({ name: r.name, purchased: r.purchased, approved: r.approved })));
+  console.log('AnalyticsOverview - rewards details:', rewards.map(r => ({ name: r.name, purchased: r.purchased, approved: r.approved, completed: r.completed })));
+  console.log('AnalyticsOverview - completedRewards calculation:', rewards.filter((r: any) => r.approved === true));
 
   // Get current points from jar distribution
   const currentJar = jarDistribution.find(jar => jar.jarName === 'Pocket Money');
@@ -321,11 +325,11 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
   const summary = {
     totalPoints: (currentJar?.currentBalance || 0) + (saveJar?.currentBalance || 0) + (spendJar?.currentBalance || 0) + (donateJar?.currentBalance || 0) + (investJar?.currentBalance || 0),
     chores: choreCompletion.length,
-    completedChores: choreCompletion.reduce((sum, chore) => sum + (chore.completedCount || 0), 0),
+    completedChores: choreCompletion.filter((chore: any) => (chore.completedCount || 0) > 0).length,
     goals: goalProgress.length,
     completedGoals: goalProgress.filter((g: any) => g.progress === 100 || g.projectedCompletion === 'Completed').length,
-    rewards: 0, // Not available in analytics data
-    completedRewards: 0,
+    rewards: rewards.length,
+    completedRewards: rewards.filter((r: any) => r.approved === true).length,
     jars: {
       current: currentJar?.currentBalance || 0,
       save: saveJar?.currentBalance || 0,

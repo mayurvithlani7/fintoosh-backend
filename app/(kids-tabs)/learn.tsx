@@ -2,10 +2,8 @@ import { API_URL } from '@/utils/config';
 import { getAuthToken } from '@/utils/secureStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import React, { useEffect, useState } from "react";
 import {
-  Dimensions,
   Modal,
   ScrollView,
   StyleSheet,
@@ -203,7 +201,6 @@ export default function LearnScreen() {
 
       <FinancialLessonsSection />
       <MyAchievementsSection />
-      <VideoLessonSection />
 
       {/* Help Modal */}
       <HelpModal
@@ -590,91 +587,7 @@ function MyAchievementsSection() {
   );
 }
 
-// --- Video Lesson Section ---
-function VideoLessonSection() {
-  const { themeColors } = useTheme();
-  const styles = createStyles(themeColors);
-  // Responsive video sizing based on device width
-  const windowWidth = Dimensions.get("window").width;
-  const videoWidth = Math.min(340, windowWidth - 32);
-  const videoHeight = Math.round(videoWidth * 9 / 16);
-  const [videoError, setVideoError] = React.useState(false);
 
-  let player;
-  try {
-    player = useVideoPlayer(require('../../assets/videos/Needs_vs_Wants.mp4'), (playerInstance) => {
-      playerInstance.loop = false;
-      playerInstance.muted = false;
-    });
-  } catch (error) {
-    console.warn('Video player initialization failed:', error);
-    setVideoError(true);
-  }
-
-  return (
-    <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-      <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Learn about Needs vs. Wants</Text>
-      <View style={{
-        backgroundColor: themeColors.surface,
-        borderRadius: 11,
-        overflow: "hidden",
-        alignSelf: "center",
-        maxWidth: 340,
-        width: videoWidth,
-        height: videoHeight,
-        marginVertical: 6,
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: themeColors.border,
-      }}>
-        {videoError || !player ? (
-          // Fallback UI when video fails to load
-          <View style={{
-            width: videoWidth,
-            height: videoHeight,
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: themeColors.surface,
-          }}>
-            <Text style={{ fontSize: 48, marginBottom: 10 }}>🎥</Text>
-            <Text style={{
-              fontSize: 16,
-              color: themeColors.textSecondary,
-              textAlign: "center",
-              paddingHorizontal: 20
-            }}>
-              Video lesson about understanding the difference between needs and wants!
-            </Text>
-            <Text style={{
-              fontSize: 14,
-              color: themeColors.textSecondary,
-              textAlign: "center",
-              marginTop: 10,
-              fontStyle: "italic"
-            }}>
-              (Video not available on this device)
-            </Text>
-          </View>
-        ) : (
-          <VideoView
-            player={player}
-            style={{
-              width: videoWidth,
-              height: videoHeight,
-              borderRadius: 11,
-              backgroundColor: "#111"
-            }}
-            contentFit="contain"
-          />
-        )}
-      </View>
-      <Text style={{ color: themeColors.textSecondary, marginTop: 6, textAlign: "center" }}>
-        Video lesson about understanding the basic difference between "needs" and "wants".
-      </Text>
-    </View>
-  );
-}
 
 // --- NeedsWantsSortModal Placeholder ---
 function NeedsWantsSortModal({ onClose }: { onClose: () => void }) {

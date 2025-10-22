@@ -108,7 +108,7 @@ export default function ParentsRequestsScreen() {
       setPaginationMeta(meta);
 
       setRequests((prev) =>
-        reset || page === 1 ? newRequests : [...prev, ...newRequests.filter((r: any) => !prev.some((old) => old.id === r.id))]
+        reset || page === 1 ? newRequests : [...prev, ...newRequests.filter((r: any) => !prev.some((old) => old._id === r._id))]
       );
       setPagination((prev) => ({
         ...prev,
@@ -166,7 +166,7 @@ export default function ParentsRequestsScreen() {
         body.parentComment = approvalModal.comment.trim();
       }
 
-      const response = await fetch(`${API_URL}/requests/${approvalModal.request.id}`, {
+      const response = await fetch(`${API_URL}/requests/${approvalModal.request._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -322,7 +322,7 @@ export default function ParentsRequestsScreen() {
                     Alert.alert('Error', 'Not authenticated. Please login again.');
                     return;
                   }
-                  const response = await fetch(`${API_URL}/requests/${request.id}/messages`, {
+                  const response = await fetch(`${API_URL}/requests/${request._id}/messages`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -336,7 +336,7 @@ export default function ParentsRequestsScreen() {
                   const newMessage = await response.json();
                   setRequests(prev =>
                     prev.map(req =>
-                      req.id === request.id
+                      req._id === request._id
                         ? { ...req, messages: [...(req.messages || []), newMessage.newMessage] }
                         : req
                     )
@@ -467,7 +467,7 @@ export default function ParentsRequestsScreen() {
       {/* Pull-to-refresh and FlatList for Requests */}
 <FlatList
         data={displayedRequests}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
+        keyExtractor={(item, index) => `${item._id}-${index}`}
         renderItem={renderRequestCard}
         contentContainerStyle={{ paddingBottom: 50 }}
         refreshControl={

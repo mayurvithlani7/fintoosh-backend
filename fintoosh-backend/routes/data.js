@@ -2665,10 +2665,11 @@ router.patch('/notifications/mark-all-read', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    await Notification.updateMany(
+    const updateResult = await Notification.updateMany(
       { userId, isRead: false },
-      { isRead: true }
+      { $set: { isRead: true } }
     );
+    console.log(`Marked ${updateResult.modifiedCount} notifications as read for user ${userId}`);
 
     res.json({ success: true });
   } catch (error) {

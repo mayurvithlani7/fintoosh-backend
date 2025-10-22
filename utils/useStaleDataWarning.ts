@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 /**
  * Shared stale data warning (reset warning everywhere when data refetched).
- * - Returns [showStaleWarning, lastRefreshed, markRefreshed]
+ * - Returns [showStaleWarning, lastRe tfreshed, markRefreshed]
  * - markRefreshed updates AsyncStorage and clears warnings.
  * - showStaleWarning becomes true after timeout from last refresh.
  */
@@ -63,31 +63,35 @@ export function useStaleDataWarning(staleTimeoutMs = 60000): [boolean, number, (
   // Listen for storage changes to update warning (web only)
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== "undefined" && window.addEventListener) {
-      function storageListener(e: StorageEvent) {
+      const storageListener = (e: StorageEvent) => {
         if (e.key === STORAGE_KEY) {
           getSharedLastRefreshed().then(ts => {
             setLastRefreshed(ts);
             setShowStaleWarning(false);
           });
         }
-      }
+      };
       window.addEventListener("storage", storageListener);
       return () => window.removeEventListener("storage", storageListener);
     }
   }, []);
 
-  // Auto-mark as stale after timeout
+  // Auto-mark as stale after timeout - using single timeout instead of polling
   useEffect(() => {
-    const checkStale = () => {
-      if (Date.now() - lastRefreshed > staleTimeoutMs) {
-        setShowStaleWarning(true);
-      } else {
-        setShowStaleWarning(false);
-      }
-    };
-    checkStale();
-    const interval = setInterval(checkStale, 5000);
-    return () => clearInterval(interval);
+    const now = Date.now();
+    const timeSinceRefresh = now - lastRefreshed;
+
+    // Clear any existing warning when data is refreshed
+    setShowStaleWarning(false);
+
+    // Always set a timeout for when data will become stale
+    // If already stale, set timeout for 0 to show warning immediately
+    const timeUntilStale = Math.max(0, staleTimeoutMs - timeSinceRefresh);
+    const timeout = setTimeout(() => {
+      setShowStaleWarning(true);
+    }, timeUntilStale);
+
+    return () => clearTimeout(timeout);
   }, [lastRefreshed, staleTimeoutMs]);
 
   // Call this after a fresh API fetch - updates shared storage and clears warnings

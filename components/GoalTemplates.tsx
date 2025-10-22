@@ -2,13 +2,13 @@ import { GoalTemplate, getTemplatesByCategory, goalTemplates } from '@/utils/goa
 import { useTheme } from '@/utils/themeContext';
 import React, { useState } from 'react';
 import {
-    FlatList,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface GoalTemplatesProps {
@@ -248,7 +248,20 @@ const GoalTemplates: React.FC<GoalTemplatesProps> = ({
           item.difficulty === 'medium' && styles.difficultyMedium,
           item.difficulty === 'hard' && styles.difficultyHard,
         ]}>
-          {item.difficulty}
+          <Text style={{
+            fontSize: 12,
+            fontWeight: 'bold',
+            color:
+              item.difficulty === 'easy'
+                ? '#155724'
+                : item.difficulty === 'medium'
+                  ? '#856404'
+                  : item.difficulty === 'hard'
+                    ? '#721c24'
+                    : '#333'
+          }}>
+            {item.difficulty}
+          </Text>
         </View>
       </View>
 

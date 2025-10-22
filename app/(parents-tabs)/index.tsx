@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 /**
  * Calculate a readable next interest payout date string.
@@ -86,7 +86,7 @@ export default function ParentsOverviewScreen() {
   // Notifications state
   const [notifications, setNotifications] = useState<{ _id?: string; message: string; isRead?: boolean }[]>([]);
   const [notifLoading, setNotifLoading] = useState(true);
-  const [notifError, setNotifError] = useState<string | null>(null);
+  const [notifError, setNotifError] = useState<string | null | undefined>(null);
   // Local persistent state: suppress notifications if cleared until new ones arrive
   const [notificationsSuppressed, setNotificationsSuppressed] = useState<boolean>(false);
 
@@ -225,13 +225,31 @@ export default function ParentsOverviewScreen() {
                           // Persist the time of clear for future reloads
                           await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
                         } else {
-                          console.error('Failed to mark notifications as read on server');
-                          // Optionally show error to user
+                          // Try to get error message from response
+                          let errorMessage = 'Failed to clear notifications. Please try again.';
+                          try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || errorMessage;
+                          } catch (parseError) {
+                            // Ignore parse error, use default message
+                          }
+                          console.error('Failed to mark notifications as read on server:', response.status, errorMessage);
+                          // Show error to user
+                          Alert.alert(
+                            'Clear Notifications Failed',
+                            errorMessage,
+                            [{ text: 'OK' }]
+                          );
                         }
                       }
                     }
                   } catch (err) {
                     console.error('Failed to mark all notifications as read:', err);
+                    Alert.alert(
+                      'Clear Notifications Failed',
+                      'Network error. Please check your connection and try again.',
+                      [{ text: 'OK' }]
+                    );
                   }
                 }}
                 style={{

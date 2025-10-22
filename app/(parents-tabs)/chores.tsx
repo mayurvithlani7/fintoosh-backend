@@ -163,8 +163,8 @@ export default function ParentsChoresScreen() {
     }
     checkUser();
 
-    // Optionally monitor "storage" events for cross-tab updates (web only)
-    if (Platform.OS === 'web' && typeof window !== "undefined" && window.addEventListener) {
+    // Only on web: monitor "storage" events for cross-tab updates
+    if (Platform.OS === "web" && typeof window !== "undefined" && typeof window.addEventListener === "function") {
       const handleStorage = (e: any) => {
         if (e.key === "user" || e.key === "accessToken" || e.key === "token") {
           checkUser();
@@ -186,7 +186,8 @@ export default function ParentsChoresScreen() {
 
   // If the tab loses focus, mark data as potentially stale
   useEffect(() => {
-    if (Platform.OS === 'web' && typeof window !== "undefined") {
+    // Only on web, listen for blur to mark data as potentially stale
+    if (Platform.OS === "web" && typeof window !== "undefined" && typeof window.addEventListener === "function") {
       const onBlur = () => setShowStaleWarning(true);
       window.addEventListener('blur', onBlur);
       return () => window.removeEventListener('blur', onBlur);

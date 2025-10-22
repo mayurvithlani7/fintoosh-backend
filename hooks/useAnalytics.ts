@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
-import { AnalyticsData, exportAnalyticsData, processAnalyticsData } from '../utils/analyticsEngine';
+import { AnalyticsData, exportAnalyticsData } from '../utils/analyticsEngine';
 
 interface UseAnalyticsOptions {
   familyId?: string;
@@ -15,6 +15,7 @@ interface UseAnalyticsReturn {
   refetch: (startDate?: string, endDate?: string) => Promise<void>;
   exportData: () => string | null;
   clearCache: () => void;
+  processData: () => Promise<void>; // New lazy processing method
 }
 
 export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsReturn {
@@ -47,8 +48,12 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
   const [error, setError] = useState<string | null>(null);
   const [lastFetch, setLastFetch] = useState<number>(0);
 
+  // Lazy processing state
+  const [rawData, setRawData] = useState<any>(null);
+  const [isProcessed, setIsProcessed] = useState(false);
+
   // Cache key for this family's analytics
-  const cacheKey = `analytics_${familyId}`;
+  const cacheKey = familyId ? `analytics_${familyId}` : null;
 
   const fetchAnalytics = useCallback(async (startDate?: string, endDate?: string) => {
     if (!familyId) {
@@ -66,14 +71,22 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
     setError(null);
 
     try {
-      const data = await processAnalyticsData(familyId, startDate, endDate);
-      setAnalyticsData(data);
+      // Lazy loading: fetch raw data first (lightweight)
+      const { fetchAnalyticsRawData, processAnalyticsRawData } = await import('../utils/analyticsEngine');
+      const rawData = await fetchAnalyticsRawData(familyId, startDate, endDate);
+      setRawData(rawData);
+      setIsProcessed(false);
+
+      // Process data immediately for now (can be made lazy later)
+      const processedData = processAnalyticsRawData(rawData);
+      setAnalyticsData(processedData);
+      setIsProcessed(true);
       setLastFetch(now);
 
       // Cache in localStorage for persistence across sessions
-      if (typeof localStorage !== "undefined") {
+      if (typeof localStorage !== "undefined" && cacheKey) {
         localStorage.setItem(cacheKey, JSON.stringify({
-          data,
+          data: processedData,
           timestamp: now
         }));
       }
@@ -82,7 +95,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
       setError(errorMessage);
 
       // Try to load from cache if available
-      if (typeof localStorage !== "undefined") {
+      if (typeof localStorage !== "undefined" && cacheKey) {
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
           try {
@@ -111,35 +124,61 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
   }, [analyticsData]);
 
   const clearCache = useCallback(() => {
+    console.log('[ANALYTICS] Clearing all analytics caches');
     if (typeof localStorage !== "undefined") {
-      localStorage.removeItem(cacheKey);
+      // Clear all analytics caches
+      const keys = Object.keys(localStorage).filter(key => key.startsWith('analytics_'));
+      keys.forEach(key => {
+        console.log('[ANALYTICS] Removing cache:', key);
+        localStorage.removeItem(key);
+      });
     }
     setAnalyticsData(null);
     setLastFetch(0);
-  }, [cacheKey]);
+    setRawData(null);
+    setIsProcessed(false);
+  }, []);
 
-  // Load cached data on mount
+  // Lazy processing function - processes raw data when called
+  const processData = useCallback(async () => {
+    if (!rawData || isProcessed) return;
+
+    try {
+      const { processAnalyticsRawData } = await import('../utils/analyticsEngine');
+      const processedData = processAnalyticsRawData(rawData);
+      setAnalyticsData(processedData);
+      setIsProcessed(true);
+    } catch (err) {
+      console.error('Error processing analytics data:', err);
+      setError('Failed to process analytics data');
+    }
+  }, [rawData, isProcessed]);
+
+  // Load cached data on mount (but skip if cache was just cleared)
   useEffect(() => {
-    if (typeof localStorage !== "undefined") {
+    if (typeof localStorage !== "undefined" && lastFetch === 0 && cacheKey) { // Only load if not recently cleared and cacheKey exists
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         try {
           const { data, timestamp } = JSON.parse(cached);
           const now = Date.now();
           if (now - timestamp < cacheTime) {
+            console.log('[ANALYTICS] Loading cached data for', cacheKey);
             setAnalyticsData(data);
             setLastFetch(timestamp);
           } else {
             // Cache expired, remove it
+            console.log('[ANALYTICS] Cache expired, removing', cacheKey);
             localStorage.removeItem(cacheKey);
           }
         } catch (err) {
           // Invalid cache, remove it
+          console.log('[ANALYTICS] Invalid cache, removing', cacheKey);
           localStorage.removeItem(cacheKey);
         }
       }
     }
-  }, [cacheKey, cacheTime]);
+  }, [cacheKey, cacheTime, lastFetch]);
 
   // Auto-fetch on mount if enabled and no cached data
   useEffect(() => {
@@ -154,7 +193,8 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
     error,
     refetch,
     exportData,
-    clearCache
+    clearCache,
+    processData
   };
 }
 
@@ -237,7 +277,8 @@ export function usePredictions() {
 
   const predictions = analyticsData?.predictions || {
     nextMonthSpending: 0,
-    savingsPotential: 0,
+    nextMonthSavingsPot: 0,
+    nextMonthSpendingPot: 0,
     recommendations: [],
     riskLevel: 'low' as const
   };
