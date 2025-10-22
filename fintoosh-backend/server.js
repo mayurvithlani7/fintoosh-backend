@@ -94,8 +94,8 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // Allow localhost for development
-    if (origin && origin.includes('localhost')) return callback(null, true);
+    // Allow localhost for development (any port)
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) return callback(null, true);
 
     // Allow your production frontend domains
     const allowedOrigins = [
