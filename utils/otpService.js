@@ -1,26 +1,14 @@
 const otpGenerator = require('otp-generator');
 const User = require('../models/User');
 
-// Twilio configuration - conditionally loaded
-let twilio = null;
-let accountSid = process.env.TWILIO_ACCOUNT_SID;
-let authToken = process.env.TWILIO_AUTH_TOKEN;
-let twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+// Msg91 configuration
+const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY;
+const MSG91_SENDER_ID = process.env.MSG91_SENDER_ID || 'FINTOO';
 
-// Initialize Twilio client only if credentials are valid and module is available
-let twilioClient = null;
-
-try {
-  // Try to require twilio - if not available, OTP will work in development mode
-  twilio = require('twilio');
-  if (accountSid && authToken && twilioPhoneNumber) {
-    twilioClient = twilio(accountSid, authToken);
-    console.log('OTP Service initialized with Twilio client');
-  } else {
-    console.log('OTP Service initialized - Twilio credentials not configured');
-  }
-} catch (error) {
-  console.log('OTP Service initialized - Twilio not available, using development mode');
+if (MSG91_AUTH_KEY) {
+  console.log('✅ OTP Service initialized with Msg91');
+} else {
+  console.log('⚠️ OTP Service initialized - Msg91 credentials not configured');
 }
 
 class OTPService {
@@ -38,18 +26,46 @@ class OTPService {
   }
 
   /**
-   * Send OTP via SMS using Twilio
+   * Send OTP via SMS using Msg91
    * @param {string} phoneNumber - Recipient phone number (with country code)
    * @param {string} otp - OTP to send
    * @returns {Promise<boolean>} Success status
    */
   static async sendOTP(phoneNumber, otp) {
     try {
-      console.log(`OTP ${otp} would be sent to ${phoneNumber}`);
-      console.warn('Twilio client not configured. Skipping SMS send.');
-      return true; // Return true for development/testing
+      if (!MSG91_AUTH_KEY) {
+        console.log(`📱 DEV MODE: OTP ${otp} would be sent to ${phoneNumber}`);
+        return true; // Return true for development if no API key
+      }
+
+      // Remove country code (+91) for Msg91 API
+      const mobileNumber = phoneNumber.replace(/^\+91/, '');
+
+      const response = await fetch('https://api.msg91.com/api/v5/otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'authkey': MSG91_AUTH_KEY
+        },
+        body: JSON.stringify({
+          mobile: mobileNumber,
+          sender: MSG91_SENDER_ID,
+          message: `Your Fintoosh verification code is: ${otp}`,
+          otp: otp
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.type === 'success') {
+        console.log(`✅ OTP sent successfully to ${phoneNumber} via Msg91`);
+        return true;
+      } else {
+        console.error('❌ Msg91 API Error:', result.message);
+        return false;
+      }
     } catch (error) {
-      console.error('Error sending OTP:', error);
+      console.error('❌ Msg91 API Error:', error.message);
       return false;
     }
   }
