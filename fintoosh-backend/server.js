@@ -152,6 +152,7 @@ app.use('/api/auth/request-parent-otp', sensitiveLimiter);
 app.use('/api/auth/request-reactivation-otp', sensitiveLimiter);
 
 app.use('/api', require('./routes/data'));
+app.use('/api/education', require('./routes/education'));
 
 // Basic routes
 app.get('/', (req, res) => {
