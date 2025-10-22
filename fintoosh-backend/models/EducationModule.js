@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose'); 
 
 // Sub-schema for individual lessons within a module
 const lessonSchema = new mongoose.Schema({

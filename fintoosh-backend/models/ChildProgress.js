@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+ 
 // Sub-schema for quiz attempts
 const quizAttemptSchema = new mongoose.Schema({
   attemptNumber: { type: Number, required: true },

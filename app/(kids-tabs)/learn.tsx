@@ -199,6 +199,7 @@ export default function LearnScreen() {
         </View>
       </View>
 
+      <EducationModulesSection />
       <FinancialLessonsSection />
       <MyAchievementsSection />
 
@@ -323,6 +324,285 @@ export default function LearnScreen() {
         ]}
       />
     </ScrollView>
+  );
+}
+
+// --- EducationModulesSection: Dynamic education modules from database ---
+function EducationModulesSection() {
+  const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
+  const [modules, setModules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('all');
+
+  useEffect(() => {
+    loadModules();
+  }, [selectedCategory, selectedDifficulty]);
+
+  const loadModules = async () => {
+    try {
+      setLoading(true);
+      const token = await getAuthToken();
+      const userData = await AsyncStorage.getItem('user');
+
+      if (!token || !userData) return;
+
+      const user = JSON.parse(userData);
+      const params = new URLSearchParams({
+        childId: user.id,
+        ...(selectedCategory !== 'all' && { category: selectedCategory }),
+        ...(selectedDifficulty !== 'all' && { difficulty: selectedDifficulty })
+      });
+
+      const response = await fetch(`${API_URL}/education/modules?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setModules(data.modules || []);
+      } else {
+        console.error('Failed to load education modules');
+        setModules([]);
+      }
+    } catch (error) {
+      console.error('Error loading education modules:', error);
+      setModules([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const categories = [
+    { key: 'all', label: '📚 All Topics', icon: '📚' },
+    { key: 'saving', label: '🐷 Saving', icon: '🐷' },
+    { key: 'budgeting', label: '🛒 Budgeting', icon: '🛒' },
+    { key: 'investing', label: '📈 Investing', icon: '📈' },
+    { key: 'giving', label: '🤲 Giving', icon: '🤲' }
+  ];
+
+  const difficulties = [
+    { key: 'all', label: '⭐ All Levels' },
+    { key: 'beginner', label: '🌱 Beginner' },
+    { key: 'intermediate', label: '🌿 Intermediate' },
+    { key: 'advanced', label: '🌳 Advanced' }
+  ];
+
+  if (loading) {
+    return (
+      <CulturalBorder variant="mixed">
+        <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 12 }]}>
+          🎓 Interactive Learning Modules
+        </Text>
+        <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+          <Text style={{ color: themeColors.textSecondary }}>
+            Loading learning modules...
+          </Text>
+        </View>
+      </CulturalBorder>
+    );
+  }
+
+  return (
+    <CulturalBorder variant="mixed">
+      <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 12 }]}>
+        🎓 Interactive Learning Modules
+      </Text>
+
+      {/* Category Filter */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', paddingHorizontal: 4 }}>
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category.key}
+              onPress={() => setSelectedCategory(category.key)}
+              style={{
+                backgroundColor: selectedCategory === category.key
+                  ? themeColors.primary + '33'
+                  : themeColors.surface,
+                borderRadius: 20,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                marginRight: 8,
+                borderWidth: 1,
+                borderColor: selectedCategory === category.key
+                  ? themeColors.primary
+                  : themeColors.border,
+              }}
+            >
+              <Text style={{
+                fontWeight: selectedCategory === category.key ? 'bold' : 'normal',
+                color: selectedCategory === category.key ? themeColors.primary : themeColors.text
+              }}>
+                {category.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Difficulty Filter */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', paddingHorizontal: 4 }}>
+          {difficulties.map((difficulty) => (
+            <TouchableOpacity
+              key={difficulty.key}
+              onPress={() => setSelectedDifficulty(difficulty.key)}
+              style={{
+                backgroundColor: selectedDifficulty === difficulty.key
+                  ? themeColors.secondary + '33'
+                  : themeColors.surface,
+                borderRadius: 16,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                marginRight: 6,
+                borderWidth: 1,
+                borderColor: selectedDifficulty === difficulty.key
+                  ? themeColors.secondary
+                  : themeColors.border,
+              }}
+            >
+              <Text style={{
+                fontSize: 12,
+                fontWeight: selectedDifficulty === difficulty.key ? 'bold' : 'normal',
+                color: selectedDifficulty === difficulty.key ? themeColors.secondary : themeColors.textSecondary
+              }}>
+                {difficulty.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Modules Grid */}
+      {modules.length === 0 ? (
+        <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+          <Text style={{ fontSize: 16, color: themeColors.textSecondary, textAlign: 'center' }}>
+            No modules found for the selected filters.
+            Try adjusting your category or difficulty preferences!
+          </Text>
+        </View>
+      ) : (
+        <View style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}>
+          {modules.map((module) => {
+            const progress = module.progress;
+            const isCompleted = progress?.status === 'completed';
+            const isInProgress = progress?.status === 'in-progress';
+            const progressPercent = progress?.progress || 0;
+
+            return (
+              <TouchableOpacity
+                key={module._id}
+                onPress={() => {
+                  // TODO: Navigate to module detail/learning screen
+                  console.log('Module selected:', module.title);
+                }}
+                style={[styles.lessonCard, {
+                  backgroundColor: isCompleted
+                    ? themeColors.success + '22'
+                    : isInProgress
+                      ? themeColors.primary + '22'
+                      : themeColors.card,
+                  borderColor: isCompleted
+                    ? themeColors.success
+                    : isInProgress
+                      ? themeColors.primary
+                      : themeColors.border,
+                  shadowColor: themeColors.border
+                }]}
+              >
+                <Text style={styles.lessonIcon}>{module.icon}</Text>
+                <Text style={[styles.lessonTitle, { color: themeColors.text }]}>
+                  {module.title}
+                </Text>
+
+                {/* Progress Indicator */}
+                {isInProgress && (
+                  <View style={{
+                    position: 'absolute',
+                    bottom: 8,
+                    left: 8,
+                    right: 8,
+                    height: 4,
+                    backgroundColor: themeColors.surface,
+                    borderRadius: 2,
+                  }}>
+                    <View style={{
+                      height: '100%',
+                      width: `${progressPercent}%`,
+                      backgroundColor: themeColors.primary,
+                      borderRadius: 2,
+                    }} />
+                  </View>
+                )}
+
+                {/* Status Badge */}
+                {isCompleted && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    backgroundColor: themeColors.success,
+                    borderRadius: 10,
+                    width: 20,
+                    height: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{ color: 'white', fontSize: 12 }}>✓</Text>
+                  </View>
+                )}
+
+                {/* Difficulty Badge */}
+                <View style={{
+                  position: 'absolute',
+                  top: 8,
+                  left: 8,
+                  backgroundColor: themeColors.surface + 'CC',
+                  borderRadius: 8,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                }}>
+                  <Text style={{
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                    color: themeColors.textSecondary,
+                    textTransform: 'capitalize'
+                  }}>
+                    {module.difficulty}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Refresh Button */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: themeColors.secondary,
+          borderRadius: 8,
+          paddingVertical: 10,
+          paddingHorizontal: 20,
+          alignItems: "center",
+          marginTop: 16,
+          alignSelf: 'center',
+        }}
+        onPress={loadModules}
+      >
+        <Text style={{ color: themeColors.card, fontWeight: "bold" }}>
+          🔄 Refresh Modules
+        </Text>
+      </TouchableOpacity>
+    </CulturalBorder>
   );
 }
 
