@@ -138,7 +138,25 @@ mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('MongoDB connected'))
+.then(async () => {
+  console.log('MongoDB connected');
+
+  // Seed education modules if collection is empty
+  try {
+    const EducationModule = require('./models/EducationModule');
+    const count = await EducationModule.countDocuments();
+    if (count === 0) {
+      console.log('Education modules collection is empty, seeding...');
+      const { seedEducationModules } = require('./scripts/seed-education-modules');
+      await seedEducationModules();
+      console.log('Education modules seeded successfully');
+    } else {
+      console.log(`Education modules collection has ${count} documents`);
+    }
+  } catch (error) {
+    console.error('Error checking/seeding education modules:', error);
+  }
+})
 .catch(err => console.log('MongoDB connection error:', err));
 
 // Apply general rate limiting to all API routes
