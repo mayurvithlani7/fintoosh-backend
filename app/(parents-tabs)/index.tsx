@@ -1,7 +1,12 @@
 import HelpModal from '@/components/HelpModal';
+import { ActionSuggestions } from '@/components/ui/ActionSuggestions';
+import { EnhancedJar } from '@/components/ui/EnhancedJar';
+import { InterestMotivator } from '@/components/ui/InterestMotivator';
 import SkeletonJar from '@/components/ui/SkeletonJar';
+import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { useDataCache } from '@/utils/dataCacheContext';
+import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -75,6 +80,65 @@ export default function ParentsOverviewScreen() {
     interest: false,      // Collapsed by default - secondary info
     pots: true,          // Expanded by default - core child status
   });
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [lastAllowanceDate, setLastAllowanceDate] = useState<Date | undefined>(undefined);
+  const [interestSummary, setInterestSummary] = useState<{
+    totalEarned: number;
+    currentStreak: number;
+    lastPayoutDate?: Date;
+    nextPayoutDate?: Date;
+    transactionsCount: number;
+  } | null>(null);
+  const [interestHistory, setInterestHistory] = useState<any[]>([]);
+
+  // Fetch interest data for the child
+  const fetchInterestData = useCallback(async () => {
+    if (!childData?._id) return;
+
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
+
+      // Fetch interest summary
+      const summaryResponse = await fetch(`${API_URL}/interest/summary/${childData._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (summaryResponse.ok) {
+        const summaryData = await summaryResponse.json();
+        setInterestSummary({
+          totalEarned: summaryData.totalEarned || 0,
+          currentStreak: summaryData.currentStreak || 0,
+          lastPayoutDate: summaryData.lastPayoutDate ? new Date(summaryData.lastPayoutDate) : undefined,
+          nextPayoutDate: summaryData.nextPayoutDate ? new Date(summaryData.nextPayoutDate) : undefined,
+          transactionsCount: summaryData.transactionsCount || 0,
+        });
+      }
+
+      // Fetch recent interest history
+      const historyResponse = await fetch(`${API_URL}/interest/history/${childData._id}?limit=5`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (historyResponse.ok) {
+        const historyData = await historyResponse.json();
+        setInterestHistory(historyData.transactions || []);
+      }
+    } catch (error) {
+      console.error('Error fetching interest data:', error);
+      // Set default values if API fails
+      setInterestSummary({
+        totalEarned: 0,
+        currentStreak: 0,
+        transactionsCount: 0,
+      });
+      setInterestHistory([]);
+    }
+  }, [childData?._id]);
 
 
 
@@ -107,8 +171,12 @@ export default function ParentsOverviewScreen() {
   React.useEffect(() => {
     if (refresh === 'true') {
       fetchChildData(true); // Force refresh
+      fetchInterestData(); // Also refresh interest data
+    } else if (childData?._id) {
+      // Initial load of interest data
+      fetchInterestData();
     }
-  }, [refresh, fetchChildData]);
+  }, [refresh, fetchChildData, fetchInterestData, childData?._id]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -165,34 +233,34 @@ export default function ParentsOverviewScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Interest Payout Info - Collapsible */}
-      {interestRule && childData && (
-        <View style={[styles.sectionCard, { backgroundColor: themeColors.surface, borderColor: themeColors.success, borderWidth: 1, shadowColor: themeColors.border }]}>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => setExpandedSections(prev => ({ ...prev, interest: !prev.interest }))}
-          >
-            <Text style={[styles.sectionTitle, { color: themeColors.success }]}>💸 Next Interest Payout</Text>
-            <Text style={[styles.expandIcon, { color: themeColors.textSecondary }]}>
-              {expandedSections.interest ? '▼' : '▶'}
-            </Text>
-          </TouchableOpacity>
+      {/* Enhanced Interest Section with Gamification */}
+      {(() => {
+        console.log('InterestMotivator Debug:', {
+          interestRule: interestRule ? 'exists' : 'null',
+          childData: childData ? 'exists' : 'null',
+          savePoints: childData?.savePoints,
+          rate: interestRule?.rate,
+          frequency: interestRule?.frequency
+        });
 
-          {expandedSections.interest && (
-            <View style={styles.expandedContent}>
-              <Text style={{ fontSize: 15, color: themeColors.text, marginBottom: 6 }}>
-                <Text style={{ fontWeight: 'bold' }}>Savings Pot Balance:</Text> {childData.savePoints}
-              </Text>
-              <Text style={{ fontSize: 15, color: themeColors.text, marginBottom: 6 }}>
-                <Text style={{ fontWeight: 'bold' }}>Interest Rate:</Text> {interestRule.rate}% {interestRule.frequency === 'monthly' ? 'per month' : 'per week'}
-              </Text>
-              <Text style={{ fontSize: 15, color: themeColors.text }}>
-                <Text style={{ fontWeight: 'bold' }}>Next Payout Date:</Text> {getNextInterestPayout(interestRule, childData)}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
+        // Use interestRule if available, otherwise use default for demo purposes
+        const effectiveInterestRule = interestRule || { rate: 2.5, frequency: 'weekly' as const, jar: 'save' };
+
+        return childData && childData.savePoints > 0 ? (
+          <InterestMotivator
+            nextPayout={{
+              amount: Math.max(1, Math.round(childData.savePoints * (effectiveInterestRule.rate / 100))), // Calculate next payout amount
+              days: effectiveInterestRule.frequency === 'monthly' ? 30 : 7
+            }}
+            totalEarned={interestSummary?.totalEarned || 0}
+            streak={interestSummary?.currentStreak || 0}
+            recentPayouts={interestHistory}
+            themeColors={themeColors}
+            onExpand={() => setExpandedSections(prev => ({ ...prev, interest: !prev.interest }))}
+            isExpanded={expandedSections.interest}
+          />
+        ) : null;
+      })()}
 
       {/* Child Jars Panel */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
@@ -211,26 +279,46 @@ export default function ParentsOverviewScreen() {
           })()
         ) : childData ? (
           <View style={styles.jarsContainer}>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.current || '#E8F5E8' }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Pocket Money</Text>
-              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.currentPoints}</Text>
-            </View>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.save || '#E3F2FD' }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Savings Pot</Text>
-              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.savePoints}</Text>
-            </View>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.spend || '#FFF3E0' }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Spending Pot</Text>
-              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.spendPoints}</Text>
-            </View>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.donate || '#FCE4EC' }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Help Others Pot</Text>
-              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.donatePoints}</Text>
-            </View>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors?.invest || '#F3E5F5' }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Grow Money Pot</Text>
-              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.investPoints}</Text>
-            </View>
+            <EnhancedJar
+              label="Pocket Money"
+              value={childData.currentPoints}
+              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
+              themeColors={themeColors}
+              status="good"
+              recommended={25}
+            />
+            <EnhancedJar
+              label="Savings Pot"
+              value={childData.savePoints}
+              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
+              themeColors={themeColors}
+              status={childData.savePoints > 100 ? 'excellent' : childData.savePoints > 50 ? 'good' : 'needs_attention'}
+              recommended={30}
+            />
+            <EnhancedJar
+              label="Spending Pot"
+              value={childData.spendPoints}
+              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
+              themeColors={themeColors}
+              status={childData.spendPoints > 200 ? 'needs_attention' : 'good'}
+              recommended={20}
+            />
+            <EnhancedJar
+              label="Help Others Pot"
+              value={childData.donatePoints}
+              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
+              themeColors={themeColors}
+              status={childData.donatePoints > 0 ? 'excellent' : 'low'}
+              recommended={10}
+            />
+            <EnhancedJar
+              label="Grow Money Pot"
+              value={childData.investPoints}
+              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
+              themeColors={themeColors}
+              status={childData.investPoints > 0 ? 'excellent' : 'low'}
+              recommended={15}
+            />
           </View>
         ) : (
           <EmptyState styles={styles} />
@@ -240,6 +328,19 @@ export default function ParentsOverviewScreen() {
       {/* Quick Actions - Grouped by Priority */}
       <View style={[styles.actionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Quick Actions</Text>
+
+        {/* Smart Action Suggestions */}
+        <ActionSuggestions
+          pendingRequests={pendingRequestsCount}
+          childData={childData}
+          lastAllowanceDate={lastAllowanceDate}
+          recentGoalActivity={childData?.savePoints > 0}
+          themeColors={themeColors}
+          onNavigateToRequests={() => router.push('/(parents-tabs)/requests')}
+          onNavigateToPoints={() => router.push('/(parents-tabs)/points')}
+          onNavigateToGoals={() => router.push('/(parents-tabs)/goals')}
+          onNavigateToChores={() => router.push('/(parents-tabs)/chores')}
+        />
 
         {/* Primary Actions - Most frequently used */}
         <View style={styles.primaryActions}>

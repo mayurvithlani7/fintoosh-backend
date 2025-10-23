@@ -24,6 +24,7 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
     { name: '🎮 Games', route: '/(kids-tabs)/games', icon: 'gamecontroller.fill' },
     { name: '🏆 Badges', route: '/(kids-tabs)/achievements', icon: 'star.circle.fill' },
     { name: '📋 My Requests', route: '/(kids-tabs)/requests', icon: 'checkmark.circle.fill' },
+    { name: '📊 My Points Story', route: '/(kids-tabs)/transaction-history', icon: 'chart.bar.fill' },
     { name: '⚙️ Settings', route: '/(kids-tabs)/settings', icon: 'gear' },
   ];
 
@@ -335,6 +336,7 @@ function KidsTabLayoutInner() {
         <Stack.Screen name="games" options={{ title: 'Games' }} />
         <Stack.Screen name="achievements" options={{ title: 'Badges' }} />
         <Stack.Screen name="requests" options={{ title: 'My Requests' }} />
+        <Stack.Screen name="transaction-history" options={{ title: 'My Points Story' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       </Stack>
 

@@ -1005,31 +1005,65 @@ function KidGoalsRewardsSection() {
       {/* Individual goal card rendering */}
       {/** Renders are moved into renderGoal function for code clarity **/}
 
-      {/* Rewards section now with tabs/filter/archive logic */}
+      {/* Rewards section - visually engaging for kids */}
       <View style={{ marginTop: 30 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <Text style={[styles.sectionTitle, { fontSize: 17, color: themeColors.text }]}>Gifts I Can Win</Text>
+        {/* Decorative header with gifts theme */}
+        <View style={{
+          backgroundColor: themeColors.accent + '15',
+          borderRadius: 16,
+          padding: 16,
+          marginBottom: 16,
+          borderWidth: 2,
+          borderColor: themeColors.accent,
+          alignItems: 'center'
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <Text style={{ fontSize: 24, marginRight: 8 }}>🎁</Text>
+            <Text style={[styles.sectionTitle, { fontSize: 20, color: themeColors.primary, marginBottom: 0 }]}>Amazing Gifts!</Text>
+            <Text style={{ fontSize: 24, marginLeft: 8 }}>🎉</Text>
+          </View>
+          <Text style={{ fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 12 }}>
+            ✨ Work hard and earn awesome prizes! ✨
+          </Text>
           <TouchableOpacity
-            style={[styles.refreshBtn, { backgroundColor: loading ? themeColors.surface : themeColors.primary }]}
+            style={[styles.refreshBtn, {
+              backgroundColor: loading ? themeColors.surface : themeColors.primary,
+              alignSelf: 'center'
+            }]}
             onPress={() => loadGoalsAndRewards()}
             disabled={loading}
           >
             <Text style={[styles.refreshBtnText, { color: loading ? themeColors.textSecondary : themeColors.card }]}>
-              {loading ? 'Refreshing...' : '🔄 Refresh'}
+              {loading ? '✨ Loading...' : '🔄 Refresh Gifts'}
             </Text>
           </TouchableOpacity>
         </View>
-        {/* Rewards Tabs */}
-        <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 10 }}>
+
+        {/* Rewards Tabs - colorful and engaging */}
+        <View style={{
+          flexDirection: "row",
+          justifyContent: "center",
+          marginBottom: 16,
+          backgroundColor: themeColors.surface + '80',
+          borderRadius: 20,
+          padding: 4
+        }}>
           {["Available", "Claimed"].map(t => (
             <TouchableOpacity
               key={t}
               style={{
-                backgroundColor: rewardsTab === t ? themeColors.accent : themeColors.surface,
-                paddingHorizontal: 15,
-                paddingVertical: 6,
-                borderRadius: 18,
-                marginHorizontal: 6,
+                backgroundColor: rewardsTab === t ? themeColors.accent : 'transparent',
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 16,
+                marginHorizontal: 2,
+                flex: 1,
+                alignItems: 'center',
+                shadowColor: rewardsTab === t ? themeColors.accent : 'transparent',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+                elevation: rewardsTab === t ? 3 : 0,
               }}
               onPress={() => { setRewardsTab(t as "Available" | "Claimed"); setShowRewardsArchive(false); }}
               accessibilityRole="tab"
@@ -1037,11 +1071,17 @@ function KidGoalsRewardsSection() {
               accessibilityHint={`Show ${t.toLowerCase()} rewards`}
               accessibilityState={{ selected: rewardsTab === t }}
             >
-              <Text style={{ color: rewardsTab === t ? themeColors.card : themeColors.text, fontWeight: rewardsTab === t ? "bold" : "600", fontSize: 15 }}>{t}</Text>
+              <Text style={{
+                color: rewardsTab === t ? themeColors.card : themeColors.text,
+                fontWeight: rewardsTab === t ? "bold" : "600",
+                fontSize: 16
+              }}>
+                {t === "Available" ? "🎯 Ready to Win!" : "🏆 My Treasures!"}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
-        {/* Rewards Filtering with Archive/Claim Logic */}
+        {/* Rewards content - always shows appropriate empty states */}
         {(() => {
           // Helper for claimed date
           const getRewardClaimedDate = (r: any) => {
@@ -1068,7 +1108,7 @@ function KidGoalsRewardsSection() {
           }
           if (rewardsTab === "Available") {
             if (availableRewards.length === 0)
-              return <Text style={styles.placeholder}>No rewards available to claim!</Text>;
+              return <Text style={styles.placeholder}>No rewards available to claim right now!</Text>;
             return (
               <FlatList
                 data={availableRewards}
@@ -1077,13 +1117,13 @@ function KidGoalsRewardsSection() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 10 }}
                 style={{ flex: 1 }}
-              scrollEnabled={false }
+                scrollEnabled={false }
               />
             );
           }
           // Claimed
           if (claimedRewards.length === 0)
-            return <Text style={styles.placeholder}>No claimed rewards in last 90 days.</Text>;
+            return <Text style={styles.placeholder}>No claimed rewards in the last 90 days.</Text>;
           return (
             <>
               <FlatList
@@ -1093,7 +1133,7 @@ function KidGoalsRewardsSection() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 10 }}
                 style={{ flex: 1 }}
-              scrollEnabled={false }
+                scrollEnabled={false }
               />
               {claimedArchived.length > 0 && !showRewardsArchive && (
                 <TouchableOpacity
@@ -1304,7 +1344,7 @@ function KidGoalsRewardsSection() {
     );
   }
 
-  // Individual reward renderer (for both available and claimed)
+  // Individual reward renderer - visually engaging for kids
   function renderReward(r: any) {
     // Pending if there is a pending approval request for this reward
     const hasPending = requests.some(
@@ -1320,44 +1360,121 @@ function KidGoalsRewardsSection() {
       return 'Not enough points';
     };
 
+    // Fun status icons and colors for kids
+    const getStatusConfig = () => {
+      if (r.purchased) return { icon: '🏆', color: themeColors.success, bgColor: themeColors.success + '20', text: 'Won!' };
+      if (hasPending) return { icon: '⏳', color: themeColors.warning, bgColor: themeColors.warning + '25', text: 'Waiting...' };
+      if (canClaim) return { icon: '🎯', color: themeColors.primary, bgColor: themeColors.primary + '20', text: 'Claim Now!' };
+      return { icon: '💪', color: themeColors.textSecondary, bgColor: themeColors.surface, text: 'Keep Saving!' };
+    };
+
+    const statusConfig = getStatusConfig();
+
     return (
       <View
         key={r._id}
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: r.purchased ? themeColors.success + "15"
-            : hasPending ? themeColors.warning + "33"
-            : themeColors.surface,
-          marginBottom: 7,
-          borderRadius: 6,
-          padding: 9,
-          borderWidth: 1,
-          borderColor: r.purchased ? themeColors.success : hasPending ? themeColors.warning : themeColors.border,
+          backgroundColor: statusConfig.bgColor,
+          marginBottom: 12,
+          borderRadius: 16,
+          padding: 16,
+          borderWidth: 2,
+          borderColor: r.purchased ? themeColors.success : hasPending ? themeColors.warning : canClaim ? themeColors.primary : themeColors.border,
+          shadowColor: statusConfig.color,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
         }}
         accessibilityLabel={`Reward: ${r.name}. Cost: ${formatAmount(r.cost)} points. Status: ${getStatusText()}.`}
         accessibilityHint={canClaim ? 'Double tap to claim this reward' : r.purchased ? 'This reward has been claimed' : hasPending ? 'Waiting for parent approval' : 'You need more points to claim this reward'}
       >
-        <Text style={{ flex: 2, fontWeight: "bold", color: themeColors.text }} numberOfLines={1} ellipsizeMode="tail">{r.name}</Text>
-        <Text style={{ flex: 1, color: themeColors.primary, fontSize: 16 }}>{formatAmount(r.cost)}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={{ fontSize: 24, marginRight: 12 }}>{statusConfig.icon}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: "bold",
+              color: themeColors.text,
+              marginBottom: 4
+            }} numberOfLines={1} ellipsizeMode="tail">
+              {r.name}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: themeColors.primary,
+                marginRight: 8
+              }}>
+                💰 {formatAmount(r.cost)} points
+              </Text>
+              {userData && (
+                <Text style={{
+                  fontSize: 14,
+                  color: themeColors.textSecondary
+                }}>
+                  (You have: {formatAmount(userData.currentPoints || 0)})
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Status button - more engaging for kids */}
         {r.purchased ? (
-          <Text style={{
-            color: themeColors.success, fontWeight: "bold",
-            marginLeft: 11, paddingVertical: 5, paddingHorizontal: 13
-          }}>Completed! 🎉</Text>
-        ) : hasPending || !r.available ? (
-          <Text style={{
-            color: themeColors.warning, fontWeight: "bold",
-            marginLeft: 11, paddingVertical: 5, paddingHorizontal: 13
-          }}>Pending...</Text>
+          <View style={{
+            backgroundColor: themeColors.success,
+            borderRadius: 12,
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'center'
+          }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>🎉</Text>
+            <Text style={{
+              color: 'white',
+              fontWeight: "bold",
+              fontSize: 16
+            }}>
+              {statusConfig.text}
+            </Text>
+          </View>
+        ) : hasPending ? (
+          <View style={{
+            backgroundColor: themeColors.warning,
+            borderRadius: 12,
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'center'
+          }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>⏳</Text>
+            <Text style={{
+              color: 'white',
+              fontWeight: "bold",
+              fontSize: 16
+            }}>
+              {statusConfig.text}
+            </Text>
+          </View>
         ) : canClaim ? (
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.primary,
-              paddingVertical: 5,
-              paddingHorizontal: 13,
-              borderRadius: 8,
-              marginLeft: 11,
+              borderRadius: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 20,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              shadowColor: themeColors.primary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 4,
             }}
             onPress={() => handleClaimReward(r._id)}
             disabled={claiming === r._id}
@@ -1366,18 +1483,36 @@ function KidGoalsRewardsSection() {
             accessibilityHint="Double tap to submit reward claim request to parent"
             accessibilityState={{ disabled: claiming === r._id }}
           >
+            <Text style={{ fontSize: 18, marginRight: 8 }}>🎁</Text>
             <Text style={{
-              color: themeColors.card,
-              fontWeight: "bold"
+              color: 'white',
+              fontWeight: "bold",
+              fontSize: 16
             }}>
-              {claiming === r._id ? "Claiming..." : "Claim"}
+              {claiming === r._id ? "Claiming..." : statusConfig.text}
             </Text>
           </TouchableOpacity>
         ) : (
-          <Text style={{
-            color: themeColors.textSecondary, fontWeight: "bold",
-            marginLeft: 11, paddingVertical: 5, paddingHorizontal: 13
-          }}>Need More Points</Text>
+          <View style={{
+            backgroundColor: themeColors.surface,
+            borderRadius: 12,
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: themeColors.border
+          }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>💪</Text>
+            <Text style={{
+              color: themeColors.textSecondary,
+              fontWeight: "bold",
+              fontSize: 16
+            }}>
+              {statusConfig.text}
+            </Text>
+          </View>
         )}
       </View>
     );

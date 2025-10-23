@@ -952,18 +952,21 @@ function MyAchievementsSection() {
 
 
 
-// --- NeedsWantsSortModal Placeholder ---
+
+// --- NeedsWantsSortModal ---
 function NeedsWantsSortModal({ onClose }: { onClose: () => void }) {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
+
   return (
     <View style={{ padding: 18, alignItems: "center" }}>
-      <Text style={styles.modalTitle}>🔀 Sort Fun Things!</Text>
+      <Text style={styles.modalTitle}>🔀 Needs vs Wants!</Text>
       <Text style={styles.modalText}>
-        This is where the interactive Needs vs. Wants sorting game will be built!
+        Learn the difference between needs and wants! Needs are things you must have to live well (like food, clothes, shelter).
+        Wants are nice things but you can live without them (like toys, candy, video games)!
       </Text>
       <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <Text style={styles.closeButtonText}>Close</Text>
+        <Text style={styles.closeButtonText}>Got it!</Text>
       </TouchableOpacity>
     </View>
   );
