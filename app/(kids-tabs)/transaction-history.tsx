@@ -9,7 +9,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  AppState,
   FlatList,
   Modal,
   Platform,
@@ -34,8 +33,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 4,
     backgroundColor: themeColors.background,
-    flex: 1,
-    minHeight: "100%"
+    flex: 1
   },
   title: {
     fontSize: 28,
@@ -446,66 +444,36 @@ export default function TransactionHistoryScreen() {
     if (!isBackground) setLoading(false);
   };
 
-  // Background sync - reduced frequency to prevent rate limiting
-  useEffect(() => {
-    const startBackgroundSync = () => {
-      refreshIntervalRef.current = setInterval(() => {
-        loadTransactions(true);
-      }, 120000); // 2 minutes instead of 30 seconds
-    };
-
-    const stopBackgroundSync = () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
-      }
-    };
-
-    // Listen to app state changes for focus-based refresh with delay to avoid immediate API calls
-    let focusTimeout: NodeJS.Timeout;
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active') {
-        // Delay focus refresh to avoid immediate API calls when switching screens
-        focusTimeout = setTimeout(() => {
-          loadTransactions(true);
-        }, 2000); // 2 second delay
-      } else {
-        // Clear timeout if app goes inactive
-        if (focusTimeout) {
-          clearTimeout(focusTimeout);
-        }
-      }
-    });
-
-    startBackgroundSync();
-
-    return () => {
-      stopBackgroundSync();
-      subscription?.remove();
-      if (focusTimeout) {
-        clearTimeout(focusTimeout);
-      }
-    };
-  }, []);
+  // Remove all automatic refresh mechanisms to prevent continuous refreshing
+  // Users can manually refresh using the refresh button
 
   useEffect(() => {
     loadTransactions();
   }, []);
 
-  // filter search/type/date
-  const filtered = transactions.filter(tx => {
-    const txDateStr = tx.date || tx.createdAt || "";
-    const txDate = new Date(txDateStr);
-    const txTime = txDate.getTime();
-    // Date logic
-    let afterStart = true; let beforeEnd = true;
-    if (startDate) afterStart = !isNaN(txTime) && txTime >= new Date(startDate).getTime();
-    if (endDate) beforeEnd = !isNaN(txTime) && txTime <= new Date(endDate + "T23:59:59.999Z").getTime();
-    if (!afterStart || !beforeEnd) return false;
-    if (type && tx.type !== type) return false;
-    if (search && !`${tx.description || ""} ${tx.type}`.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  // Memoize filtered and sorted data to prevent unnecessary recalculations and re-renders
+  const filteredAndSorted = React.useMemo(() => {
+    const filtered = transactions.filter(tx => {
+      const txDateStr = tx.date || tx.createdAt || "";
+      const txDate = new Date(txDateStr);
+      const txTime = txDate.getTime();
+      // Date logic
+      let afterStart = true; let beforeEnd = true;
+      if (startDate) afterStart = !isNaN(txTime) && txTime >= new Date(startDate).getTime();
+      if (endDate) beforeEnd = !isNaN(txTime) && txTime <= new Date(endDate + "T23:59:59.999Z").getTime();
+      if (!afterStart || !beforeEnd) return false;
+      if (type && tx.type !== type) return false;
+      if (search && !`${tx.description || ""} ${tx.type}`.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+
+    // Sort by date (newest first)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date || a.createdAt || "1970-01-01");
+      const dateB = new Date(b.date || b.createdAt || "1970-01-01");
+      return dateB.getTime() - dateA.getTime();
+    });
+  }, [transactions, search, type, startDate, endDate]);
 
   return (
     <View style={styles.container}>
@@ -595,11 +563,7 @@ export default function TransactionHistoryScreen() {
           <ActivityIndicator />
         ) : (
           <FlatList
-            data={filtered.sort((a, b) => {
-              const dateA = new Date(a.date || a.createdAt || "1970-01-01");
-              const dateB = new Date(b.date || b.createdAt || "1970-01-01");
-              return dateB.getTime() - dateA.getTime();
-            })}
+            data={filteredAndSorted}
             keyExtractor={(item) => item._id || Math.random().toString()}
             initialNumToRender={10}
             maxToRenderPerBatch={5}
@@ -679,13 +643,8 @@ export default function TransactionHistoryScreen() {
                 No transactions found.
               </Text>
             }
-            // Pull-to-refresh removed to prevent auto-refresh during scrolling
-            onEndReached={() => {
-              // Load more data when reaching the end
-              const currentPage = Math.ceil(transactions.length / 50) + 1;
-              loadTransactions(false, currentPage);
-            }}
-            onEndReachedThreshold={0.5}
+            // Load more only when explicitly requested - disabled continuous loading
+            // Users can manually refresh for more data if needed
           />
         )}
       </View>

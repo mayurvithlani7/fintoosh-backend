@@ -1,10 +1,13 @@
 import GoalTemplates from '@/components/GoalTemplates';
 import HelpModal from '@/components/HelpModal';
+import AnimatedCircularProgress from '@/components/animations/AnimatedCircularProgress';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { handleApiError } from '@/utils/errorHandler';
+import NotificationService from '@/utils/notificationService';
 import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -432,6 +435,81 @@ function KidGoalsRewardsSection() {
           if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
           return;
         }
+        // Check for goal progress milestones and send notifications
+        if (userData && goalsArray.length > 0) {
+          for (const goal of goalsArray) {
+            const jarPoints = userData[goal.jar + "Points"] || 0;
+            const progressPercent = Math.floor((jarPoints / goal.targetAmount) * 100);
+
+            // Check for milestone achievements (25%, 50%, 75%, 90%)
+            const milestones = [25, 50, 75, 90];
+            for (const milestone of milestones) {
+              if (progressPercent >= milestone && progressPercent < milestone + 5) { // Allow some tolerance
+                // Check if we haven't notified about this milestone recently
+                const milestoneKey = `goal_${goal._id}_milestone_${milestone}`;
+                const lastNotified = await AsyncStorage.getItem(milestoneKey);
+                const now = Date.now();
+
+                if (!lastNotified || (now - parseInt(lastNotified)) > 24 * 60 * 60 * 1000) { // 24 hours
+                  NotificationService.scheduleGoalMilestoneNotification(goal.name, milestone);
+                  await AsyncStorage.setItem(milestoneKey, now.toString());
+                }
+                break; // Only send one milestone notification per goal check
+              }
+            }
+
+            // Check for goal completion
+            if (jarPoints >= goal.targetAmount && goal.status === "active") {
+              const completionKey = `goal_${goal._id}_completed`;
+              const lastNotified = await AsyncStorage.getItem(completionKey);
+
+              if (!lastNotified) {
+                NotificationService.scheduleGoalMilestoneNotification(goal.name, 100, true);
+                await AsyncStorage.setItem(completionKey, Date.now().toString());
+              }
+            }
+
+            // Check for deadline reminders
+            if (goal.deadline) {
+              const deadline = new Date(goal.deadline);
+              const now = new Date();
+              const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+              if (daysLeft > 0 && daysLeft <= 7) {
+                const reminderKey = `goal_${goal._id}_deadline_${daysLeft}`;
+                const lastNotified = await AsyncStorage.getItem(reminderKey);
+                const now = Date.now();
+
+                if (!lastNotified || (now - parseInt(lastNotified)) > 24 * 60 * 60 * 1000) { // 24 hours
+                  NotificationService.scheduleGoalDeadlineReminder(goal.name, daysLeft);
+                  await AsyncStorage.setItem(reminderKey, now.toString());
+                }
+              }
+            }
+
+            // Check for encouragement reminders for inactive goals
+            const lastActivityKey = `goal_${goal._id}_last_activity`;
+            const lastActivity = await AsyncStorage.getItem(lastActivityKey);
+            const now = Date.now();
+
+            if (lastActivity) {
+              const daysSinceActivity = Math.floor((now - parseInt(lastActivity)) / (1000 * 60 * 60 * 24));
+              if (daysSinceActivity >= 3 && goal.status === "active") {
+                const encouragementKey = `goal_${goal._id}_encouragement_${daysSinceActivity}`;
+                const lastEncouraged = await AsyncStorage.getItem(encouragementKey);
+
+                if (!lastEncouraged || (now - parseInt(lastEncouraged)) > 24 * 60 * 60 * 1000) {
+                  NotificationService.scheduleGoalEncouragementNotification(goal.name, daysSinceActivity);
+                  await AsyncStorage.setItem(encouragementKey, now.toString());
+                }
+              }
+            }
+
+            // Update last activity timestamp
+            await AsyncStorage.setItem(lastActivityKey, now.toString());
+          }
+        }
+
         // Goals now have the correct status from the database, so we can use them directly
         setGoals(goalsArray);
       }
@@ -840,9 +918,9 @@ function KidGoalsRewardsSection() {
 
         // 3. Split into active/completed as per status, then slice by date for completed archive
         let activeGoals = goals.filter(g =>
-          getGoalStatus(g) !== "completed" && getGoalStatus(g) !== "expired"
+          getGoalStatus(g) !== "completed" && getGoalStatus(g) !== "expired" && getGoalStatus(g) !== "pending"
         );
-        let completedGoalsAll = goals.filter(g => getGoalStatus(g) === "completed");
+        let completedGoalsAll = goals.filter(g => getGoalStatus(g) === "completed" || getGoalStatus(g) === "expired");
 
         if (tab === "Active") {
           return (
@@ -1145,9 +1223,33 @@ function KidGoalsRewardsSection() {
           </View>
 
           <View style={{ alignItems: "flex-end" }}>
-            <Text style={{ flex: 1, color: themeColors.primary, fontSize: 16, marginBottom: 4 }}>
-              {formatAmount(jarPoints)}/{formatAmount(g.targetAmount)}
-            </Text>
+            {g.status === "active" && !isCompleted && !isExpired ? (
+              <View style={{ alignItems: "center", marginBottom: 4 }}>
+                <AnimatedCircularProgress
+                  size={50}
+                  width={6}
+                  fill={Math.min((jarPoints / g.targetAmount) * 100, 100)}
+                  tintColor={canClaim ? themeColors.primary : themeColors.textSecondary}
+                  backgroundColor={themeColors.border}
+                  duration={1500}
+                />
+                <Text style={{ color: themeColors.primary, fontSize: 12, marginTop: 2 }}>
+                  {formatAmount(jarPoints)}/{formatAmount(g.targetAmount)}
+                </Text>
+              </View>
+            ) : (
+              <View style={{ alignItems: "center", marginBottom: 4, minHeight: 50 }}>
+                {isExpired ? (
+                  <Text style={{ color: themeColors.primary, fontSize: 14, fontWeight: "bold", marginTop: 8 }}>
+                    {formatAmount(jarPoints)}/{formatAmount(g.targetAmount)}
+                  </Text>
+                ) : isCompleted ? (
+                  <Text style={{ color: themeColors.primary, fontSize: 14, fontWeight: "bold", marginTop: 8 }}>
+                    {formatAmount(g.targetAmount)}
+                  </Text>
+                ) : null}
+              </View>
+            )}
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {canClaim && (
                 <TouchableOpacity

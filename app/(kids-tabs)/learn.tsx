@@ -36,10 +36,10 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.card,
     borderRadius: 14,
     marginBottom: 16,
-    padding: 18,
-    minWidth: 300,
-    width: "97%",
-    maxWidth: 520,
+    padding: 12,
+    minWidth: 280,
+    width: "95%",
+    maxWidth: 480,
     elevation: 2,
     shadowColor: themeColors.border,
   },
@@ -51,20 +51,35 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   lessonCard: {
     width: "45%",
-    margin: "2.5%",
+    margin: "1%",
     backgroundColor: themeColors.surface,
-    borderRadius: 12,
+    borderRadius: 8,
     elevation: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
     alignItems: "center",
-    minHeight: 96,
-    maxWidth: 170,
+    minHeight: 70,
+    maxWidth: 100,
     borderWidth: 1,
     borderColor: themeColors.border,
     shadowColor: themeColors.border,
     shadowOpacity: 0.15,
     shadowRadius: 2,
+  },
+  lessonCard2x2: {
+    width: "48%",
+    backgroundColor: themeColors.surface,
+    borderRadius: 12,
+    elevation: 2,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    minHeight: 90,
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    shadowColor: themeColors.border,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   lessonIcon: {
     fontSize: 35,
@@ -155,6 +170,7 @@ export default function LearnScreen() {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [selectedModule, setSelectedModule] = useState<any>(null);
 
   return (
     <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
@@ -199,9 +215,56 @@ export default function LearnScreen() {
         </View>
       </View>
 
-      <EducationModulesSection />
+      {/* Temporarily hidden - Interactive Learning Modules Section */}
+      {false && (
+        <EducationModulesSection
+          selectedModule={selectedModule}
+          setSelectedModule={setSelectedModule}
+        />
+      )}
       <FinancialLessonsSection />
       <MyAchievementsSection />
+
+      {/* Module Modal */}
+      <Modal
+        visible={!!selectedModule}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSelectedModule(null)}
+      >
+        <ErrorBoundary fallback={({ error, resetError }) => (
+          <View style={styles.modalContainer}>
+            <View style={{
+              backgroundColor: themeColors.card,
+              borderRadius: 20,
+              width: "90%",
+              maxWidth: 400,
+              maxHeight: "80%",
+              shadowColor: themeColors.border,
+              shadowRadius: 10,
+              elevation: 10,
+            }}>
+              <Text style={{...styles.modalTitle, padding: 20, textAlign: 'center'}}>Oops! Something went wrong</Text>
+              <Text style={{...styles.modalText, paddingHorizontal: 20, paddingBottom: 20}}>
+                We encountered an error loading this module. Please try again.
+              </Text>
+              <TouchableOpacity
+                style={{...styles.closeButton, margin: 20}}
+                onPress={() => {
+                  resetError();
+                  setSelectedModule(null);
+                }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}>
+          <View style={styles.modalContainer}>
+            {selectedModule ? <EducationModuleModal module={selectedModule} onClose={() => setSelectedModule(null)} /> : null}
+          </View>
+        </ErrorBoundary>
+      </Modal>
 
       {/* Help Modal */}
       <HelpModal
@@ -328,7 +391,7 @@ export default function LearnScreen() {
 }
 
 // --- EducationModulesSection: Dynamic education modules from database ---
-function EducationModulesSection() {
+function EducationModulesSection({ selectedModule, setSelectedModule }: { selectedModule: any; setSelectedModule: (module: any) => void }) {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const [modules, setModules] = useState<any[]>([]);
@@ -413,8 +476,17 @@ function EducationModulesSection() {
       </Text>
 
       {/* Category Filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-        <View style={{ flexDirection: 'row', paddingHorizontal: 4 }}>
+      <View style={{ marginBottom: 12 }}>
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: themeColors.textSecondary, marginBottom: 8, textAlign: 'center' }}>
+          Choose Topic:
+        </Text>
+        <View style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 4,
+          paddingHorizontal: 2
+        }}>
           {categories.map((category) => (
             <TouchableOpacity
               key={category.key}
@@ -423,30 +495,43 @@ function EducationModulesSection() {
                 backgroundColor: selectedCategory === category.key
                   ? themeColors.primary + '33'
                   : themeColors.surface,
-                borderRadius: 20,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                marginRight: 8,
+                borderRadius: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 6,
                 borderWidth: 1,
                 borderColor: selectedCategory === category.key
                   ? themeColors.primary
                   : themeColors.border,
+                minWidth: 70,
+                flex: 1,
+                maxWidth: 100,
               }}
             >
               <Text style={{
+                fontSize: 11,
                 fontWeight: selectedCategory === category.key ? 'bold' : 'normal',
-                color: selectedCategory === category.key ? themeColors.primary : themeColors.text
+                color: selectedCategory === category.key ? themeColors.primary : themeColors.text,
+                textAlign: 'center'
               }}>
                 {category.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
+      </View>
 
       {/* Difficulty Filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-        <View style={{ flexDirection: 'row', paddingHorizontal: 4 }}>
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: themeColors.textSecondary, marginBottom: 8, textAlign: 'center' }}>
+          Choose Level:
+        </Text>
+        <View style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 4,
+          paddingHorizontal: 2
+        }}>
           {difficulties.map((difficulty) => (
             <TouchableOpacity
               key={difficulty.key}
@@ -455,27 +540,30 @@ function EducationModulesSection() {
                 backgroundColor: selectedDifficulty === difficulty.key
                   ? themeColors.secondary + '33'
                   : themeColors.surface,
-                borderRadius: 16,
-                paddingHorizontal: 12,
+                borderRadius: 10,
+                paddingHorizontal: 8,
                 paddingVertical: 6,
-                marginRight: 6,
                 borderWidth: 1,
                 borderColor: selectedDifficulty === difficulty.key
                   ? themeColors.secondary
                   : themeColors.border,
+                minWidth: 70,
+                flex: 1,
+                maxWidth: 100,
               }}
             >
               <Text style={{
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: selectedDifficulty === difficulty.key ? 'bold' : 'normal',
-                color: selectedDifficulty === difficulty.key ? themeColors.secondary : themeColors.textSecondary
+                color: selectedDifficulty === difficulty.key ? themeColors.secondary : themeColors.text,
+                textAlign: 'center'
               }}>
                 {difficulty.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
+      </View>
 
       {/* Modules Grid */}
       {modules.length === 0 ? (
@@ -501,8 +589,7 @@ function EducationModulesSection() {
               <TouchableOpacity
                 key={module._id}
                 onPress={() => {
-                  // TODO: Navigate to module detail/learning screen
-                  console.log('Module selected:', module.title);
+                  setSelectedModule(module);
                 }}
                 style={[styles.lessonCard, {
                   backgroundColor: isCompleted
@@ -662,31 +749,30 @@ function FinancialLessonsSection() {
   return (
     <CulturalBorder variant="mixed">
       <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 12 }]}>Financial Lessons</Text>
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        {lessons.map((l) => (
-          <TouchableOpacity
-            key={l.id}
-            onPress={() => setOpenLesson(l.id)}
-            style={[styles.lessonCard, {
-              backgroundColor: themeColors.card,
-              borderColor: themeColors.border,
-              shadowColor: themeColors.border
-            }]}
-          >
-            <Text style={styles.lessonIcon}>{l.icon}</Text>
-            <Text
-              style={[styles.lessonTitle, { color: themeColors.text }]}
-              numberOfLines={2}
-            >
-              {l.title}
-            </Text>
-          </TouchableOpacity>
+      <View style={{ paddingHorizontal: 10 }}>
+        {/* Display all lessons in 2x2 grid layout (2 columns, multiple rows) */}
+        {Array.from({ length: Math.ceil(lessons.length / 2) }, (_, rowIndex) => (
+          <View key={`row-${rowIndex}`} style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 16 }}>
+            {lessons.slice(rowIndex * 2, rowIndex * 2 + 2).map((l) => (
+              <TouchableOpacity
+                key={l.id}
+                onPress={() => setOpenLesson(l.id)}
+                style={[styles.lessonCard2x2, {
+                  backgroundColor: themeColors.card,
+                  borderColor: themeColors.border,
+                  shadowColor: themeColors.border
+                }]}
+              >
+                <Text style={styles.lessonIcon}>{l.icon}</Text>
+                <Text
+                  style={[styles.lessonTitle, { color: themeColors.text }]}
+                  numberOfLines={2}
+                >
+                  {l.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         ))}
       </View>
       <Modal
@@ -1411,3 +1497,22 @@ function SpendSmartReviewModal({ onClose }: { onClose: () => void }) {
   );
 }
 /** --- END: Spend Smart Review Modal (Fixed and Completed) --- */
+
+/** --- BEGIN: EducationModuleModal --- */
+function EducationModuleModal({ module, onClose }: { module: any; onClose: () => void }) {
+  const { themeColors } = useTheme();
+  const styles = createStyles(themeColors);
+
+  return (
+    <View style={{ padding: 18, alignItems: 'center' }}>
+      <Text style={styles.modalTitle}>📚 Learning Module</Text>
+      <Text style={styles.modalText}>
+        Module content will be displayed here.
+      </Text>
+      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <Text style={styles.closeButtonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+/** --- END: EducationModuleModal --- */

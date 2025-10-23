@@ -1,8 +1,11 @@
+import AnimatedCounter from '@/components/animations/AnimatedCounter';
 import AnimatedProgressBar from '@/components/animations/AnimatedProgressBar';
 import BouncingCoin from '@/components/animations/BouncingCoin';
 import GuidedTour from '@/components/GuidedTour';
 import HelpModal from '@/components/HelpModal';
-import Tooltip from '@/components/Tooltip';
+import ActionCard from '@/components/ui/ActionCard';
+import JarCard from '@/components/ui/JarCard';
+import StatCard from '@/components/ui/StatCard';
 import { fetchNotifications, markNotificationRead } from '@/utils/api';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
@@ -24,6 +27,89 @@ import {
 
 import SwipeNavigator from '@/components/SwipeNavigator';
 
+// Smart Empty States with Action Prompts
+const EmptyStateWithAction = ({
+  type,
+  dynamicStyles,
+  themeColors,
+  router
+}: {
+  type: 'activities' | 'goals';
+  dynamicStyles: any;
+  themeColors: any;
+  router: any;
+}) => {
+  const emptyStates = {
+    activities: {
+      icon: "🚀",
+      title: "Ready to Start Earning?",
+      message: "Complete tasks, set goals, or move money to see your activity here!",
+      action: "Do First Task",
+      route: './chores'
+    },
+    goals: {
+      icon: "🎯",
+      title: "No Goals Yet?",
+      message: "Set your first savings goal and watch your progress grow!",
+      action: "Create Goal",
+      route: './goals'
+    }
+  };
+
+  const state = emptyStates[type];
+
+  return (
+    <View style={dynamicStyles.emptyState}>
+      <Text style={dynamicStyles.emptyIcon}>{state.icon}</Text>
+      <Text style={[dynamicStyles.emptyTitle, { color: themeColors.text }]}>{state.title}</Text>
+      <Text style={[dynamicStyles.emptyMessage, { color: themeColors.textSecondary }]}>{state.message}</Text>
+      <TouchableOpacity
+        style={[dynamicStyles.emptyActionButton, { backgroundColor: themeColors.primary }]}
+        onPress={() => router.push(state.route)}
+      >
+        <Text style={dynamicStyles.emptyActionText}>{state.action}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+// Time-Based Contextual Content
+const TimeBasedContent = ({ dynamicStyles, themeColors }: { dynamicStyles: any; themeColors: any }) => {
+  const getTimeContext = () => {
+    const hour = new Date().getHours();
+
+    if (hour >= 6 && hour < 12) {
+      return {
+        greeting: "🌅 Good morning!",
+        tip: "Start your day by checking your money goals!",
+        suggestion: "Morning is perfect for planning your day!"
+      };
+    } else if (hour >= 12 && hour < 17) {
+      return {
+        greeting: "☀️ Good afternoon!",
+        tip: "How are you doing on your daily tasks?",
+        suggestion: "Afternoon is great for completing chores!"
+      };
+    } else {
+      return {
+        greeting: "🌙 Good evening!",
+        tip: "Review what you accomplished today!",
+        suggestion: "Evening is perfect for setting tomorrow's goals!"
+      };
+    }
+  };
+
+  const context = getTimeContext();
+
+  return (
+    <View style={[dynamicStyles.timeContext, { backgroundColor: themeColors.surface }]}>
+      <Text style={[dynamicStyles.timeGreeting, { color: themeColors.primary }]}>{context.greeting}</Text>
+      <Text style={[dynamicStyles.timeTip, { color: themeColors.text }]}>{context.tip}</Text>
+      <Text style={[dynamicStyles.timeSuggestion, { color: themeColors.textSecondary }]}>{context.suggestion}</Text>
+    </View>
+  );
+};
+
 // Type definitions
 interface Jar {
   label: string;
@@ -44,6 +130,7 @@ interface UserData {
   role: string;
   goals?: any[];
   transactions?: any[];
+  badges?: any[];
 }
 
 interface Activity {
@@ -186,52 +273,7 @@ const getTransactionIcon = (type: string) => {
   }
 };
 
-const generateMockActivities = (totalPoints: number) => {
-  const activities = [
-    {
-      id: '1',
-      type: 'chore-completion',
-      description: 'Completed "Clean my room"',
-      amount: 15,
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      icon: '🧹'
-    },
-    {
-      id: '2',
-      type: 'goal-progress',
-      description: 'Saved for "New bicycle"',
-      amount: 25,
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      icon: '🎯'
-    },
-    {
-      id: '3',
-      type: 'points-moved',
-      description: 'Moved points to Savings Pot',
-      amount: 10,
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      icon: '🔄'
-    },
-    {
-      id: '4',
-      type: 'reward-purchase',
-      description: 'Bought "Extra screen time"',
-      amount: -20,
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      icon: '🎁'
-    },
-    {
-      id: '5',
-      type: 'parent-points-adjustment',
-      description: 'Bonus points from parents!',
-      amount: 5,
-      timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-      icon: '👨‍👩‍👧‍👦'
-    }
-  ];
 
-  return activities.slice(0, Math.min(5, Math.max(2, Math.floor(totalPoints / 50))));
-};
 
 const styles = StyleSheet.create({
   container: {
@@ -315,6 +357,8 @@ const styles = StyleSheet.create({
     // color moved to dynamicStyles
     marginTop: 5,
   },
+  // Empty state styles - moved to dynamicStyles
+  // Time-based content styles - moved to dynamicStyles
 });
 
 
@@ -427,7 +471,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
         let activities: Activity[] = [];
 
-        // Use transactions from batch response for activity feed
+        // Only use real transactions from the API - no mock data
         if (transactions && transactions.length > 0) {
           // Take the 5 most recent transactions
           activities = transactions.slice(0, 5).map((tx: any) => ({
@@ -438,10 +482,8 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             timestamp: tx.createdAt,
             icon: getTransactionIcon(tx.type)
           }));
-        } else {
-          // Fallback to mock activities if no transactions
-          activities = generateMockActivities(currentTotalPoints);
         }
+        // No fallback to mock data - activities array remains empty if no real transactions
 
         const jars = [
           { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
@@ -592,6 +634,26 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
   const totalPoints = jars.reduce((sum, jar) => sum + jar.value, 0);
 
+  // Calculate today's earnings from transactions
+  const calculateTodaysEarnings = () => {
+    if (!recentActivities || recentActivities.length === 0) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1); // Start of tomorrow
+
+    return recentActivities
+      .filter(activity => {
+        const activityDate = new Date(activity.timestamp);
+        return activityDate >= today && activityDate < tomorrow && activity.amount > 0;
+      })
+      .reduce((sum, activity) => sum + activity.amount, 0);
+  };
+
+  const todaysEarnings = calculateTodaysEarnings();
+
   // Calculate progress for gamified progress bar
   const calculateSetupProgress = () => {
     let completed = 0;
@@ -620,7 +682,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   // Dynamic styles based on theme
   const dynamicStyles = {
     title: {
-      fontSize: 35,
+      fontSize: 28,
       fontWeight: "bold" as const,
       marginBottom: 22,
       marginTop: 6,
@@ -656,6 +718,63 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       fontStyle: "italic" as const,
       textAlign: "center" as const,
       marginVertical: 20,
+    },
+    // Empty state styles
+    emptyState: {
+      alignItems: 'center',
+      paddingVertical: 30,
+      paddingHorizontal: 20,
+    },
+    emptyIcon: {
+      fontSize: 48,
+      marginBottom: 16,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    emptyMessage: {
+      fontSize: 16,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    emptyActionButton: {
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 25,
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    emptyActionText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    // Time-based content styles
+    timeContext: {
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 2,
+    },
+    timeGreeting: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 8,
+    },
+    timeTip: {
+      fontSize: 16,
+      marginBottom: 6,
+      fontWeight: '500',
+    },
+    timeSuggestion: {
+      fontSize: 14,
+      fontStyle: 'italic',
     },
   };
 
@@ -839,8 +958,11 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           </TouchableOpacity>
         </View>
         <View style={{ alignItems: 'center' }}>
-          <Text style={[dynamicStyles.title, { color: themeColors.primary }]} accessibilityRole="header" accessibilityLabel="My Money Home Dashboard">🏠 My Money Pots</Text>
+          <Text style={[dynamicStyles.title, { color: themeColors.primary }]} accessibilityRole="header" accessibilityLabel="My Money Home Dashboard">🏠 My Money Adventure</Text>
         </View>
+
+        {/* Time-Based Contextual Content */}
+        <TimeBasedContent dynamicStyles={dynamicStyles} themeColors={themeColors} />
       </View>
 
       {/* Gamified Progress Bar */}
@@ -907,153 +1029,162 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           onPress={onRefresh}
           disabled={refreshing}
         >
-          <Text style={styles.actionButtonText}>
-            {refreshing ? 'Refreshing...' : '🔄 Refresh Points'}
+        <Text style={styles.actionButtonText}>
+          {refreshing ? '🔄 Getting Latest...' : '🔄 Update My Points'}
+        </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Hero Section with Total Points and Quick Stats */}
+      <View style={[dynamicStyles.quickActionCard, {
+        backgroundColor: themeColors.primary + '10',
+        borderColor: themeColors.primary,
+        borderWidth: 2,
+      }]}>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 16,
+        }}>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <AnimatedCounter
+              value={totalPoints}
+              fontSize={42}
+              color={themeColors.primary}
+              suffix=""
+            />
+            <Text style={{
+              fontSize: 16,
+              color: themeColors.textSecondary,
+              marginTop: 4,
+              textAlign: 'center'
+            }}>
+              My Points
+            </Text>
+          </View>
+
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            flex: 1,
+          }}>
+            <StatCard
+              icon="📈"
+              value={todaysEarnings > 0 ? `+${todaysEarnings}` : "0"}
+              label="Today"
+              color={themeColors.success + '20'}
+              size="small"
+            />
+            <StatCard
+              icon="🎯"
+              value={userData && userData.goals ? userData.goals.length.toString() : "0"}
+              label="Goals"
+              color={themeColors.warning + '20'}
+              size="small"
+            />
+            <StatCard
+              icon="🏆"
+              value={userData && userData.badges ? userData.badges.length.toString() : "0"}
+              label="Badges"
+              color={themeColors.accent + '20'}
+              size="small"
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Enhanced Money Jars Overview */}
+      <View style={dynamicStyles.quickActionCard}>
+        <Text style={dynamicStyles.sectionTitle}>My Pots</Text>
+        <View style={{flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 10}}>
+          {jars.map(jar => (
+            <JarCard
+              key={jar.label}
+              jar={jar}
+              progress={(jar.value / totalPoints) * 100}
+              trend="+5%"
+              showInsights={true}
+            />
+          ))}
+        </View>
+      </View>
+
+      {/* Enhanced Quick Actions */}
+      <View style={dynamicStyles.quickActionCard}>
+        <Text style={dynamicStyles.sectionTitle}>What Can I Do?</Text>
+
+        {/* Smart Action Cards - Always show 2-3 most important actions */}
+        <ActionCard
+          icon="🔄"
+          title="Move My Points"
+          subtitle="Switch money between your pots!"
+          color={themeColors.warning}
+          onPress={() => router.push('./money-jars')}
+        />
+
+        <ActionCard
+          icon="🎯"
+          title="Set Awesome Goals"
+          subtitle="Save for your dream prize!"
+          color={themeColors.success}
+          onPress={() => router.push('./goals')}
+        />
+
+        {/* Show more actions based on user state */}
+        {showMore && (
+          <>
+            <ActionCard
+              icon="🧹"
+              title="Do Fun Tasks"
+              subtitle="Complete chores & earn points!"
+              color={themeColors.secondary}
+              badge={userData?.transactions?.filter((tx: any) => tx.type === 'chore-completion').length || 0}
+              onPress={() => router.push('./chores')}
+            />
+
+            <ActionCard
+              icon="📚"
+              title="Money Magic School"
+              subtitle="Learn cool money tricks!"
+              color={themeColors.error}
+              onPress={() => router.push('./learn')}
+            />
+
+            <ActionCard
+              icon="🎮"
+              title="Play Money Games"
+              subtitle="Have fun while learning!"
+              color={themeColors.accent}
+              onPress={() => router.push('./games')}
+            />
+          </>
+        )}
+
+        <TouchableOpacity
+          onPress={() => setShowMore(v => !v)}
+          accessibilityRole="button"
+          style={{
+            marginTop: 12,
+            alignItems: 'center',
+            padding: 12,
+            borderRadius: 10,
+            alignSelf: 'center',
+            backgroundColor: themeColors.surface,
+            borderWidth: 1,
+            borderColor: themeColors.border,
+            minWidth: 120,
+          }}
+        >
+          <Text style={{ fontWeight: 'bold', color: themeColors.primary, fontSize: 16 }}>
+            {showMore ? "Show Less ▲" : "Show More ▼"}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Total Points Summary */}
-      <View style={dynamicStyles.quickActionCard}>
-        <Text style={dynamicStyles.sectionTitle}>💰 Total Points</Text>
-        <Text style={dynamicStyles.totalPointsText}>
-          {formatAmount(totalPoints)}
-        </Text>
-      </View>
-
-      {/* Points Jars Overview */}
-      <View style={dynamicStyles.quickActionCard}>
-        <Text style={dynamicStyles.sectionTitle}>My Pots</Text>
-        <View style={{flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 10}}>
-          {jars.map(jar => {
-            const getJarTooltip = (key: string) => {
-              switch (key) {
-                case 'current':
-                  return '💰 Pocket Money: Points you can spend right now for small treats!';
-                case 'save':
-                  return '🐷 Savings Pot: Money saved for big goals like a new bike or game!';
-                case 'spend':
-                  return '🛒 Spending Pot: For buying fun things you want!';
-                case 'donate':
-                  return '🤲 Help Others Pot: Points for giving to charity or helping others!';
-                case 'invest':
-                  return '📈 Grow Money Pot: Special savings that might grow bigger over time!';
-                default:
-                  return '';
-              }
-            };
-
-            return (
-              <Tooltip key={jar.label} content={getJarTooltip(jar.key)} position="top">
-                <View
-                  style={{
-                    backgroundColor: jar.color,
-                    borderRadius: 14,
-                    padding: 16,
-                    minWidth: 100,
-                    alignItems: "center",
-                    marginHorizontal: 8,
-                    marginBottom: 8,
-                    borderWidth: 1.2,
-                    borderColor: themeColors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: 25, marginBottom: 3 }}>{jar.icon}</Text>
-                  <Text style={{ fontWeight: "700", fontSize: 18, marginBottom: 3, color: themeColors.text }}>{formatAmount(jar.value)}</Text>
-                  <Text style={{ fontWeight: "bold", color: themeColors.text, fontSize: 13 }}>{jar.label}</Text>
-                </View>
-              </Tooltip>
-            );
-          })}
-        </View>
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: themeColors.primary }]}
-onPress={() => router.push('./money-jars')}
-          accessibilityRole="button"
-          accessibilityLabel="Manage money jars"
-          accessibilityHint="Navigate to the money jars screen to move points between different savings categories"
-        >
-          <Text style={[styles.actionButtonText, { color: themeColors.card }]}>See My Pots</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={dynamicStyles.quickActionCard}>
-        <Text style={dynamicStyles.sectionTitle}>What Can I Do?</Text>
-
-        {/* Quick Actions Buttons - Show two by default, expand to all */}
-        {(() => {
-          // Define actions in priority order
-          const actions = [
-            {
-              label: "Move Points Between Pots",
-              color: themeColors.warning,
-              onPress: () => router.push('./money-jars'),
-            },
-            {
-              label: "Check My Goals",
-              color: themeColors.success,
-              onPress: () => router.push('./goals'),
-            },
-            {
-              label: "Do Home Tasks for Points",
-              color: themeColors.secondary,
-              onPress: () => router.push('./chores'),
-            },
-            {
-              label: "Money Gyaan",
-              color: themeColors.error,
-              onPress: () => router.push('./learn'),
-            },
-            {
-              label: "Play Money Games",
-              color: themeColors.accent,
-              onPress: () => router.push('./games'),
-            }
-          ];
-          // Render buttons
-          const visibleCount = showMore ? actions.length : 2;
-          return (
-            <>
-              {actions.slice(0, visibleCount).map((a, i) => (
-                <TouchableOpacity
-                  key={a.label}
-                  style={[styles.actionButton, { backgroundColor: a.color }]}
-                  onPress={a.onPress}
-                  accessibilityRole="button"
-                  accessibilityLabel={a.label}
-                >
-                  <Text style={styles.actionButtonText}>{a.label}</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                onPress={() => setShowMore(v => !v)}
-                accessibilityRole="button"
-                style={{
-                  marginTop: 6,
-                  alignItems: 'center',
-                  padding: 10,
-                  borderRadius: 8,
-                  alignSelf: 'center',
-                  backgroundColor: themeColors.surface,
-                  borderWidth: 1,
-                  borderColor: themeColors.border,
-                  minWidth: 110,
-                }}
-              >
-                <Text style={{ fontWeight: 'bold', color: themeColors.primary, fontSize: 15 }}>
-                  {showMore ? "Show Less ▲" : "Show More ▼"}
-                </Text>
-              </TouchableOpacity>
-            </>
-          );
-        })()}
-
-      </View>
-
       {/* Recent Activity Feed */}
       <View style={dynamicStyles.quickActionCard}>
-        <Text style={dynamicStyles.sectionTitle}>What I Did Recently</Text>
+        <Text style={dynamicStyles.sectionTitle}>🎉 My Recent Adventures</Text>
 
         {recentActivities.length > 0 ? (
           recentActivities.map((activity, index) => (
@@ -1080,11 +1211,12 @@ onPress={() => router.push('./money-jars')}
             </View>
           ))
         ) : (
-          <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-            <Text style={{ fontSize: 16, color: themeColors.textSecondary, textAlign: 'center' }}>
-              🏆 Complete some chores or save some points to see your activities here!
-            </Text>
-          </View>
+          <EmptyStateWithAction
+            type="activities"
+            dynamicStyles={dynamicStyles}
+            themeColors={themeColors}
+            router={router}
+          />
         )}
 
         <TouchableOpacity

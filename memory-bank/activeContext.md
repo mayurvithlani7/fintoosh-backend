@@ -1,132 +1,115 @@
 # Active Context
 
-## Current Status: SECURITY REFACTORING IN AUTHENTICATION COMPLETED ✅
+## Current Project Status: Fintoosh Family Financial Education App - Fully Operational ✅
 
-**Server-side brute-force protection and rate limiting fully implemented for enhanced authentication security.**
+**Fintoosh is a comprehensive React Native/Expo mobile application that teaches children financial literacy through gamified family money management. The app includes dual dashboards for parents and children, money jar systems, chore/reward management, educational modules, analytics, and secure authentication.**
 
-## Completed Features
+## Current Architecture State
 
-### ✅ Centralized Server Logging (Backend: Node.js/Express)
-- **Winston Logger Setup**: JSON format logging with timestamp and service metadata
-- **Console Transport**: Colored output for all environments with custom format
-- **Sentry Integration**: Production error/warn level reporting with DSN configuration
-- **Request Logging Middleware**: Logs method, URL, IP, and User-Agent for every incoming request
-- **Final Error Handler**: Catches unhandled errors, logs full stack traces, sends generic 500 responses
-- **Environment-Aware Configuration**: Development vs production logging levels and Sentry activation
+### Core Application Features
+- **Dual User System**: Complete parent/child role-based authentication and dashboards
+- **Family Management**: Parent registration, child account creation, family grouping
+- **Financial System**: 5 money jars (Pocket, Savings, Spending, Donate, Invest) with automated point distribution
+- **Chore & Reward Management**: Task creation, approval workflows, point allocation
+- **Goal Tracking**: Savings goals with progress monitoring and achievement celebrations
+- **Educational Content**: Interactive learning modules on financial concepts
+- **Analytics Dashboard**: Spending insights, financial health assessment, data visualization
+- **Communication**: In-app messaging within request approval workflows
 
-### ✅ Client Crash Reporting (Frontend: React Native/Expo)
-- **Sentry-Expo Installation**: Crash reporting library installed and configured
-- **Early SDK Initialization**: Sentry initialized in _layout.tsx with DSN from environment variables
-- **Development Support**: enableInExpoDevelopment flag for testing crash reporting
-- **API Error Capturing**: Try-catch blocks added to critical API functions (chores, requests, transactions, users)
-- **Contextual Error Data**: Feature tags and extra metadata included with each error report
-- **Authentication Error Tracking**: Comprehensive error logging for all login/signup flows
-- **Comprehensive Coverage**: Error handling implemented for fetchChores, patchChore, submitRequest, createTransaction, patchUserPoints, fetchUser
-- **TypeScript Compatibility**: API-level error tracking implemented with proper error boundaries
-- **Login Error Tracking**: All authentication functions include detailed error logging with user context
+### Technical Infrastructure
+- **Frontend**: React Native 0.81.4 with Expo SDK 54, TypeScript, Expo Router navigation
+- **Backend**: Node.js/Express with MongoDB, JWT authentication, comprehensive API suite
+- **Security**: Brute force protection, rate limiting, encrypted token storage, OTP SMS verification
+- **Monitoring**: Winston logging, Sentry crash reporting, error tracking
+- **Development**: ESLint, automated testing scripts, environment management
 
-### ✅ Smarter Money Jar Automation
-- **Default Split Storage**: Family-level setting in User model with 100% validation
-- **Per-Chore Override**: Chore model with useDefaultSplit boolean + customSplit object
-- **Transaction Creation**: Multiple split transactions on chore approval
-- **UI Integration**: Point Automation section in parent settings + chore creation forms
+## Key Technical Decisions
 
-### ✅ Inter-Jar Requests and Approvals
-- **Context-Rich Requests**: ApprovalRequest model includes fromBalance/toBalance fields
-- **Enhanced Kid UI**: money-jars.tsx sends current balances with move requests
-- **Enhanced Parent UI**: requests.tsx shows Before & After Summary in approval modal
-- **Visual Impact Preview**: Color-coded balance changes (red decrease, green increase)
+### Authentication & Security
+- **Multi-level Auth**: Parent (email/OTP), Child (username/PIN) authentication flows
+- **Secure Storage**: Expo Secure Store for tokens, automatic migration from AsyncStorage
+- **Rate Limiting**: 100 req/15min general, 10 req/hour sensitive routes
+- **Brute Force Protection**: 5-attempt limit with 5-minute lockout per user
 
-### ✅ Teaching Milestones Gamification
-- **Parent Milestone Tracking**: teaching.tsx with auto-reward system for completed milestones
-- **Child Achievement Display**: learn.tsx "My Achievements" section showing unlocked badges
-- **Automatic Rewards**: Points and badges awarded to children when parents complete teaching milestones
-- **Feedback Loop**: Parent teaching efforts directly rewarded with child point/badget unlocks
+### Data Architecture
+- **Family-Centric**: All data scoped by familyId for proper isolation
+- **Hierarchical Permissions**: Parent full access, Child limited access, Elder view-only
+- **Comprehensive Models**: Users, Chores, Rewards, Goals, Transactions, Requests, Education modules
+- **Audit Trail**: All financial activities logged with metadata
 
-### ✅ In-App Communication (Requests)
-- **Message API**: New POST /requests/:requestId/messages endpoint
-- **Persistent Chat**: TextInput and Send button in both parent and child request views
-- **Status Preservation**: Messages sent without changing request approval status
-- **Real-time Updates**: Message threads display with sender identification and timestamps
+### Financial System
+- **Automated Distribution**: Parent-defined default splits with per-chore overrides
+- **Multi-Jar Transactions**: Split single rewards across multiple jars automatically
+- **Currency Flexibility**: Points or INR denomination with conversion rates
+- **Goal Integration**: Savings goals tied to jar balances with progress tracking
 
-### ✅ Security Refactoring in Authentication
-- **Server-Side Rate Limiting**: 100 requests per IP per 15 minutes for general routes, 10 requests per IP per hour for sensitive routes
-- **Account-Specific Brute Force Protection**: User model fields (loginAttempts, lockoutUntil) with 5-attempt limit and 5-minute lockout
-- **Enhanced Login Controllers**: Both parent and child login routes enforce brute force protection with proper error messaging
-- **Client-Side Integration**: Login UI handles lockout states and displays remaining attempts/lockout time
-- **Security Middleware**: Express rate limiting applied to all API routes with sensitive route restrictions
+### User Experience
+- **Responsive Design**: Optimized for mobile with theme support (light/dark)
+- **Progressive Disclosure**: Age-appropriate features and content
+- **Gamification**: Achievement badges, milestones, experience points
+- **Educational Focus**: Financial concepts taught through real family activities
 
-### ✅ Secure Token Storage (Client Refactoring)
-- **Expo Secure Store Integration**: Installed and configured expo-secure-store for encrypted device storage
-- **Secure Storage Utility**: Created utils/secureStorage.ts with saveAuthToken, getAuthToken, deleteAuthToken functions
-- **Automatic Migration**: One-time cleanup of existing tokens from AsyncStorage during first save
-- **Authentication Refactoring**: Updated login.tsx and settings.tsx to use secure token storage
-- **Device-Level Encryption**: Authentication tokens now protected with platform-specific secure storage (Keychain on iOS, EncryptedSharedPreferences on Android)
+## Recent Development Focus
 
-### ✅ Analytics Page Theme Compatibility
-- **Chart Color Refactoring**: Replaced all hardcoded colors in analytics charts with theme-aware color palettes
-- **Light/Dark Mode Support**: Charts now use different color schemes for light and dark themes
-- **Jar Distribution Colors**: Theme-compatible colors for Pocket Money, Savings Pot, Spending Pot, Help Others, Grow Money Pot
-- **Category Colors**: Theme-aware colors for spending categories (Food, Entertainment, Transportation, etc.)
-- **Pie Chart Updates**: Both analytics.tsx and AnalyticsChart.tsx components updated with dynamic color schemes
-- **High Contrast**: Ensured sufficient contrast between colors in both light and dark modes
+### Completed Infrastructure
+- ✅ **Security Hardening**: Rate limiting, brute force protection, secure token storage
+- ✅ **Error Monitoring**: Sentry integration for crash reporting and logging
+- ✅ **API Standardization**: Environment-aware configuration, consistent error handling
+- ✅ **Performance Optimization**: Intelligent caching, family-level data aggregation
 
-## Key Design Decisions Implemented
-- **Data Flow**: Kid requests → include balances → Parent sees before/after → Informed approval
-- **UI Patterns**: Consistent jar naming, clear visual hierarchy, responsive design
-- **Validation**: Server-side percentage validation, client-side real-time feedback
-- **Backward Compatibility**: Existing requests/chore work unchanged
-- **Message Architecture**: Messages append to existing request objects without status changes
-- **Goal Claim Status Persistence**: Goals with pending approval requests remain "pending" across app sessions
-- **Goal Deletion Feature**: Added delete buttons to both parent and child goal pages with proper status restrictions (only active goals can be deleted)
-- **Goal Approval Error Handling**: Fixed insufficient points error to display proper message to parent and reset goal status to "active" for child retry
+### Core Features Operational
+- ✅ **Authentication System**: Parent/child registration, OTP verification, secure login
+- ✅ **Family Onboarding**: Parent account creation, child management, initial setup
+- ✅ **Money Jar Management**: 5-jar system with transfers, balances, and automation
+- ✅ **Chore System**: Creation, assignment, completion, automated reward distribution
+- ✅ **Approval Workflows**: Request submission, parent review, messaging integration
+- ✅ **Goal Management**: Creation, progress tracking, achievement celebrations
+- ✅ **Analytics Engine**: Spending insights, predictions, financial health assessment
+- ✅ **Educational Modules**: Content delivery, progress tracking, adaptive learning
 
-## Validation Requirements Met
-- ✅ Split percentages total 100%
-- ✅ Non-negative percentages only
-- ✅ Default split required for family
-- ✅ Custom split optional per chore
-- ✅ Request balances included and displayed
-- ✅ Message threads functional and persistent
-- ✅ Achievement rewards automatic and tracked
+## Current Operational State
 
-## Edge Cases Handled
-- ✅ Legacy chores fallback to 100% Pocket Money
-- ✅ Invalid split data server validation
-- ✅ Zero balance requests
-- ✅ Same jar transfers prevented
-- ✅ Split calculation precision (Math.round)
-- ✅ Empty message handling
-- ✅ Message threading for all request types
+### Production Ready Features
+- **User Management**: Complete registration and authentication flows
+- **Financial Operations**: All money jar transactions, chore rewards, goal tracking
+- **Communication**: In-app messaging, request approvals, family coordination
+- **Learning**: Educational modules, achievement tracking, progress monitoring
+- **Analytics**: Comprehensive financial insights, data visualization, reporting
 
-## Testing Ready - All Features Complete
-- All APIs extended with validation
-- UI components have real-time feedback
-- Transaction creation handles all jar types
-- Error handling for edge cases
-- Backward compatibility maintained
-- Message functionality fully operational
-- Achievement system integrated and working
+### Maintenance & Monitoring
+- **Error Tracking**: Sentry monitoring for both frontend and backend
+- **Logging**: Winston structured logging with environment-specific levels
+- **Security**: Ongoing monitoring of authentication and API access patterns
+- **Performance**: Caching strategies, database optimization, API response times
 
-## ✅ FIXED: AI Financial Insights Projections Bug - Complete
-- **Issue**: "AI Financial Insights -- key Projections" showing 0 for spend pot and save pot despite having money
-- **Root Cause**: Analytics was only using first family member's jar balances instead of aggregating across all family members
-- **First Fix**: Created `processFamilyJarDistribution()` function that aggregates jar balances across all family members
-- **Second Fix**: Updated "Key Projections" to show predictions for next month instead of current amounts
-- **Third Fix**: Improved prediction algorithm to never show less than current balance when no recent activity
-- **Fourth Fix**: Removed "Next Month Spending" field, keeping only pot-specific predictions
-- **Impact**: Now shows "Next Month Savings Pot" and "Next Month Spending Pot" predictions that reflect actual family balances
-- **Files Modified**:
-  - `utils/analyticsEngine.ts` - Added family aggregation + conservative prediction calculations
-  - `components/SpendingInsights.tsx` - Updated UI to show only pot predictions
-  - `hooks/useAnalytics.ts` - Updated default prediction structure
-  - `fintoosh-backend/routes/data.js` - Added individual jar balances to analytics response
+## Next Development Priorities
 
-## Next Steps (Optional Future Enhancements)
-- Add split history visualization
-- Analytics on jar distribution effectiveness
-- Child education modules explaining splits
-- Export to Sheets functionality
-- Enhanced notification system
-- Message read receipts
-- Achievement sharing features
+### Potential Enhancements
+- **Enhanced Notifications**: Push notifications for approvals, reminders, achievements
+- **Offline Support**: Limited functionality when network unavailable
+- **Social Features**: Family sharing, achievement showcases, collaborative goals
+- **Advanced Analytics**: Trend analysis, predictive modeling, financial planning tools
+- **Content Expansion**: More educational modules, video content, interactive quizzes
+- **Integration APIs**: Bank connections, investment tracking, expense importing
+
+### Technical Improvements
+- **Testing Coverage**: Comprehensive unit and integration tests
+- **Performance Monitoring**: Real-time metrics, bottleneck identification
+- **Code Quality**: Additional linting rules, automated code review
+- **Documentation**: API documentation, user guides, developer onboarding
+
+## Development Workflow
+
+### Local Development Setup
+- **Backend**: `npm start` (runs on port 3000)
+- **Frontend**: `npm run start:mobile` (Expo development server)
+- **Database**: MongoDB connection via environment variables
+- **Environment**: Separate dev/prod configurations with proper secrets management
+
+### Deployment Process
+- **Build**: EAS Build for iOS/Android app store deployments
+- **Backend**: Traditional Node.js deployment with PM2 process management
+- **Monitoring**: Sentry and logging configured for production environments
+- **Security**: Environment variables and secrets properly configured
+
+This context represents the current operational state of Fintoosh as a fully functional family financial education platform.

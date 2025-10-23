@@ -5,7 +5,6 @@ const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const Goal = require('../models/Goal');
 const Chore = require('../models/Chore');
-const ChoreTemplate = require('../models/ChoreTemplate');
 const Transaction = require('../models/Transaction');
 const Reward = require('../models/Reward');
 const Achievement = require('../models/Achievement');
@@ -15,7 +14,6 @@ const FamilyDiscussion = require('../models/FamilyDiscussion');
 const FamilyTimeline = require('../models/FamilyTimeline');
 const DreamBoard = require('../models/DreamBoard');
 const Notification = require('../models/Notification');
-const { calculateNextDueDate } = require('../scripts/recurringTasksJob');
 const { auth, requireParent } = require('../middleware/auth');
 const {
   sanitizeInput,
@@ -1046,48 +1044,16 @@ router.post('/chores', auth, requireParent, async (req, res) => {
       }
     }
 
-    // Handle recurring tasks (frequency !== 'once')
-    if (frequency && frequency !== 'once') {
-      // Create recurring template
-      const template = new ChoreTemplate({
-        familyId: req.user.familyId,
-        parent: req.user._id,
-        user: child._id,
-        name,
-        description: description || '',
-        points,
-        frequency,
-        category: 'other', // Default category
-        nextInstanceDue: calculateNextDueDate(frequency, new Date()),
-        useDefaultSplit: useDefaultSplit !== undefined ? useDefaultSplit : true,
-        customSplit: customSplit || null
-      });
-
-      await template.save();
-
-      // Create first instance
-      const { createNextInstance } = require('../scripts/recurringTasksJob');
-      const firstInstance = await createNextInstance(template, new Date());
-
-      res.status(201).json({
-        template,
-        firstInstance,
-        message: `Recurring ${frequency} task created successfully`
-      });
-      return;
-    }
-
-    // Handle one-time tasks (frequency === 'once' or undefined)
     const choreData = {
       parent: req.user._id,
       user: child._id,
       name,
       points,
-      frequency: frequency || 'once'
     };
 
     // Add optional fields if provided
     if (description) choreData.description = description;
+    if (frequency) choreData.frequency = frequency;
     if (deadline) choreData.deadline = new Date(deadline);
     if (useDefaultSplit !== undefined) choreData.useDefaultSplit = useDefaultSplit;
     if (customSplit) choreData.customSplit = customSplit;

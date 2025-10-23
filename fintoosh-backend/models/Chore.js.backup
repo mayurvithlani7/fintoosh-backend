@@ -22,19 +22,6 @@ const choreSchema = new mongoose.Schema({
     invest: { type: Number, default: 0, min: 0, max: 100 }   // Grow Money Pot
   },
   status: { type: String, default: "active" }, // Ensure status field is present and defaults to 'active'
-
-  // Recurring task fields
-  isTemplate: { type: Boolean, default: false }, // Marks this as a recurring template instance
-  templateId: { type: String }, // Links instances to their template
-  instanceDate: { type: Date }, // When this instance was created
-  periodStart: { type: Date }, // Start of current period
-  periodEnd: { type: Date }, // End of current period
-  gracePeriodDays: { type: Number, default: 1 }, // Days before overdue
-  allowCarryOver: { type: Boolean, default: false }, // Carry to next period?
-  maxOverdueInstances: { type: Number, default: 3 }, // How many overdue to keep
-  lastInstanceCreated: { type: Date }, // For scheduling logic
-  nextInstanceDue: { type: Date }, // When to create next instance
-
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

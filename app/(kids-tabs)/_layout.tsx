@@ -5,6 +5,7 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ThemeToggle from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ACCESSIBILITY } from '@/constants/accessibility';
+import { fetchNotifications } from '@/utils/api';
 import { useNavigation } from '@/utils/navigationContext';
 import { ThemeProvider, useTheme } from '@/utils/themeContext';
 
@@ -111,6 +112,8 @@ function KidsTabLayoutInner() {
   const dataCache = require('@/utils/dataCacheContext').useDataCache();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationDrawerVisible, setNotificationDrawerVisible] = useState(false);
 
   // Check authentication and backend connectivity on mount
   useEffect(() => {
@@ -177,6 +180,30 @@ function KidsTabLayoutInner() {
     setTimeout(checkAuth, 100);
   }, []);
 
+  // Load notifications when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadNotifications();
+    }
+  }, [isAuthenticated]);
+
+  // Function to load notifications
+  const loadNotifications = async () => {
+    try {
+      const { getAuthToken, getUserData } = await import('@/utils/secureStorage');
+      const token = await getAuthToken();
+      const user = await getUserData();
+
+      if (token && user) {
+        const notifList = await fetchNotifications(user.id, token);
+        setNotifications(notifList || []);
+      }
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+      setNotifications([]);
+    }
+  };
+
   // Show loading or redirect while checking authentication
   if (isAuthenticated === null) {
     return (
@@ -204,41 +231,84 @@ function KidsTabLayoutInner() {
             fontWeight: 'bold',
             fontSize: 20,
           },
-          headerLeft: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <TouchableOpacity
-                onPress={() => {
-                  console.log('Hamburger pressed, setting activeModal to hamburger-menu');
-                  setActiveModal('hamburger-menu');
-                }}
-                style={{ padding: 10 }}
-                accessibilityRole="button"
-                accessibilityLabel="Open menu"
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: 24, fontWeight: 'bold', color: themeColors.text }}>☰</Text>
-              </TouchableOpacity>
-              <Text style={{
-                fontSize: 24,
-                fontWeight: '900',
-                letterSpacing: 0.5,
-                color: '#6A49F3',
-                marginLeft: 10,
-              }}>
-                Fintoosh
-              </Text>
-            </View>
-          ),
+          headerLeft: () => {
+            const unreadCount = notifications.filter(n => !n.isRead).length;
+            return (
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    console.log('Hamburger pressed, setting activeModal to hamburger-menu');
+                    setActiveModal('hamburger-menu');
+                  }}
+                  style={{ padding: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open menu"
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 24, fontWeight: 'bold', color: themeColors.text }}>☰</Text>
+                </TouchableOpacity>
+
+                {/* Notification Bell - moved to left side */}
+                <TouchableOpacity
+                  onPress={() => setNotificationDrawerVisible(true)}
+                  style={{
+                    marginLeft: 6,
+                    marginRight: 8,
+                    padding: 6,
+                    position: 'relative',
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+                >
+                  <Text style={{ fontSize: 18, color: themeColors.text }}>🔔</Text>
+                  {unreadCount > 0 && (
+                    <View style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      backgroundColor: themeColors.error,
+                      borderRadius: 8,
+                      minWidth: 16,
+                      height: 16,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 1.5,
+                      borderColor: themeColors.background,
+                    }}>
+                      <Text style={{
+                        color: '#FFF',
+                        fontSize: 10,
+                        fontWeight: 'bold'
+                      }}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <Text style={{
+                  fontSize: 20,
+                  fontWeight: '800',
+                  letterSpacing: 0.5,
+                  color: '#6A49F3',
+                }}>
+                  Fintoosh
+                </Text>
+              </View>
+            );
+          },
           headerRight: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
-              <ThemeToggle />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 6 }}>
+              <View style={{ transform: [{ scale: 0.8 }] }}>
+                <ThemeToggle />
+              </View>
               <TouchableOpacity
                 style={{
-                  marginLeft: 14,
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
+                  marginLeft: 8,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
                   backgroundColor: themeColors.error,
-                  borderRadius: 6,
+                  borderRadius: 5,
                 }}
                 onPress={async () => {
                   // Clear all persistent and secure user/session data and redirect to login
@@ -251,7 +321,7 @@ function KidsTabLayoutInner() {
                 accessibilityRole="button"
                 accessibilityLabel="Logout"
               >
-                <Text style={{ color: '#ffffff', fontWeight: "bold" }}>Logout</Text>
+                <Text style={{ color: '#ffffff', fontWeight: "bold", fontSize: 14 }}>Logout</Text>
               </TouchableOpacity>
             </View>
           ),
@@ -277,6 +347,118 @@ function KidsTabLayoutInner() {
         themeColors={themeColors}
         router={router}
       />
+
+      {/* Notification Drawer */}
+      <Modal
+        visible={notificationDrawerVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setNotificationDrawerVisible(false)}
+      >
+        <View style={styles.notificationOverlay}>
+          <TouchableOpacity
+            style={styles.notificationOverlayTouchable}
+            onPress={() => setNotificationDrawerVisible(false)}
+            activeOpacity={1}
+          >
+            <View style={[styles.notificationDrawer, { backgroundColor: themeColors.background }]}>
+              {/* Header */}
+              <View style={[styles.notificationHeader, { borderBottomColor: themeColors.border }]}>
+                <Text style={[styles.notificationTitle, { color: themeColors.text }]}>
+                  🔔 Notifications
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setNotificationDrawerVisible(false)}
+                  style={styles.closeButton}
+                >
+                  <Text style={{ fontSize: 24, color: themeColors.text }}>×</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Content */}
+              <View style={styles.notificationContent}>
+                {notifications.filter(n => !n.isRead).length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Text style={[styles.emptyStateText, { color: themeColors.textSecondary }]}>
+                      🎉 All caught up! No new notifications.
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    {/* Mark all as read button */}
+                    <View style={styles.notificationActions}>
+                      <TouchableOpacity
+                        style={[styles.markAllReadButton, { backgroundColor: themeColors.primary }]}
+                        onPress={async () => {
+                          try {
+                            const { getAuthToken, getUserData } = await import('@/utils/secureStorage');
+                            const token = await getAuthToken();
+                            const user = await getUserData();
+                            if (token && user) {
+                              await fetch(`${require('@/utils/config').API_URL}/notifications/mark-all-read?userId=${user.id}`, {
+                                method: "PATCH",
+                                headers: { "Authorization": "Bearer " + token }
+                              });
+                              setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                            }
+                          } catch (err) {
+                            console.error('Failed to mark all notifications as read:', err);
+                          }
+                        }}
+                      >
+                        <Text style={[styles.markAllReadText, { color: themeColors.card }]}>
+                          Mark All Read
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Notifications List */}
+                    {notifications
+                      .filter(n => !n.isRead)
+                      .slice(0, 10) // Show max 10 notifications
+                      .map((notification, index) => (
+                        <TouchableOpacity
+                          key={notification._id || index}
+                          style={[
+                            styles.notificationItem,
+                            { borderBottomColor: themeColors.border }
+                          ]}
+                          onPress={async () => {
+                            try {
+                              const { markNotificationRead } = await import('@/utils/api');
+                              const { getAuthToken } = await import('@/utils/secureStorage');
+                              const token = await getAuthToken();
+                              if (notification._id && token) {
+                                await markNotificationRead(notification._id, token);
+                                setNotifications(prev =>
+                                  prev.map(n =>
+                                    n._id === notification._id ? { ...n, isRead: true } : n
+                                  )
+                                );
+                              }
+                            } catch (err) {
+                              console.error('Failed to mark notification as read:', err);
+                            }
+                          }}
+                        >
+                          <View style={styles.notificationItemContent}>
+                            <Text style={[styles.notificationMessage, { color: themeColors.text }]}>
+                              {notification.message}
+                            </Text>
+                            <Text style={[styles.notificationTime, { color: themeColors.textSecondary }]}>
+                              {new Date(notification.createdAt || Date.now()).toLocaleDateString()}
+                            </Text>
+                          </View>
+                          <View style={[styles.unreadIndicator, { backgroundColor: themeColors.primary }]} />
+                        </TouchableOpacity>
+                      ))}
+                  </>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -349,6 +531,84 @@ const styles = StyleSheet.create({
   leftMenuItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  // Notification drawer styles
+  notificationOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  notificationOverlayTouchable: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  notificationDrawer: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    minHeight: 300,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+  },
+  notificationTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  notificationContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  notificationActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  markAllReadButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  markAllReadText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 5,
+    borderBottomWidth: 1,
+  },
+  notificationItemContent: {
+    flex: 1,
+  },
+  notificationMessage: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  notificationTime: {
+    fontSize: 12,
+  },
+  unreadIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 10,
   },
 });
 
