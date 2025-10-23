@@ -1834,6 +1834,35 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
   }
 });
 
+// Child-specific endpoint for viewing their own requests
+router.get('/my-requests', auth, async (req, res) => {
+  try {
+    // Only allow children to access their own requests
+    if (req.user.role !== 'child') {
+      return res.status(403).json({ message: 'This endpoint is only for children' });
+    }
+
+    const ApprovalRequest = require('../models/ApprovalRequest');
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Get requests where childId matches the authenticated child's userId
+    const requests = await ApprovalRequest.find({
+      childId: req.user.id,
+      $or: [
+        { createdAt: { $gte: thirtyDaysAgo } },
+        { actedAt: { $gte: thirtyDaysAgo } },
+        { updatedAt: { $gte: thirtyDaysAgo } }
+      ]
+    }).sort({ createdAt: -1 });
+
+    res.json(requests);
+  } catch (error) {
+    console.error('Error fetching child requests:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Send message on existing request without changing status
 router.post('/requests/:requestId/messages', auth, validateMessage, async (req, res) => {
   try {

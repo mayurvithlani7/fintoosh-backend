@@ -1,3 +1,5 @@
+import AnimatedCircularProgress from '@/components/animations/AnimatedCircularProgress';
+import AnimatedCounter from '@/components/animations/AnimatedCounter';
 import HelpModal from '@/components/HelpModal';
 import { RupeeDenominations } from '@/components/RupeeDenominations';
 import { API_URL } from '@/utils/config';
@@ -8,7 +10,7 @@ import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Alert,
   Modal,
@@ -20,6 +22,569 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+
+// Enhanced Jar Card with Progress Rings
+const EnhancedJarCard = ({ jar, totalPoints, goals }: {
+  jar: any;
+  totalPoints: number;
+  goals: any[];
+}) => {
+  const { themeColors } = useTheme();
+
+  const getProgressData = () => {
+    let progress: number;
+    let color: string;
+    let label: string;
+    let showRing: boolean;
+
+    switch (jar.key) {
+      case 'current':
+        // Pocket money spending limit (assume 30% of total)
+        const limit = totalPoints * 0.3;
+        const usage = limit > 0 ? (jar.value / limit) * 100 : 0;
+        progress = Math.min(usage, 100);
+        color = usage > 80 ? themeColors.warning : themeColors.success;
+        label = limit > 0 ? `${Math.round(usage)}% of limit` : 'No spending limit set';
+        showRing = true;
+        break;
+      case 'save':
+        // Savings goal progress
+        const savingsGoals = goals.filter(g => g.type === 'savings');
+        const target = savingsGoals.reduce((sum, g) => sum + (g.targetAmount || 0), 0);
+        progress = target > 0 ? (jar.value / target) * 100 : 0;
+        progress = Math.min(progress, 100);
+        color = themeColors.primary;
+        label = target > 0 ? `Goal: ${Math.round(progress)}%` : 'Set a savings goal!';
+        showRing = target > 0;
+        break;
+      case 'spend':
+        // Spending pot budget utilization
+        const budget = totalPoints * 0.15; // Assume 15% for spending
+        const utilization = budget > 0 ? (jar.value / budget) * 100 : 0;
+        progress = Math.min(utilization, 100);
+        color = utilization > 70 ? themeColors.warning : themeColors.accent;
+        label = budget > 0 ? `${Math.round(utilization)}% budget used` : 'Fun spending pot!';
+        showRing = true;
+        break;
+      case 'donate':
+        // Donation milestones
+        const milestones = [50, 100, 200, 500];
+        const currentMilestone = milestones.find(m => jar.value < m) || milestones[milestones.length - 1];
+        progress = currentMilestone > 0 ? (jar.value / currentMilestone) * 100 : 100;
+        progress = Math.min(progress, 100);
+        color = themeColors.secondary;
+        label = jar.value > 0 ? `${jar.value}/${currentMilestone} to next level!` : 'Start donating!';
+        showRing = jar.value > 0;
+        break;
+      case 'invest':
+        // Investment growth potential
+        const growth = jar.value * 0.05; // Assume 5% monthly growth
+        progress = jar.value > 0 ? 75 : 0; // Show potential when invested
+        progress = Math.min(progress, 100);
+        color = themeColors.success;
+        label = jar.value > 0 ? `Growing: +${Math.round(growth)}/month` : 'Start investing!';
+        showRing = jar.value > 0;
+        break;
+      default:
+        progress = 0;
+        color = themeColors.border;
+        label = '';
+        showRing = false;
+    }
+
+    return { progress, color, label, showRing };
+  };
+
+  const progressData = getProgressData();
+
+  return (
+    <View style={[{
+      minWidth: 85,
+      alignItems: "center",
+      padding: 8,
+      borderRadius: 8,
+      margin: 8,
+      borderWidth: 1,
+      borderColor: themeColors.border,
+      backgroundColor: jar.color || themeColors.surface,
+      position: 'relative' as any,
+      overflow: 'hidden' as any,
+    }]}>
+      {/* Progress Ring Background - positioned first so it appears behind */}
+      {progressData.showRing && (
+        <View style={{
+          position: 'absolute' as any,
+          top: 4,
+          left: 4,
+          right: 4,
+          bottom: 4,
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 0,
+        }}>
+          <AnimatedCircularProgress
+            size={70}
+            width={4}
+            fill={progressData.progress}
+            tintColor={progressData.color}
+            backgroundColor="transparent"
+            rotation={-90}
+          />
+        </View>
+      )}
+
+      {/* Jar Content - positioned on top */}
+      <View style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1,
+        paddingVertical: 8,
+      }}>
+        <Text style={{
+          fontSize: 25,
+          marginBottom: 3,
+          zIndex: 2,
+        }}>{jar.icon}</Text>
+        <AnimatedCounter value={jar.value} fontSize={22} />
+        <Text style={{
+          fontWeight: "bold",
+          marginBottom: 2,
+          color: themeColors.primary,
+          fontSize: 14,
+          textAlign: 'center',
+        }}>{jar.label}</Text>
+
+        {/* Progress Label */}
+        {progressData.label && (
+          <View style={{
+            backgroundColor: themeColors.surface + '90',
+            borderRadius: 6,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            marginTop: 2,
+            zIndex: 2,
+          }}>
+            <Text style={{
+              fontSize: 11,
+              fontWeight: 'bold',
+              textAlign: 'center',
+              color: progressData.color,
+            }}>
+              {progressData.label}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+};
+
+// Transfer Status Timeline Component
+const TransferTimeline = ({ requests, router }: { requests: any[]; router: any }) => {
+  const { themeColors } = useTheme();
+
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return {
+          icon: '⏳',
+          color: themeColors.warning,
+          text: 'Waiting for approval',
+          description: 'Your parent is reviewing your request'
+        };
+      case 'approved':
+        return {
+          icon: '✅',
+          color: themeColors.success,
+          text: 'Transfer complete!',
+          description: 'Points moved successfully'
+        };
+      case 'rejected':
+        return {
+          icon: '❌',
+          color: themeColors.error,
+          text: 'Request declined',
+          description: 'Check with your parent for details'
+        };
+      default:
+        return {
+          icon: '📤',
+          color: themeColors.textSecondary,
+          text: 'Submitted',
+          description: 'Request sent successfully'
+        };
+    }
+  };
+
+  return (
+    <View style={{
+      borderRadius: 14,
+      marginBottom: 16,
+      padding: 18,
+      minWidth: 300,
+      width: "97%",
+      maxWidth: 520,
+      elevation: 2,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      backgroundColor: themeColors.surface
+    }}>
+      <Text style={{
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 16,
+        textAlign: 'center',
+        color: themeColors.primary
+      }}>📋 Recent Transfers</Text>
+
+      {requests.length === 0 ? (
+        <Text style={{
+          textAlign: 'center',
+          color: themeColors.textSecondary,
+          fontSize: 16,
+          fontStyle: 'italic'
+        }}>
+          No transfer requests yet. Try moving some points!
+        </Text>
+      ) : (
+        requests.slice(0, 3).map((request, index) => {
+          const status = getStatusConfig(request.status);
+          return (
+            <View key={request._id || index} style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 8,
+              backgroundColor: themeColors.card,
+              borderWidth: 1,
+              borderColor: themeColors.border
+            }}>
+              <View style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: status.color + '20',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 12
+              }}>
+                <Text style={{ fontSize: 20 }}>{status.icon}</Text>
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  color: themeColors.text
+                }}>
+                  Move {request.amount} points
+                </Text>
+                <Text style={{
+                  fontSize: 14,
+                  color: status.color,
+                  fontWeight: '600'
+                }}>
+                  {status.text}
+                </Text>
+                <Text style={{
+                  fontSize: 12,
+                  color: themeColors.textSecondary
+                }}>
+                  {new Date(request.createdAt || request.date).toLocaleDateString()}
+                </Text>
+              </View>
+
+              {request.status === 'approved' && (
+                <View style={{
+                  backgroundColor: themeColors.success,
+                  borderRadius: 12,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4
+                }}>
+                  <Text style={{
+                    color: themeColors.card,
+                    fontSize: 12,
+                    fontWeight: 'bold'
+                  }}>Approved!</Text>
+                </View>
+              )}
+            </View>
+          );
+        })
+      )}
+
+      {requests.length > 3 && (
+        <TouchableOpacity
+          style={{
+            backgroundColor: themeColors.primary,
+            borderRadius: 8,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            alignItems: 'center',
+            marginTop: 8
+          }}
+          onPress={() => router.push('./transaction-history')}
+        >
+          <Text style={{
+            color: themeColors.card,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }}>View All Transfers →</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+// Smart Allocation Coach Component
+const AllocationCoach = ({ jars, router, scrollToMovePoints }: {
+  jars: any[];
+  router: any;
+  scrollToMovePoints?: () => void;
+}) => {
+  const { themeColors } = useTheme();
+
+  const getAllocationInsights = () => {
+    const total = jars.reduce((sum, jar) => sum + jar.value, 0);
+    if (total === 0) return { current: {}, ideal: {}, recommendations: [] };
+
+    const current = jars.reduce((acc, jar) => {
+      acc[jar.key] = (jar.value / total) * 100;
+      return acc;
+    }, {} as any);
+
+    // Ideal allocations based on age/financial literacy level
+    const ideal = {
+      current: 30, // Pocket money for immediate needs
+      save: 40,    // Savings for goals
+      spend: 15,   // Discretionary spending
+      donate: 10,  // Charitable giving
+      invest: 5    // Long-term investing
+    };
+
+    const recommendations = [];
+    if (current.save < ideal.save) {
+      recommendations.push({
+        type: 'savings',
+        message: 'Consider moving more to Savings for your goals!',
+        action: 'Boost Savings',
+        icon: '🐷'
+      });
+    }
+    if (current.current > ideal.current) {
+      recommendations.push({
+        type: 'spending',
+        message: 'You have plenty for spending - save some for later!',
+        action: 'Save More',
+        icon: '💰'
+      });
+    }
+    if (current.spend > ideal.spend) {
+      recommendations.push({
+        type: 'balance',
+        message: 'Try balancing your spending with saving!',
+        action: '',
+        icon: '⚖️'
+      });
+    }
+
+    return { current, ideal, recommendations };
+  };
+
+  const insights = getAllocationInsights();
+
+  return (
+    <View style={{
+      borderRadius: 14,
+      marginBottom: 16,
+      padding: 18,
+      minWidth: 300,
+      width: "97%",
+      maxWidth: 520,
+      elevation: 2,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      backgroundColor: themeColors.surface
+    }}>
+      <Text style={{
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 16,
+        textAlign: 'center',
+        color: themeColors.primary
+      }}>
+        🎯 Smart Allocation Coach
+      </Text>
+
+      {/* Current vs Ideal Comparison - Simplified Bar Chart */}
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{
+          fontSize: 16,
+          fontWeight: "600",
+          marginBottom: 12,
+          textAlign: 'center',
+          color: themeColors.text
+        }}>Your Current Balance:</Text>
+        {jars.map(jar => {
+          const percentage = insights.current[jar.key] || 0;
+          return (
+            <View key={jar.key} style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 8,
+            }}>
+              <Text style={{
+                fontSize: 20,
+                marginRight: 8,
+                width: 30,
+                textAlign: 'center',
+                color: themeColors.text
+              }}>{jar.icon}</Text>
+              <Text style={{
+                fontSize: 14,
+                flex: 1,
+                color: themeColors.text
+              }}>{jar.label}</Text>
+              <View style={{
+                flex: 2,
+                height: 8,
+                backgroundColor: themeColors.border,
+                borderRadius: 4,
+                marginHorizontal: 8,
+                overflow: 'hidden',
+              }}>
+                <View
+                  style={{
+                    height: '100%',
+                    width: `${percentage}%`,
+                    borderRadius: 4,
+                    backgroundColor: jar.color || themeColors.primary
+                  }}
+                />
+              </View>
+              <Text style={{
+                fontSize: 12,
+                fontWeight: 'bold',
+                width: 35,
+                textAlign: 'right',
+                color: themeColors.text
+              }}>
+                {Math.round(percentage)}%
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Recommendations */}
+      {insights.recommendations.length > 0 && (
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{
+            fontSize: 16,
+            fontWeight: "600",
+            marginBottom: 8,
+            color: themeColors.text
+          }}>
+            💡 Smart Suggestions:
+          </Text>
+          {insights.recommendations.map((rec, index) => (
+            <View
+              key={index}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 12,
+                borderRadius: 8,
+                marginBottom: 8,
+                backgroundColor: themeColors.card,
+                borderWidth: 1,
+                borderColor: themeColors.border
+              }}
+            >
+              <Text style={{
+                fontSize: 24,
+                marginRight: 12,
+              }}>{rec.icon}</Text>
+              <Text style={{
+                flex: 1,
+                fontSize: 14,
+                color: themeColors.text
+              }}>
+                {rec.message}
+              </Text>
+              {rec.action ? (
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: 'bold',
+                  color: themeColors.primary
+                }}>
+                  {rec.action} →
+                </Text>
+              ) : null}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Quick Actions */}
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 8,
+      }}>
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 8,
+            alignItems: 'center',
+            elevation: 1,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 2,
+            backgroundColor: themeColors.secondary
+          }}
+          onPress={scrollToMovePoints}
+        >
+          <Text style={{
+            fontSize: 14,
+            fontWeight: 'bold',
+            color: themeColors.card
+          }}>⚖️ Balance Jars</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 8,
+            alignItems: 'center',
+            elevation: 1,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 2,
+            backgroundColor: themeColors.success
+          }}
+          onPress={() => router.push('./goals')}
+        >
+          <Text style={{
+            fontSize: 14,
+            fontWeight: 'bold',
+            color: themeColors.card
+          }}>🎯 My Goals</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
@@ -112,13 +677,129 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   formBtn: { backgroundColor: themeColors.warning, padding: 14, borderRadius: 8, marginTop: 7, marginHorizontal: 4, alignSelf: "flex-end" },
   formBtnText: { fontWeight: "700", color: themeColors.text, fontSize: 15 },
   placeholder: { color: themeColors.textSecondary, fontStyle: "italic", fontSize: 15, marginBottom: 2, marginTop: 2, minHeight: 26 },
-  statusMessage: { fontSize: 15, fontWeight: "600", marginTop: 3, color: themeColors.success }
+  statusMessage: { fontSize: 15, fontWeight: "600", marginTop: 3, color: themeColors.success },
+  // Allocation Coach Styles
+  allocationCoach: {
+    borderRadius: 14,
+    marginBottom: 16,
+    padding: 18,
+    minWidth: 300,
+    width: "97%",
+    maxWidth: 520,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  coachTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  allocationChart: {
+    marginBottom: 16,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  chartRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  jarEmoji: {
+    fontSize: 20,
+    marginRight: 8,
+    width: 30,
+    textAlign: 'center',
+  },
+  jarName: {
+    fontSize: 14,
+    flex: 1,
+  },
+  progressBar: {
+    flex: 2,
+    height: 8,
+    backgroundColor: themeColors.border,
+    borderRadius: 4,
+    marginHorizontal: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  percentage: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    width: 35,
+    textAlign: 'right',
+  },
+  recommendationsSection: {
+    marginBottom: 16,
+  },
+  recommendationsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  recommendationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  recommendationIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  recommendationText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  recommendationAction: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  quickActionBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
 
 export default function MoneyJarsScreen() {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const { formatAmount, showDenominations, convertToINR, interestRule } = useCurrency();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [jars, setJars] = useState([
     { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
     { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🐷' },
@@ -129,8 +810,14 @@ export default function MoneyJarsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [optimisticRequests, setOptimisticRequests] = useState<any[]>([]);
+  const [transferRequests, setTransferRequests] = useState<any[]>([]);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const router = useRouter();
+
+  const scrollToMovePoints = () => {
+    // Scroll to the very end of the content to show the complete Move Points section
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  };
 
   const loadUserData = async (showErrors = true) => {
     try {
@@ -184,12 +871,50 @@ export default function MoneyJarsScreen() {
   useFocusEffect(
     React.useCallback(() => {
       loadUserData();
+      loadTransferRequests();
     }, [])
   );
+
+  const loadTransferRequests = async () => {
+    try {
+      const token = await getAuthToken();
+      const storedUser = await AsyncStorage.getItem('user');
+
+      if (!token || !storedUser) return;
+
+      const user = JSON.parse(storedUser);
+      const userId = user.id;
+
+      console.log('Loading transfer requests for user:', userId);
+
+      // Use the child-specific endpoint that allows children to view their own requests
+      const response = await fetch(`${API_URL}/my-requests`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('API response status:', response.status);
+
+      if (response.ok) {
+        const requests = await response.json();
+        console.log('Loaded requests:', requests);
+        setTransferRequests(requests);
+      } else {
+        console.log('Failed to load requests:', response.statusText);
+        // For now, set empty array if we can't load requests
+        setTransferRequests([]);
+      }
+    } catch (error) {
+      console.error('Error loading transfer requests:', error);
+      setTransferRequests([]);
+    }
+  };
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await loadUserData(false);
+    await loadTransferRequests();
   }, []);
 
   if (loading) {
@@ -208,6 +933,7 @@ export default function MoneyJarsScreen() {
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       contentContainerStyle={styles.container}
       style={{ backgroundColor: themeColors.background }}
       refreshControl={
@@ -267,12 +993,12 @@ export default function MoneyJarsScreen() {
           onPress={onRefresh}
           disabled={refreshing}
           accessibilityRole="button"
-          accessibilityLabel={refreshing ? "Refreshing money pot points" : "Refresh money pot points"}
+          accessibilityLabel={refreshing ? "Updating money pot points" : "Update money pot points"}
           accessibilityHint="Double tap to reload your current point balances"
           accessibilityState={{ disabled: refreshing }}
         >
           <Text style={[styles.formBtnText, { color: themeColors.card }]}>
-            {refreshing ? 'Refreshing...' : '🔄 Refresh Points'}
+            {refreshing ? 'Updating...' : '🔄 Update the Points'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -313,8 +1039,21 @@ export default function MoneyJarsScreen() {
         ))}
       </View>
 
+      {/* SMART ALLOCATION COACH */}
+      <AllocationCoach
+        jars={jars}
+        router={router}
+        scrollToMovePoints={scrollToMovePoints}
+      />
+
+      {/* TRANSFER TIMELINE */}
+      <TransferTimeline
+        requests={transferRequests}
+        router={router}
+      />
+
       {/* MOVE POINTS SECTION */}
-      <MovePointsSection jars={jars} setJars={setJars} />
+      <MovePointsSection jars={jars} setJars={setJars} onRequestSubmitted={loadTransferRequests} />
 
       {/* Help Modal */}
       <HelpModal
@@ -451,9 +1190,10 @@ export default function MoneyJarsScreen() {
 /**
  * Move Points Section
  */
-function MovePointsSection({ jars, setJars }: {
+function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
   jars: { key: string; label: string; value: number; color: string; icon: string }[],
-  setJars: React.Dispatch<React.SetStateAction<any>>
+  setJars: React.Dispatch<React.SetStateAction<any>>,
+  onRequestSubmitted?: () => void
 }) {
   const { themeColors } = useTheme();
   const [amount, setAmount] = React.useState("");
@@ -640,6 +1380,8 @@ function MovePointsSection({ jars, setJars }: {
       }
 
       setStatus({ type: "ok", msg: "Request sent to parent for approval! ✅" });
+      // Refresh the transfer requests list
+      onRequestSubmitted?.();
       setTimeout(() => setStatus(null), 3000);
 
     } catch (error) {
