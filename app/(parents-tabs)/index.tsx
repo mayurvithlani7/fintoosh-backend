@@ -243,10 +243,11 @@ export default function ParentsOverviewScreen() {
           frequency: interestRule?.frequency
         });
 
-        // Use interestRule if available, otherwise use default for demo purposes
-        const effectiveInterestRule = interestRule || { rate: 2.5, frequency: 'weekly' as const, jar: 'save' };
+        // Only show interest section if interest is configured and rate > 0
+        const effectiveInterestRule = interestRule;
+        const shouldShowInterest = effectiveInterestRule && effectiveInterestRule.rate > 0 && childData && childData.savePoints > 0;
 
-        return childData && childData.savePoints > 0 ? (
+        return shouldShowInterest ? (
           <InterestMotivator
             nextPayout={{
               amount: Math.max(1, Math.round(childData.savePoints * (effectiveInterestRule.rate / 100))), // Calculate next payout amount

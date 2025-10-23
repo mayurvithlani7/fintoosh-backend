@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const InterestRule = require('../models/InterestRule');
 const InterestTransaction = require('../models/InterestTransaction');
 const User = require('../models/User');
