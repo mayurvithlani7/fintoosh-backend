@@ -3215,11 +3215,11 @@ router.delete('/chores/:choreId', auth, async (req, res) => {
 });
 
 /**
- * POST /api/run-recurring-jobs
+ * GET/POST /api/run-recurring-jobs
  * Manually trigger the recurring tasks job (for testing or manual runs)
- * This endpoint can be called from cron-job.org, GitHub Actions, or manually
+ * This endpoint can be called from cron-job.org, GitHub Actions, browsers, or manually
  */
-router.post('/run-recurring-jobs', (req, res) => {
+const handleRunRecurringJobs = (req, res) => {
   console.log('🔄 Running recurring tasks job via API trigger at', new Date().toISOString());
 
   const { runRecurringTasksJob } = require('../scripts/recurringTasksJob');
@@ -3244,6 +3244,9 @@ router.post('/run-recurring-jobs', (req, res) => {
         timestamp: new Date().toISOString()
       });
     });
-});
+};
+
+router.get('/run-recurring-jobs', handleRunRecurringJobs);
+router.post('/run-recurring-jobs', handleRunRecurringJobs);
 
 module.exports = router;
