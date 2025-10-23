@@ -1211,22 +1211,48 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             </View>
           ))
         ) : (
-          <EmptyStateWithAction
-            type="activities"
-            dynamicStyles={dynamicStyles}
-            themeColors={themeColors}
-            router={router}
-          />
+          <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 16 }}>
+              🚀 Ready for your first adventure?
+            </Text>
+            <Text style={{ fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20 }}>
+              Complete chores, claim rewards, or set goals to see your activities here!
+            </Text>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 16 }}>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: themeColors.secondary, flex: 1, marginHorizontal: 4 }]}
+                onPress={() => router.push('./chores')}
+              >
+                <Text style={[styles.actionButtonText, { fontSize: 14 }]}>Do Tasks</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: themeColors.success, flex: 1, marginHorizontal: 4 }]}
+                onPress={() => router.push('./goals')}
+              >
+                <Text style={[styles.actionButtonText, { fontSize: 14 }]}>Set Goals</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: themeColors.accent, marginTop: 8 }]}
+              onPress={() => router.push('./transaction-history')}
+            >
+              <Text style={[styles.actionButtonText, { fontSize: 14 }]}>View All History 📊</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: themeColors.accent, marginTop: 15 }]}
-onPress={() => router.push('./transaction-history')}
-        >
-          <Text style={[styles.actionButtonText, { color: themeColors.card }]}>
-            See All Activities 📊
-          </Text>
-        </TouchableOpacity>
+        {recentActivities.length > 0 && (
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: themeColors.accent, marginTop: 15 }]}
+            onPress={() => router.push('./transaction-history')}
+          >
+            <Text style={[styles.actionButtonText, { color: themeColors.card }]}>
+              See All Activities 📊
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Help Modal */}

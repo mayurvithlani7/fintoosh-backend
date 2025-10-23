@@ -1,3 +1,4 @@
+import Confetti from '@/components/animations/Confetti';
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { fetchTransactions } from "@/utils/api";
@@ -18,6 +19,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import Animated from 'react-native-reanimated';
 
 let DateTimePicker: any = null;
 if (Platform.OS !== "web") {
@@ -139,8 +141,249 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
 });
 
+// Enhanced Transaction Achievement System
+const getTransactionAchievement = (tx: any) => {
+  const type = tx.type;
+  const amount = tx.amount;
+  const description = tx.description || '';
+
+  // Achievement badges based on transaction type and amount
+  switch (type) {
+    case 'chore-completed':
+      if (amount >= 100) return { badge: '🏆 Super Helper!', color: '#FFD700', story: 'Amazing work on that big tasks!' };
+      if (amount >= 50) return { badge: '🧹 Clean Champion!', color: '#4CAF50', story: 'You did an awesome job!' };
+      return { badge: '⭐ Helper Star!', color: '#2196F3', story: 'Thanks for helping out!' };
+
+    case 'goal-completion':
+      if (amount >= 500) return { badge: '🏆 Goal Master!', color: '#FFD700', story: 'Huge achievement unlocked!' };
+      if (amount >= 200) return { badge: '🎯 Target Crusher!', color: '#FF9800', story: 'You hit your goal perfectly!' };
+      return { badge: '🎉 Goal Getter!', color: '#E91E63', story: 'Great job reaching your goal!' };
+
+    case 'reward-purchase':
+      if (amount <= -200) return { badge: '🎁 Big Spender!', color: '#9C27B0', story: 'Enjoy your awesome reward!' };
+      return { badge: '💝 Prize Winner!', color: '#FF5722', story: 'You earned this reward!' };
+
+    case 'points-move':
+      return { badge: '🔄 Money Mover!', color: '#607D8B', story: 'Smart money management!' };
+
+    case 'interest-payout':
+      return { badge: '💰 Money Grower!', color: '#4CAF50', story: 'Your money is growing!' };
+
+    case 'parent-points-adjustment':
+      if (amount > 0) return { badge: '🎁 Parent Gift!', color: '#E91E63', story: 'Special surprise from parents!' };
+      return { badge: '⚖️ Balance Fix!', color: '#FF9800', story: 'Account adjustment made.' };
+
+    default:
+      return { badge: amount > 0 ? '✨ Points Earned!' : '💰 Points Spent!', color: '#9E9E9E', story: 'Transaction completed.' };
+  }
+};
+
+// Expandable Transaction Card Component
+const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
+  tx: any;
+  themeColors: any;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) => {
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [reaction, setReaction] = useState<string | null>(null);
+
+  const achievement = getTransactionAchievement(tx);
+
+  useEffect(() => {
+    if (tx.amount > 0 && Math.random() < 0.1) { // 10% chance for celebration
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 2000);
+    }
+  }, [tx.amount]);
+
+  const quickReactions = ['👍', '🎉', '💪', '😊', '🌟'];
+
+  return (
+    <View style={{ marginBottom: 4 }}>
+      {/* Main Transaction Row */}
+      <TouchableOpacity
+        style={[
+          {
+            backgroundColor: themeColors.surface,
+            borderRadius: 12,
+            marginBottom: 4,
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 10,
+            paddingHorizontal: 14,
+            borderLeftWidth: 4,
+            borderLeftColor: tx.amount > 0 ? themeColors.success : themeColors.error,
+            elevation: 1,
+            shadowColor: themeColors.border,
+          }
+        ]}
+        onPress={onToggle}
+        activeOpacity={0.7}
+      >
+        {/* Achievement Badge */}
+        <View style={{
+          backgroundColor: achievement.color + '20',
+          borderRadius: 16,
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+          marginRight: 10,
+          borderWidth: 1,
+          borderColor: achievement.color + '40'
+        }}>
+          <Text style={{
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: achievement.color
+          }}>
+            {achievement.badge}
+          </Text>
+        </View>
+
+        {/* Transaction Info */}
+        <View style={{ flex: 1 }}>
+          <Text style={{
+            fontSize: 14,
+            fontWeight: '600',
+            color: themeColors.text,
+            marginBottom: 2
+          }}>
+            {tx.amount > 0 ? '+' : ''}{tx.amount} points
+          </Text>
+          <Text style={{
+            fontSize: 12,
+            color: themeColors.textSecondary
+          }}>
+            {(tx.date || tx.createdAt || "").slice(0, 10)}
+          </Text>
+        </View>
+
+        {/* Expand Indicator */}
+        <Text style={{
+          fontSize: 16,
+          color: themeColors.primary,
+          fontWeight: 'bold'
+        }}>
+          {isExpanded ? '▼' : '▶'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Expanded Details */}
+      {isExpanded && (
+        <Animated.View
+          style={{
+            backgroundColor: themeColors.card,
+            borderRadius: 12,
+            padding: 16,
+            marginLeft: 20,
+            marginRight: 4,
+            marginBottom: 8,
+            borderWidth: 1,
+            borderColor: themeColors.border,
+          }}
+        >
+          {/* Achievement Story */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 12,
+            padding: 8,
+            backgroundColor: achievement.color + '10',
+            borderRadius: 8
+          }}>
+            <Text style={{ fontSize: 20, marginRight: 8 }}>{achievement.badge.split(' ')[0]}</Text>
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.text,
+              flex: 1
+            }}>
+              {achievement.story}
+            </Text>
+          </View>
+
+          {/* Transaction Details */}
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.text,
+              marginBottom: 4
+            }}>
+              <Text style={{ fontWeight: 'bold' }}>Details:</Text> {
+                (tx.description || typeLabels[tx.type] || tx.type)
+                  .replace(/current/g, 'Pocket Money')
+                  .replace(/save/g, 'Savings Pot')
+                  .replace(/spend/g, 'Spending Pot')
+                  .replace(/donate/g, 'Help Others Pot')
+                  .replace(/invest/g, 'Grow Money Pot')
+                  .replace(/\sjar/g, '')
+              }
+            </Text>
+
+            {tx.fromJar && (
+              <Text style={{
+                fontSize: 12,
+                color: themeColors.textSecondary
+              }}>
+                From: {tx.fromJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot')}
+              </Text>
+            )}
+
+            {(tx.toJar || tx.type === "points-move") && (
+              <Text style={{
+                fontSize: 12,
+                color: themeColors.textSecondary
+              }}>
+                To: {tx.toJar ? tx.toJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot') : 'Different Pot'}
+              </Text>
+            )}
+          </View>
+
+          {/* Quick Reactions */}
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{
+              fontSize: 12,
+              color: themeColors.textSecondary,
+              marginBottom: 6
+            }}>
+              How do you feel about this?
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {quickReactions.map((emoji) => (
+                <TouchableOpacity
+                  key={emoji}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: reaction === emoji ? themeColors.primary + '20' : themeColors.surface,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: reaction === emoji ? themeColors.primary : themeColors.border
+                  }}
+                  onPress={() => setReaction(reaction === emoji ? null : emoji)}
+                >
+                  <Text style={{ fontSize: 16 }}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Confetti Celebration */}
+      {showConfetti && (
+        <Confetti
+          duration={2000}
+          onComplete={() => setShowConfetti(false)}
+        />
+      )}
+    </View>
+  );
+};
+
 const typeLabels: { [key: string]: string } = {
-  "chore-completion": "Task",
+  "chore-completed": "Task",
   "goal-completion": "Goal",
   "reward-purchase": "Reward",
   "points-move": "Move",
@@ -154,14 +397,11 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
 
   const typeOptions = [
     { label: 'All', value: '' },
-    { label: 'Task', value: 'chore-completion' },
+    { label: 'Task', value: 'chore-completed' },
     { label: 'Goal', value: 'goal-completion' },
     { label: 'Reward', value: 'reward-purchase' },
     { label: 'Move', value: 'points-move' },
-    { label: 'Points Request', value: 'points-request' },
-    { label: 'Adjustment', value: 'parent-points-adjustment' },
-    { label: 'Interest Payout', value: 'interest-payout' },
-    { label: 'Others', value: 'others' }
+    { label: 'Adjustment', value: 'parent-points-adjustment' }
   ];
 
   const selectedLabel = typeOptions.find(opt => opt.value === value)?.label || 'All';
@@ -184,14 +424,11 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
         }}
       >
         <option value="">All</option>
-        <option value="chore-completion">Task</option>
+        <option value="chore-completed">Task</option>
         <option value="goal-completion">Goal</option>
         <option value="reward-purchase">Reward</option>
         <option value="points-move">Move</option>
-        <option value="points-request">Points Request</option>
         <option value="parent-points-adjustment">Adjustment</option>
-        <option value="interest-payout">Interest Payout</option>
-        <option value="others">Others</option>
       </select>
     );
   }
@@ -391,6 +628,9 @@ export default function TransactionHistoryScreen() {
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
+  // Expanded transaction state management
+  const [expandedTransactionId, setExpandedTransactionId] = useState<string | null>(null);
+
   const loadTransactions = async (isBackground = false, page = 1) => {
     if (!isBackground) setLoading(true);
     try {
@@ -403,7 +643,9 @@ export default function TransactionHistoryScreen() {
       if (fetchTransactions) {
         const result = await fetchTransactions(userId, token, page);
         if (page === 1) {
-          setTransactions(result.transactions || []);
+          const txns = result.transactions || [];
+          console.log('Loaded transactions:', txns.map(tx => ({ type: tx.type, amount: tx.amount, description: tx.description })));
+          setTransactions(txns);
         } else {
           setTransactions(prev => [...prev, ...(result.transactions || [])]);
         }
@@ -574,69 +816,17 @@ export default function TransactionHistoryScreen() {
               index
             })}
             renderItem={({ item: tx }) => (
-              <View
-                style={[
-                  styles.txRow,
-                  {
-                    borderLeftColor:
-                      tx.amount > 0 ? themeColors.success :
-                      tx.amount < 0 ? themeColors.error : themeColors.border
-                  }
-                ]}
-              >
-                {tx.type === "interest-payout" ? (
-                  <>
-                    <Text
-                      style={[
-                        styles.txAmount,
-                        { color: themeColors.success }
-                      ]}
-                    >
-                      +{tx.amount}
-                    </Text>
-                    <Text style={styles.txDesc}>
-                      Interest Payout
-                    </Text>
-                    <Text style={[styles.txJar, { color: themeColors.success }]}>
-                      Savings Pot
-                    </Text>
-                    <Text style={styles.txDate}>
-                      {(tx.date || tx.createdAt || "").slice(0, 10)}
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text
-                      style={[
-                        styles.txAmount,
-                        { color: tx.amount > 0 ? themeColors.success : tx.amount < 0 ? themeColors.error : themeColors.text }
-                      ]}
-                    >
-                      {tx.amount > 0 ? "+" : tx.amount < 0 ? "" : ""}
-                      {tx.amount}
-                    </Text>
-                    <Text style={styles.txDesc}>
-                      {(tx.description || typeLabels[tx.type] || tx.type)
-                        .replace(/current/g, 'Pocket Money')
-                        .replace(/save/g, 'Savings Pot')
-                        .replace(/spend/g, 'Spending Pot')
-                        .replace(/donate/g, 'Help Others Pot')
-                        .replace(/invest/g, 'Grow Money Pot')
-                        .replace(/\sjar/g, '')}
-                    </Text>
-                    <Text style={styles.txJar}>
-                      {tx.fromJar
-                        ? `→ ${tx.fromJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot')}`
-                        : tx.type === "points-move" && tx.toJar
-                        ? `→ ${tx.toJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot')}`
-                        : ""}
-                    </Text>
-                    <Text style={styles.txDate}>
-                      {(tx.date || tx.createdAt || "").slice(0, 10)}
-                    </Text>
-                  </>
-                )}
-              </View>
+              <TransactionCard
+                tx={tx}
+                themeColors={themeColors}
+                isExpanded={expandedTransactionId === (tx._id || tx.id)}
+                onToggle={() => {
+                  setExpandedTransactionId((prev: any) => {
+                    const txId = tx._id || tx.id;
+                    return prev === txId ? null : txId;
+                  });
+                }}
+              />
             )}
             ListEmptyComponent={
               <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>
@@ -740,7 +930,7 @@ export default function TransactionHistoryScreen() {
               {
                 type: "highlight",
                 text: "Every point tells part of your awesome story!",
-                icon: "📖"
+                icon: "�"
               }
             ]
           }

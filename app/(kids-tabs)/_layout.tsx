@@ -1,6 +1,6 @@
 import { Redirect, Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import ThemeToggle from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -376,16 +376,17 @@ function KidsTabLayoutInner() {
               </View>
 
               {/* Content */}
-              <View style={styles.notificationContent}>
-                {notifications.filter(n => !n.isRead).length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={[styles.emptyStateText, { color: themeColors.textSecondary }]}>
-                      🎉 All caught up! No new notifications.
-                    </Text>
-                  </View>
-                ) : (
-                  <>
-                    {/* Mark all as read button */}
+              <ScrollView style={styles.notificationContent} showsVerticalScrollIndicator={false}>
+              {notifications.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={[styles.emptyStateText, { color: themeColors.textSecondary }]}>
+                    🎉 All caught up! No notifications yet.
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  {/* Mark all as read button - only show if there are unread notifications */}
+                  {notifications.filter(n => !n.isRead).length > 0 && (
                     <View style={styles.notificationActions}>
                       <TouchableOpacity
                         style={[styles.markAllReadButton, { backgroundColor: themeColors.primary }]}
@@ -411,19 +412,21 @@ function KidsTabLayoutInner() {
                         </Text>
                       </TouchableOpacity>
                     </View>
+                  )}
 
-                    {/* Notifications List */}
-                    {notifications
-                      .filter(n => !n.isRead)
-                      .slice(0, 10) // Show max 10 notifications
-                      .map((notification, index) => (
-                        <TouchableOpacity
-                          key={notification._id || index}
-                          style={[
-                            styles.notificationItem,
-                            { borderBottomColor: themeColors.border }
-                          ]}
-                          onPress={async () => {
+                  {/* Notifications List - Show all notifications, not just unread */}
+                  {notifications
+                    .slice(0, 15) // Show max 15 notifications
+                    .map((notification, index) => (
+                      <TouchableOpacity
+                        key={notification._id || index}
+                        style={[
+                          styles.notificationItem,
+                          { borderBottomColor: themeColors.border }
+                        ]}
+                        onPress={async () => {
+                          // Only mark as read if it's currently unread
+                          if (!notification.isRead) {
                             try {
                               const { markNotificationRead } = await import('@/utils/api');
                               const { getAuthToken } = await import('@/utils/secureStorage');
@@ -439,22 +442,32 @@ function KidsTabLayoutInner() {
                             } catch (err) {
                               console.error('Failed to mark notification as read:', err);
                             }
-                          }}
-                        >
-                          <View style={styles.notificationItemContent}>
-                            <Text style={[styles.notificationMessage, { color: themeColors.text }]}>
-                              {notification.message}
-                            </Text>
-                            <Text style={[styles.notificationTime, { color: themeColors.textSecondary }]}>
-                              {new Date(notification.createdAt || Date.now()).toLocaleDateString()}
-                            </Text>
-                          </View>
+                          }
+                        }}
+                      >
+                        <View style={styles.notificationItemContent}>
+                          <Text style={[
+                            styles.notificationMessage,
+                            {
+                              color: themeColors.text,
+                              opacity: notification.isRead ? 0.7 : 1,
+                              fontWeight: notification.isRead ? '400' : '600'
+                            }
+                          ]}>
+                            {notification.message}
+                          </Text>
+                          <Text style={[styles.notificationTime, { color: themeColors.textSecondary }]}>
+                            {new Date(notification.createdAt || Date.now()).toLocaleDateString()}
+                          </Text>
+                        </View>
+                        {!notification.isRead && (
                           <View style={[styles.unreadIndicator, { backgroundColor: themeColors.primary }]} />
-                        </TouchableOpacity>
-                      ))}
-                  </>
-                )}
-              </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                </>
+              )}
+              </ScrollView>
             </View>
           </TouchableOpacity>
         </View>

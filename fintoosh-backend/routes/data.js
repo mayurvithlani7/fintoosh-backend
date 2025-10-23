@@ -1825,7 +1825,25 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           user[pointsField] -= target;
           await user.save();
           goal.status = 'completed'; // Mark as completed/claimed
+          goal.achieved = true;
+          goal.achievedAt = new Date();
+          goal.updatedAt = new Date();
           await goal.save();
+
+          // Create transaction for goal completion
+          const txn = new Transaction({
+            type: 'goal-completion',
+            description: `Parent approved goal "${goal.name}" completion, ${target} points from ${jar}`,
+            amount: -target,
+            user: user._id,
+            toJar: jar,
+            reference: goal._id,
+            date: new Date().toLocaleString()
+          });
+          await txn.save();
+          user.transactions = user.transactions || [];
+          user.transactions.unshift(txn._id);
+          await user.save();
         }
       }
     }

@@ -1,3 +1,4 @@
+import Confetti from '@/components/animations/Confetti';
 import HelpModal from '@/components/HelpModal';
 import { API_URL } from '@/utils/config';
 import { getAuthToken } from '@/utils/secureStorage';
@@ -7,13 +8,477 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, Dimensions, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+// Mobile-Optimized Status Indicator Component
+const StatusIndicator = ({ status, createdAt, themeColors }: {
+  status: string;
+  createdAt: string;
+  themeColors: any;
+}) => {
+  const screenWidth = Dimensions.get('window').width;
+  const isMobile = screenWidth < 400;
+
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [bounceAnim] = useState(new Animated.Value(1));
+
+  useEffect(() => {
+    if (status === 'Approved') {
+      setShowConfetti(true);
+      Animated.sequence([
+        Animated.timing(bounceAnim, { toValue: 1.05, duration: 120, useNativeDriver: true }),
+        Animated.timing(bounceAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [status]);
+
+  const getStatusConfig = (status: string) => {
+    const now = new Date();
+    const requestDate = new Date(createdAt);
+    const hoursElapsed = (now.getTime() - requestDate.getTime()) / (1000 * 60 * 60);
+
+    switch (status) {
+      case 'Pending':
+        const progress = Math.min(hoursElapsed / 24, 1);
+        return {
+          icon: '⏳',
+          color: themeColors.warning,
+          bgColor: themeColors.warning + '12',
+          text: isMobile ? 'Pending' : 'Waiting for approval',
+          subtext: isMobile ? '' : (progress > 0.5 ? 'Reviewing soon' : 'Submitted recently'),
+          showProgress: true,
+          progress: progress,
+          tooltip: 'Parents review requests carefully to teach patience and planning!',
+        };
+      case 'Approved':
+        return {
+          icon: '✅',
+          color: themeColors.success,
+          bgColor: themeColors.success + '12',
+          text: 'Approved!',
+          subtext: isMobile ? '' : 'Great job!',
+          showProgress: true,
+          progress: Math.min(hoursElapsed / 24, 1),
+          tooltip: 'Approved requests show you\'re learning to manage money responsibly.',
+        };
+      case 'Denied':
+        return {
+          icon: '❌',
+          color: themeColors.error,
+          bgColor: themeColors.error + '12',
+          text: 'Not approved',
+          subtext: isMobile ? '' : 'Try again later',
+          showProgress: true,
+          progress: Math.min(hoursElapsed / 24, 1),
+          tooltip: 'Sometimes requests need more planning. This helps you learn about budgeting!',
+        };
+      default:
+        return {
+          icon: '📝',
+          color: themeColors.textSecondary,
+          bgColor: themeColors.border + '12',
+          text: 'Submitted',
+          subtext: isMobile ? '' : 'Waiting to be reviewed',
+          showProgress: false,
+          tooltip: 'Your request has been sent to your parents for review.',
+        };
+    }
+  };
+
+  const config = getStatusConfig(status);
+
+  return (
+    <View style={{ marginTop: isMobile ? 4 : 8 }}>
+      <Animated.View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: config.bgColor,
+          borderRadius: isMobile ? 8 : 12,
+          paddingHorizontal: isMobile ? 6 : 10,
+          paddingVertical: isMobile ? 4 : 6,
+          gap: isMobile ? 4 : 6,
+          borderWidth: 1,
+          borderColor: config.color + '25',
+          transform: [{ scale: status === 'Approved' ? bounceAnim : 1 }],
+          maxWidth: isMobile ? 120 : 160,
+        }}
+      >
+        <Text style={{ fontSize: isMobile ? 14 : 16 }}>{config.icon}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{
+            color: config.color,
+            fontWeight: '600',
+            fontSize: isMobile ? 10 : 12,
+            textAlign: 'center'
+          }}>
+            {config.text}
+          </Text>
+          {config.subtext && !isMobile && (
+            <Text style={{
+              color: config.color,
+              fontSize: 9,
+              textAlign: 'center',
+              opacity: 0.7
+            }}>
+              {config.subtext}
+            </Text>
+          )}
+        </View>
+      </Animated.View>
+
+      {/* Simple Progress Bar for Pending Requests */}
+      {config.showProgress && config.progress !== undefined && config.progress > 0 && (
+        <View style={{ marginTop: 3, alignItems: 'center', flexDirection: 'row' }}>
+          <View style={{
+            height: 3,
+            width: isMobile ? 80 : 100,
+            backgroundColor: themeColors.border + '50',
+            borderRadius: 1.5,
+            borderWidth: 0.5,
+            borderColor: themeColors.border + '30',
+            overflow: 'hidden',
+            flexDirection: 'row'
+          }}>
+            <View style={{
+              height: '100%',
+              width: `${Math.min(config.progress * 100, 100)}%`,
+              backgroundColor: config.color,
+              borderRadius: 1.5
+            }} />
+          </View>
+        </View>
+      )}
+
+      {/* Confetti Animation for Approved */}
+      {showConfetti && (
+        <Confetti
+          duration={1200}
+          onComplete={() => setShowConfetti(false)}
+        />
+      )}
+    </View>
+  );
+};
+
+// Enhanced Message Input Component with Emoji Support
+const EnhancedMessageInput = ({
+  requestId,
+  value,
+  onChangeText,
+  onSend,
+  themeColors
+}: {
+  requestId: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  onSend: (text: string) => Promise<void>;
+  themeColors: any;
+}) => {
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showQuickResponses, setShowQuickResponses] = useState(false);
+
+  const emojiCategories = {
+    'Faces': ['😊', '🙏', '😢', '😮', '🥺', '😍', '🤔', '😅', '🙂', '😉'],
+    'Hearts': ['❤️', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️'],
+    'Hands': ['👋', '🙌', '👍', '👎', '👏', '🙏', '🤝', '✌️', '🤞', '🤟'],
+    'Objects': ['🎉', '🎊', '🎈', '🎁', '💰', '💸', '🤑', '💎', '🔑', '📝']
+  };
+
+  const quickResponses = [
+    { text: 'Thank you! 🙏', category: 'polite' },
+    { text: 'Can I try again? 🔄', category: 'polite' },
+    { text: 'I understand 😊', category: 'polite' },
+    { text: 'That makes sense! 💡', category: 'polite' },
+    { text: 'I\'ll be more careful next time ⚠️', category: 'polite' },
+    { text: 'Please explain why? 🤔', category: 'question' },
+    { text: 'What can I do better? 📈', category: 'question' },
+    { text: 'I\'m excited! 🎉', category: 'positive' },
+    { text: 'Great job helping me learn! 🌟', category: 'positive' }
+  ];
+
+  const handleEmojiSelect = (emoji: string) => {
+    onChangeText(value + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleQuickResponseSelect = (response: string) => {
+    onChangeText(response);
+    setShowQuickResponses(false);
+  };
+
+  const handleSend = async () => {
+    const text = value.trim();
+    if (!text) return;
+    await onSend(text);
+  };
+
+  return (
+    <View style={{ marginTop: 8 }}>
+      {/* Communication Coaching Tip */}
+      <View style={{
+        backgroundColor: themeColors.primary + '15',
+        borderRadius: 12,
+        padding: 8,
+        marginBottom: 8,
+        flexDirection: 'row',
+        alignItems: 'center'
+      }}>
+        <Text style={{ fontSize: 16, marginRight: 8 }}>💬</Text>
+        <Text style={{
+          fontSize: 12,
+          color: themeColors.primary,
+          fontWeight: '600',
+          flex: 1
+        }}>
+          Remember to be polite and respectful when messaging your parents!
+        </Text>
+      </View>
+
+      {/* Quick Response Templates */}
+      <View style={{ marginBottom: 8 }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: themeColors.secondary,
+            borderRadius: 16,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            alignSelf: 'flex-start'
+          }}
+          onPress={() => setShowQuickResponses(!showQuickResponses)}
+        >
+          <Text style={{
+            fontSize: 12,
+            color: themeColors.card,
+            fontWeight: '600'
+          }}>
+            💭 Quick Responses {showQuickResponses ? '▼' : '▶'}
+          </Text>
+        </TouchableOpacity>
+
+        {showQuickResponses && (
+          <View style={{
+            backgroundColor: themeColors.surface,
+            borderRadius: 12,
+            padding: 12,
+            marginTop: 8,
+            borderWidth: 1,
+            borderColor: themeColors.border
+          }}>
+            <Text style={{
+              fontSize: 14,
+              fontWeight: '600',
+              marginBottom: 8,
+              color: themeColors.text
+            }}>
+              Choose a polite response:
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {quickResponses.map((response, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={{
+                    backgroundColor: themeColors.card,
+                    borderRadius: 16,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderWidth: 1,
+                    borderColor: themeColors.border
+                  }}
+                  onPress={() => handleQuickResponseSelect(response.text)}
+                >
+                  <Text style={{
+                    fontSize: 12,
+                    color: themeColors.text
+                  }}>
+                    {response.text}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Message Input Container */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: 8,
+        marginBottom: 8
+      }}>
+        <View style={{ flex: 1 }}>
+          <TextInput
+            style={{
+              borderWidth: 1,
+              borderColor: themeColors.border,
+              borderRadius: 20,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              fontSize: 16,
+              maxHeight: 100,
+              textAlignVertical: 'top',
+              backgroundColor: themeColors.surface,
+              color: themeColors.text
+            }}
+            placeholder="Type your message..."
+            placeholderTextColor={themeColors.textSecondary}
+            value={value}
+            onChangeText={onChangeText}
+            multiline={true}
+            maxLength={500}
+          />
+
+          {/* Character Counter */}
+          <Text style={{
+            fontSize: 10,
+            color: themeColors.textSecondary,
+            textAlign: 'right',
+            marginTop: 2,
+            marginRight: 8
+          }}>
+            {value.length}/500
+          </Text>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          {/* Emoji Button */}
+          <TouchableOpacity
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: themeColors.secondary,
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+          >
+            <Text style={{ fontSize: 18 }}>😊</Text>
+          </TouchableOpacity>
+
+          {/* Voice Message Button (Placeholder) */}
+          <TouchableOpacity
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: themeColors.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: themeColors.border
+            }}
+            onPress={() => {
+              Alert.alert(
+                'Voice Messages',
+                'Voice messages will be available soon! For now, use text with emojis to express yourself.',
+                [{ text: 'OK' }]
+              );
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>🎤</Text>
+          </TouchableOpacity>
+
+          {/* Send Button */}
+          <TouchableOpacity
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              borderRadius: 20,
+              minWidth: 60,
+              alignItems: 'center',
+              backgroundColor: value.trim() ? themeColors.primary : themeColors.border,
+            }}
+            onPress={handleSend}
+            disabled={!value.trim()}
+          >
+            <Text style={{
+              color: themeColors.card,
+              fontWeight: '600',
+              fontSize: 14
+            }}>
+              Send
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Emoji Picker Modal */}
+      {showEmojiPicker && (
+        <View style={{
+          backgroundColor: themeColors.surface,
+          borderRadius: 12,
+          padding: 16,
+          marginTop: 8,
+          borderWidth: 1,
+          borderColor: themeColors.border
+        }}>
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 12
+          }}>
+            <Text style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: themeColors.text
+            }}>
+              Choose an emoji 😊
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowEmojiPicker(false)}
+              style={{ padding: 4 }}
+            >
+              <Text style={{ fontSize: 18, color: themeColors.text }}>×</Text>
+            </TouchableOpacity>
+          </View>
+
+          {Object.entries(emojiCategories).map(([category, emojis]) => (
+            <View key={category} style={{ marginBottom: 12 }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: themeColors.primary,
+                marginBottom: 6
+              }}>
+                {category}
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {emojis.map((emoji) => (
+                  <TouchableOpacity
+                    key={emoji}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: themeColors.card,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: themeColors.border
+                    }}
+                    onPress={() => handleEmojiSelect(emoji)}
+                  >
+                    <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
-  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 18, marginTop: 6, color: themeColors.primary },
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, width: '95%', maxWidth: 480, elevation: 3, shadowColor: themeColors.border },
   sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
   placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
   requestText: { fontSize: 16, marginBottom: 8, color: themeColors.text },
@@ -109,6 +574,86 @@ export default function KidsRequestsScreen() {
       case 'Approved': return '✅';
       case 'Denied': return '❌';
       default: return '❓';
+    }
+  };
+
+  // Kid-friendly request type converter
+  const getKidFriendlyRequestType = (type: string) => {
+    switch (type) {
+      case 'chore': return 'Task';
+      case 'goal-completion': return 'Goal Achievement';
+      case 'move-points': return 'Jar Transfer';
+      case 'reward': return 'Prize Claim';
+      case 'points': return 'Allowance';
+      default: return type.charAt(0).toUpperCase() + type.slice(1);
+    }
+  };
+
+  // Kid-friendly request name simplifier
+  const getKidFriendlyRequestName = (type: string, name: string) => {
+    switch (type) {
+      case 'chore':
+        // Remove "Chore: " prefix and make it more personal
+        return name.replace(/^Chore:\s*/i, '').replace(/^I completed the chore:\s*/i, '');
+      case 'goal-completion':
+        // Make goal completions more celebratory
+        return name.replace(/^Goal:\s*/i, '').replace(/^I have completed my goal to save/i, 'I saved');
+      case 'move-points':
+        // Keep move-points as-is since they're already clear
+        return name;
+      case 'reward':
+        // Keep rewards as-is
+        return name;
+      default:
+        return name;
+    }
+  };
+
+  // Kid-friendly reason simplifier
+  const getKidFriendlyReason = (type: string, reason: string) => {
+    if (!reason) return '';
+
+    switch (type) {
+      case 'chore':
+        return reason.replace(/^I completed the chore:\s*/i, 'I finished ').replace(/^I completed/i, 'I finished');
+      case 'goal-completion':
+        return reason.replace(/^I have completed my goal to save/i, 'I saved').replace(/points in the (\w+) jar/i, 'points!');
+      case 'move-points':
+        return reason.replace(/^Child requested to move/i, 'I want to move');
+      case 'reward':
+        return reason.replace(/^Child requested/i, 'I want to claim');
+      default:
+        return reason;
+    }
+  };
+
+  // Kid-friendly relative date formatter
+  const getKidFriendlyDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+    // Format time in 12-hour format
+    const timeString = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    if (diffInDays === 0) {
+      return `Today at ${timeString}`;
+    } else if (diffInDays === 1) {
+      return `Yesterday at ${timeString}`;
+    } else if (diffInDays < 7) {
+      return `${diffInDays} days ago at ${timeString}`;
+    } else {
+      // For older dates, show a simplified format
+      const month = date.toLocaleDateString('en-US', { month: 'short' });
+      const day = date.getDate();
+      return `${month} ${day} at ${timeString}`;
     }
   };
 
@@ -274,17 +819,15 @@ export default function KidsRequestsScreen() {
             {filteredRequests.map(request => (
               <View key={request.id} style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={styles.sectionTitle}>{request.type} Request</Text>
-                  <View style={{
-                    flexDirection: 'row', alignItems: 'center', backgroundColor: getStatusColor(request.status),
-                    borderRadius: 18, paddingHorizontal: 10, paddingVertical: 4, gap: 5
-                  }}>
-                    <Text style={{ color: themeColors.card, fontSize: 17 }}>{getStatusIcon(request.status)}</Text>
-                    <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>{request.status}</Text>
-                  </View>
+                  <Text style={styles.sectionTitle}>{getKidFriendlyRequestType(request.type)} Request</Text>
+                  <StatusIndicator
+                    status={request.status}
+                    createdAt={request.createdAt}
+                    themeColors={themeColors}
+                  />
                 </View>
                 <Text style={styles.requestText}>
-                  <Text style={styles.boldText}>Request:</Text> {request.name}
+                  <Text style={styles.boldText}>Request:</Text> {getKidFriendlyRequestName(request.type, request.name)}
                 </Text>
                 {request.amount && (
                   <Text style={styles.requestText}>
@@ -293,11 +836,11 @@ export default function KidsRequestsScreen() {
                 )}
                 {request.reason && (
                   <Text style={styles.requestText}>
-                    <Text style={styles.boldText}>Reason:</Text> {request.reason}
+                    <Text style={styles.boldText}>What I did:</Text> {getKidFriendlyReason(request.type, request.reason)}
                   </Text>
                 )}
                 <Text style={[styles.requestText, { color: themeColors.textSecondary }]}>
-                  <Text style={styles.boldText}>Requested:</Text> {new Date(request.createdAt).toLocaleDateString()} at {new Date(request.createdAt).toLocaleTimeString()}
+                  <Text style={styles.boldText}>Asked:</Text> {getKidFriendlyDateTime(request.createdAt)}
                 </Text>
 
                 {/* Message Thread */}
@@ -318,56 +861,43 @@ export default function KidsRequestsScreen() {
                       </View>
                     ))}
 
-                    {/* Message Input - child can always add message */}
-                    <View style={styles.messageInputContainer}>
-                      <TextInput
-                        style={[styles.messageInput, { backgroundColor: themeColors.surface, color: themeColors.text }]}
-                        placeholder="Type your message..."
-                        placeholderTextColor={themeColors.textSecondary}
-                        value={messageInput[request.id] || ''}
-                        onChangeText={(text) => setMessageInput(prev => ({ ...prev, [request.id]: text }))}
-                        multiline={true}
-                        maxLength={500}
-                      />
-                      <TouchableOpacity
-                        style={[styles.sendButton, { backgroundColor: themeColors.primary }]}
-                        onPress={async () => {
-                          const text = messageInput[request.id]?.trim();
-                          if (!text) return;
-
-                          try {
-                            const token = await getAuthToken();
-                            if (!token) {
-                              Alert.alert('Error', 'Not authenticated. Please login again.');
-                              return;
-                            }
-                            const response = await fetch(`${API_URL}/requests/${request.id}/messages`, {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`,
-                              },
-                              body: JSON.stringify({ text }),
-                            });
-
-                            if (!response.ok) throw new Error('Failed to send message');
-                            const newMessage = await response.json();
-                            setRequests(prev => prev.map(req =>
-                              req.id === request.id
-                                ? { ...req, messages: [...(req.messages || []), newMessage.newMessage] }
-                                : req
-                            ));
-                            setMessageInput(prev => ({ ...prev, [request.id]: '' }));
-                            loadRequests();
-                          } catch (error) {
-                            console.error('Error sending message:', error);
-                            Alert.alert('Error', 'Failed to send message. Please try again.');
+                    {/* Enhanced Message Input - child can always add message */}
+                    <EnhancedMessageInput
+                      requestId={request.id}
+                      value={messageInput[request.id] || ''}
+                      onChangeText={(text) => setMessageInput(prev => ({ ...prev, [request.id]: text }))}
+                      onSend={async (text) => {
+                        try {
+                          const token = await getAuthToken();
+                          if (!token) {
+                            Alert.alert('Error', 'Not authenticated. Please login again.');
+                            return;
                           }
-                        }}
-                      >
-                        <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>Send</Text>
-                      </TouchableOpacity>
-                    </View>
+                          const response = await fetch(`${API_URL}/requests/${request.id}/messages`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ text }),
+                          });
+
+                          if (!response.ok) throw new Error('Failed to send message');
+                          const newMessage = await response.json();
+                          setRequests(prev => prev.map(req =>
+                            req.id === request.id
+                              ? { ...req, messages: [...(req.messages || []), newMessage.newMessage] }
+                              : req
+                          ));
+                          setMessageInput(prev => ({ ...prev, [request.id]: '' }));
+                          loadRequests();
+                        } catch (error) {
+                          console.error('Error sending message:', error);
+                          Alert.alert('Error', 'Failed to send message. Please try again.');
+                        }
+                      }}
+                      themeColors={themeColors}
+                    />
                   </View>
                 )}
               </View>
@@ -444,29 +974,33 @@ export default function KidsRequestsScreen() {
             ]
           },
           {
-            title: "Request Status",
+            title: "Request Status & Progress",
             content: [
               {
                 type: "text",
-                text: "Each request has a status:",
+                text: "Each request has fun status indicators and progress tracking:",
                 icon: "📊"
               },
               {
                 type: "bullet",
-                text: "⏳ Pending - Waiting for parent to decide"
+                text: "🚀 Pending - Shows rocket stages and time remaining!"
               },
               {
                 type: "bullet",
-                text: "✅ Approved - Parent said yes!"
+                text: "🎉 Approved - Celebration with confetti animation!"
               },
               {
                 type: "bullet",
-                text: "❌ Denied - Parent said no this time"
+                text: "🌱 Denied - Gentle encouragement to try again"
+              },
+              {
+                type: "bullet",
+                text: "📊 Progress bars show how long requests have been waiting"
               },
               {
                 type: "highlight",
-                text: "Approved requests add points to your account!",
-                icon: "🎉"
+                text: "Tap any status for helpful tips about money management!",
+                icon: "💡"
               }
             ]
           },
@@ -502,29 +1036,33 @@ export default function KidsRequestsScreen() {
             ]
           },
           {
-            title: "Messages",
+            title: "Enhanced Communication",
             content: [
               {
                 type: "text",
-                text: "Sometimes parents send messages:",
+                text: "Express yourself with fun communication tools:",
                 icon: "💬"
               },
               {
                 type: "bullet",
-                text: "Blue bubbles - Messages you sent"
+                text: "😊 Emoji picker - Add emojis to show feelings!"
               },
               {
                 type: "bullet",
-                text: "Purple bubbles - Messages from parents"
+                text: "💭 Quick responses - Choose polite pre-made messages"
               },
               {
                 type: "bullet",
-                text: "Shows date and time"
+                text: "🎤 Voice messages - Coming soon!"
+              },
+              {
+                type: "bullet",
+                text: "💬 Polite reminders - Tips for respectful communication"
               },
               {
                 type: "highlight",
-                text: "Talk nicely with your parents through messages!",
-                icon: "🙂"
+                text: "Communication helps you learn and build better relationships!",
+                icon: "❤️"
               }
             ]
           }

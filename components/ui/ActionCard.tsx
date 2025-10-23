@@ -47,6 +47,15 @@ export const ActionCard: React.FC<ActionCardProps> = ({
   const currentTextStyle = sizeTextStyles[size];
   const currentIconStyle = sizeIconStyles[size];
 
+  // Build accessibility label safely
+  let accessibilityLabel = title;
+  if (subtitle) {
+    accessibilityLabel += `, ${subtitle}`;
+  }
+  if (badge && badge !== 0) {
+    accessibilityLabel += `, ${badge} items`;
+  }
+
   return (
     <TouchableOpacity
       style={[
@@ -62,15 +71,19 @@ export const ActionCard: React.FC<ActionCardProps> = ({
       disabled={disabled}
       activeOpacity={0.8}
       accessibilityRole="button"
-      accessibilityLabel={`${title}${subtitle ? `, ${subtitle}` : ''}${badge ? `, ${badge} items` : ''}`}
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
     >
       {/* Badge */}
-      {badge && (
+      {typeof badge === 'number' && badge > 0 ? (
+        <View style={[styles.badge, { backgroundColor: themeColors.error }]}>
+          <Text style={styles.badgeText}>{badge.toString()}</Text>
+        </View>
+      ) : typeof badge === 'string' && badge.length > 0 ? (
         <View style={[styles.badge, { backgroundColor: themeColors.error }]}>
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
-      )}
+      ) : null}
 
       {/* Icon */}
       <Text style={[currentIconStyle, { color: themeColors.card }]}>{icon}</Text>

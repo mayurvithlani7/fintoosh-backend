@@ -1,15 +1,12 @@
 import HelpModal from '@/components/HelpModal';
 import SkeletonJar from '@/components/ui/SkeletonJar';
-import { fetchNotifications, markNotificationRead } from '@/utils/api';
 import { useCurrency } from '@/utils/currencyContext';
 import { useDataCache } from '@/utils/dataCacheContext';
-import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Alert, Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 /**
  * Calculate a readable next interest payout date string.
@@ -79,23 +76,7 @@ export default function ParentsOverviewScreen() {
     pots: true,          // Expanded by default - core child status
   });
 
-  // Utility for persisting "cleared at" time
-  const NOTIF_CLEARED_KEY = 'parents_notifications_cleared_at';
 
-  // Notifications state
-  const [notifications, setNotifications] = useState<{ _id?: string; message: string; isRead?: boolean }[]>([]);
-  const [notifLoading, setNotifLoading] = useState(true);
-  const [notifError, setNotifError] = useState<string | null>(null);
-  // Local persistent state: suppress notifications if cleared until new ones arrive
-  const [notificationsSuppressed, setNotificationsSuppressed] = useState<boolean>(false);
-
-  // On mount, check if persisted clear is present
-  React.useEffect(() => {
-    (async () => {
-      const clearedAt = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
-      setNotificationsSuppressed(!!clearedAt);
-    })();
-  }, []);
 
   // Progressive loading states
   const [loadingPhase, setLoadingPhase] = useState<'critical' | 'secondary' | 'complete'>('critical');
@@ -114,7 +95,6 @@ export default function ParentsOverviewScreen() {
 
         // Then load secondary data with delay
         setTimeout(() => {
-          loadNotifications();
           setLoadingPhase('complete');
         }, 100);
       };
@@ -133,73 +113,9 @@ export default function ParentsOverviewScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchChildData(true).finally(() => setRefreshing(false));
-    loadNotifications();
   }, [fetchChildData]);
 
-  // Handle notification press - separate function to avoid issues in renderItem
-  const handleNotificationPress = useCallback(async (notif: { _id?: string; message: string; isRead?: boolean }) => {
-    try {
-      const currentUserStr = await AsyncStorage.getItem('user');
-      const token = await getAuthToken();
-      if (notif._id && token && currentUserStr) {
-        await markNotificationRead(notif._id, token);
-        await loadNotifications();
-      }
-    } catch (err) {
-      // Silent fail for notification marking
-    }
-    router.push('/(parents-tabs)/requests');
-  }, [router]);
 
-  // Use context only in components, not in event/callback bodies!
-  // childData is now handled globally (cache), no local error/loading for jars panel needed
-
-  // Fetch parent notifications
-  const loadNotifications = async () => {
-    try {
-      setNotifError(null);
-      setNotifLoading(true);
-      const currentUserStr = await AsyncStorage.getItem('user');
-      const token = await getAuthToken();
-      if (!currentUserStr || !token) {
-        setNotifications([]);
-        setNotifLoading(false);
-        return;
-      }
-      const currentUser = JSON.parse(currentUserStr);
-      if (!currentUser.id) {
-        setNotifications([]);
-        setNotifLoading(false);
-        return;
-      }
-      const notifList = await fetchNotifications(currentUser.id, token);
-      setNotifications(notifList || []);
-    // If there are new notifications, unsuppress if ANY notification is newer than clear time
-    if (notifList && notifList.length > 0) {
-      const clearedAtStr = await AsyncStorage.getItem(NOTIF_CLEARED_KEY);
-      if (clearedAtStr) {
-        const clearedTime = Number(clearedAtStr);
-        // Show notifications if ANY notification arrived after clearing
-        const hasNewAfterClear = notifList.some((n: any) =>
-          n.createdAt && Number(new Date(n.createdAt)) > clearedTime
-        );
-        if (hasNewAfterClear) {
-          setNotificationsSuppressed(false);
-          await AsyncStorage.removeItem(NOTIF_CLEARED_KEY);
-        }
-      }
-    }
-    } catch {
-      setNotifError("Failed to load notifications.");
-      setNotifications([]);
-    } finally {
-      setNotifLoading(false);
-    }
-  };
-
-
-
-  // Remove legacy error UI (now handled via global snackbar)
 
   return (
     <ScrollView
@@ -209,115 +125,7 @@ export default function ParentsOverviewScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      {/* Notifications section */}
-      {(notificationsSuppressed === false && (notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0)) && (
-        <View style={[styles.notificationSection, {
-          backgroundColor: themeColors.surface,
-          borderColor: themeColors.border,
-          borderWidth: 1,
-          shadowColor: themeColors.border
-        }]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={[styles.notificationTitle, { color: themeColors.primary }]}>Notifications</Text>
-            {/* Hide clear button if loading or there are no notifications */}
-            {!notifLoading && notifications.length > 0 && (
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    const currentUserStr = await AsyncStorage.getItem('user');
-                    const token = await getAuthToken();
-                    if (currentUserStr && token) {
-                      const currentUser = JSON.parse(currentUserStr);
-                      if (currentUser.id) {
-                        // Mark all unread notifications as read individually
-                        const unreadNotifications = notifications.filter(n => !n.isRead);
-                        const markPromises = unreadNotifications.map(async (notif) => {
-                          if (notif._id) {
-                            try {
-                              await markNotificationRead(notif._id, token);
-                              return true;
-                            } catch {
-                              return false;
-                            }
-                          }
-                          return false;
-                        });
 
-                        const results = await Promise.all(markPromises);
-                        const successCount = results.filter(Boolean).length;
-
-                        if (successCount > 0) {
-                          // Successfully marked some/all notifications as read
-                          setNotifications([]);
-                          setNotificationsSuppressed(true);
-                          // Persist the time of clear for future reloads
-                          await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
-
-                          if (successCount < unreadNotifications.length) {
-                            // Partial success - some notifications failed to mark
-                            Alert.alert(
-                              'Partial Success',
-                              `Cleared ${successCount} of ${unreadNotifications.length} notifications. Some may still appear.`,
-                              [{ text: 'OK' }]
-                            );
-                          }
-                        } else {
-                          // No notifications were successfully marked
-                          Alert.alert(
-                            'Clear Failed',
-                            'Unable to clear notifications. Please try again.',
-                            [{ text: 'OK' }]
-                          );
-                        }
-                      }
-                    }
-                  } catch (err) {
-                    console.error('Failed to mark all notifications as read:', err);
-                    Alert.alert(
-                      'Clear Notifications Failed',
-                      'Network error. Please check your connection and try again.',
-                      [{ text: 'OK' }]
-                    );
-                  }
-                }}
-                style={{
-                  backgroundColor: themeColors.error,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  marginBottom: 6,
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Clear all notifications"
-              >
-                <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Clear</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          {notifLoading ? (
-            <Text style={[styles.notificationText, { color: themeColors.textSecondary }]}>Loading...</Text>
-          ) : notifError ? (
-            <Text style={[styles.notificationText, { color: themeColors.textSecondary }]}>{notifError}</Text>
-          ) : (
-            notifications.filter(n => !n.isRead).slice(0, 4).map((notif, index) => (
-              <TouchableOpacity
-                key={notif._id || `notif-${index}`}
-                style={[styles.notificationCard, {
-                  backgroundColor: themeColors.card,
-                  borderColor: themeColors.border,
-                  borderWidth: 1,
-                  shadowColor: themeColors.border
-                }]}
-                onPress={() => handleNotificationPress(notif)}
-              >
-                <Text style={[styles.notificationText, styles.notificationUnread, { color: themeColors.warning }]}>
-                  {notif.message}
-                </Text>
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
-      )}
 
       {/* Heading */}
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
@@ -785,43 +593,7 @@ function getNextInterestPayout(
 }
 
 const createStyles = (themeColors: any) => StyleSheet.create({
-  notificationSection: {
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 18,
-    minWidth: 320,
-    width: '97%',
-    maxWidth: 520,
-    elevation: 8,  // Higher than regular cards for critical notifications
-    shadowColor: themeColors.shadow || '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    zIndex: 10,
-  },
-  notificationTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 6,
-    color: themeColors.primary,
-  },
-  notificationCard: {
-    padding: 8,
-    marginBottom: 3,
-    borderRadius: 7,
-    elevation: 1,
-  },
-  notificationText: {
-    fontSize: 15,
-    color: themeColors.text,
-  },
-  notificationUnread: {
-    fontWeight: 'bold',
-    color: themeColors.warning,
-  },
-  notificationRead: {
-    opacity: 0.5,
-  },
+
   scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
   navRow: { flexDirection: 'row', alignSelf: 'center', marginBottom: 12 },

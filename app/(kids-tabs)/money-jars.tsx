@@ -326,7 +326,7 @@ const TransferTimeline = ({ requests, router }: { requests: any[]; router: any }
             alignItems: 'center',
             marginTop: 8
           }}
-          onPress={() => router.push('./transaction-history')}
+          onPress={() => router.push('./requests')}
         >
           <Text style={{
             color: themeColors.card,
@@ -1631,8 +1631,9 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
           style={{
             flex: 1,
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'center',
-            alignItems: 'center'
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            paddingTop: 600 // Position at 600 padding as requested
           }}
           activeOpacity={1}
           onPress={() => setFromDropdownVisible(false)}
@@ -1649,7 +1650,8 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
-              maxWidth: 300
+              maxWidth: 300,
+              marginTop: 10 // Small gap from the dropdown field
             }}
             activeOpacity={1}
           >
@@ -1663,6 +1665,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
                 }}
                 onPress={() => {
                   handleFromChange(jar.key);
+                  setFromDropdownVisible(false);
                 }}
               >
                 <Text style={{
@@ -1688,8 +1691,9 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
           style={{
             flex: 1,
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'center',
-            alignItems: 'center'
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            paddingTop: 650 // Position at 650 padding for "To" field
           }}
           activeOpacity={1}
           onPress={() => setToDropdownVisible(false)}
@@ -1706,7 +1710,8 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
-              maxWidth: 300
+              maxWidth: 300,
+              marginTop: 10 // Small gap from the dropdown field
             }}
             activeOpacity={1}
           >
@@ -1720,6 +1725,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
                 }}
                 onPress={() => {
                   handleToChange(jar.key);
+                  setToDropdownVisible(false);
                 }}
               >
                 <Text style={{
