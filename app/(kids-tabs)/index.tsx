@@ -695,9 +695,12 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       width: '100%',
       maxWidth: 520,
       alignSelf: 'center',
-      elevation: 2,
-      shadowColor: "#aaa",
-      borderWidth: 1,
+      elevation: 3,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      borderWidth: 2,
       borderColor: themeColors.border,
     } as any, // Cast to any to allow percentage width
     sectionTitle: {
@@ -760,6 +763,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       padding: 16,
       marginBottom: 16,
       borderWidth: 2,
+      borderColor: themeColors.border,
     },
     timeGreeting: {
       fontSize: 18,

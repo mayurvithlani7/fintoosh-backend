@@ -94,28 +94,34 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // Allow localhost for development (any port)
-    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) return callback(null, true);
-
-    // Allow your production frontend domains
+    // Allow specific origins for development and production
     const allowedOrigins = [
       'https://fintoosh-frontend.onrender.com',
       'http://localhost:8081',
       'http://localhost:3000',
+      'http://127.0.0.1:8081',
+      'http://127.0.0.1:3000',
       'exp://',
       'https://expo.dev'
     ];
 
-    if (allowedOrigins.some(allowed => origin && origin.includes(allowed))) {
+    // Check if the origin is in our allowed list
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    // Allow all origins for now (remove this in production for security)
-    return callback(null, true);
+    // For development, allow any localhost origin
+    if (origin && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
+      return callback(null, true);
+    }
+
+    // Block other origins
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
 app.use(cors(corsOptions));
