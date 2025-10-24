@@ -862,8 +862,8 @@ router.post('/goals', auth, sanitizeInput, async (req, res) => {
     const goalData = {
       parent: parentId,
       user: targetUserId,
-      createdBy: createdBy,
-      createdByType: createdByType,
+      createdBy: req.user._id,
+      createdByType: req.user.role,
       name,
       targetAmount,
       jar,
