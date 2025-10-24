@@ -240,11 +240,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
 // Helper functions for transaction processing
 const getTransactionDescription = (tx: any) => {
   switch (tx.type) {
-    case 'chore-completion':
+    case 'chore-completed':
       return `Completed "${tx.choreName || 'a chore'}"`;
-    case 'goal-progress':
-      return `Made progress on "${tx.goalName || 'a goal'}"`;
-    case 'points-moved':
+    case 'goal-completion':
+      return `Completed "${tx.goalName || 'a goal'}"`;
+    case 'points-move':
       return `Moved ${tx.amount} points between jars`;
     case 'parent-points-adjustment':
       return `Points adjusted by parent`;
@@ -257,11 +257,11 @@ const getTransactionDescription = (tx: any) => {
 
 const getTransactionIcon = (type: string) => {
   switch (type) {
-    case 'chore-completion':
+    case 'chore-completed':
       return '🧹';
-    case 'goal-progress':
+    case 'goal-completion':
       return '🎯';
-    case 'points-moved':
+    case 'points-move':
       return '🔄';
     case 'parent-points-adjustment':
       return '👨‍👩‍👧‍👦';

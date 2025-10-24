@@ -55,7 +55,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
 });
 
-export default function ChoresScreen() {
+export default function TasksScreen() {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const router = useRouter();

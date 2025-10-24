@@ -644,23 +644,8 @@ function KidGoalsRewardsSection() {
         g._id === goalId ? { ...g, status: 'pending' } : g
       ));
 
-      // Refresh user data to show updated pending points
-      try {
-        const token2 = await getAuthToken();
-        const user2 = await getUserData();
-        if (user2 && token2) {
-          // Fetch updated user data to show pending points
-          const userRes = await fetch(`${API_URL}/users/${user2.id || user2._id}`, {
-            headers: { Authorization: `Bearer ${token2}` },
-          });
-          if (userRes.ok) {
-            const freshUserData = await userRes.json();
-            setUserData(freshUserData);
-          }
-        }
-      } catch (refreshError) {
-        console.error('Error refreshing user data after goal claim:', refreshError);
-      }
+      // Immediately refresh user data to show updated pending points
+      await loadGoalsAndRewards();
 
       setMsg("Goal completion request submitted to parent!");
       setTimeout(() => setMsg(""), 5000);

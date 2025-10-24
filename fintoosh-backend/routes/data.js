@@ -466,7 +466,7 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
         // Create transaction
         const txn = new Transaction({
           type: 'reward-purchase',
-          description: `Auto-approved reward "${reward.name}" for ${reward.cost} points`,
+          description: `Bought "${reward.name}"`,
           amount: -reward.cost,
           user: rewardOwner._id,
           date: new Date().toLocaleString(),
@@ -522,7 +522,7 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
         childId: rewardOwner.id,
         parentId,
         type: 'reward',
-        name: `Reward: ${reward.name}`,
+        name: reward.name,
         amount: reward.cost,
         status: 'Pending',
         rewardId: reward._id.toString(),
@@ -1773,7 +1773,7 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
 
         const txn = new Transaction({
           type: 'reward-purchase',
-          description: `Parent approved reward "${approval.name}" for ${cost} points`,
+          description: `Bought "${approval.name}"`,
           amount: -cost,
           user: user._id,
           date: new Date().toLocaleString(),
