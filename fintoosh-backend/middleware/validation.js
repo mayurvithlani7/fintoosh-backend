@@ -37,13 +37,18 @@ const validateUserInput = (req, res, next) => {
 const validateFinancialData = (req, res, next) => {
   const { amount, cost, points, currentPoints, savePoints, spendPoints, donatePoints, investPoints } = req.body;
 
-  // Validate amounts and costs (should be positive numbers)
-  const financialFields = { amount, cost, points, currentPoints, savePoints, spendPoints, donatePoints, investPoints };
+  // Validate amounts (can be negative for deductions), costs and points (should be positive numbers)
+  const positiveFields = { cost, points, currentPoints, savePoints, spendPoints, donatePoints, investPoints };
 
-  for (const [field, value] of Object.entries(financialFields)) {
+  for (const [field, value] of Object.entries(positiveFields)) {
     if (value !== undefined && (typeof value !== 'number' || value < 0 || !isFinite(value))) {
       return res.status(400).json({ message: `${field} must be a non-negative number` });
     }
+  }
+
+  // Amount can be negative for deductions
+  if (amount !== undefined && (typeof amount !== 'number' || !isFinite(amount))) {
+    return res.status(400).json({ message: `amount must be a valid number` });
   }
 
   // Validate percentage splits for money jars
