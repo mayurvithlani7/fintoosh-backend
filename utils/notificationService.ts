@@ -95,6 +95,12 @@ export class NotificationService {
   }
 
   static async scheduleGoalMilestoneNotification(goalTitle: string, milestone: number, isCompleted: boolean = false): Promise<string | null> {
+    // Skip notifications on web platform where they're not available
+    if (Platform.OS === 'web') {
+      console.log('Skipping goal milestone notification on web platform');
+      return null;
+    }
+
     try {
       let title: string;
       let body: string;

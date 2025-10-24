@@ -8,13 +8,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 const createStyles = (themeColors: any) => StyleSheet.create({
@@ -374,13 +374,25 @@ function GiftsSection() {
       }
       // For rewards, claiming means PATCHing reward to mark as claim requested (purchased: true),
       // backend sets available: false, purchased: false (pending), and creates ApprovalRequest
+      console.log('🎁 DEBUG: Making PATCH request to:', `${API_URL}/rewards/${rewardId}`);
+      console.log('🎁 DEBUG: Request method:', 'PATCH');
+      console.log('🎁 DEBUG: Request headers:', {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token.substring(0, 20)}...`
+      });
+      console.log('🎁 DEBUG: Request body:', JSON.stringify({ purchased: true }));
+
       const response = await fetch(`${API_URL}/rewards/${rewardId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` },
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ purchased: true }),
       });
+
+      console.log('🎁 DEBUG: Response status:', response.status);
+      console.log('🎁 DEBUG: Response ok:', response.ok);
 
       if (!response.ok) {
         // Handle non-JSON responses (like plain text for rate limiting)
@@ -404,7 +416,7 @@ function GiftsSection() {
           const reqRes = await fetch(`${API_URL}/requests/${user2.id}`);
           if (reqRes.ok) setRequests(await reqRes.json());
           // Rewards
-          const rewardsResponse = await fetch(`${API_URL}/rewards/${user2._id}`, {
+          const rewardsResponse = await fetch(`${API_URL}/rewards/${user2.id}`, {
             headers: { 'Authorization': `Bearer ${token2}` },
           });
           if (rewardsResponse.ok) {
@@ -606,8 +618,9 @@ function GiftsSection() {
     const hasPending = requests.some(
       (req: any) => req.type === "reward" && req.rewardId === r._id && req.status === "Pending"
     );
-    // "Can claim" if available, not purchased, not pending, and enough points
-    const canClaim = r.available && !r.purchased && userData && userData.currentPoints >= r.cost && !hasPending;
+    // "Can claim" if available, not purchased, not pending, and enough available points (total - pending)
+    const availablePoints = userData ? (userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0) : 0;
+    const canClaim = r.available && !r.purchased && userData && availablePoints >= r.cost && !hasPending;
 
     const getStatusText = () => {
       if (r.purchased) return 'Claimed';
@@ -670,7 +683,16 @@ function GiftsSection() {
                   fontSize: 14,
                   color: themeColors.textSecondary
                 }}>
-                  (You have: {formatAmount(userData.currentPoints || 0)})
+                  (Total: {formatAmount(userData.currentPoints || 0)}{(userData.pendingCurrentPoints || 0) > 0 ? `, ${userData.pendingCurrentPoints} pending` : ''})
+                </Text>
+              )}
+              {userData && (userData.pendingCurrentPoints || 0) > 0 && (
+                <Text style={{
+                  fontSize: 12,
+                  color: themeColors.textSecondary,
+                  marginTop: 2
+                }}>
+                  Available: {formatAmount((userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0))}
                 </Text>
               )}
             </View>

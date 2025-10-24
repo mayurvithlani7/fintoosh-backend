@@ -644,6 +644,24 @@ function KidGoalsRewardsSection() {
         g._id === goalId ? { ...g, status: 'pending' } : g
       ));
 
+      // Refresh user data to show updated pending points
+      try {
+        const token2 = await getAuthToken();
+        const user2 = await getUserData();
+        if (user2 && token2) {
+          // Fetch updated user data to show pending points
+          const userRes = await fetch(`${API_URL}/users/${user2.id || user2._id}`, {
+            headers: { Authorization: `Bearer ${token2}` },
+          });
+          if (userRes.ok) {
+            const freshUserData = await userRes.json();
+            setUserData(freshUserData);
+          }
+        }
+      } catch (refreshError) {
+        console.error('Error refreshing user data after goal claim:', refreshError);
+      }
+
       setMsg("Goal completion request submitted to parent!");
       setTimeout(() => setMsg(""), 5000);
 
@@ -703,7 +721,7 @@ function KidGoalsRewardsSection() {
           const reqRes = await fetch(`${API_URL}/requests/${user2.id}`);
           if (reqRes.ok) setRequests(await reqRes.json());
           // Rewards
-          const rewardsResponse = await fetch(`${API_URL}/rewards/${user2._id}`, {
+          const rewardsResponse = await fetch(`${API_URL}/rewards/${user2.id}`, {
             headers: { 'Authorization': `Bearer ${token2}` },
           });
           if (rewardsResponse.ok) {
@@ -1092,8 +1110,13 @@ function KidGoalsRewardsSection() {
                   duration={1500}
                 />
                 <Text style={{ color: themeColors.primary, fontSize: 12, marginTop: 2 }}>
-                  {formatAmount(jarPoints)}/{formatAmount(g.targetAmount)}
+                  {formatAmount(jarPoints)}{pendingJarPoints > 0 ? ` (${pendingJarPoints} pending)` : ''}/{formatAmount(g.targetAmount)}
                 </Text>
+                {pendingJarPoints > 0 && (
+                  <Text style={{ color: themeColors.textSecondary, fontSize: 10, marginTop: 1 }}>
+                    Available: {formatAmount(availableJarPoints)}
+                  </Text>
+                )}
               </View>
             ) : (
               <View style={{ alignItems: "center", marginBottom: 4, minHeight: 50 }}>
@@ -1233,7 +1256,16 @@ function KidGoalsRewardsSection() {
                   fontSize: 14,
                   color: themeColors.textSecondary
                 }}>
-                  (You have: {formatAmount(userData.currentPoints || 0)})
+                  (Total: {formatAmount(userData.currentPoints || 0)}{(userData.pendingCurrentPoints || 0) > 0 ? `, ${userData.pendingCurrentPoints} pending` : ''})
+                </Text>
+              )}
+              {userData && (userData.pendingCurrentPoints || 0) > 0 && (
+                <Text style={{
+                  fontSize: 12,
+                  color: themeColors.textSecondary,
+                  marginTop: 2
+                }}>
+                  Available: {formatAmount((userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0))}
                 </Text>
               )}
             </View>

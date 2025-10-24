@@ -1574,11 +1574,34 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
     }
     // ---------------- END AUTO-APPROVAL LOGIC ----------------
 
-    // For goal-completion requests, update goal status to pending
+    // For goal-completion requests, reserve points and update goal status to pending
     if (req.body.type === 'goal-completion' && req.body.goalId) {
       const Goal = require('../models/Goal');
       const goal = await Goal.findById(req.body.goalId);
       if (goal) {
+        // Reserve points in the appropriate pending field
+        const jar = goal.jar || 'current';
+        const pointsField = jar + 'Points';
+        const pendingField = 'pending' + jar.charAt(0).toUpperCase() + jar.slice(1) + 'Points';
+        const availablePoints = (childUser[pointsField] || 0) - (childUser[pendingField] || 0);
+
+        if (availablePoints < req.body.amount) {
+          res.status(400).json({ message: `Not enough available points in ${jar} jar to claim this goal.` });
+          return;
+        }
+
+        // Atomically reserve points
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: childUser._id },
+          { $inc: { [pendingField]: req.body.amount } },
+          { new: true }
+        );
+
+        if (!updatedUser) {
+          res.status(500).json({ message: 'Failed to reserve points for goal claim.' });
+          return;
+        }
+
         goal.status = 'pending';
         await goal.save();
       }
