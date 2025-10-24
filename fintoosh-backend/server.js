@@ -135,10 +135,16 @@ app.use((req, res, next) => {
 // MongoDB connection
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kid-budgeting-simulator';
 
-// MongoDB connection - Fly.io has excellent MongoDB Atlas compatibility
+// MongoDB connection - Cyclic.sh may need SSL compatibility options
 mongoose.connect(mongoURI, {
   serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  ssl: true,
+  checkServerIdentity: null, // Disable server identity checking for compatibility
+  tlsAllowInvalidCertificates: true, // Allow invalid certificates for compatibility
+  tlsAllowInvalidHostnames: false,
+  minPoolSize: 2,
+  maxPoolSize: 10,
 });
 
 // Connection event handlers
