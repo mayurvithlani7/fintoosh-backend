@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import HelpModal from '@/components/HelpModal';
-import { createTransaction, fetchFamilyChildren, fetchUser, patchUserPoints } from '@/utils/api';
+import { createTransaction, fetchFamilyChildren, fetchTransactions, fetchUser, patchUserPoints } from '@/utils/api';
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
@@ -25,6 +25,7 @@ export default function ParentsPointsScreen() {
     donatePoints: number;
     investPoints: number;
   } | null>(null);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
@@ -97,6 +98,21 @@ export default function ParentsPointsScreen() {
             donatePoints: childUserData.donatePoints || 0,
             investPoints: childUserData.investPoints || 0,
           });
+
+          // Fetch recent transactions for the child
+          try {
+            const transactions = await fetchTransactions(firstChild.id, token, 1, 5); // Get last 5 transactions
+            if (transactions && transactions.transactions) {
+              // Filter for parent point adjustments only
+              const parentAdjustments = transactions.transactions
+                .filter((tx: any) => tx.type === 'parent-points-adjustment')
+                .slice(0, 3); // Show only last 3
+              setRecentTransactions(parentAdjustments);
+            }
+          } catch (txError) {
+            console.error('Error fetching recent transactions:', txError);
+            setRecentTransactions([]);
+          }
         }
       }
     } catch (error) {
@@ -327,6 +343,37 @@ export default function ParentsPointsScreen() {
           </View>
         </View>
 
+        {/* Quick Preset Buttons */}
+        <View style={styles.presetContainer}>
+          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
+          <View style={styles.presetRow}>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setAmount('5')}
+            >
+              <Text style={styles.presetBtnText}>5</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setAmount('10')}
+            >
+              <Text style={styles.presetBtnText}>10</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setAmount('25')}
+            >
+              <Text style={styles.presetBtnText}>25</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setAmount('50')}
+            >
+              <Text style={styles.presetBtnText}>50</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={styles.buttonRow}>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: themeColors.primary }]} onPress={() => handlePoints(true)}>
             <Text style={[styles.actionBtnText, { color: themeColors.card }]}>Give Points</Text>
@@ -374,6 +421,53 @@ export default function ParentsPointsScreen() {
           </Text>
         )}
       </View>
+
+      {/* Recent Activity Section */}
+      {recentTransactions.length > 0 && (
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Recent Activity</Text>
+          <View style={{ gap: 8 }}>
+            {recentTransactions.map((transaction, index) => {
+              const isPositive = transaction.amount > 0;
+              const jarName = jarOptions.find(jar => jar.value === transaction.toJar)?.label || 'Unknown Pot';
+              const date = transaction.date || transaction.createdAt;
+              const displayDate = date ? new Date(date).toLocaleDateString() : 'Unknown';
+
+              return (
+                <View
+                  key={transaction._id || index}
+                  style={{
+                    backgroundColor: themeColors.surface,
+                    borderRadius: 8,
+                    padding: 12,
+                    borderLeftWidth: 3,
+                    borderLeftColor: isPositive ? themeColors.success : themeColors.error
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: themeColors.text,
+                        marginBottom: 2
+                      }}>
+                        {isPositive ? '+' : ''}{Math.abs(transaction.amount)} points
+                      </Text>
+                      <Text style={{
+                        fontSize: 12,
+                        color: themeColors.textSecondary
+                      }}>
+                        {jarName} • {displayDate}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       {/* Dropdown Modal */}
       <Modal
@@ -549,4 +643,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   jar: { borderRadius: 14, padding: 18, minWidth: 80, alignItems: 'center', elevation: 2, shadowColor: themeColors.border, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
   jarLabel: { fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
   jarValue: { fontSize: 18, fontWeight: 'bold' },
+  presetContainer: { marginTop: 16, marginBottom: 8 },
+  presetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  presetBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 6, marginHorizontal: 2, alignItems: 'center', minWidth: 50 },
+  presetBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
 });

@@ -200,27 +200,27 @@ export const themes = {
       invest: '#F5F5DC',       // Beige
     }
   },
-  diwali: {
-    primary: '#FFD700',        // Gold
-    secondary: '#FF4500',      // Orange Red
-    background: '#2F1B14',     // Dark Brown
-    surface: '#8B4513',        // Saddle Brown
-    card: '#DAA520',           // Goldenrod
-    text: '#FFFFFF',
-    textSecondary: '#FFE4B5',  // Moccasin
-    border: '#FFD700',
-    success: '#32CD32',        // Lime Green
-    warning: '#FF6347',
-    error: '#DC143C',
-    accent: '#FF1493',         // Deep Pink
-    jarColors: {
-      current: '#4B0082',      // Indigo
-      save: '#8B0000',         // Dark Red
-      spend: '#FFD700',        // Gold
-      donate: '#FF6347',       // Tomato
-      invest: '#32CD32',       // Lime Green
-    }
-  },
+  // diwali: {
+  //   primary: '#FFD700',        // Gold
+  //   secondary: '#FF4500',      // Orange Red
+  //   background: '#2F1B14',     // Dark Brown
+  //   surface: '#8B4513',        // Saddle Brown
+  //   card: '#DAA520',           // Goldenrod
+  //   text: '#FFFFFF',
+  //   textSecondary: '#FFE4B5',  // Moccasin
+  //   border: '#FFD700',
+  //   success: '#32CD32',        // Lime Green
+  //   warning: '#FF6347',
+  //   error: '#DC143C',
+  //   accent: '#FF1493',         // Deep Pink
+  //   jarColors: {
+  //     current: '#4B0082',      // Indigo
+  //     save: '#8B0000',         // Dark Red
+  //     spend: '#FFD700',        // Gold
+  //     donate: '#FF6347',       // Tomato
+  //     invest: '#32CD32',       // Lime Green
+  //   }
+  // },
   holi: {
     primary: '#FF1493',        // Deep Pink
     secondary: '#00BFFF',      // Deep Sky Blue
@@ -293,9 +293,9 @@ const getCurrentSeason = (): string | null => {
   const day = localNow.getDate();
 
   // Diwali (October 20 - November 15, varies by year but generally this range)
-  if ((month === 10 && day >= 20) || (month === 11 && day <= 15)) {
-    return 'diwali';
-  }
+  // if ((month === 10 && day >= 20) || (month === 11 && day <= 15)) {
+  //   return 'diwali';
+  // }
 
   // Holi (February 20 - March 20, varies but generally this range)
   if ((month === 2 && day >= 20) || (month === 3 && day <= 20)) {

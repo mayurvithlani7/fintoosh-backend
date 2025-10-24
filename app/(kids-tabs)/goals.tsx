@@ -133,7 +133,7 @@ export default function GoalsScreen() {
           </TouchableOpacity>
         </View>
         <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.title, { color: themeColors.primary }]}>🎯 My Goals & Gifts</Text>
+          <Text style={[styles.title, { color: themeColors.primary }]}>🎯 My Goals</Text>
         </View>
       </View>
 
@@ -143,7 +143,7 @@ export default function GoalsScreen() {
       <HelpModal
         visible={helpModalVisible}
         onClose={() => setHelpModalVisible(false)}
-        title="🎯 My Goals & Gifts - Help"
+        title="🎯 My Goals - Help"
         tabs={[
           {
             title: "Dream Big Adventures! 🌟",
@@ -204,37 +204,6 @@ export default function GoalsScreen() {
             ]
           },
           {
-            title: "Magical Gift Treasure Chest! 🎁",
-            content: [
-              {
-                type: "text",
-                text: "Wow! Special magical prizes you can unlock with your hard-earned points:",
-                icon: "🎁"
-              },
-              {
-                type: "bullet",
-                text: "Available - Treasures ready for you to claim! ✨"
-              },
-              {
-                type: "bullet",
-                text: "Claimed - Your collection of won prizes! 🏅"
-              },
-              {
-                type: "bullet",
-                text: "Need enough points to open the treasure chest 🔑"
-              },
-              {
-                type: "bullet",
-                text: "Parent approval makes the magic happen! ✨"
-              },
-              {
-                type: "highlight",
-                text: "Awesome way to spend points on super fun rewards! 💰🎊",
-                icon: "💰"
-              }
-            ]
-          },
-          {
             title: "Claim Your Victories! 🏆",
             content: [
               {
@@ -244,11 +213,11 @@ export default function GoalsScreen() {
               },
               {
                 type: "bullet",
-                text: "🖱️ Tap 'Claim' on goals or magical gifts"
+                text: "🖱️ Tap 'Claim' when you complete your goal"
               },
               {
                 type: "bullet",
-                text: "⏳ Shows 'Pending...' while magic happens"
+                text: "⏳ Shows 'Pending...' while waiting for approval"
               },
               {
                 type: "bullet",
@@ -256,7 +225,7 @@ export default function GoalsScreen() {
               },
               {
                 type: "bullet",
-                text: "🎁 You get your prize when approved - yay!"
+                text: "Goal gets marked as completed when approved!"
               },
               {
                 type: "highlight",
@@ -380,6 +349,18 @@ function KidGoalsRewardsSection() {
       return new Date(timestamp);
     }
     return new Date();
+  }
+
+  // Helper: get user-friendly jar name
+  function getJarDisplayName(jar: string): string {
+    const jarNames: { [key: string]: string } = {
+      current: 'Pocket Money Pot',
+      save: 'Savings Pot',
+      spend: 'Spending Pot',
+      donate: 'Help Others Pot',
+      invest: 'Grow Money Pot'
+    };
+    return jarNames[jar] || jar;
   }
 
   // Load goals, rewards, and requests on component mount
@@ -918,8 +899,8 @@ function KidGoalsRewardsSection() {
 
         // 3. Split into active/completed as per status, then slice by date for completed archive
         let activeGoals = goals.filter(g =>
-          getGoalStatus(g) !== "completed" && getGoalStatus(g) !== "expired" && getGoalStatus(g) !== "pending"
-        );
+          getGoalStatus(g) !== "completed" && getGoalStatus(g) !== "expired"
+        ).sort((a, b) => getGoalCreatedDate(b).getTime() - getGoalCreatedDate(a).getTime());
         let completedGoalsAll = goals.filter(g => getGoalStatus(g) === "completed" || getGoalStatus(g) === "expired");
 
         if (tab === "Active") {
@@ -949,7 +930,9 @@ function KidGoalsRewardsSection() {
         ninetyDaysAgo.setDate(now.getDate() - 90);
         const completedRecent = completedGoalsAll.filter(g => getGoalCompletionDate(g) >= ninetyDaysAgo);
         const completedArchived = completedGoalsAll.filter(g => getGoalCompletionDate(g) < ninetyDaysAgo);
-        let completedGoals = completedRecent;
+        let completedGoals = completedRecent.sort((a, b) =>
+          getGoalCompletionDate(b).getTime() - getGoalCompletionDate(a).getTime()
+        );
         if (showArchive) {
           completedGoals = [...completedRecent, ...completedArchived].sort((a, b) =>
             getGoalCompletionDate(b).getTime() - getGoalCompletionDate(a).getTime()
@@ -1005,174 +988,7 @@ function KidGoalsRewardsSection() {
       {/* Individual goal card rendering */}
       {/** Renders are moved into renderGoal function for code clarity **/}
 
-      {/* Rewards section - visually engaging for kids */}
-      <View style={{ marginTop: 30 }}>
-        {/* Decorative header with gifts theme */}
-        <View style={{
-          backgroundColor: themeColors.accent + '15',
-          borderRadius: 16,
-          padding: 16,
-          marginBottom: 16,
-          borderWidth: 2,
-          borderColor: themeColors.accent,
-          alignItems: 'center'
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-            <Text style={{ fontSize: 24, marginRight: 8 }}>🎁</Text>
-            <Text style={[styles.sectionTitle, { fontSize: 20, color: themeColors.primary, marginBottom: 0 }]}>Amazing Gifts!</Text>
-            <Text style={{ fontSize: 24, marginLeft: 8 }}>🎉</Text>
-          </View>
-          <Text style={{ fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 12 }}>
-            ✨ Work hard and earn awesome prizes! ✨
-          </Text>
-          <TouchableOpacity
-            style={[styles.refreshBtn, {
-              backgroundColor: loading ? themeColors.surface : themeColors.primary,
-              alignSelf: 'center'
-            }]}
-            onPress={() => loadGoalsAndRewards()}
-            disabled={loading}
-          >
-            <Text style={[styles.refreshBtnText, { color: loading ? themeColors.textSecondary : themeColors.card }]}>
-              {loading ? '✨ Loading...' : '🔄 Refresh Gifts'}
-            </Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Rewards Tabs - colorful and engaging */}
-        <View style={{
-          flexDirection: "row",
-          justifyContent: "center",
-          marginBottom: 16,
-          backgroundColor: themeColors.surface + '80',
-          borderRadius: 20,
-          padding: 4
-        }}>
-          {["Available", "Claimed"].map(t => (
-            <TouchableOpacity
-              key={t}
-              style={{
-                backgroundColor: rewardsTab === t ? themeColors.accent : 'transparent',
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 16,
-                marginHorizontal: 2,
-                flex: 1,
-                alignItems: 'center',
-                shadowColor: rewardsTab === t ? themeColors.accent : 'transparent',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-                elevation: rewardsTab === t ? 3 : 0,
-              }}
-              onPress={() => { setRewardsTab(t as "Available" | "Claimed"); setShowRewardsArchive(false); }}
-              accessibilityRole="tab"
-              accessibilityLabel={`${t} rewards`}
-              accessibilityHint={`Show ${t.toLowerCase()} rewards`}
-              accessibilityState={{ selected: rewardsTab === t }}
-            >
-              <Text style={{
-                color: rewardsTab === t ? themeColors.card : themeColors.text,
-                fontWeight: rewardsTab === t ? "bold" : "600",
-                fontSize: 16
-              }}>
-                {t === "Available" ? "🎯 Ready to Win!" : "🏆 My Treasures!"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        {/* Rewards content - always shows appropriate empty states */}
-        {(() => {
-          // Helper for claimed date
-          const getRewardClaimedDate = (r: any) => {
-            if (r.purchasedAt && typeof r.purchasedAt === "string") return new Date(r.purchasedAt);
-            if (r.createdAt && typeof r.createdAt === "string") return new Date(r.createdAt);
-            if (r._id && typeof r._id === "string" && r._id.length >= 8) {
-              const timestamp = parseInt(r._id.slice(0, 8), 16) * 1000;
-              return new Date(timestamp);
-            }
-            return new Date();
-          };
-          let availableRewards = rewards.filter(r => !r.purchased);
-          let claimedAll = rewards.filter(r => r.purchased);
-          const now = new Date();
-          const ninetyDaysAgo = new Date(now);
-          ninetyDaysAgo.setDate(now.getDate() - 90);
-          const claimedRecent = claimedAll.filter(r => getRewardClaimedDate(r) >= ninetyDaysAgo);
-          const claimedArchived = claimedAll.filter(r => getRewardClaimedDate(r) < ninetyDaysAgo);
-          let claimedRewards = claimedRecent;
-          if (showRewardsArchive) {
-            claimedRewards = [...claimedRecent, ...claimedArchived].sort((a, b) =>
-              getRewardClaimedDate(b).getTime() - getRewardClaimedDate(a).getTime()
-            );
-          }
-          if (rewardsTab === "Available") {
-            if (availableRewards.length === 0)
-              return <Text style={styles.placeholder}>No rewards available to claim right now!</Text>;
-            return (
-              <FlatList
-                data={availableRewards}
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => renderReward(item)}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 10 }}
-                style={{ flex: 1 }}
-                scrollEnabled={false }
-              />
-            );
-          }
-          // Claimed
-          if (claimedRewards.length === 0)
-            return <Text style={styles.placeholder}>No claimed rewards in the last 90 days.</Text>;
-          return (
-            <>
-              <FlatList
-                data={claimedRewards}
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => renderReward(item)}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 10 }}
-                style={{ flex: 1 }}
-                scrollEnabled={false }
-              />
-              {claimedArchived.length > 0 && !showRewardsArchive && (
-                <TouchableOpacity
-                  style={{
-                    marginTop: 12,
-                    alignSelf: "center",
-                    backgroundColor: themeColors.surface,
-                    borderColor: themeColors.border,
-                    borderWidth: 1,
-                    paddingHorizontal: 20,
-                    paddingVertical: 8,
-                    borderRadius: 16
-                  }}
-                  onPress={() => setShowRewardsArchive(true)}
-                >
-                  <Text style={{ color: themeColors.primary, fontWeight: "600" }}>Show All Claimed Rewards</Text>
-                </TouchableOpacity>
-              )}
-              {claimedArchived.length > 0 && showRewardsArchive && (
-                <TouchableOpacity
-                  style={{
-                    marginTop: 10,
-                    alignSelf: "center",
-                    backgroundColor: themeColors.surface,
-                    borderColor: themeColors.border,
-                    borderWidth: 1,
-                    paddingHorizontal: 14,
-                    paddingVertical: 7,
-                    borderRadius: 16
-                  }}
-                  onPress={() => setShowRewardsArchive(false)}
-                >
-                  <Text style={{ color: themeColors.primary, fontWeight: "500" }}>Show Only Last 90 Days</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          );
-        })()}
-      </View>
 
 
       {msg ? <Text style={styles.statusMessage}>{msg}</Text> : null}
@@ -1238,7 +1054,7 @@ function KidGoalsRewardsSection() {
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <View style={{ flex: 2 }}>
             <Text style={{ fontSize: 14, color: themeColors.textSecondary }}>
-              Save in: {g.jar} jar
+              Save in: {getJarDisplayName(g.jar)}
             </Text>
             {g.deadline && (
               <Text style={{ fontSize: 12, color: themeColors.textSecondary, marginTop: 2 }}>
@@ -1315,7 +1131,7 @@ function KidGoalsRewardsSection() {
                   </Text>
                 </TouchableOpacity>
               )}
-              {g.status === 'active' && (
+              {g.status === 'active' && g.createdByType === 'child' && (
                 <TouchableOpacity
                   style={{
                     backgroundColor: themeColors.error,

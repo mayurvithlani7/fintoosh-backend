@@ -69,10 +69,7 @@ export const EnhancedJar: React.FC<EnhancedJarProps> = ({
 
   const statusConfig = getStatusConfig();
 
-  // Get recommended range (recommended ± 10%)
-  const recommendedMin = Math.max(0, recommended - 10);
-  const recommendedMax = recommended + 10;
-  const isInRecommendedRange = progressPercent >= recommendedMin && progressPercent <= recommendedMax;
+
 
   const styles = createStyles(themeColors);
 
@@ -110,17 +107,7 @@ export const EnhancedJar: React.FC<EnhancedJarProps> = ({
           </Text>
         </View>
 
-        {/* Recommended Range Indicator */}
-        {recommended && (
-          <View style={styles.recommendationRow}>
-            <Text style={[styles.recommendationText, { color: themeColors.textSecondary }]}>
-              Target: {recommended}%
-            </Text>
-            {isInRecommendedRange && (
-              <Text style={[styles.recommendationIcon, { color: themeColors.success }]}>✓</Text>
-            )}
-          </View>
-        )}
+
       </View>
     </View>
   );
@@ -182,18 +169,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  recommendationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  recommendationText: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  recommendationIcon: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
+
 });
 
 export default EnhancedJar;

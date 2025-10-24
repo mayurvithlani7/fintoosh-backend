@@ -13,6 +13,7 @@ import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 
+import { goalSuggestions } from '@/constants/goalSuggestions';
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 export default function ParentsGoalsScreen() {
   const { themeColors } = useTheme();
@@ -545,6 +546,56 @@ export default function ParentsGoalsScreen() {
             <ValidationMessage message={pointsError} type={pointsError ? "error" : "success"} />
           </View>
         </View>
+
+        {/* Goal Name Suggestions */}
+        <View style={styles.suggestionsContainer}>
+          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Goal Ideas:</Text>
+          <View style={styles.suggestionsGrid}>
+            {goalSuggestions.slice(0, 16).map((suggestion) => (
+              <TouchableOpacity
+                key={suggestion}
+                style={[styles.suggestionBtn, { backgroundColor: themeColors.secondary }]}
+                onPress={() => {
+                  setGoal(suggestion);
+                  setGoalNameError(null);
+                }}
+              >
+                <Text style={styles.suggestionBtnText}>{suggestion}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Quick Preset Goal Amounts */}
+        <View style={styles.presetContainer}>
+          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
+          <View style={styles.presetRow}>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPointsNeeded('100')}
+            >
+              <Text style={styles.presetBtnText}>100</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPointsNeeded('250')}
+            >
+              <Text style={styles.presetBtnText}>250</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPointsNeeded('500')}
+            >
+              <Text style={styles.presetBtnText}>500</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPointsNeeded('1000')}
+            >
+              <Text style={styles.presetBtnText}>1000</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <Text style={styles.inputLabel}>Description (Optional)</Text>
         <TextInput
           style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
@@ -717,7 +768,9 @@ export default function ParentsGoalsScreen() {
             let filteredGoals;
             let showArchiveButton = false;
             if (goalsTab === 'Active') {
-              filteredGoals = goals.filter(g => g.status !== 'completed');
+              filteredGoals = goals.filter(g => g.status !== 'completed').sort((a, b) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
             } else {
               const now = new Date();
               const ninetyDaysAgo = new Date(now);
@@ -730,7 +783,9 @@ export default function ParentsGoalsScreen() {
                 g.status === 'completed' &&
                 new Date(g.createdAt) < ninetyDaysAgo
               );
-              filteredGoals = filteredRecent;
+              filteredGoals = filteredRecent.sort((a, b) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
               showArchiveButton = filteredArchived.length > 0;
               if (showAllCompleted) {
                 filteredGoals = [...filteredRecent, ...filteredArchived].sort((a, b) =>
@@ -767,9 +822,60 @@ export default function ParentsGoalsScreen() {
                         {g.description}
                       </Text>
                     )}
-                    <Text style={{ color: themeColors.textSecondary, fontSize: 14 }}>
-                      Target: {g.targetAmount} points in {jarOptions.find(j => j.value === g.jar)?.label || g.jar} pot
+                    <Text style={{ color: themeColors.textSecondary, fontSize: 14, marginBottom: 6 }}>
+                      Target: {g.targetAmount} points in {jarOptions.find(j => j.value === g.jar)?.label || g.jar}
                     </Text>
+
+                    {/* Progress Visualization for Active Goals */}
+                    {g.status === 'active' && childData && (
+                      <View style={{ marginBottom: 8 }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 12, color: themeColors.textSecondary, fontWeight: '600' }}>
+                            Progress
+                          </Text>
+                          <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>
+                            {(() => {
+                              const jarPoints = g.jar === 'current' ? childData.currentPoints :
+                                               g.jar === 'save' ? childData.savePoints :
+                                               g.jar === 'spend' ? childData.spendPoints :
+                                               g.jar === 'donate' ? childData.donatePoints :
+                                               g.jar === 'invest' ? childData.investPoints : 0;
+                              const progress = Math.min((jarPoints / g.targetAmount) * 100, 100);
+                              const remaining = Math.max(g.targetAmount - jarPoints, 0);
+                              return `${Math.round(progress)}% • ${remaining} points needed`;
+                            })()}
+                          </Text>
+                        </View>
+                        <View style={{
+                          height: 8,
+                          backgroundColor: themeColors.surface,
+                          borderRadius: 4,
+                          overflow: 'hidden',
+                          borderWidth: 1,
+                          borderColor: themeColors.border + '40'
+                        }}>
+                          {(() => {
+                            const jarPoints = g.jar === 'current' ? childData.currentPoints :
+                                             g.jar === 'save' ? childData.savePoints :
+                                             g.jar === 'spend' ? childData.spendPoints :
+                                             g.jar === 'donate' ? childData.donatePoints :
+                                             g.jar === 'invest' ? childData.investPoints : 0;
+                            const progress = Math.min((jarPoints / g.targetAmount) * 100, 100);
+                            return (
+                              <View style={{
+                                height: '100%',
+                                width: `${progress}%`,
+                                backgroundColor: progress >= 100 ? themeColors.success :
+                                                progress >= 75 ? themeColors.primary :
+                                                progress >= 50 ? themeColors.accent :
+                                                themeColors.warning,
+                                borderRadius: 3
+                              }} />
+                            );
+                          })()}
+                        </View>
+                      </View>
+                    )}
                     {g.deadline && (
                       <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
                         Deadline: {new Date(g.deadline).toLocaleDateString()}
@@ -1133,4 +1239,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     fontWeight: '600',
     fontSize: 12,
   },
+  presetContainer: { marginTop: 16, marginBottom: 8 },
+  presetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  presetBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 6, marginHorizontal: 2, alignItems: 'center', minWidth: 50 },
+  presetBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
+  suggestionsContainer: { marginTop: 16, marginBottom: 8 },
+  suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  suggestionBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 6, marginHorizontal: 2, marginVertical: 4, alignItems: 'center', minWidth: 70, maxWidth: 120 },
+  suggestionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 12, textAlign: 'center' },
 });

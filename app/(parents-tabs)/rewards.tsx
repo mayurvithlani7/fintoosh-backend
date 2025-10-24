@@ -1,5 +1,6 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
+import { rewardSuggestions } from '@/constants/rewardSuggestions';
 import { API_URL } from '@/utils/config';
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 import { getAuthToken } from '@/utils/secureStorage';
@@ -306,6 +307,55 @@ export default function ParentsRewardsScreen() {
               onChangeText={setPointsCost}
             />
           </View>
+
+          {/* Quick Preset Points */}
+          <View style={styles.presetContainer}>
+            <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
+            <View style={styles.presetRow}>
+              <TouchableOpacity
+                style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+                onPress={() => setPointsCost('25')}
+              >
+                <Text style={styles.presetBtnText}>25</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+                onPress={() => setPointsCost('50')}
+              >
+                <Text style={styles.presetBtnText}>50</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+                onPress={() => setPointsCost('100')}
+              >
+                <Text style={styles.presetBtnText}>100</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+                onPress={() => setPointsCost('200')}
+              >
+                <Text style={styles.presetBtnText}>200</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Reward Name Suggestions */}
+          <View style={styles.suggestionsContainer}>
+            <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Reward Ideas:</Text>
+            <View style={styles.suggestionsGrid}>
+              {rewardSuggestions.slice(0, 16).map((suggestion) => (
+                <TouchableOpacity
+                  key={suggestion}
+                  style={[styles.suggestionBtn, { backgroundColor: themeColors.secondary }]}
+                  onPress={() => {
+                    setRewardName(suggestion);
+                  }}
+                >
+                  <Text style={styles.suggestionBtnText}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </View>
         <View style={styles.formGroup}>
           <Text style={[styles.inputLabel, { color: themeColors.text }]}>Description (optional)</Text>
@@ -402,7 +452,9 @@ export default function ParentsRewardsScreen() {
           let filteredRewards: Reward[] = [];
           let showArchiveButton = false;
           if (rewardsTab === 'Available') {
-            filteredRewards = rewards.filter(r => !r.purchased);
+            filteredRewards = rewards.filter(r => !r.purchased).sort((a, b) =>
+              getRewardCreatedDate(b).getTime() - getRewardCreatedDate(a).getTime()
+            );
           } else {
             // Claimed (purchased) rewards—recent by default
             const now = new Date();
@@ -414,7 +466,9 @@ export default function ParentsRewardsScreen() {
             const filteredArchived = rewards.filter(r =>
               r.purchased && getRewardCreatedDate(r) < ninetyDaysAgo
             );
-            filteredRewards = filteredRecent;
+            filteredRewards = filteredRecent.sort((a, b) =>
+              getRewardCreatedDate(b).getTime() - getRewardCreatedDate(a).getTime()
+            );
             showArchiveButton = filteredArchived.length > 0;
             if (showAllClaimed) {
               filteredRewards = [...filteredRecent, ...filteredArchived].sort((a, b) =>
@@ -896,4 +950,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     color: themeColors.text,
     fontSize: 15,
   },
+  presetContainer: { marginTop: 16, marginBottom: 8 },
+  presetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  presetBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 6, marginHorizontal: 2, alignItems: 'center', minWidth: 50 },
+  presetBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
+  suggestionsContainer: { marginTop: 16, marginBottom: 8 },
+  suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  suggestionBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 6, marginHorizontal: 2, marginVertical: 4, alignItems: 'center', minWidth: 70, maxWidth: 120 },
+  suggestionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 12, textAlign: 'center' },
 });

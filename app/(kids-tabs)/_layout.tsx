@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import ThemeToggle from '@/components/ThemeToggle';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ACCESSIBILITY } from '@/constants/accessibility';
 import { fetchNotifications } from '@/utils/api';
 import { useNavigation } from '@/utils/navigationContext';
@@ -19,6 +18,7 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
     { name: '🏠 Home', route: '/(kids-tabs)', icon: 'house.fill' },
     { name: '💰 My Pots', route: '/(kids-tabs)/money-jars', icon: 'dollarsign.circle.fill' },
     { name: '🎯 My Goals', route: '/(kids-tabs)/goals', icon: 'target' },
+    { name: '🎁 My Gifts', route: '/(kids-tabs)/gifts', icon: 'star.circle.fill' },
     { name: '🧹 My Tasks', route: '/(kids-tabs)/chores', icon: 'checkmark.seal.fill' },
     { name: '📚 Money Gyaan', route: '/(kids-tabs)/learn', icon: 'book.fill' },
     { name: '🎮 Games', route: '/(kids-tabs)/games', icon: 'gamecontroller.fill' },
@@ -92,7 +92,6 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
                   }}
                 >
                   <View style={styles.leftMenuItemContent}>
-                    <IconSymbol size={22} name={item.icon as any} color={themeColors.text} />
                     <Text style={dynamicStyles.leftMenuItemText}>
                       {item.name}
                     </Text>
@@ -331,6 +330,7 @@ function KidsTabLayoutInner() {
         <Stack.Screen name="index" options={{ title: 'Home' }} />
         <Stack.Screen name="money-jars" options={{ title: 'My Pots' }} />
         <Stack.Screen name="goals" options={{ title: 'My Goals' }} />
+        <Stack.Screen name="gifts" options={{ title: 'My Gifts' }} />
         <Stack.Screen name="chores" options={{ title: 'My Tasks' }} />
         <Stack.Screen name="learn" options={{ title: 'Money Gyaan' }} />
         <Stack.Screen name="games" options={{ title: 'Games' }} />

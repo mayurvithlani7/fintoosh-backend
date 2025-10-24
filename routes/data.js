@@ -666,6 +666,8 @@ router.post('/goals', auth, async (req, res) => {
 
   let targetUserId;
   let parentId = req.user._id;
+  let createdBy = req.user._id;
+  let createdByType = req.user.role;
 
   // Determine the target user (goal owner)
   if (req.user.role === 'parent') {
@@ -699,6 +701,8 @@ router.post('/goals', auth, async (req, res) => {
     const goalData = {
       parent: parentId,
       user: targetUserId,
+      createdBy: createdBy,
+      createdByType: createdByType,
       name,
       targetAmount,
       jar,
@@ -780,9 +784,9 @@ router.delete('/goals/:goalId', auth, async (req, res) => {
         return res.status(403).json({ message: "Not authorized to delete this goal" });
       }
     } else if (req.user.role === 'child') {
-      // Children can only delete their own goals
-      if (!goal.user.equals(req.user._id)) {
-        return res.status(403).json({ message: "Not authorized to delete this goal" });
+      // Children can only delete goals they created themselves
+      if (!goal.createdBy.equals(req.user._id)) {
+        return res.status(403).json({ message: "You can only delete goals that you created yourself" });
       }
     } else {
       return res.status(403).json({ message: "Invalid user role for goal deletion" });

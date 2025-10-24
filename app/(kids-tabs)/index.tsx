@@ -6,7 +6,7 @@ import HelpModal from '@/components/HelpModal';
 import ActionCard from '@/components/ui/ActionCard';
 import JarCard from '@/components/ui/JarCard';
 import StatCard from '@/components/ui/StatCard';
-import { fetchNotifications, markNotificationRead } from '@/utils/api';
+import { fetchNotifications } from '@/utils/api';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { getAuthToken, getUserData } from '@/utils/secureStorage';
@@ -15,7 +15,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { memo, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
-  FlatList,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -844,99 +843,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         }
       >
 
-      {/* Notifications */}
-      {(notificationsSuppressed === false && (notifLoading || notifError || notifications.filter(n => !n.isRead).length > 0)) && (
-        <View style={{
-          backgroundColor: themeColors.surface,
-          borderRadius: 15,
-          padding: 10,
-          marginBottom: 11,
-          minWidth: 280,
-          width: '97%',
-          maxWidth: 520,
-          elevation: 2,
-          shadowColor: themeColors.border,
-        }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 6, color: themeColors.primary }}>
-              Notifications
-            </Text>
-            {/* Hide clear button if loading or there are no notifications */}
-            {!notifLoading && notifications.length > 0 && (
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    const token = await getAuthToken();
-                    const storedUser = await getUserData();
-                    if (token && storedUser) {
-                      const userId = storedUser.id;
-                      await fetch(`${API_URL}/notifications/mark-all-read?userId=${userId}`, {
-                        method: "PATCH",
-                        headers: { "Authorization": "Bearer " + token }
-                      });
-                      dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
-                      setNotificationsSuppressed(true);
-                      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-                      await AsyncStorage.setItem(NOTIF_CLEARED_KEY, String(Date.now()));
-                    }
-                  } catch (err) {
-                    console.error('Failed to mark all notifications as read:', err);
-                  }
-                }}
-                style={{
-                  backgroundColor: themeColors.error,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8,
-                  marginBottom: 6,
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Clear all notifications"
-              >
-                <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Clear</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          {notifLoading ? (
-            <Text style={{ fontSize: 15, color: themeColors.textSecondary }}>Loading...</Text>
-          ) : notifError ? (
-            <Text style={{ fontSize: 15, color: themeColors.error }}>{notifError}</Text>
-          ) : (
-            <FlatList
-              data={notifications.filter(n => !n.isRead).slice(0, 4)}
-              keyExtractor={(item, index) => item._id || index.toString()}
-              renderItem={({ item: notif, index }) => (
-                <TouchableOpacity
-                  style={{
-                    padding: 8,
-                    marginBottom: 3,
-                    backgroundColor: themeColors.card,
-                    borderRadius: 7,
-                    elevation: 1,
-                    borderWidth: 1,
-                    borderColor: themeColors.border,
-                  }}
-                  onPress={async () => {
-                    try {
-                      const token = await getAuthToken();
-                      if (notif._id && token) {
-                        await markNotificationRead(notif._id, token);
-                        await loadNotifications();
-                      }
-                    } catch (err) {}
-                  }}
-                >
-                  <Text style={{ fontSize: 15, fontWeight: "bold", color: themeColors.warning }}>
-                    {notif.message}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              showsVerticalScrollIndicator={false}
-              scrollEnabled={false}
-            />
-          )}
-        </View>
-      )}
+
 
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
@@ -1134,6 +1041,13 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         {/* Show more actions based on user state */}
         {showMore && (
           <>
+            <ActionCard
+              icon="🎁"
+              title="Claim Amazing Gifts"
+              subtitle="Earn rewards with your points!"
+              color={themeColors.warning}
+              onPress={() => router.push('./gifts')}
+            />
             <ActionCard
               icon="🧹"
               title="Do Fun Tasks"

@@ -1,6 +1,7 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import ValidationMessage from '@/components/ui/ValidationMessage';
+import { choreSuggestions } from '@/constants/choreSuggestions';
 import { API_URL } from '@/utils/config';
 import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
@@ -82,6 +83,14 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     fontSize: 16,
     color: themeColors.text,
   },
+  presetContainer: { marginTop: 16, marginBottom: 8 },
+  presetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  presetBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 6, marginHorizontal: 2, alignItems: 'center', minWidth: 50 },
+  presetBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
+  suggestionsContainer: { marginTop: 16, marginBottom: 8 },
+  suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  suggestionBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 6, marginHorizontal: 2, marginVertical: 4, alignItems: 'center', minWidth: 70, maxWidth: 120 },
+  suggestionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 12, textAlign: 'center' },
 });
 
 export default function ParentsChoresScreen() {
@@ -525,6 +534,56 @@ export default function ParentsChoresScreen() {
           </View>
         </View>
 
+        {/* Quick Preset Points */}
+        <View style={styles.presetContainer}>
+          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
+          <View style={styles.presetRow}>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPoints('10')}
+            >
+              <Text style={styles.presetBtnText}>10</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPoints('25')}
+            >
+              <Text style={styles.presetBtnText}>25</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPoints('50')}
+            >
+              <Text style={styles.presetBtnText}>50</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPoints('100')}
+            >
+              <Text style={styles.presetBtnText}>100</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Chore Name Suggestions */}
+        <View style={styles.suggestionsContainer}>
+          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Task Ideas:</Text>
+          <View style={styles.suggestionsGrid}>
+            {choreSuggestions.slice(0, 16).map((suggestion) => (
+              <TouchableOpacity
+                key={suggestion}
+                style={[styles.suggestionBtn, { backgroundColor: themeColors.secondary }]}
+                onPress={() => {
+                  setChoreName(suggestion);
+                  setChoreNameError(null);
+                }}
+              >
+                <Text style={styles.suggestionBtnText}>{suggestion}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
         <Text style={[styles.inputLabel, { color: themeColors.text }]}>Details (Optional)</Text>
         <TextInput
           style={[styles.input, { height: 60, textAlignVertical: 'top', backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
@@ -799,14 +858,27 @@ export default function ParentsChoresScreen() {
             // Filter logic with 90-day limit for completed
             let filteredChores;
             let showArchiveButton = false;
-            // Unified function: is a chore "Done"?
-            const isChoreDone = (c: any) =>
-              c.completed === true ||
-              c.status === 'completed' ||
-              c.approved === true;
+  // Unified function: is a chore "Done"?
+  const isChoreDone = (c: any) =>
+    c.completed === true ||
+    c.status === 'completed' ||
+    c.approved === true;
+
+  // Helper: robust completion date
+  function getChoreCompletedDate(c: any): Date {
+    if (c.completedAt && typeof c.completedAt === "string") return new Date(c.completedAt);
+    if (c.createdAt && typeof c.createdAt === "string") return new Date(c.createdAt);
+    if (c._id && typeof c._id === "string" && c._id.length >= 8) {
+      const timestamp = parseInt(c._id.slice(0, 8), 16) * 1000;
+      return new Date(timestamp);
+    }
+    return new Date();
+  }
 
             if (choresTab === 'To Do') {
-              filteredChores = chores.filter(c => !isChoreDone(c));
+            filteredChores = chores.filter(c => !isChoreDone(c)).sort((a, b) =>
+              getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime()
+            );
             } else {
               // "Done": last 90 days
               const now = new Date();

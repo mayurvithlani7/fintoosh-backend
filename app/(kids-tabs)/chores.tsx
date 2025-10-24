@@ -557,7 +557,7 @@ function ChoresSection() {
         // Partition chores
         let activeChores = chores.filter(
           c => !(c.completed || c.approved)
-        );
+        ).sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
         let completedChoresAll = chores.filter(
           c => c.completed || c.approved
         );
@@ -576,7 +576,7 @@ function ChoresSection() {
         ninetyDaysAgo.setDate(now.getDate() - 90);
         const recent = completedChoresAll.filter(c => getChoreCompletedDate(c) >= ninetyDaysAgo);
         const archived = completedChoresAll.filter(c => getChoreCompletedDate(c) < ninetyDaysAgo);
-        let choresToShow = recent;
+        let choresToShow = recent.sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
         if (showArchive)
           choresToShow = [...recent, ...archived].sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
         if (choresToShow.length === 0)

@@ -25,6 +25,26 @@ export default function ParentsRequestsScreen() {
   const router = useRouter();
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
+
+  // Function to get user-friendly request type display name
+  const getRequestTypeDisplay = (type: string) => {
+    switch (type) {
+      case 'chore':
+        return 'Chore Completion';
+      case 'goal-completion':
+        return 'Goal Achievement';
+      case 'reward':
+        return 'Reward Purchase';
+      case 'move-points':
+        return 'Point Transfer';
+      case 'points':
+        return 'Points Request';
+      case 'points-move':
+        return 'Points Transfer';
+      default:
+        return type.charAt(0).toUpperCase() + type.slice(1).replace(/-/g, ' ');
+    }
+  };
   const [requests, setRequests] = useState<any[]>([]);
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -45,7 +65,6 @@ export default function ParentsRequestsScreen() {
   });
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
-  const [showArchived, setShowArchived] = useState(false);
   const [errorState, setErrorState] = useState<{
     type: 'network' | 'auth' | 'server' | null;
     message: string;
@@ -196,7 +215,6 @@ export default function ParentsRequestsScreen() {
   // Filtering options (pending, approved, denied)
   const handleFilterChange = (newFilter: 'pending' | 'approved' | 'denied') => {
     setPagination((prev) => ({ ...prev, filter: newFilter, currentPage: 1, hasNextPage: true }));
-    setShowArchived(false);
     loadRequests({ page: 1, reset: true, filter: newFilter });
   };
 
@@ -213,17 +231,13 @@ export default function ParentsRequestsScreen() {
     return now;
   })();
 
-  // Filter for archived/active approved/denied
+  // Filter for recent approved/denied
   let displayedRequests: any[] = [];
   if (pagination.filter === 'approved' || pagination.filter === 'denied') {
     const statusLabel = pagination.filter === 'approved' ? 'Approved' : 'Denied';
-    const recent = requests.filter((r) =>
+    displayedRequests = requests.filter((r) =>
       r.status === statusLabel && new Date(r.createdAt) >= archiveThreshold
     );
-    const archived = requests.filter((r) =>
-      r.status === statusLabel && new Date(r.createdAt) < archiveThreshold
-    );
-    displayedRequests = showArchived ? [...recent, ...archived] : recent;
   } else {
     displayedRequests = requests.filter((r) => r.status === 'Pending');
   }
@@ -238,27 +252,184 @@ export default function ParentsRequestsScreen() {
 
   const renderRequestCard = ({ item: request }: { item: any }) => (
     <View style={[styles.sectionCard, { alignSelf: 'center', width: '97%', maxWidth: 520, minWidth: 320 }]}>
-      <Text style={styles.sectionTitle}>{request.type} Request</Text>
-      <Text style={styles.requestText}>
-        <Text style={styles.boldText}>Child:</Text> {request.childName}
-      </Text>
-      <Text style={styles.requestText}>
-        <Text style={styles.boldText}>Request:</Text> {request.name}
-      </Text>
-      {request.amount && (
-        <Text style={styles.requestText}>
-          <Text style={styles.boldText}>Amount:</Text> {request.amount} points
-        </Text>
-      )}
-      {request.reason && (
-        <View>
+      <Text style={styles.sectionTitle}>{getRequestTypeDisplay(request.type)} Request</Text>
+
+      {/* Enhanced move-points display */}
+      {request.type === 'move-points' ? (
+        <View style={{ marginTop: 8, marginBottom: 8 }}>
           <Text style={styles.requestText}>
-            <Text style={styles.boldText}>Reason:</Text> {request.reason}
+            <Text style={styles.boldText}>Request:</Text> Move {request.amount} points from {request.from === 'current' ? 'Pocket Money' : request.from === 'save' ? 'Savings Pot' : request.from === 'spend' ? 'Spending Pot' : request.from === 'donate' ? 'Help Others Pot' : request.from === 'invest' ? 'Grow Money Pot' : request.from} to {request.to === 'current' ? 'Pocket Money' : request.to === 'save' ? 'Savings Pot' : request.to === 'spend' ? 'Spending Pot' : request.to === 'donate' ? 'Help Others Pot' : request.to === 'invest' ? 'Grow Money Pot' : request.to}
           </Text>
           <Text style={styles.requestText}>
-            <Text style={styles.boldText}>Date & Time:</Text> {formatDateTime(request.createdAt)}
+            <Text style={styles.boldText}>Amount:</Text> {request.amount} points
+          </Text>
+
+          {/* Visual Before/After Display */}
+          {request.fromBalance !== undefined && request.toBalance !== undefined && (
+            <View style={{
+              backgroundColor: themeColors.surface,
+              borderRadius: 12,
+              padding: 12,
+              marginTop: 12,
+              borderWidth: 2,
+              borderColor: themeColors.border
+            }}>
+              <Text style={[styles.requestText, {
+                fontWeight: 'bold',
+                fontSize: 16,
+                textAlign: 'center',
+                marginBottom: 12,
+                color: themeColors.primary
+              }]}>
+                📊 Before & After Summary
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={[styles.requestText, { fontSize: 14, textAlign: 'center', marginBottom: 4 }]}>
+                    <Text style={styles.boldText}>From:</Text>
+                  </Text>
+                  <Text style={[styles.requestText, { fontSize: 14, textAlign: 'center', marginBottom: 4 }]}>
+                    {request.from === 'current' ? 'Pocket Money' :
+                      request.from === 'save' ? 'Savings Pot' :
+                        request.from === 'spend' ? 'Spending Pot' :
+                          request.from === 'donate' ? 'Help Others Pot' :
+                            request.from === 'invest' ? 'Grow Money Pot' : request.from}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={[styles.requestText, {
+                      fontSize: 14,
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      marginRight: 4
+                    }]}>
+                      {request.fromBalance} → {request.fromBalance - request.amount}
+                    </Text>
+                    {/* Balance Validation Indicators */}
+                    {(() => {
+                      const newBalance = request.fromBalance - request.amount;
+                      const currentAmount = request.fromBalance;
+                      if (newBalance < 0) {
+                        return <Text style={{ fontSize: 14 }}>🚨</Text>; // Negative balance risk
+                      } else if (newBalance < currentAmount * 0.2) {
+                        return <Text style={{ fontSize: 14 }}>⚠️</Text>; // Low balance warning (below 20%)
+                      }
+                      return null;
+                    })()}
+                  </View>
+                </View>
+                <View style={{
+                  width: 2,
+                  backgroundColor: themeColors.border,
+                  marginHorizontal: 12
+                }} />
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={[styles.requestText, { fontSize: 14, textAlign: 'center', marginBottom: 4 }]}>
+                    <Text style={styles.boldText}>To:</Text>
+                  </Text>
+                  <Text style={[styles.requestText, { fontSize: 14, textAlign: 'center', marginBottom: 4 }]}>
+                    {request.to === 'current' ? 'Pocket Money' :
+                      request.to === 'save' ? 'Savings Pot' :
+                        request.to === 'spend' ? 'Spending Pot' :
+                          request.to === 'donate' ? 'Help Others Pot' :
+                            request.to === 'invest' ? 'Grow Money Pot' : request.to}
+                  </Text>
+                  <Text style={[styles.requestText, {
+                    fontSize: 14,
+                    textAlign: 'center',
+                    color: themeColors.success,
+                    fontWeight: 'bold'
+                  }]}>
+                    {request.toBalance} → {request.toBalance + request.amount}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Educational Note for Balance Management */}
+              {(() => {
+                const newBalance = request.fromBalance - request.amount;
+                if (newBalance < 0 || newBalance < request.fromBalance * 0.2) {
+                  return (
+                    <Text style={[styles.requestText, {
+                      fontSize: 12,
+                      fontStyle: 'italic',
+                      color: themeColors.textSecondary,
+                      textAlign: 'center',
+                      marginTop: 8,
+                      paddingHorizontal: 8
+                    }]}>
+                      💡 Maintaining healthy jar balances teaches responsible money management!
+                    </Text>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Quick Action Buttons */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'center',
+                marginTop: 12,
+                paddingTop: 12,
+                borderTopWidth: 1,
+                borderTopColor: themeColors.border + '40'
+              }}>
+                <TouchableOpacity
+                  style={[{
+                    backgroundColor: themeColors.success,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                    marginHorizontal: 4,
+                    minWidth: 80,
+                    alignItems: 'center'
+                  }]}
+                  onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
+                >
+                  <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>✓ Approve</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[{
+                    backgroundColor: themeColors.error,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                    marginHorizontal: 4,
+                    minWidth: 80,
+                    alignItems: 'center'
+                  }]}
+                  onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
+                >
+                  <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>✗ Deny</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          <Text style={[styles.requestText, { marginTop: 12 }]}>
+            <Text style={styles.boldText}>Submitted:</Text> {formatDateTime(request.createdAt)}
           </Text>
         </View>
+      ) : (
+        <>
+          <Text style={styles.requestText}>
+            <Text style={styles.boldText}>Request:</Text> {request.name}
+          </Text>
+          {request.amount && (
+            <Text style={styles.requestText}>
+              <Text style={styles.boldText}>Amount:</Text> {request.amount} points
+            </Text>
+          )}
+          {request.reason && (
+            <View>
+              <Text style={styles.requestText}>
+                <Text style={styles.boldText}>Details:</Text> {request.type === 'chore' && request.reason ? request.reason.replace(/^I completed the chore:\s*/i, `${request.childName || 'Child'} completed chore: `) : request.reason}
+              </Text>
+              <Text style={styles.requestText}>
+                <Text style={styles.boldText}>Submitted:</Text> {formatDateTime(request.createdAt)}
+              </Text>
+            </View>
+          )}
+        </>
       )}
       {/* Messages */}
       {(request.messages && request.messages.length > 0) || request.status === 'Pending' ? (
@@ -451,16 +622,6 @@ export default function ParentsRequestsScreen() {
               ❌ Denied
             </Text>
           </TouchableOpacity>
-          {(pagination.filter === "approved" || pagination.filter === "denied") && (
-            <TouchableOpacity
-              style={[styles.chip, { backgroundColor: showArchived ? themeColors.accent : themeColors.surface }]}
-              onPress={() => setShowArchived(!showArchived)}
-            >
-              <Text style={[styles.chipText, { color: showArchived ? themeColors.card : themeColors.text }]}>
-                📁 {showArchived ? "Show Recent" : "Show Archive"}
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
@@ -491,13 +652,9 @@ export default function ParentsRequestsScreen() {
             <View style={[styles.sectionCard, { alignSelf: 'center', width: '97%', maxWidth: 520, minWidth: 320 }]}>
               <Text style={styles.placeholder}>
                 {pagination.filter === "approved"
-                  ? showArchived
-                    ? "No approved requests found."
-                    : "No approved requests in the past 90 days."
+                  ? "No approved requests in the past 90 days."
                   : pagination.filter === "denied"
-                    ? showArchived
-                      ? "No denied requests found."
-                      : "No denied requests in the past 90 days."
+                    ? "No denied requests in the past 90 days."
                     : pagination.searchQuery ? `No ${pagination.filter.toLowerCase()} requests match "${pagination.searchQuery}".` : `No ${pagination.filter.toLowerCase()} requests.`}
               </Text>
             </View>

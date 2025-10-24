@@ -48,18 +48,35 @@ export default function ParentsAnalyticsScreen() {
     <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            elevation: 2,
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Help</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.secondary,
+              borderRadius: 20,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              elevation: 2,
+            }}
+            onPress={handleRefresh}
+            disabled={loading}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>
+              {loading ? 'Refreshing...' : '🔄 Refresh'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.accent,
+              borderRadius: 20,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              elevation: 2,
+            }}
+            onPress={() => setHelpModalVisible(true)}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Help</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
 

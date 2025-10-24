@@ -19,6 +19,37 @@ import { Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOp
  */
 import type { InterestRuleType } from "@/utils/currencyContext";
 
+// Helper function to determine jar status based on points
+const getJarStatus = (points: number, jarType: 'pocket' | 'savings' | 'spending' | 'donate' | 'invest'): 'excellent' | 'good' | 'needs_attention' | 'low' => {
+  if (points === 0) {
+    return 'low';
+  }
+
+  switch (jarType) {
+    case 'pocket':
+    case 'savings':
+    case 'donate':
+    case 'invest':
+      // Standard pots: 1-100 = Refill Needed, 101-2000 = Good Start, 2001-5000 = Good Balance, 5001-10000 = Great Balance, >10000 = Excellent
+      if (points >= 10001) return 'excellent';
+      if (points >= 5001) return 'excellent'; // Great Balance maps to excellent status
+      if (points >= 2001) return 'good'; // Good Balance maps to good status
+      if (points >= 101) return 'good'; // Good Start maps to good status
+      return 'needs_attention'; // Refill Needed maps to needs_attention
+
+    case 'spending':
+      // Spending pot: 1-20 = Refill Needed, 21-250 = Good Start, 251-1000 = Good Balance, 1001-3000 = Great Balance, >3000 = Excellent
+      if (points > 3000) return 'excellent';
+      if (points >= 1001) return 'excellent'; // Great Balance maps to excellent
+      if (points >= 251) return 'good'; // Good Balance maps to good
+      if (points >= 21) return 'good'; // Good Start maps to good
+      return 'needs_attention'; // Refill Needed maps to needs_attention
+
+    default:
+      return 'good';
+  }
+};
+
 // Enhanced empty state component with progressive onboarding
 const EmptyState = ({ styles }: { styles: any }) => {
   const router = useRouter();
@@ -91,6 +122,8 @@ export default function ParentsOverviewScreen() {
   } | null>(null);
   const [interestHistory, setInterestHistory] = useState<any[]>([]);
 
+
+
   // Fetch interest data for the child
   const fetchInterestData = useCallback(async () => {
     if (!childData?._id) return;
@@ -139,8 +172,6 @@ export default function ParentsOverviewScreen() {
       setInterestHistory([]);
     }
   }, [childData?._id]);
-
-
 
   // Progressive loading states
   const [loadingPhase, setLoadingPhase] = useState<'critical' | 'secondary' | 'complete'>('critical');
@@ -221,7 +252,13 @@ export default function ParentsOverviewScreen() {
       </View>
 
       {/* Refresh Button */}
-      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+      <View style={[styles.sectionCard, {
+        backgroundColor: themeColors.card,
+        shadowColor: themeColors.border,
+        borderWidth: 2,
+        borderColor: themeColors.primary,
+        borderStyle: 'dashed'
+      }]}>
         <TouchableOpacity
           style={[styles.quickBtn, { backgroundColor: themeColors.primary, alignSelf: 'center', minWidth: 200 }]}
           onPress={onRefresh}
@@ -264,7 +301,13 @@ export default function ParentsOverviewScreen() {
       })()}
 
       {/* Child Jars Panel */}
-      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+      <View style={[styles.sectionCard, {
+        backgroundColor: themeColors.surface,
+        shadowColor: themeColors.border,
+        borderWidth: 3,
+        borderColor: themeColors.success,
+        borderRadius: 20
+      }]}>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
           {childData ? `${childData.name}'s Pots` : 'Your Child\'s Pots'}
         </Text>
@@ -285,40 +328,35 @@ export default function ParentsOverviewScreen() {
               value={childData.currentPoints}
               totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
               themeColors={themeColors}
-              status="good"
-              recommended={25}
+              status={getJarStatus(childData.currentPoints, 'pocket')}
             />
             <EnhancedJar
               label="Savings Pot"
               value={childData.savePoints}
               totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
               themeColors={themeColors}
-              status={childData.savePoints > 100 ? 'excellent' : childData.savePoints > 50 ? 'good' : 'needs_attention'}
-              recommended={30}
+              status={getJarStatus(childData.savePoints, 'savings')}
             />
             <EnhancedJar
               label="Spending Pot"
               value={childData.spendPoints}
               totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
               themeColors={themeColors}
-              status={childData.spendPoints > 200 ? 'needs_attention' : 'good'}
-              recommended={20}
+              status={getJarStatus(childData.spendPoints, 'spending')}
             />
             <EnhancedJar
               label="Help Others Pot"
               value={childData.donatePoints}
               totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
               themeColors={themeColors}
-              status={childData.donatePoints > 0 ? 'excellent' : 'low'}
-              recommended={10}
+              status={getJarStatus(childData.donatePoints, 'donate')}
             />
             <EnhancedJar
               label="Grow Money Pot"
               value={childData.investPoints}
               totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
               themeColors={themeColors}
-              status={childData.investPoints > 0 ? 'excellent' : 'low'}
-              recommended={15}
+              status={getJarStatus(childData.investPoints, 'invest')}
             />
           </View>
         ) : (
@@ -327,7 +365,14 @@ export default function ParentsOverviewScreen() {
       </View>
 
       {/* Quick Actions - Grouped by Priority */}
-      <View style={[styles.actionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+      <View style={[styles.actionCard, {
+        backgroundColor: themeColors.secondary + '15',
+        shadowColor: themeColors.border,
+        borderWidth: 4,
+        borderColor: themeColors.warning,
+        borderRadius: 18,
+        borderStyle: 'solid'
+      }]}>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Quick Actions</Text>
 
         {/* Smart Action Suggestions */}

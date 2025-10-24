@@ -160,7 +160,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
 });
 
 const typeLabels: { [key: string]: string } = {
-  "chore-completion": "Home Task",
+  "chore-completed": "Home Task",
   "goal-completion": "Goal",
   "reward-purchase": "Reward",
   "points-move": "Move",
@@ -185,7 +185,7 @@ const getTransactionAchievement = (tx: any) => {
 
   // Achievement badges based on transaction type and amount
   switch (type) {
-    case 'chore-completion':
+    case 'chore-completed':
       if (amount >= 100) return { badge: '🏆 Super Helper!', color: '#FFD700', story: 'Amazing work on that big tasks!' };
       if (amount >= 50) return { badge: '🧹 Clean Champion!', color: '#4CAF50', story: 'You did an awesome job!' };
       return { badge: '⭐ Helper Star!', color: '#2196F3', story: 'Thanks for helping out!' };
@@ -423,14 +423,13 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
 
   const typeOptions = [
     { label: 'All', value: '' },
-    { label: 'Home Task', value: 'chore-completion' },
+    { label: 'Home Task', value: 'chore-completed' },
     { label: 'Goal', value: 'goal-completion' },
     { label: 'Reward', value: 'reward-purchase' },
     { label: 'Move', value: 'points-move' },
     { label: 'Points Request', value: 'points-request' },
     { label: 'Adjustment', value: 'parent-points-adjustment' },
-    { label: 'Interest Payout', value: 'interest-payout' },
-    { label: 'Others', value: 'others' }
+   
   ];
 
   const selectedLabel = typeOptions.find(opt => opt.value === value)?.label || 'All';
@@ -452,15 +451,12 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
           color: themeColors.text,
         }}
       >
-        <option value="">All</option>
-        <option value="chore-completion">Home Task</option>
+           <option value="">All</option>
+        <option value="chore-completed">Task</option>
         <option value="goal-completion">Goal</option>
         <option value="reward-purchase">Reward</option>
         <option value="points-move">Move</option>
-        <option value="points-request">Points Request</option>
         <option value="parent-points-adjustment">Adjustment</option>
-        <option value="interest-payout">Interest Payout</option>
-        <option value="others">Others</option>
       </select>
     );
   }
@@ -749,8 +745,8 @@ export default function ParentTransactionHistoryScreen() {
           </TouchableOpacity>
         </View>
         {/* Date Range Filter */}
-        <View style={[styles.filtersRow, {marginTop: 4}]}>
-          <View style={{ flex: 1, minWidth: 120 }}>
+        <View style={[styles.filtersRow, {marginTop: 8}]}>
+          <View style={{ flex: 1, minWidth: 120, marginRight: 8 }}>
             <Text style={[styles.label, { color: themeColors.text }]}>From Date</Text>
             <DateInput
               value={startDate}
@@ -759,7 +755,7 @@ export default function ParentTransactionHistoryScreen() {
               themeColors={themeColors}
             />
           </View>
-          <View style={{ flex: 1, minWidth: 120 }}>
+          <View style={{ flex: 1, minWidth: 120, marginLeft: 8 }}>
             <Text style={[styles.label, { color: themeColors.text }]}>To Date</Text>
             <DateInput
               value={endDate}
