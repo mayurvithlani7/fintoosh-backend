@@ -349,11 +349,20 @@ router.patch('/rewards/:rewardId', auth, async (req, res) => {
       if (!reward.available) return res.status(400).json({ message: 'Reward is not available for claiming.' });
       if (reward.purchased) return res.status(400).json({ message: 'Reward already claimed.' });
 
-      // Check points (but do not deduct yet)
-      const currentPoints = rewardOwner.currentPoints || 0;
-      if (currentPoints < reward.cost) {
-        return res.status(400).json({ message: 'Not enough points to claim this reward.' });
+      // Check available points (actual points - pending points)
+      const actualPoints = rewardOwner.currentPoints || 0;
+      const pendingPoints = rewardOwner.pendingCurrentPoints || 0;
+      const availablePoints = actualPoints - pendingPoints;
+
+      if (availablePoints < reward.cost) {
+        return res.status(400).json({
+          message: `Not enough available points after considering other pending claims. Available: ${availablePoints}, Required: ${reward.cost}.`
+        });
       }
+
+      // Reserve points by incrementing pending points
+      rewardOwner.pendingCurrentPoints = (rewardOwner.pendingCurrentPoints || 0) + reward.cost;
+      await rewardOwner.save();
 
       // --- AUTO-APPROVAL LOGIC for reward claims ---
       let autoApproved = false;
@@ -1183,14 +1192,23 @@ router.post('/requests', auth, async (req, res) => {
         }
         const jar = goal.jar || "current";
         const pointsField = jar + "Points";
+        const pendingField = "pending" + pointsField.charAt(0).toUpperCase() + pointsField.slice(1);
         const amount = req.body.amount;
-        if (typeof childUser[pointsField] !== "number" || childUser[pointsField] < amount) {
-          res.status(400).json({ message: `Not enough points in ${jar} jar to claim goal.` });
+
+        // Check available points (actual points - pending points)
+        const actualPoints = childUser[pointsField] || 0;
+        const pendingPoints = childUser[pendingField] || 0;
+        const availablePoints = actualPoints - pendingPoints;
+
+        if (availablePoints < amount) {
+          res.status(400).json({
+            message: `Not enough available points in ${jar} jar after considering other pending claims. Available: ${availablePoints}, Required: ${amount}.`
+          });
           return;
         }
 
-        // Deduct points and complete goal
-        childUser[pointsField] -= amount;
+        // Reserve points by incrementing pending points
+        childUser[pendingField] = (childUser[pendingField] || 0) + amount;
         await childUser.save();
 
         goal.status = 'completed';
@@ -1198,6 +1216,11 @@ router.post('/requests', auth, async (req, res) => {
         goal.achievedAt = new Date();
         goal.updatedAt = new Date();
         await goal.save();
+
+        // Deduct points and decrement pending points (immediate fulfillment for auto-approved)
+        childUser[pointsField] -= amount;
+        childUser[pendingField] -= amount;
+        await childUser.save();
 
         // Record transaction
         const txn = new Transaction({
@@ -1437,15 +1460,23 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       const user = await User.findOne({ id: approval.childId });
       const RewardModel = require('../models/Reward');
       if (user) {
-        // Deduct from currentPoints (i.e. "current" jar)
-        const rewardDoc = approval.rewardId
-          ? await RewardModel.findById(approval.rewardId)
-          : await RewardModel.findOne({ name: approval.name, user: user._id });
+        // Check available points (actual points - pending points)
+        const actualPoints = user.currentPoints || 0;
+        const pendingPoints = user.pendingCurrentPoints || 0;
+        const availablePoints = actualPoints - pendingPoints;
         const cost = approval.amount;
-        if ((user.currentPoints || 0) < cost) {
-          return res.status(400).json({ message: 'Not enough points to fulfill this reward request at approval time.' });
+
+        if (availablePoints < cost) {
+          return res.status(400).json({
+            message: `Not enough available points to fulfill this reward request. Available: ${availablePoints}, Required: ${cost}.`
+          });
         }
+
+        // Reserve points and deduct them
+        user.pendingCurrentPoints = (user.pendingCurrentPoints || 0) + cost;
         user.currentPoints = (user.currentPoints || 0) - cost;
+        user.pendingCurrentPoints -= cost;
+
         const txn = new Transaction({
           type: 'reward-purchase',
           description: `Parent approved reward "${approval.name}" for ${cost} points`,
@@ -1457,6 +1488,9 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         user.transactions.unshift(txn._id);
 
         // Update reward fulfillment
+        const rewardDoc = approval.rewardId
+          ? await RewardModel.findById(approval.rewardId)
+          : await RewardModel.findOne({ name: approval.name, user: user._id });
         if (rewardDoc) {
           rewardDoc.approvedAt = new Date();
           rewardDoc.purchased = true;
@@ -1465,6 +1499,50 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         }
 
         await user.save();
+      }
+    }
+
+    if (status === 'Approved' && approval.type === 'goal-completion') {
+      const Goal = require('../models/Goal');
+      const User = require('../models/User');
+      if (approval.goalId) {
+        const goal = await Goal.findById(approval.goalId);
+        if (goal) {
+          // Find child user
+          const user = await User.findOne({ id: approval.childId });
+          if (!user) {
+            return res.status(400).json({ message: "Could not find child user for goal completion." });
+          }
+          // Determine which jar is required and how much
+          const jar = goal.jar;
+          const pointsField = jar + "Points";
+          const pendingField = "pending" + pointsField.charAt(0).toUpperCase() + pointsField.slice(1);
+          const target = goal.targetAmount || approval.amount || 0;
+
+          // Check available points (actual points - pending points)
+          const actualPoints = user[pointsField] || 0;
+          const pendingPoints = user[pendingField] || 0;
+          const availablePoints = actualPoints - pendingPoints;
+
+          if (availablePoints < target) {
+            // Reset goal status back to 'active' so child can try again
+            goal.status = 'active';
+            await goal.save();
+
+            return res.status(400).json({
+              message: `Not enough available points in ${jar} jar for goal completion. Available: ${availablePoints}, Required: ${target}. Goal has been reset to active status.`
+            });
+          }
+
+          // Reserve points and deduct them
+          user[pendingField] = (user[pendingField] || 0) + target;
+          user[pointsField] -= target;
+          user[pendingField] -= target;
+
+          await user.save();
+          goal.status = 'completed'; // Mark as completed/claimed
+          await goal.save();
+        }
       }
     }
 

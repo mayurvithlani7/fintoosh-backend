@@ -17,10 +17,15 @@ const userSchema = new mongoose.Schema({
   deactivatedAt: { type: Date, default: null }, // Timestamp when account was deactivated
   avatar: { type: String, default: 'boy1' },
   currentPoints: { type: Number, default: 0 },
+  pendingCurrentPoints: { type: Number, default: 0 }, // Points reserved for pending claims
   savePoints: { type: Number, default: 0 },
+  pendingSavePoints: { type: Number, default: 0 },
   spendPoints: { type: Number, default: 0 },
+  pendingSpendPoints: { type: Number, default: 0 },
   donatePoints: { type: Number, default: 0 },
+  pendingDonatePoints: { type: Number, default: 0 },
   investPoints: { type: Number, default: 0 },
+  pendingInvestPoints: { type: Number, default: 0 },
   // Currency settings for INR localization
   currency: { type: String, enum: ['points', 'inr'], default: 'points' },
   conversionRate: { type: Number, default: 1, min: 0.1, max: 100 }, // 1 point = X INR

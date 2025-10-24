@@ -1006,10 +1006,12 @@ function KidGoalsRewardsSection() {
   // Individual goal renderer (uses parent logic for claim display, etc.)
   function renderGoal(g: any) {
     const jarPoints = userData ? userData[g.jar + "Points"] || 0 : 0;
+    const pendingJarPoints = userData ? userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"] || 0 : 0;
+    const availableJarPoints = jarPoints - pendingJarPoints;
     const isCompleted = g.completed === true || g.status === "completed";
     const isPending = g.status === "pending" && !isCompleted;
     const isExpired = g.status === "expired";
-    const canClaim = jarPoints >= g.targetAmount && g.status === "active" && !isCompleted && !isExpired;
+    const canClaim = availableJarPoints >= g.targetAmount && g.status === "active" && !isCompleted && !isExpired;
 
     let buttonText = "Claim";
     let buttonColor = "#bbfbc1";
@@ -1166,8 +1168,9 @@ function KidGoalsRewardsSection() {
     const hasPending = requests.some(
       (req: any) => req.type === "reward" && req.rewardId === r._id && req.status === "Pending"
     );
-    // "Can claim" if available, not purchased, not pending, and enough points
-    const canClaim = r.available && !r.purchased && userData && userData.currentPoints >= r.cost && !hasPending;
+    // "Can claim" if available, not purchased, not pending, and enough available points
+    const availablePoints = userData ? (userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0) : 0;
+    const canClaim = r.available && !r.purchased && userData && availablePoints >= r.cost && !hasPending;
 
     const getStatusText = () => {
       if (r.purchased) return 'Claimed';
