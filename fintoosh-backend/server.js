@@ -138,6 +138,17 @@ const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kid-budge
 // Determine if this is a local development environment
 const isLocalConnection = mongoURI.includes('localhost') || mongoURI.includes('127.0.0.1');
 
+// Log connection details (without sensitive credentials)
+const connectionType = isLocalConnection ? 'local' : 'Atlas';
+const maskedURI = mongoURI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
+logger.info('MongoDB connection configuration', {
+  type: connectionType,
+  uri: maskedURI,
+  ssl: !isLocalConnection,
+  serverSelectionTimeout: 30000,
+  socketTimeout: 45000
+});
+
 // MongoDB connection - Use secure defaults for production, permissive options only for local dev
 const connectionOptions = isLocalConnection ? {
   serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
@@ -161,42 +172,71 @@ const connectionOptions = isLocalConnection ? {
   checkServerIdentity: false, // Skip server identity verification
 };
 
+logger.info('Attempting MongoDB connection...');
 mongoose.connect(mongoURI, connectionOptions);
 
 // Connection event handlers
 mongoose.connection.on('connected', () => {
-  console.log('MongoDB connected successfully');
+  logger.info('MongoDB connected successfully', {
+    connectionType,
+    database: mongoose.connection.name,
+    host: mongoose.connection.host
+  });
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
+  logger.error('MongoDB connection error', {
+    error: err.message,
+    code: err.code,
+    codeName: err.codeName,
+    connectionType,
+    stack: err.stack
+  });
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected');
+  logger.warn('MongoDB disconnected', {
+    connectionType,
+    reason: 'Connection lost'
+  });
 });
 
 mongoose.connection.on('reconnected', () => {
-  console.log('MongoDB reconnected');
+  logger.info('MongoDB reconnected', {
+    connectionType,
+    database: mongoose.connection.name,
+    host: mongoose.connection.host
+  });
 });
 
 mongoose.connection.once('open', async () => {
-  console.log('MongoDB connection opened');
+  logger.info('MongoDB connection opened and ready', {
+    connectionType,
+    database: mongoose.connection.name,
+    host: mongoose.connection.host,
+    readyState: mongoose.connection.readyState
+  });
 
   // Seed education modules if collection is empty
   try {
     const EducationModule = require('./models/EducationModule');
     const count = await EducationModule.countDocuments();
     if (count === 0) {
-      console.log('Education modules collection is empty, seeding...');
+      logger.info('Education modules collection is empty, seeding...');
       const { seedEducationModules } = require('./scripts/seed-education-modules');
       await seedEducationModules();
-      console.log('Education modules seeded successfully');
+      logger.info('Education modules seeded successfully');
     } else {
-      console.log(`Education modules collection has ${count} documents`);
+      logger.info('Education modules collection status', {
+        documentCount: count,
+        collection: 'education_modules'
+      });
     }
   } catch (error) {
-    console.error('Error checking/seeding education modules:', error);
+    logger.error('Error checking/seeding education modules', {
+      error: error.message,
+      stack: error.stack
+    });
   }
 });
 
