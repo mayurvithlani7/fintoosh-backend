@@ -142,6 +142,7 @@ mongoose.connect(mongoURI, {
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   ssl: true,
   checkServerIdentity: null, // Disable server identity checking for Render compatibility
+  tlsAllowInvalidCertificates: true, // Allow invalid certificates for Render compatibility
   tlsAllowInvalidHostnames: false,
   minPoolSize: 2,
   maxPoolSize: 10,
