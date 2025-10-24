@@ -411,10 +411,21 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
       if (!reward.available) return res.status(400).json({ message: 'Reward is not available for claiming.' });
       if (reward.purchased) return res.status(400).json({ message: 'Reward already claimed.' });
 
-      // Check points (but do not deduct yet)
-      const currentPoints = rewardOwner.currentPoints || 0;
-      if (currentPoints < reward.cost) {
+      // Atomically check and reserve points in pendingCurrentPoints
+      const availablePoints = (rewardOwner.currentPoints || 0) - (rewardOwner.pendingCurrentPoints || 0);
+      if (availablePoints < reward.cost) {
         return res.status(400).json({ message: 'Not enough points to claim this reward.' });
+      }
+
+      // Atomically increment pendingCurrentPoints
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: rewardOwner._id },
+        { $inc: { pendingCurrentPoints: reward.cost } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to reserve points for reward claim.' });
       }
 
       // --- AUTO-APPROVAL LOGIC for reward claims ---
@@ -430,16 +441,27 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
       const rewardClaimMax = autoApprovalRules.rewardClaimMax;
 
       if (typeof rewardClaimMax === 'number' && rewardClaimMax >= 0 && reward.cost <= rewardClaimMax) {
-        // Auto-approve immediately
+        // Auto-approve immediately - deduct from both current and pending points atomically
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: rewardOwner._id },
+          {
+            $inc: {
+              currentPoints: -reward.cost,
+              pendingCurrentPoints: -reward.cost
+            }
+          },
+          { new: true }
+        );
+
+        if (!updatedUser) {
+          return res.status(500).json({ message: 'Failed to update points for auto-approved reward.' });
+        }
+
         reward.available = false;
         reward.purchased = true;
         reward.approvedAt = new Date();
         reward.purchasedAt = new Date();
         await reward.save();
-
-        rewardOwner.currentPoints -= reward.cost;
-        if (rewardOwner.currentPoints < 0) rewardOwner.currentPoints = 0;
-        await rewardOwner.save();
 
         // Create transaction
         const txn = new Transaction({
@@ -916,6 +938,28 @@ router.patch('/goals/:goalId', auth, async (req, res) => {
       if (!goal.user.equals(req.user._id)) {
         return res.status(403).json({ message: "Not authorized to modify this goal" });
       }
+
+      // Atomically check and reserve points in the appropriate pendingXPoints field
+      const jar = goal.jar || 'current';
+      const pointsField = jar + 'Points';
+      const pendingField = 'pending' + jar.charAt(0).toUpperCase() + jar.slice(1) + 'Points';
+      const availablePoints = (req.user[pointsField] || 0) - (req.user[pendingField] || 0);
+
+      if (availablePoints < goal.targetAmount) {
+        return res.status(400).json({ message: `Not enough points in ${jar} jar to claim this goal.` });
+      }
+
+      // Atomically increment the pending field
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: req.user._id },
+        { $inc: { [pendingField]: goal.targetAmount } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to reserve points for goal claim.' });
+      }
+
       // Allow updating status for children
       if (update.status !== undefined) allowed.status = update.status;
     }
@@ -1679,7 +1723,7 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       const user = await User.findOne({ id: approval.childId });
       const RewardModel = require('../models/Reward');
       if (user) {
-        // Deduct from currentPoints (i.e. "current" jar)
+        // Deduct from both pendingCurrentPoints and currentPoints atomically
         const rewardDoc = approval.rewardId
           ? await RewardModel.findById(approval.rewardId)
           : await RewardModel.findOne({ name: approval.name, user: user._id });
@@ -1687,7 +1731,23 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         if ((user.currentPoints || 0) < cost) {
           return res.status(400).json({ message: 'Not enough points to fulfill this reward request at approval time.' });
         }
-        user.currentPoints = (user.currentPoints || 0) - cost;
+
+        // Atomically deduct from both pending and actual points
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: user._id },
+          {
+            $inc: {
+              currentPoints: -cost,
+              pendingCurrentPoints: -cost
+            }
+          },
+          { new: true }
+        );
+
+        if (!updatedUser) {
+          return res.status(500).json({ message: 'Failed to update points for reward approval.' });
+        }
+
         const txn = new Transaction({
           type: 'reward-purchase',
           description: `Parent approved reward "${approval.name}" for ${cost} points`,
@@ -1696,7 +1756,8 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           date: new Date().toLocaleString(),
         });
         await txn.save();
-        user.transactions.unshift(txn._id);
+        updatedUser.transactions.unshift(txn._id);
+        await updatedUser.save();
 
         // Update reward fulfillment and status
         if (rewardDoc) {
@@ -1708,8 +1769,6 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           rewardDoc.status = 'claimed'; // Update status to claimed
           await rewardDoc.save();
         }
-
-        await user.save();
       }
     }
 
@@ -1813,6 +1872,7 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           // Determine which jar is required and how much
           const jar = goal.jar;
           const pointsField = jar + "Points";
+          const pendingField = 'pending' + jar.charAt(0).toUpperCase() + jar.slice(1) + 'Points';
           const target = goal.targetAmount || approval.amount || 0;
           if (!user[pointsField] || user[pointsField] < target) {
             // Reset goal status back to 'active' so child can try again
@@ -1823,9 +1883,23 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
               message: `Not enough points in ${jar} jar for goal completion. The child needs ${target - (user[pointsField] || 0)} more points. Goal has been reset to active status.`
             });
           }
-          // Deduct points and complete goal
-          user[pointsField] -= target;
-          await user.save();
+
+          // Atomically deduct from both pending and actual points
+          const updatedUser = await User.findOneAndUpdate(
+            { _id: user._id },
+            {
+              $inc: {
+                [pointsField]: -target,
+                [pendingField]: -target
+              }
+            },
+            { new: true }
+          );
+
+          if (!updatedUser) {
+            return res.status(500).json({ message: 'Failed to update points for goal approval.' });
+          }
+
           goal.status = 'completed'; // Mark as completed/claimed
           goal.achieved = true;
           goal.achievedAt = new Date();
@@ -1843,13 +1917,13 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
             date: new Date().toLocaleString()
           });
           await txn.save();
-          user.transactions = user.transactions || [];
-          user.transactions.unshift(txn._id);
-          await user.save();
+          updatedUser.transactions = updatedUser.transactions || [];
+          updatedUser.transactions.unshift(txn._id);
+          await updatedUser.save();
         }
       }
     }
-    // If denied and reward, reset reward availability and status
+    // If denied and reward, reset reward availability and status, and refund pending points
     if (status === 'Denied' && approval.type === 'reward') {
       console.log('DEBUG: Inside reward deny handler.', { status, approvalType: approval.type, approvalId: approval._id });
       const RewardModel = require('../models/Reward');
@@ -1862,6 +1936,16 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           reward.status = 'active'; // Reset status to active so child can try again
           await reward.save();
           console.log('DEBUG Deny Reward - updated:', { _id: reward._id, available: reward.available, purchased: reward.purchased, status: reward.status });
+
+          // Refund pending points
+          const childUser = await User.findOne({ id: approval.childId });
+          if (childUser) {
+            await User.findOneAndUpdate(
+              { _id: childUser._id },
+              { $inc: { pendingCurrentPoints: -approval.amount } },
+              { new: true }
+            );
+          }
         } else {
           console.log('DEBUG Deny Reward - reward not found:', approval.rewardId);
         }
@@ -1870,7 +1954,7 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       }
     }
 
-    // If denied and goal-completion, reset goal status to 'active'
+    // If denied and goal-completion, reset goal status to 'active' and refund pending points
     if (status === 'Denied' && approval.type === 'goal-completion') {
       const Goal = require('../models/Goal');
       if (approval.goalId) {
@@ -1878,6 +1962,17 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         if (goal) {
           goal.status = 'active'; // Reset to active so child can try again
           await goal.save();
+
+          // Refund pending points
+          const childUser = await User.findOne({ id: approval.childId });
+          if (childUser && goal.jar) {
+            const pendingField = 'pending' + goal.jar.charAt(0).toUpperCase() + goal.jar.slice(1) + 'Points';
+            await User.findOneAndUpdate(
+              { _id: childUser._id },
+              { $inc: { [pendingField]: -approval.amount } },
+              { new: true }
+            );
+          }
         }
       }
     }
