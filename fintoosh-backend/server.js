@@ -6,7 +6,7 @@ const logger = require('./utils/logger');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 // Rate limiting middleware
 
@@ -135,8 +135,11 @@ app.use((req, res, next) => {
 // MongoDB connection
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kid-budgeting-simulator';
 
-// MongoDB connection - Cyclic.sh may need SSL compatibility options
-mongoose.connect(mongoURI, {
+// Determine if this is a local development environment
+const isLocalConnection = mongoURI.includes('localhost') || mongoURI.includes('127.0.0.1');
+
+// MongoDB connection - Use secure defaults for production, permissive options only for local dev
+const connectionOptions = isLocalConnection ? {
   serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   ssl: true,
@@ -145,7 +148,15 @@ mongoose.connect(mongoURI, {
   tlsAllowInvalidHostnames: false,
   minPoolSize: 2,
   maxPoolSize: 10,
-});
+} : {
+  serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
+  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  minPoolSize: 2,
+  maxPoolSize: 10,
+  // Let Mongoose handle SSL/TLS automatically for secure Atlas connections
+};
+
+mongoose.connect(mongoURI, connectionOptions);
 
 // Connection event handlers
 mongoose.connection.on('connected', () => {
