@@ -134,12 +134,33 @@ app.use((req, res, next) => {
 
 // MongoDB connection
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kid-budgeting-simulator';
+
 mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(async () => {
-  console.log('MongoDB connected');
+  serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
+  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  bufferCommands: false, // Disable mongoose buffering
+  bufferMaxEntries: 0, // Disable mongoose buffering
+});
+
+// Connection event handlers
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connected successfully');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected');
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('MongoDB reconnected');
+});
+
+mongoose.connection.once('open', async () => {
+  console.log('MongoDB connection opened');
 
   // Seed education modules if collection is empty
   try {
@@ -156,8 +177,7 @@ mongoose.connect(mongoURI, {
   } catch (error) {
     console.error('Error checking/seeding education modules:', error);
   }
-})
-.catch(err => console.log('MongoDB connection error:', err));
+});
 
 // Apply general rate limiting to all API routes
 app.use('/api', generalLimiter);

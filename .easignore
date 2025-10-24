@@ -9,6 +9,7 @@ yarn.lock
 
 # Git
 .git/
+.git_disabled/
 .gitignore
 
 # Environment files and config secrets
@@ -23,6 +24,11 @@ scripts/
 test/
 tests/
 __tests__/
+
+# Development and documentation folders
+memory-bank/
+.clinerules/
+.idea/
 
 # Unused/large asset folders (adjust as needed)
 assets/videos/
@@ -41,6 +47,7 @@ Thumbs.db
 README.md
 CHANGELOG.md
 *.md
+TESTING_GUIDE.md
 *.psd
 *.ai
 *.sketch
@@ -59,6 +66,18 @@ build/
 .expo/
 web-build/
 web-dist/
+
+# Database and utility scripts (development only)
+reset-database.js
+add-status-field.js
+check-users.js
+create-demo-otp-user.js
+create-demo-users.js
+fix-parent-child-relationship.js
+fix-username-index.js
+test-api.js
+test-login.js
+test-milestones.js
 
 # Remove if you use these folders for app code
 # components/   # (Commented, KEEP THESE UNLESS unused)

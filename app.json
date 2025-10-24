@@ -32,8 +32,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "package": "com.fintoosh.app",
-      "versionCode": 1,
       "enableOnBackInvokedCallback": true,
       "web": {
         "output": "static",
