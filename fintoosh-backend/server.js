@@ -138,6 +138,13 @@ const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kid-budge
 mongoose.connect(mongoURI, {
   serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  ssl: true,
+  tls: true,
+  tlsAllowInvalidCertificates: false,
+  tlsAllowInvalidHostnames: false,
+  tlsInsecure: false,
+  minPoolSize: 2,
+  maxPoolSize: 10,
 });
 
 // Connection event handlers
