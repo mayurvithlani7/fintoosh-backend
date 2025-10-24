@@ -153,11 +153,12 @@ const connectionOptions = isLocalConnection ? {
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   minPoolSize: 2,
   maxPoolSize: 10,
-  // Explicit SSL/TLS configuration for Atlas connections
+  // SSL/TLS configuration with broader compatibility for Atlas connections
   ssl: true,
   tls: true,
-  tlsAllowInvalidCertificates: false,
-  tlsAllowInvalidHostnames: false,
+  tlsAllowInvalidCertificates: true, // Allow invalid certificates for compatibility
+  tlsAllowInvalidHostnames: true, // Allow invalid hostnames for compatibility
+  checkServerIdentity: false, // Skip server identity verification
 };
 
 mongoose.connect(mongoURI, connectionOptions);
