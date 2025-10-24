@@ -6,7 +6,7 @@ const logger = require('./utils/logger');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 8080;
 
 // Rate limiting middleware
 
@@ -135,17 +135,10 @@ app.use((req, res, next) => {
 // MongoDB connection
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kid-budgeting-simulator';
 
-// For Render compatibility, temporarily allow invalid certificates
-// TODO: Remove sslValidate: false once Render updates OpenSSL
+// MongoDB connection - Fly.io has excellent MongoDB Atlas compatibility
 mongoose.connect(mongoURI, {
   serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-  ssl: true,
-  checkServerIdentity: null, // Disable server identity checking for Render compatibility
-  tlsAllowInvalidCertificates: true, // Allow invalid certificates for Render compatibility
-  tlsAllowInvalidHostnames: false,
-  minPoolSize: 2,
-  maxPoolSize: 10,
 });
 
 // Connection event handlers
