@@ -444,17 +444,22 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
       // Try to load recent transactions for activity feed
       try {
+        console.log('RECENT_ADVENTURES_LOG: Fetching transactions for user:', userId);
         const transactionsResponse = await fetch(`${API_URL}/transactions/${userId}`, {
           signal: controller.signal,
           headers: { 'Authorization': `Bearer ${token}` },
         });
 
         if (transactionsResponse.ok && !controller.signal.aborted) {
-          transactions = await transactionsResponse.json();
+          const responseData = await transactionsResponse.json();
+          transactions = responseData.transactions || [];
+          console.log('RECENT_ADVENTURES_LOG: Fetched', transactions.length, 'transactions:', transactions.map(t => ({ type: t.type, amount: t.amount, description: t.description })));
+        } else {
+          console.log('RECENT_ADVENTURES_LOG: Transaction fetch failed with status:', transactionsResponse.status);
         }
       } catch (txError) {
         if (!controller.signal.aborted) {
-          console.log('Could not load transactions, using mock activities');
+          console.log('RECENT_ADVENTURES_LOG: Could not load transactions, error:', txError.message);
         }
       }
 
@@ -1134,7 +1139,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               🚀 Ready for your first adventure?
             </Text>
             <Text style={{ fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20 }}>
-              Complete chores, claim rewards, or set goals to see your activities here!
+              Complete chores, claim rewards, or set goals to earn points! Your awesome activities will appear here after your parent gives the thumbs up! 🎉
             </Text>
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 16 }}>

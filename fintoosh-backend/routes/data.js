@@ -1871,6 +1871,8 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       user.transactions.unshift(...transactions);
       await user.save();
 
+      console.log('RECENT_ADVENTURES_LOG: Created', transactions.length, 'transactions for chore approval:', transactions.map(t => ({ id: t._id, type: t.type, amount: t.amount, description: t.description })));
+
       // Mark chore as approved and set status to completed
       chore.completed = true;
       chore.approved = true;
@@ -2789,7 +2791,7 @@ router.post('/elder-wisdom/:familyId', auth, sanitizeInput, async (req, res) => 
 
 /**
  * GET /notifications?userId=...
- * Get all notifications for userId (parents and kids).
+ * Get unread notifications for userId (parents and kids).
  */
 router.get('/notifications', auth, async (req, res) => {
   try {
@@ -2808,7 +2810,7 @@ router.get('/notifications', auth, async (req, res) => {
     ) {
       return res.status(403).json({ message: "Not authorized to access these notifications" });
     }
-    const notifications = await Notification.find({ userId }).sort({ createdAt: -1 }).limit(50);
+    const notifications = await Notification.find({ userId, isRead: false }).sort({ createdAt: -1 }).limit(50);
     res.json(notifications);
   } catch (error) {
     res.status(500).json({ message: "Error fetching notifications", error });
@@ -2817,7 +2819,7 @@ router.get('/notifications', auth, async (req, res) => {
 
 /**
  * PATCH /notifications/:notifId
- * Mark a notification as read.
+ * Delete a notification (mark as read by removing it).
  */
 router.patch('/notifications/:notifId', auth, async (req, res) => {
   try {
@@ -2836,8 +2838,7 @@ router.patch('/notifications/:notifId', auth, async (req, res) => {
       return res.status(403).json({ message: "Not authorized to modify this notification" });
     }
 
-    notification.isRead = true;
-    await notification.save();
+    await Notification.findByIdAndDelete(notifId);
     res.json({ success: true });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -2846,7 +2847,7 @@ router.patch('/notifications/:notifId', auth, async (req, res) => {
 
 /**
  * PATCH /notifications/mark-all-read?userId=...
- * Mark all unread notifications as read for a user.
+ * Delete all unread notifications for a user.
  */
 router.patch('/notifications/mark-all-read', auth, async (req, res) => {
   try {
@@ -2866,12 +2867,7 @@ router.patch('/notifications/mark-all-read', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const updateResult = await Notification.updateMany(
-      { userId, isRead: false },
-      { $set: { isRead: true } }
-    );
-    console.log(`Marked ${updateResult.modifiedCount} notifications as read for user ${userId}`);
-
+    await Notification.deleteMany({ userId, isRead: false });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ message: 'Failed to mark notifications as read' });
@@ -3386,5 +3382,90 @@ const handleRunRecurringJobs = (req, res) => {
 
 router.get('/run-recurring-jobs', handleRunRecurringJobs);
 router.post('/run-recurring-jobs', handleRunRecurringJobs);
+
+/**
+ * GET /notifications?userId=...
+ * Get unread notifications for userId (parents and kids).
+ */
+router.get('/notifications', auth, async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ message: "Missing userId parameter" });
+    }
+    // Only allow access if requesting user matches or is parent in same family
+    const targetUser = await User.findOne({ id: userId });
+    if (!targetUser) {
+      return res.status(404).json({ message: "Target user not found" });
+    }
+    if (
+      req.user.id !== userId &&
+      (req.user.role !== 'parent' || req.user.familyId !== targetUser.familyId)
+    ) {
+      return res.status(403).json({ message: "Not authorized to access these notifications" });
+    }
+    const notifications = await Notification.find({ userId, isRead: false }).sort({ createdAt: -1 }).limit(50);
+    res.json(notifications);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching notifications", error });
+  }
+});
+
+/**
+ * PATCH /notifications/:notifId
+ * Delete a notification (mark as read by removing it).
+ */
+router.patch('/notifications/:notifId', auth, async (req, res) => {
+  try {
+    const { notifId } = req.params;
+    const notification = await Notification.findById(notifId);
+    if (!notification) return res.status(404).json({ message: 'Notification not found' });
+
+    // Only allow the user themself or a parent in their family
+    const user = await User.findOne({ id: notification.userId });
+    if (!user) return res.status(404).json({ message: 'Notification user not found' });
+
+    if (
+      req.user.id !== notification.userId &&
+      (req.user.role !== 'parent' || req.user.familyId !== user.familyId)
+    ) {
+      return res.status(403).json({ message: "Not authorized to modify this notification" });
+    }
+
+    await Notification.findByIdAndDelete(notifId);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+/**
+ * PATCH /notifications/mark-all-read?userId=...
+ * Delete all unread notifications for a user.
+ */
+router.patch('/notifications/mark-all-read', auth, async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+    // Check authorization
+    const targetUser = await User.findOne({ id: userId });
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (
+      req.user.id !== userId &&
+      (req.user.role !== 'parent' || req.user.familyId !== targetUser.familyId)
+    ) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    await Notification.deleteMany({ userId, isRead: false });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to mark notifications as read' });
+  }
+});
 
 module.exports = router;

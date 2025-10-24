@@ -416,7 +416,7 @@ function ParentsTabLayoutInner() {
                                 method: "PATCH",
                                 headers: { "Authorization": "Bearer " + token }
                               });
-                              setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                              setNotifications(prev => prev.filter(n => n.isRead));
                             }
                           } catch (err) {
                             console.error('Failed to mark all notifications as read:', err);
@@ -450,9 +450,7 @@ function ParentsTabLayoutInner() {
                               if (notification._id && token) {
                                 await markNotificationRead(notification._id, token);
                                 setNotifications(prev =>
-                                  prev.map(n =>
-                                    n._id === notification._id ? { ...n, isRead: true } : n
-                                  )
+                                  prev.filter(n => n._id !== notification._id)
                                 );
                               }
                             } catch (err) {

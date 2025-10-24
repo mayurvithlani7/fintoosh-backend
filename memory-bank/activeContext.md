@@ -57,6 +57,7 @@
 - ✅ **API Standardization**: Environment-aware configuration, consistent error handling
 - ✅ **Performance Optimization**: Intelligent caching, family-level data aggregation
 - ✅ **MongoDB SSL Fix**: Added checkServerIdentity: null to bypass SSL server identity checking for Render deployment compatibility
+- ✅ **Notification System Fix**: Modified notifications to be deleted when marked as read instead of just flagged, preventing reappearance on login
 
 ### Core Features Operational
 - ✅ **Authentication System**: Parent/child registration, OTP verification, secure login
