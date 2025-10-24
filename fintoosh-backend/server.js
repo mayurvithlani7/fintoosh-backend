@@ -142,6 +142,7 @@ mongoose.connect(mongoURI, {
   tls: true,
   tlsAllowInvalidCertificates: false,
   tlsAllowInvalidHostnames: false,
+  tlsMinVersion: 'TLSv1.2', // Force TLS 1.2 for Render compatibility
   minPoolSize: 2,
   maxPoolSize: 10,
 });
