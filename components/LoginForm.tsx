@@ -1,4 +1,5 @@
 import { API_URL } from '@/utils/config';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -11,6 +12,7 @@ type LoginFormProps = {
 const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [attempts, setAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
@@ -158,25 +160,49 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
           color: '#6A49F3',
           marginLeft: 6,
         }}>Password</Text>
-        <TextInput
-          placeholder="Enter your password"
-          value={password}
-          onChangeText={setPassword}
-          style={{
-            borderWidth: 1,
-            borderColor: '#D0D7E4',
-            borderRadius: 14,
-            padding: 14,
-            fontSize: 16,
-            backgroundColor: '#F7F9FC',
-            color: '#223366'
-          }}
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry
-          textContentType="password"
-          placeholderTextColor="#999"
-        />
+        <View style={{
+          position: 'relative',
+        }}>
+          <TextInput
+            placeholder="Enter your password"
+            value={password}
+            onChangeText={setPassword}
+            style={{
+              borderWidth: 1,
+              borderColor: '#D0D7E4',
+              borderRadius: 14,
+              padding: 14,
+              paddingRight: 50, // Make room for eye icon
+              fontSize: 16,
+              backgroundColor: '#F7F9FC',
+              color: '#223366'
+            }}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry={!showPassword}
+            textContentType="password"
+            placeholderTextColor="#999"
+          />
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              right: 14,
+              top: '50%',
+              transform: [{ translateY: -10 }],
+              padding: 4,
+            }}
+            onPress={() => setShowPassword(!showPassword)}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+            accessibilityHint="Double tap to toggle password visibility"
+          >
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={20}
+              color="#666"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={{
         alignItems: 'flex-end',

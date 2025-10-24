@@ -1,4 +1,5 @@
 import { API_URL } from '@/utils/config';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -10,6 +11,7 @@ type OTPLoginProps = {
 const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack }) => {
   const [mobileNumber, setMobileNumber] = useState('');
   const [otp, setOtp] = useState('');
+  const [showOtp, setShowOtp] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
@@ -246,25 +248,50 @@ const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack }) => {
               color: '#6A49F3',
               marginLeft: 6,
             }}>Enter OTP</Text>
-            <TextInput
-              placeholder="6-digit OTP"
-              value={otp}
-              onChangeText={setOtp}
-              style={{
-                borderWidth: 1,
-                borderColor: '#D0D7E4',
-                borderRadius: 14,
-                padding: 14,
-                fontSize: 16,
-                backgroundColor: '#F7F9FC',
-                color: '#223366'
-              }}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              keyboardType="default"
-              maxLength={6}
-              placeholderTextColor="#999"
-            />
+            <View style={{
+              position: 'relative',
+            }}>
+              <TextInput
+                placeholder="6-digit OTP"
+                value={otp}
+                onChangeText={setOtp}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D0D7E4',
+                  borderRadius: 14,
+                  padding: 14,
+                  paddingRight: 50, // Make room for eye icon
+                  fontSize: 16,
+                  backgroundColor: '#F7F9FC',
+                  color: '#223366'
+                }}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                keyboardType="default"
+                maxLength={6}
+                secureTextEntry={!showOtp}
+                placeholderTextColor="#999"
+              />
+              <TouchableOpacity
+                style={{
+                  position: 'absolute',
+                  right: 14,
+                  top: '50%',
+                  transform: [{ translateY: -10 }],
+                  padding: 4,
+                }}
+                onPress={() => setShowOtp(!showOtp)}
+                accessibilityRole="button"
+                accessibilityLabel={showOtp ? "Hide OTP" : "Show OTP"}
+                accessibilityHint="Double tap to toggle OTP visibility"
+              >
+                <Ionicons
+                  name={showOtp ? "eye-off" : "eye"}
+                  size={20}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={{
             flexDirection: 'row',

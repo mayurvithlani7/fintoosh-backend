@@ -1,4 +1,5 @@
 import { API_URL } from '@/utils/config';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -10,6 +11,7 @@ type ChildLoginProps = {
 const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
 
   const handleChildLogin = async () => {
@@ -118,24 +120,48 @@ const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
           color: '#6A49F3',
           marginLeft: 6,
         }}>PIN</Text>
-        <TextInput
-          placeholder="Enter your 4-6 digit PIN"
-          value={pin}
-          onChangeText={val => setPin(val.replace(/\D/g, '').slice(0, 6))}
-          style={{
-            borderWidth: 1,
-            borderColor: '#D0D7E4',
-            borderRadius: 14,
-            padding: 14,
-            fontSize: 16,
-            backgroundColor: '#F7F9FC',
-            color: '#223366'
-          }}
-          keyboardType="numeric"
-          maxLength={6}
-          secureTextEntry
-          placeholderTextColor="#999"
-        />
+        <View style={{
+          position: 'relative',
+        }}>
+          <TextInput
+            placeholder="Enter your 4-6 digit PIN"
+            value={pin}
+            onChangeText={val => setPin(val.replace(/\D/g, '').slice(0, 6))}
+            style={{
+              borderWidth: 1,
+              borderColor: '#D0D7E4',
+              borderRadius: 14,
+              padding: 14,
+              paddingRight: 50, // Make room for eye icon
+              fontSize: 16,
+              backgroundColor: '#F7F9FC',
+              color: '#223366'
+            }}
+            keyboardType="numeric"
+            maxLength={6}
+            secureTextEntry={!showPin}
+            placeholderTextColor="#999"
+          />
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              right: 14,
+              top: '50%',
+              transform: [{ translateY: -10 }],
+              padding: 4,
+            }}
+            onPress={() => setShowPin(!showPin)}
+            accessibilityRole="button"
+            accessibilityLabel={showPin ? "Hide PIN" : "Show PIN"}
+            accessibilityHint="Double tap to toggle PIN visibility"
+          >
+            <Ionicons
+              name={showPin ? "eye-off" : "eye"}
+              size={20}
+              color="#666"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={{
         flexDirection: 'row',
