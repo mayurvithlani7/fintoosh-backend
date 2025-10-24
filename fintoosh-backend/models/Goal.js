@@ -22,6 +22,8 @@ const goalSchema = new mongoose.Schema({
     completedAt: { type: Date }
   }],
   collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // for family goals
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // who created this goal
+  createdByType: { type: String, enum: ['parent', 'child'], required: true }, // type of creator
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
