@@ -135,17 +135,14 @@ app.use((req, res, next) => {
 // MongoDB connection
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kid-budgeting-simulator';
 
-// Modify connection string to include TLS 1.2 parameters
-const modifiedMongoURI = mongoURI.includes('?')
-  ? `${mongoURI}&tlsMinVersion=TLSv1.2`
-  : `${mongoURI}?tlsMinVersion=TLSv1.2`;
-
-mongoose.connect(modifiedMongoURI, {
+// For Render compatibility, temporarily allow invalid certificates
+// TODO: Remove sslValidate: false once Render updates OpenSSL
+mongoose.connect(mongoURI, {
   serverSelectionTimeoutMS: 30000, // Keep trying to send operations for 30 seconds
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   ssl: true,
   tls: true,
-  tlsAllowInvalidCertificates: false,
+  tlsAllowInvalidCertificates: true, // Temporary workaround for Render
   tlsAllowInvalidHostnames: false,
   minPoolSize: 2,
   maxPoolSize: 10,
