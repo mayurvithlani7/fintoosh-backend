@@ -164,11 +164,7 @@ const connectionOptions = isLocalConnection ? {
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   minPoolSize: 2,
   maxPoolSize: 10,
-  // SSL/TLS configuration with broader compatibility for Atlas connections
-  ssl: true,
-  tls: true,
-  tlsAllowInvalidCertificates: true, // Allow invalid certificates for compatibility
-  tlsAllowInvalidHostnames: true, // Allow invalid hostnames for compatibility
+  // Minimal SSL configuration - let MongoDB driver handle SSL automatically
 };
 
 logger.info('Attempting MongoDB connection...');
