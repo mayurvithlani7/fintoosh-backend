@@ -169,7 +169,6 @@ const connectionOptions = isLocalConnection ? {
   tls: true,
   tlsAllowInvalidCertificates: true, // Allow invalid certificates for compatibility
   tlsAllowInvalidHostnames: true, // Allow invalid hostnames for compatibility
-  checkServerIdentity: false, // Skip server identity verification
 };
 
 logger.info('Attempting MongoDB connection...');
