@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const AIUsage = require('../models/AIUsage');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 // Middleware to verify user authentication
 router.use(auth);
