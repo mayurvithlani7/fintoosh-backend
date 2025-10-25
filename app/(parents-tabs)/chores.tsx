@@ -510,7 +510,8 @@ export default function ParentsChoresScreen() {
                 else if (val.length < 3) setChoreNameError("Task name must be at least 3 characters.");
                 else setChoreNameError(null);
               }}
-              accessibilityLabel="Task Name"
+              accessibilityLabel="Task name"
+              accessibilityHint="Enter the name of the task for your child"
             />
             <ValidationMessage message={choreNameError} type={choreNameError ? "error" : "success"} />
           </View>
@@ -539,24 +540,36 @@ export default function ParentsChoresScreen() {
           <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
           <View style={styles.presetRow}>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points to 10"
+              accessibilityHint="Quick select 10 points for task reward"
               style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
               onPress={() => setPoints('10')}
             >
               <Text style={styles.presetBtnText}>10</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points to 25"
+              accessibilityHint="Quick select 25 points for task reward"
               style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
               onPress={() => setPoints('25')}
             >
               <Text style={styles.presetBtnText}>25</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points to 50"
+              accessibilityHint="Quick select 50 points for task reward"
               style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
               onPress={() => setPoints('50')}
             >
               <Text style={styles.presetBtnText}>50</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points to 100"
+              accessibilityHint="Quick select 100 points for task reward"
               style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
               onPress={() => setPoints('100')}
             >
@@ -572,6 +585,9 @@ export default function ParentsChoresScreen() {
             {choreSuggestions.slice(0, 16).map((suggestion) => (
               <TouchableOpacity
                 key={suggestion}
+                accessibilityRole="button"
+                accessibilityLabel={`Use task suggestion: ${suggestion}`}
+                accessibilityHint="Fill task name field with this suggestion"
                 style={[styles.suggestionBtn, { backgroundColor: themeColors.secondary }]}
                 onPress={() => {
                   setChoreName(suggestion);
@@ -600,6 +616,10 @@ export default function ParentsChoresScreen() {
           {frequencyOptions.map(freq => (
             <TouchableOpacity
               key={freq.value}
+              accessibilityRole="button"
+              accessibilityLabel={`Set frequency to ${freq.label}`}
+              accessibilityHint="Choose how often this task should repeat"
+              accessibilityState={{ selected: frequency === freq.value }}
               style={[
                 styles.frequencyButton,
                 frequency === freq.value && styles.frequencyButtonSelected
@@ -686,6 +706,10 @@ export default function ParentsChoresScreen() {
         <Text style={[styles.inputLabel, { color: themeColors.text }]}>⚖️ Point Distribution</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
           <TouchableOpacity
+            accessibilityRole="radio"
+            accessibilityLabel="Use family default split"
+            accessibilityHint="Points will be distributed according to family settings"
+            accessibilityState={{ selected: useDefaultSplit }}
             style={styles.checkboxContainer}
             onPress={() => setUseDefaultSplit(true)}
           >
@@ -697,6 +721,10 @@ export default function ParentsChoresScreen() {
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
           <TouchableOpacity
+            accessibilityRole="radio"
+            accessibilityLabel="Custom split for this task"
+            accessibilityHint="Set custom percentages for how points are distributed"
+            accessibilityState={{ selected: !useDefaultSplit }}
             style={styles.checkboxContainer}
             onPress={() => setUseDefaultSplit(false)}
           >
@@ -716,6 +744,8 @@ export default function ParentsChoresScreen() {
               <View style={{ width: '48%', marginBottom: 8 }}>
                 <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>💰 Pocket Money</Text>
                 <TextInput
+                  accessibilityLabel="Pocket money percentage"
+                  accessibilityHint="Set percentage of task points to go to pocket money"
                   style={[styles.input, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
                   keyboardType="numeric"
                   placeholder="0"
@@ -727,6 +757,8 @@ export default function ParentsChoresScreen() {
               <View style={{ width: '48%', marginBottom: 8 }}>
                 <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>🐷 Savings Pot</Text>
                 <TextInput
+                  accessibilityLabel="Savings pot percentage"
+                  accessibilityHint="Set percentage of task points to go to savings"
                   style={[styles.input, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
                   keyboardType="numeric"
                   placeholder="0"
@@ -738,6 +770,8 @@ export default function ParentsChoresScreen() {
               <View style={{ width: '48%', marginBottom: 8 }}>
                 <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>🛒 Spending Pot</Text>
                 <TextInput
+                  accessibilityLabel="Spending pot percentage"
+                  accessibilityHint="Set percentage of task points to go to spending"
                   style={[styles.input, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
                   keyboardType="numeric"
                   placeholder="0"
@@ -749,6 +783,8 @@ export default function ParentsChoresScreen() {
               <View style={{ width: '48%', marginBottom: 8 }}>
                 <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>❤️ Help Others</Text>
                 <TextInput
+                  accessibilityLabel="Help others pot percentage"
+                  accessibilityHint="Set percentage of task points to go to charity"
                   style={[styles.input, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
                   keyboardType="numeric"
                   placeholder="0"
@@ -760,6 +796,8 @@ export default function ParentsChoresScreen() {
               <View style={{ width: '48%', marginBottom: 8 }}>
                 <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>📈 Grow Money</Text>
                 <TextInput
+                  accessibilityLabel="Grow money pot percentage"
+                  accessibilityHint="Set percentage of task points to go to investments"
                   style={[styles.input, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
                   keyboardType="numeric"
                   placeholder="0"
@@ -835,6 +873,10 @@ export default function ParentsChoresScreen() {
           {['To Do', 'Done'].map(tab => (
             <TouchableOpacity
               key={tab}
+              accessibilityRole="tab"
+              accessibilityLabel={`${tab} tasks`}
+              accessibilityHint={`Show ${tab.toLowerCase()} tasks`}
+              accessibilityState={{ selected: choresTab === tab }}
               onPress={() => setChoresTab(tab as "To Do" | "Done")}
               style={{
                 backgroundColor: choresTab === tab ? themeColors.secondary : themeColors.surface,
@@ -942,6 +984,9 @@ export default function ParentsChoresScreen() {
                     {c.status === 'active' ? (
                       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                         <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel={`Edit task: ${c.name}`}
+                          accessibilityHint="Open task edit form with current details"
                           style={{
                             backgroundColor: themeColors.primary,
                             paddingHorizontal: 12,
@@ -965,6 +1010,9 @@ export default function ParentsChoresScreen() {
                           <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel={`Delete task: ${c.name}`}
+                          accessibilityHint="Permanently remove this task"
                           style={{
                             backgroundColor: themeColors.error,
                             paddingHorizontal: 10,
@@ -1016,6 +1064,9 @@ export default function ParentsChoresScreen() {
                 {/* Archive Toggle for completed chores */}
                 {choresTab === 'Done' && showArchiveButton && !showAllCompleted && (
                   <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Show all completed tasks from any time"
+                    accessibilityHint="Display tasks completed more than 90 days ago"
                     style={{
                       marginTop: 12,
                       alignSelf: 'center',
@@ -1031,6 +1082,9 @@ export default function ParentsChoresScreen() {
                 )}
                 {choresTab === 'Done' && showAllCompleted && (
                   <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Show only recently completed tasks"
+                    accessibilityHint="Hide tasks completed more than 90 days ago"
                     style={{
                       marginTop: 10,
                       alignSelf: 'center',

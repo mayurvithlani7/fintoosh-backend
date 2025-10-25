@@ -7,8 +7,8 @@
     "icon": "./assets/images/Fintoosh.png",
     "scheme": "fintoosh",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#ffffff",
-    "primaryColor": "#6A49F3",
+    "backgroundColor": "#FFFFFF",
+    "primaryColor": "#4A90E2",
     "description": "Wise Kids. Smarter Money. - A family finance management app for parents and children to learn money management through fun tasks and games.",
     "privacy": "public",
     "newArchEnabled": true,
@@ -62,7 +62,25 @@
     },
     "plugins": [
       "expo-router",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Inter-Regular.ttf",
+            "./assets/fonts/Inter-Medium.ttf",
+            "./assets/fonts/Inter-SemiBold.ttf",
+            "./assets/fonts/Inter-Bold.ttf",
+            "./assets/fonts/Nunito-Regular.ttf",
+            "./assets/fonts/Nunito-Medium.ttf",
+            "./assets/fonts/Nunito-SemiBold.ttf",
+            "./assets/fonts/Nunito-Bold.ttf",
+            "./assets/fonts/Fredoka-Regular.ttf",
+            "./assets/fonts/Fredoka-Medium.ttf",
+            "./assets/fonts/Fredoka-Bold.ttf"
+          ]
+        }
+      ]
     ],
     "extra": {
       "router": {},

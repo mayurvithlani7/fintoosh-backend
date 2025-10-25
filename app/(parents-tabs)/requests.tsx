@@ -483,6 +483,9 @@ export default function ParentsRequestsScreen() {
               maxLength={500}
             />
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Send message"
+              accessibilityHint="Send message to child about this request"
               style={[styles.sendButton, { backgroundColor: themeColors.primary }]}
               onPress={async () => {
                 if (!approvalModal.comment.trim()) return;
@@ -528,12 +531,18 @@ export default function ParentsRequestsScreen() {
       {request.status === 'Pending' ? (
         <View style={styles.buttonRow}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Approve request: ${request.name}`}
+            accessibilityHint="Open approval modal to confirm request approval"
             style={[styles.actionBtn, { backgroundColor: themeColors.success }]}
             onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
           >
             <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 16 }}>Approve</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Deny request: ${request.name}`}
+            accessibilityHint="Open denial modal to decline request"
             style={[styles.actionBtn, { backgroundColor: themeColors.error }]}
             onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
           >
@@ -563,6 +572,9 @@ export default function ParentsRequestsScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6, alignSelf: 'center' }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Help and information"
+          accessibilityHint="Open help guide for managing child requests"
           style={{
             backgroundColor: themeColors.accent,
             borderRadius: 20,
@@ -586,6 +598,8 @@ export default function ParentsRequestsScreen() {
       <View style={styles.sectionCard}>
         <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Find Requests</Text>
         <TextInput
+          accessibilityLabel="Search requests"
+          accessibilityHint="Search by child name, request type, or content"
           style={[styles.searchInput, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
           placeholder="Search by child name, request type..."
           placeholderTextColor={themeColors.textSecondary}
@@ -599,6 +613,10 @@ export default function ParentsRequestsScreen() {
 
         <View style={styles.filterChips}>
           <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityLabel="Pending requests filter"
+            accessibilityHint="Show requests waiting for approval"
+            accessibilityState={{ selected: pagination.filter === 'pending' }}
             style={[styles.chip, { backgroundColor: pagination.filter === 'pending' ? themeColors.primary : themeColors.surface }]}
             onPress={() => handleFilterChange('pending')}
           >
@@ -607,6 +625,10 @@ export default function ParentsRequestsScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityLabel="Approved requests filter"
+            accessibilityHint="Show requests that have been approved"
+            accessibilityState={{ selected: pagination.filter === 'approved' }}
             style={[styles.chip, { backgroundColor: pagination.filter === 'approved' ? themeColors.success : themeColors.surface }]}
             onPress={() => handleFilterChange('approved')}
           >
@@ -615,6 +637,10 @@ export default function ParentsRequestsScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityLabel="Denied requests filter"
+            accessibilityHint="Show requests that have been denied"
+            accessibilityState={{ selected: pagination.filter === 'denied' }}
             style={[styles.chip, { backgroundColor: pagination.filter === 'denied' ? themeColors.error : themeColors.surface }]}
             onPress={() => handleFilterChange('denied')}
           >
@@ -742,12 +768,18 @@ export default function ParentsRequestsScreen() {
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Cancel approval"
+                accessibilityHint="Close modal without making changes"
                 style={[styles.modalBtn, styles.cancelBtn]}
                 onPress={() => setApprovalModal({ visible: false, request: null, approved: false, comment: '' })}
               >
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`${approvalModal.approved ? 'Approve' : 'Deny'} request`}
+                accessibilityHint={`${approvalModal.approved ? 'Approve' : 'Deny'} the request and send notification to child`}
                 style={[styles.modalBtn, approvalModal.approved ? styles.approveBtn : styles.denyBtn]}
                 onPress={handleApproval}
               >

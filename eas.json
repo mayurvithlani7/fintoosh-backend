@@ -19,6 +19,11 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://fintoosh-backend.onrender.com"
       }
+    },
+    "apk": {
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

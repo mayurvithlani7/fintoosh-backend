@@ -94,6 +94,9 @@ export default function GoalsScreen() {
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Go back to home screen"
+            accessibilityHint="Navigate back to the main dashboard"
             style={{
               backgroundColor: themeColors.surface,
               borderRadius: 16,
@@ -106,9 +109,6 @@ export default function GoalsScreen() {
               alignItems: 'center',
             }}
             onPress={() => router.push('./')}
-            accessibilityRole="button"
-            accessibilityLabel="Go back to home screen"
-            accessibilityHint="Double tap to return to the main dashboard"
           >
             <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
           </TouchableOpacity>
@@ -836,11 +836,11 @@ function KidGoalsRewardsSection() {
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>My Goals</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity
-            style={[styles.refreshBtn, { backgroundColor: themeColors.secondary, paddingHorizontal: 12, paddingVertical: 6 }]}
-            onPress={() => setShowTemplates(true)}
             accessibilityRole="button"
             accessibilityLabel="Choose goal template"
-            accessibilityHint="Double tap to browse and select from goal templates"
+            accessibilityHint="Browse and select from available goal templates"
+            style={[styles.refreshBtn, { backgroundColor: themeColors.secondary, paddingHorizontal: 12, paddingVertical: 6 }]}
+            onPress={() => setShowTemplates(true)}
           >
             <Text style={[styles.refreshBtnText, { color: themeColors.card, fontSize: 12 }]}>
               🎯 Template
@@ -956,6 +956,9 @@ function KidGoalsRewardsSection() {
             />
             {completedArchived.length > 0 && !showArchive && (
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Show all completed goals from any time"
+                accessibilityHint="Display goals completed more than 90 days ago"
                 style={{
                   marginTop: 12,
                   alignSelf: "center",
@@ -971,6 +974,9 @@ function KidGoalsRewardsSection() {
             )}
             {completedArchived.length > 0 && showArchive && (
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Show only recently completed goals"
+                accessibilityHint="Hide goals completed more than 90 days ago"
                 style={{
                   marginTop: 10,
                   alignSelf: "center",
@@ -1011,10 +1017,16 @@ function KidGoalsRewardsSection() {
     const jarPoints = userData ? userData[g.jar + "Points"] || 0 : 0;
     const pendingJarPoints = userData ? userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"] || 0 : 0;
     const availableJarPoints = jarPoints - pendingJarPoints;
+
+    // Check if there is a pending goal-completion request for this goal
+    const hasPendingClaim = requests.some(
+      (req: any) => req.type === "goal-completion" && req.goalId === g._id && req.status === "Pending"
+    );
+
     const isCompleted = g.completed === true || g.status === "completed";
     const isPending = g.status === "pending" && !isCompleted;
     const isExpired = g.status === "expired";
-    const canClaim = availableJarPoints >= g.targetAmount && g.status === "active" && !isCompleted && !isExpired;
+    const canClaim = availableJarPoints >= g.targetAmount && g.status === "active" && !isCompleted && !isExpired && !hasPendingClaim;
 
     let buttonText = "Claim";
     let buttonColor = "#bbfbc1";
@@ -1066,7 +1078,12 @@ function KidGoalsRewardsSection() {
                 Deadline: {new Date(g.deadline).toLocaleDateString()}
               </Text>
             )}
-            {isPending && (
+            {hasPendingClaim && (
+              <Text style={{ fontSize: 11, color: themeColors.warning, fontStyle: "italic", marginTop: 2 }}>
+                ⏳ Claim request pending - waiting for parent approval
+              </Text>
+            )}
+            {!hasPendingClaim && isPending && (
               <Text style={{ fontSize: 11, color: themeColors.warning, fontStyle: "italic", marginTop: 2 }}>
                 Awaiting parent approval
               </Text>

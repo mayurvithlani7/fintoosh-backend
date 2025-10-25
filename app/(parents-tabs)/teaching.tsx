@@ -1017,13 +1017,16 @@ const loadStoredData = async () => {
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
           style={{
-            backgroundColor: themeColors.accent,
+            backgroundColor: themeColors.secondary,
             borderRadius: 20,
             paddingHorizontal: 12,
             paddingVertical: 6,
             elevation: 2,
           }}
           onPress={() => setHelpModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Help and information"
+          accessibilityHint="Open help guide for family teaching tools"
         >
           <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
@@ -1080,6 +1083,9 @@ const loadStoredData = async () => {
             setStarterOffset(prev => prev + 1);
             loadTeachingData();
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Get new discussion starters"
+          accessibilityHint="Load a fresh set of conversation prompts for family money talks"
         >
           <Text style={[styles.refreshButtonText, { color: themeColors.card }]}>
             🔄 Get New Starters
@@ -1208,6 +1214,9 @@ const loadStoredData = async () => {
         <TouchableOpacity
           style={[styles.primaryButton, { backgroundColor: themeColors.primary }]}
           onPress={() => setShowDiscussionModal(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Log new family money discussion"
+          accessibilityHint="Open form to record a money discussion with your child"
         >
           <Text style={[styles.primaryButtonText, { color: themeColors.card }]}>
             ➕ Log New Discussion
@@ -1441,6 +1450,9 @@ const loadStoredData = async () => {
             setShowElderModal(true);
             console.log('Modal should now be visible');
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Add family financial milestone"
+          accessibilityHint="Open form to record significant financial moments in your family's journey"
         >
           <Text style={[styles.primaryButtonText, { color: themeColors.card }]}>
             👴 Add Elder Wisdom
@@ -1608,6 +1620,9 @@ const loadStoredData = async () => {
         <TouchableOpacity
           style={[styles.primaryButton, { backgroundColor: themeColors.primary }]}
           onPress={() => setShowDreamModal(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Add new family dream"
+          accessibilityHint="Open form to create a new dream for your family's dream board"
         >
           <Text style={[styles.primaryButtonText, { color: themeColors.card }]}>
             ➕ Add Dream
@@ -1827,10 +1842,11 @@ const loadStoredData = async () => {
 
                     // Extract child ID as string (handle both string and object cases)
                     let childId: string;
-                    if (typeof discussionForm.childId === 'object' && discussionForm.childId && 'id' in discussionForm.childId) {
-                      childId = String(discussionForm.childId.id);
+                    const childValue = discussionForm.childId;
+                    if (typeof childValue === 'object' && childValue && 'id' in childValue) {
+                      childId = String(childValue.id);
                     } else {
-                      childId = String(discussionForm.childId || '');
+                      childId = String(childValue || '');
                     }
 
                     // Create discussion object

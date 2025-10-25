@@ -35,6 +35,9 @@ export default function MoreScreen() {
             alignItems: 'center',
           }}
           onPress={() => setHelpModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Help and information"
+          accessibilityHint="Open help guide for more options"
         >
           <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
@@ -45,6 +48,9 @@ export default function MoreScreen() {
           style={styles.item}
           // Typesafe navigation for Expo Router v2+
           onPress={() => router.push({ pathname: `/(kids-tabs)/${tab.name}` })}
+          accessibilityRole="button"
+          accessibilityLabel={tab.title}
+          accessibilityHint={`Go to ${tab.title.toLowerCase()} section`}
         >
           <IconSymbol name={tab.icon as any} color={themeColors.primary} size={26} style={{ marginRight: 16 }} />
           <Text style={styles.text}>{tab.title}</Text>

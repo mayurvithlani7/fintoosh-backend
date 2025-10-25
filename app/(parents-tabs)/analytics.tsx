@@ -59,6 +59,10 @@ export default function ParentsAnalyticsScreen() {
             }}
             onPress={handleRefresh}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={loading ? "Refreshing analytics data" : "Refresh analytics data"}
+            accessibilityHint="Reload the latest analytics and progress data"
+            accessibilityState={{ disabled: loading }}
           >
             <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>
               {loading ? 'Refreshing...' : '🔄 Refresh'}
@@ -73,6 +77,9 @@ export default function ParentsAnalyticsScreen() {
               elevation: 2,
             }}
             onPress={() => setHelpModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Help and information"
+            accessibilityHint="Open help guide for analytics dashboard"
           >
             <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Help</Text>
           </TouchableOpacity>
@@ -109,6 +116,9 @@ export default function ParentsAnalyticsScreen() {
           <TouchableOpacity
             style={{ backgroundColor: themeColors.error, padding: 10, borderRadius: 6, marginTop: 10 }}
             onPress={handleRefresh}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading analytics"
+            accessibilityHint="Attempt to reload analytics data again"
           >
             <Text style={{ color: themeColors.card, textAlign: 'center' }}>Retry</Text>
           </TouchableOpacity>

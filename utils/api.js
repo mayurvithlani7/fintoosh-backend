@@ -2,9 +2,248 @@
  * API client for mobile -> backend communication.
  * Handles requests, chores, goals, rewards, point jars, and transactions.
  * Uses token from AsyncStorage (React Native).
+ *
+ * Enhanced with:
+ * - AbortController for request cancellation
+ * - Performance monitoring and alerting
+ * - Loading state management
+ * - Request deduplication
  */
 import * as Sentry from '@sentry/react-native';
 import { API_URL } from './config';
+
+// Performance monitoring
+const REQUEST_METRICS = {
+  totalRequests: 0,
+  failedRequests: 0,
+  averageResponseTime: 0,
+  slowRequests: 0,
+  cancelledRequests: 0
+};
+
+const PERFORMANCE_THRESHOLDS = {
+  SLOW_REQUEST_MS: 3000, // 3 seconds
+  MAX_RETRIES: 3,
+  TIMEOUT_MS: 10000 // 10 seconds
+};
+
+// Request deduplication cache
+const pendingRequests = new Map();
+const requestCache = new Map();
+
+// Loading state management
+const loadingStates = new Map();
+
+// Performance monitoring utilities
+function recordRequestMetrics(startTime, success, cancelled = false) {
+  const duration = Date.now() - startTime;
+  REQUEST_METRICS.totalRequests++;
+
+  if (!success) {
+    REQUEST_METRICS.failedRequests++;
+  }
+
+  if (cancelled) {
+    REQUEST_METRICS.cancelledRequests++;
+  }
+
+  if (duration > PERFORMANCE_THRESHOLDS.SLOW_REQUEST_MS) {
+    REQUEST_METRICS.slowRequests++;
+    console.warn(`Slow request detected: ${duration}ms`);
+
+    // Alert for consistently slow performance
+    if (REQUEST_METRICS.slowRequests > 5) {
+      Sentry.captureMessage('High number of slow requests detected', {
+        level: 'warning',
+        extra: REQUEST_METRICS
+      });
+    }
+  }
+
+  // Update average response time
+  REQUEST_METRICS.averageResponseTime =
+    (REQUEST_METRICS.averageResponseTime * (REQUEST_METRICS.totalRequests - 1) + duration) /
+    REQUEST_METRICS.totalRequests;
+}
+
+// Loading state management
+function setLoadingState(key, loading) {
+  if (loading) {
+    loadingStates.set(key, true);
+  } else {
+    loadingStates.delete(key);
+  }
+}
+
+export function isLoading(key) {
+  return loadingStates.has(key);
+}
+
+export function getAllLoadingStates() {
+  return Array.from(loadingStates.keys());
+}
+
+// Enhanced fetch with AbortController, performance monitoring, and loading states
+async function enhancedFetch(
+  url,
+  options = {},
+  {
+    loadingKey,
+    timeout = PERFORMANCE_THRESHOLDS.TIMEOUT_MS,
+    retries = 0,
+    feature = 'api',
+    useCache = false
+  } = {}
+) {
+  const startTime = Date.now();
+  const controller = new AbortController();
+  let timeoutId;
+
+  // Create cache key for deduplication
+  const cacheKey = `${options.method || 'GET'}-${url}`;
+
+  // Check for pending duplicate requests
+  if (pendingRequests.has(cacheKey)) {
+    console.log(`Deduplicating request: ${cacheKey}`);
+    return pendingRequests.get(cacheKey);
+  }
+
+  // Check cache for GET requests
+  if (useCache && options.method === 'GET' && requestCache.has(cacheKey)) {
+    const cached = requestCache.get(cacheKey);
+    if (Date.now() - cached.timestamp < 30000) { // 30 second cache
+      console.log(`Using cached response for: ${cacheKey}`);
+      return cached.data;
+    }
+  }
+
+  // Set loading state
+  if (loadingKey) {
+    setLoadingState(loadingKey, true);
+  }
+
+  // Create timeout
+  if (timeout > 0) {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      REQUEST_METRICS.cancelledRequests++;
+      console.warn(`Request timeout after ${timeout}ms: ${url}`);
+    }, timeout);
+  }
+
+  // Create request promise
+  const requestPromise = (async () => {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      // Clear timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      // Handle rate limiting with retry
+      if (response.status === 429 && retries < PERFORMANCE_THRESHOLDS.MAX_RETRIES) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 1000;
+
+        console.warn(`Rate limited, retrying in ${waitTime}ms`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+
+        return enhancedFetch(url, options, {
+          loadingKey,
+          timeout,
+          retries: retries + 1,
+          feature,
+          useCache
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Cache successful GET responses
+      if (useCache && options.method === 'GET') {
+        requestCache.set(cacheKey, {
+          data,
+          timestamp: Date.now()
+        });
+      }
+
+      recordRequestMetrics(startTime, true);
+      return data;
+
+    } catch (error) {
+      recordRequestMetrics(startTime, false, error.name === 'AbortError');
+
+      if (error.name === 'AbortError') {
+        throw new Error('Request was cancelled');
+      }
+
+      // Retry on network errors
+      if (retries < PERFORMANCE_THRESHOLDS.MAX_RETRIES &&
+          (error.message.includes('fetch') || error.message.includes('network'))) {
+        console.warn(`Network error, retrying (${retries + 1}/${PERFORMANCE_THRESHOLDS.MAX_RETRIES}): ${error.message}`);
+
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retries + 1))); // Exponential backoff
+
+        return enhancedFetch(url, options, {
+          loadingKey,
+          timeout,
+          retries: retries + 1,
+          feature,
+          useCache
+        });
+      }
+
+      throw error;
+    } finally {
+      // Clear loading state
+      if (loadingKey) {
+        setLoadingState(loadingKey, false);
+      }
+
+      // Remove from pending requests
+      pendingRequests.delete(cacheKey);
+    }
+  })();
+
+  // Store pending request for deduplication
+  pendingRequests.set(cacheKey, requestPromise);
+
+  return requestPromise;
+}
+
+// Get performance metrics
+export function getPerformanceMetrics() {
+  return {
+    ...REQUEST_METRICS,
+    activeRequests: pendingRequests.size,
+    cachedResponses: requestCache.size,
+    loadingStates: Array.from(loadingStates.keys())
+  };
+}
+
+// Clear performance metrics (for testing)
+export function resetPerformanceMetrics() {
+  REQUEST_METRICS.totalRequests = 0;
+  REQUEST_METRICS.failedRequests = 0;
+  REQUEST_METRICS.averageResponseTime = 0;
+  REQUEST_METRICS.slowRequests = 0;
+  REQUEST_METRICS.cancelledRequests = 0;
+  requestCache.clear();
+  pendingRequests.clear();
+  loadingStates.clear();
+}
 
 
 // Global error handler - will be set by components that use the API

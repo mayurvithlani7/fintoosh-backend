@@ -650,6 +650,9 @@ export default function ParentSettingsScreen() {
             elevation: 2,
           }}
           onPress={() => setHelpModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Help and information"
+          accessibilityHint="Open help guide for family settings"
         >
           <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
@@ -698,6 +701,10 @@ export default function ParentSettingsScreen() {
           style={[styles.saveButton, saving && { opacity: 0.6 }]}
           onPress={handleSave}
           disabled={saving}
+          accessibilityRole="button"
+          accessibilityLabel={saving ? "Saving currency settings" : "Save currency display settings"}
+          accessibilityHint="Apply changes to currency format and conversion rate"
+          accessibilityState={{ disabled: saving }}
         >
           <Text style={styles.saveButtonText}>
             {saving ? 'Saving...' : 'Save Settings'}
@@ -775,6 +782,10 @@ export default function ParentSettingsScreen() {
           style={[styles.saveButton, saving && { opacity: 0.6 }]}
           onPress={handleSaveAutomation}
           disabled={saving}
+          accessibilityRole="button"
+          accessibilityLabel={saving ? "Saving automation settings" : "Save point automation settings"}
+          accessibilityHint="Apply changes to point distribution automation"
+          accessibilityState={{ disabled: saving }}
         >
           <Text style={styles.saveButtonText}>
             {saving ? 'Saving...' : 'Save Automation Settings'}
@@ -828,6 +839,10 @@ export default function ParentSettingsScreen() {
           style={[styles.saveButton, savingInterest && { opacity: 0.6 }]}
           onPress={handleSaveInterestRule}
           disabled={savingInterest}
+          accessibilityRole="button"
+          accessibilityLabel={savingInterest ? "Saving interest rule" : "Save savings interest rule"}
+          accessibilityHint="Apply automatic interest settings for child's savings jar"
+          accessibilityState={{ disabled: savingInterest }}
         >
           <Text style={styles.saveButtonText}>
             {savingInterest ? 'Saving...' : 'Save Interest Rule'}

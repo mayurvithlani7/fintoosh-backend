@@ -1411,6 +1411,9 @@ export default function GamesScreen() {
                 alignItems: 'center',
               }}
               onPress={() => router.push('/(kids-tabs)')}
+              accessibilityRole="button"
+              accessibilityLabel="Go back to home"
+              accessibilityHint="Return to the main kids dashboard"
             >
               <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
             </TouchableOpacity>
@@ -1427,6 +1430,9 @@ export default function GamesScreen() {
                 alignItems: 'center',
               }}
               onPress={() => setHelpModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Help and information"
+              accessibilityHint="Open help guide for money games"
             >
               <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
             </TouchableOpacity>

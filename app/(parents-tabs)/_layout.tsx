@@ -16,8 +16,9 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
   router: any;
 }) {
   const menuItems = [
+    { name: '💬 MoneyBuddy AI', route: '/(parents-tabs)/moneybuddy', icon: 'message.fill' },
     { name: '🏠 Overview', route: '/(parents-tabs)', icon: 'house.fill' },
-    { name: '📚 Teaching', route: '/(parents-tabs)/teaching', icon: 'book.fill' },
+    { name: '👨‍👩‍👧‍👦 Family', route: '/(parents-tabs)/teaching', icon: 'person.3.fill' },
     { name: '📋 Requests', route: '/(parents-tabs)/requests', icon: 'checkmark.circle.fill' },
     { name: '💰 Points', route: '/(parents-tabs)/points', icon: 'dollarsign.circle.fill' },
     { name: '🎯 Goals', route: '/(parents-tabs)/goals', icon: 'target' },
@@ -25,6 +26,7 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
     { name: '🎁 Rewards', route: '/(parents-tabs)/rewards', icon: 'gift.fill' },
     { name: '📊 Progress', route: '/(parents-tabs)/analytics', icon: 'chart.bar.xaxis' },
     { name: '📈 History', route: '/(parents-tabs)/transaction-history', icon: 'list.bullet.rectangle' },
+    { name: '📚 User Guide', route: '/(parents-tabs)/user-guide', icon: 'book.fill' },
     { name: '⚙️ Settings', route: '/(parents-tabs)/settings', icon: 'gear' },
   ];
 
@@ -343,7 +345,8 @@ function ParentsTabLayoutInner() {
         }}
       >
         <Stack.Screen name="index" options={{ title: 'Overview' }} />
-        <Stack.Screen name="teaching" options={{ title: 'Teaching' }} />
+        <Stack.Screen name="moneybuddy" options={{ title: 'MoneyBuddy AI' }} />
+        <Stack.Screen name="user-guide" options={{ title: 'User Guide' }} />
         <Stack.Screen name="requests" options={{ title: 'Requests' }} />
         <Stack.Screen name="points" options={{ title: 'Points' }} />
         <Stack.Screen name="goals" options={{ title: 'Goals' }} />

@@ -1,13 +1,18 @@
 /**
  * Centralized error handler for consistent API error handling across the app.
  * Provides standardized error parsing, user-friendly messages, and consistent error handling patterns.
+ * Enhanced with error categorization, offline detection, and recovery actions.
  */
+
 
 export interface ErrorHandlerOptions {
   showError?: (message: string) => void; // For hook-based error display
   useAlert?: boolean; // Fallback to Alert.alert
   feature?: string; // Feature name for logging
   silent?: boolean; // Don't show error to user
+  showRetry?: boolean; // Show retry button/option
+  showOfflineMessage?: boolean; // Show offline-specific messaging
+  fallbackData?: any; // Data to use for graceful degradation
 }
 
 export interface ApiError {
@@ -16,6 +21,15 @@ export interface ApiError {
   retryAfter?: number;
   code?: string; // Error code for programmatic handling
   details?: any; // Additional error details
+  type: 'network' | 'auth' | 'validation' | 'server' | 'rate-limit' | 'permission' | 'unknown';
+  recoveryActions?: RecoveryAction[]; // Specific actions user can take
+  canRetry?: boolean; // Whether the error supports retry
+}
+
+export interface RecoveryAction {
+  label: string;
+  action: () => void | Promise<void>;
+  primary?: boolean; // Whether this is the recommended action
 }
 
 export interface ParsedApiResponse {
@@ -48,7 +62,24 @@ export async function handleApiError(
       Alert.alert('Please Wait', message);
     }
 
-    return { message, status: 429, retryAfter: waitTime };
+    return {
+      message,
+      status: 429,
+      retryAfter: waitTime,
+      type: 'rate-limit' as const,
+      canRetry: true,
+      recoveryActions: [
+        {
+          label: `Wait ${waitTime} seconds and try again`,
+          action: () => {
+            // On mobile, we can't reload the page. Instead, show a message
+            // The calling component should handle the retry logic
+            console.log(`Rate limit will expire in ${waitTime} seconds. Please wait before retrying.`);
+          },
+          primary: true
+        }
+      ]
+    };
   }
 
   // Authentication errors (401/403)
@@ -64,7 +95,23 @@ export async function handleApiError(
       Alert.alert('Session Expired', message);
     }
 
-    return { message, status: response.status };
+    return {
+      message,
+      status: response.status,
+      type: 'auth' as const,
+      canRetry: false,
+      recoveryActions: [
+        {
+          label: 'Log in again',
+          action: () => {
+            // Navigate to login screen
+            const { router } = require('expo-router');
+            router.replace('/login');
+          },
+          primary: true
+        }
+      ]
+    };
   }
 
   // Server errors (5xx)
@@ -80,7 +127,23 @@ export async function handleApiError(
       Alert.alert('Server Error', message);
     }
 
-    return { message, status: response.status };
+    return {
+      message,
+      status: response.status,
+      type: 'server' as const,
+      canRetry: true,
+      recoveryActions: [
+        {
+          label: 'Try again in a few moments',
+          action: () => {
+            // On mobile, we can't reload the page. Instead, show a message
+            // The calling component should handle the retry logic
+            console.log('Server temporarily unavailable. Please try again in a few moments.');
+          },
+          primary: true
+        }
+      ]
+    };
   }
 
   // Client errors (4xx) - try to get server message, fallback to generic
@@ -105,7 +168,12 @@ export async function handleApiError(
       Alert.alert('Request Failed', message);
     }
 
-    return { message, status: response.status };
+    return {
+      message,
+      status: response.status,
+      type: 'validation' as const,
+      canRetry: false
+    };
   }
 
   // Network/other errors not handled above
@@ -204,7 +272,9 @@ export async function parseApiResponse<T = any>(
 
     const errorResult: ApiError = {
       message: 'Failed to process server response. Please try again.',
-      code: 'PARSE_ERROR'
+      code: 'PARSE_ERROR',
+      type: 'unknown' as const,
+      canRetry: true
     };
 
     if (!options.silent) {
@@ -251,7 +321,9 @@ export async function apiRequest<T = any>(
 
     const errorResult: ApiError = {
       message: 'Unable to connect to server. Please check your internet connection.',
-      code: 'NETWORK_ERROR'
+      code: 'NETWORK_ERROR',
+      type: 'network' as const,
+      canRetry: true
     };
 
     if (!errorOptions.silent) {
@@ -321,37 +393,49 @@ export function getErrorForStatus(status: number, serverMessage?: string): ApiEr
       return {
         message: serverMessage || ERROR_MESSAGES.VALIDATION_ERROR,
         status,
-        code: 'VALIDATION_ERROR'
+        code: 'VALIDATION_ERROR',
+        type: 'validation' as const,
+        canRetry: false
       };
     case 401:
       return {
         message: ERROR_MESSAGES.AUTH_ERROR,
         status,
-        code: 'AUTH_ERROR'
+        code: 'AUTH_ERROR',
+        type: 'auth' as const,
+        canRetry: false
       };
     case 403:
       return {
         message: ERROR_MESSAGES.PERMISSION_ERROR,
         status,
-        code: 'PERMISSION_ERROR'
+        code: 'PERMISSION_ERROR',
+        type: 'permission' as const,
+        canRetry: false
       };
     case 404:
       return {
         message: ERROR_MESSAGES.NOT_FOUND_ERROR,
         status,
-        code: 'NOT_FOUND_ERROR'
+        code: 'NOT_FOUND_ERROR',
+        type: 'validation' as const,
+        canRetry: false
       };
     case 409:
       return {
         message: ERROR_MESSAGES.CONFLICT_ERROR,
         status,
-        code: 'CONFLICT_ERROR'
+        code: 'CONFLICT_ERROR',
+        type: 'validation' as const,
+        canRetry: false
       };
     case 429:
       return {
         message: ERROR_MESSAGES.RATE_LIMIT_ERROR,
         status,
-        code: 'RATE_LIMIT_ERROR'
+        code: 'RATE_LIMIT_ERROR',
+        type: 'rate-limit' as const,
+        canRetry: true
       };
     case 500:
     case 502:
@@ -360,13 +444,17 @@ export function getErrorForStatus(status: number, serverMessage?: string): ApiEr
       return {
         message: ERROR_MESSAGES.SERVER_ERROR,
         status,
-        code: 'SERVER_ERROR'
+        code: 'SERVER_ERROR',
+        type: 'server' as const,
+        canRetry: true
       };
     default:
       return {
         message: serverMessage || ERROR_MESSAGES.UNKNOWN_ERROR,
         status,
-        code: 'UNKNOWN_ERROR'
+        code: 'UNKNOWN_ERROR',
+        type: 'unknown' as const,
+        canRetry: true
       };
   }
 }
@@ -407,17 +495,23 @@ export async function handleApiResponseError(
     if (error.name === 'NetworkError' || error.message?.includes('fetch')) {
       errorResult = {
         message: ERROR_MESSAGES.NETWORK_ERROR,
-        code: 'NETWORK_ERROR'
+        code: 'NETWORK_ERROR',
+        type: 'network' as const,
+        canRetry: true
       };
     } else if (error.name === 'AbortError' || error.message?.includes('timeout')) {
       errorResult = {
         message: ERROR_MESSAGES.TIMEOUT_ERROR,
-        code: 'TIMEOUT_ERROR'
+        code: 'TIMEOUT_ERROR',
+        type: 'network' as const,
+        canRetry: true
       };
     } else {
       errorResult = {
         message: error.message || ERROR_MESSAGES.UNKNOWN_ERROR,
-        code: 'UNKNOWN_ERROR'
+        code: 'UNKNOWN_ERROR',
+        type: 'unknown' as const,
+        canRetry: true
       };
     }
   }

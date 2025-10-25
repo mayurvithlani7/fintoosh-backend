@@ -150,6 +150,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
           keyboardType="email-address"
           textContentType="emailAddress"
           placeholderTextColor="#999"
+          accessibilityLabel="Email address"
+          accessibilityHint="Enter your email address to log in"
+          accessibilityRole="text"
         />
       </View>
       <View style={{ marginBottom: 13 }}>
@@ -182,6 +185,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
             secureTextEntry={!showPassword}
             textContentType="password"
             placeholderTextColor="#999"
+            accessibilityLabel="Password"
+            accessibilityHint="Enter your password to log in"
+            accessibilityRole="text"
           />
           <TouchableOpacity
             style={{
@@ -209,7 +215,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
         width: '100%',
         marginBottom: 10,
       }}>
-        <TouchableOpacity onPress={() => router.push('/forgot-password')}>
+        <TouchableOpacity
+          onPress={() => router.push('/forgot-password')}
+          accessibilityRole="button"
+          accessibilityLabel="Forgot password"
+          accessibilityHint="Navigate to password reset page"
+        >
           <Text style={{
             fontSize: 14,
             color: '#6A49F3',
@@ -226,6 +237,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
         marginBottom: 10,
       }}>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Sign in with email"
+          accessibilityHint="Submit login form with email and password"
+          accessibilityState={{ disabled: Boolean(lockoutUntil && Date.now() < lockoutUntil) }}
           style={{
             backgroundColor: '#FFC107',
             borderRadius: 12,
@@ -249,6 +264,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
           }}>Sign In</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          accessibilityHint="Return to previous screen"
           style={{
             backgroundColor: '#E0E0E0',
             borderRadius: 12,

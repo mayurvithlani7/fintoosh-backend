@@ -256,6 +256,10 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
         ]}
         onPress={onToggle}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${tx.amount > 0 ? 'Earned' : 'Spent'} ${Math.abs(tx.amount)} points ${tx.amount > 0 ? 'from' : 'on'} ${tx.description || typeLabels[tx.type] || tx.type}`}
+        accessibilityHint={isExpanded ? "Collapse transaction details" : "Expand to see transaction details"}
+        accessibilityState={{ expanded: isExpanded }}
       >
         {/* Achievement Badge */}
         <View style={{
@@ -719,6 +723,9 @@ export default function ParentTransactionHistoryScreen() {
             elevation: 2,
           }}
           onPress={() => setHelpModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Help and information"
+          accessibilityHint="Open help guide for transaction history"
         >
           <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
@@ -734,6 +741,8 @@ export default function ParentTransactionHistoryScreen() {
               style={styles.filterInput}
               value={search}
               onChangeText={setSearch}
+              accessibilityLabel="Search transactions"
+              accessibilityHint="Enter keywords to find specific transactions"
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -768,6 +777,9 @@ export default function ParentTransactionHistoryScreen() {
             <TouchableOpacity
               style={[styles.refreshBtn, {backgroundColor: themeColors.surface, alignSelf: 'flex-end'}]}
               onPress={() => {setStartDate(""); setEndDate("");}}
+              accessibilityRole="button"
+              accessibilityLabel="Clear date filters"
+              accessibilityHint="Remove all date range filters to show all transactions"
             >
               <Text style={{ color: themeColors.primary, fontWeight: "bold" }}>✕ Clear</Text>
             </TouchableOpacity>

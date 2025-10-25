@@ -80,6 +80,9 @@ const EmptyState = ({ styles }: { styles: any }) => {
         </Text>
       </View>
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Add your child profile"
+        accessibilityHint="Navigate to child setup and onboarding screen"
         style={[styles.primaryButton, { backgroundColor: themeColors.success }]}
         onPress={() => router.push('/addChild')}
       >
@@ -230,6 +233,9 @@ export default function ParentsOverviewScreen() {
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Help and information"
+            accessibilityHint="Open help guide for parent dashboard features"
             style={{
               backgroundColor: themeColors.accent,
               borderRadius: 16,
@@ -260,6 +266,10 @@ export default function ParentsOverviewScreen() {
         borderStyle: 'dashed'
       }]}>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={refreshing ? "Refreshing child's data" : "Refresh child's data"}
+          accessibilityHint="Reload latest information about your child's points and activities"
+          accessibilityState={{ disabled: refreshing }}
           style={[styles.quickBtn, { backgroundColor: themeColors.primary, alignSelf: 'center', minWidth: 200 }]}
           onPress={onRefresh}
           disabled={refreshing}
@@ -391,6 +401,9 @@ export default function ParentsOverviewScreen() {
         {/* Primary Actions - Most frequently used */}
         <View style={styles.primaryActions}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Check requests and approvals"
+            accessibilityHint="Navigate to review and approve child requests"
             style={[styles.primaryActionBtn, { backgroundColor: themeColors.primary }]}
             onPress={() => router.push('/(parents-tabs)/requests')}
           >
@@ -398,6 +411,9 @@ export default function ParentsOverviewScreen() {
             <Text style={[styles.primaryActionLabel, { color: themeColors.card }]}>Check Requests</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Give pocket money"
+            accessibilityHint="Navigate to add points to child's account"
             style={[styles.primaryActionBtn, { backgroundColor: themeColors.success }]}
             onPress={() => router.push('/(parents-tabs)/points')}
           >
@@ -408,6 +424,9 @@ export default function ParentsOverviewScreen() {
 
         {/* More Actions Button */}
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="More actions and features"
+          accessibilityHint="Open menu with additional parent features"
           style={[styles.moreActionsBtn, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}
           onPress={() => setShowMoreActions(true)}
         >
@@ -433,6 +452,9 @@ export default function ParentsOverviewScreen() {
 
               <View style={styles.moreActionsGrid}>
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Set child goals"
+                  accessibilityHint="Navigate to goals management screen"
                   style={[styles.moreActionBtn, { backgroundColor: themeColors.secondary }]}
                   onPress={() => {
                     setShowMoreActions(false);
@@ -444,6 +466,9 @@ export default function ParentsOverviewScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Add home tasks"
+                  accessibilityHint="Navigate to chores and tasks management"
                   style={[styles.moreActionBtn, { backgroundColor: themeColors.warning }]}
                   onPress={() => {
                     setShowMoreActions(false);
@@ -455,6 +480,9 @@ export default function ParentsOverviewScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Manage rewards"
+                  accessibilityHint="Navigate to rewards management screen"
                   style={[styles.moreActionBtn, { backgroundColor: themeColors.accent }]}
                   onPress={() => {
                     setShowMoreActions(false);
@@ -466,6 +494,9 @@ export default function ParentsOverviewScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="View progress analytics"
+                  accessibilityHint="Navigate to detailed progress and analytics"
                   style={[styles.moreActionBtn, { backgroundColor: themeColors.primary }]}
                   onPress={() => {
                     setShowMoreActions(false);
@@ -477,6 +508,9 @@ export default function ParentsOverviewScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="See transaction history"
+                  accessibilityHint="Navigate to complete transaction history"
                   style={[styles.moreActionBtn, { backgroundColor: themeColors.secondary }]}
                   onPress={() => {
                     setShowMoreActions(false);
@@ -488,6 +522,9 @@ export default function ParentsOverviewScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Close menu"
+                  accessibilityHint="Close the more actions menu"
                   style={[styles.moreActionBtn, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}
                   onPress={() => setShowMoreActions(false)}
                 >

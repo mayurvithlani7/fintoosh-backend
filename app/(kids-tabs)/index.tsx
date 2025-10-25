@@ -130,6 +130,7 @@ interface UserData {
   goals?: any[];
   transactions?: any[];
   badges?: any[];
+  rewards?: any[];
 }
 
 interface Activity {
@@ -489,6 +490,45 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         }
         // No fallback to mock data - activities array remains empty if no real transactions
 
+        // Fetch goals, badges, and rewards separately for kids
+        let goals: any[] = [];
+        let badges: any[] = [];
+        let rewards: any[] = [];
+
+        try {
+          // Fetch goals
+          const goalsResponse = await fetch(`${API_URL}/goals/${userId}`, {
+            signal: controller.signal,
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (goalsResponse.ok) {
+            const goalsData = await goalsResponse.json();
+            goals = goalsData.goals || [];
+          }
+
+          // Fetch badges/achievements
+          const badgesResponse = await fetch(`${API_URL}/achievements/${userId}`, {
+            signal: controller.signal,
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (badgesResponse.ok) {
+            const badgesData = await badgesResponse.json();
+            badges = badgesData.achievements || [];
+          }
+
+          // Fetch rewards
+          const rewardsResponse = await fetch(`${API_URL}/rewards/${userId}`, {
+            signal: controller.signal,
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (rewardsResponse.ok) {
+            const rewardsData = await rewardsResponse.json();
+            rewards = rewardsData.rewards || [];
+          }
+        } catch (fetchError) {
+          console.log('Could not fetch goals/badges/rewards, using empty arrays:', fetchError.message);
+        }
+
         const jars = [
           { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
           { label: 'Savings Pot', key: 'save', value: data.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
@@ -497,7 +537,16 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           { label: 'Grow Money Pot', key: 'invest', value: data.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
         ];
 
-        dispatch({ type: 'SET_USER_DATA', payload: { userData: data, jars, activities } });
+        // Add goals, badges, and rewards to userData
+        const userDataWithExtras = {
+          ...data,
+          goals,
+          badges,
+          rewards,
+          transactions // Include transactions for setup progress calculation
+        };
+
+        dispatch({ type: 'SET_USER_DATA', payload: { userData: userDataWithExtras, jars, activities } });
       }
     } catch (error) {
       if (!controller.signal.aborted) {
@@ -857,6 +906,9 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Help and information"
+            accessibilityHint="Open help guide for money pots"
             style={{
               backgroundColor: themeColors.accent,
               borderRadius: 16,
@@ -874,7 +926,13 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           </TouchableOpacity>
         </View>
         <View style={{ alignItems: 'center' }}>
-          <Text style={[dynamicStyles.title, { color: themeColors.primary }]} accessibilityRole="header" accessibilityLabel="My Money Home Dashboard">🏠 My Money Adventure</Text>
+          <Text
+            style={[dynamicStyles.title, { color: themeColors.primary }]}
+            accessibilityRole="header"
+            accessibilityLabel="My Money Adventure - Home Dashboard"
+          >
+            🏠 My Money Adventure
+          </Text>
         </View>
 
         {/* Time-Based Contextual Content */}
@@ -941,6 +999,10 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       {/* Refresh Button */}
       <View style={dynamicStyles.quickActionCard}>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={refreshing ? "Refreshing points data" : "Update my points"}
+          accessibilityHint="Refresh to get the latest points and activities"
+          accessibilityState={{ disabled: refreshing }}
           style={[styles.actionButton, { backgroundColor: themeColors.secondary, marginBottom: 0 }]}
           onPress={onRefresh}
           disabled={refreshing}
@@ -986,10 +1048,10 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             flex: 1,
           }}>
             <StatCard
-              icon="📈"
-              value={todaysEarnings > 0 ? `+${todaysEarnings}` : "0"}
-              label="Today"
-              color={themeColors.success + '20'}
+              icon="🎁"
+              value={userData && userData.rewards ? userData.rewards.length.toString() : "0"}
+              label="Rewards"
+              color={themeColors.accent + '20'}
               size="small"
             />
             <StatCard
@@ -1000,10 +1062,10 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               size="small"
             />
             <StatCard
-              icon="🏆"
-              value={userData && userData.badges ? userData.badges.length.toString() : "0"}
-              label="Badges"
-              color={themeColors.accent + '20'}
+              icon="📈"
+              value={todaysEarnings > 0 ? `+${todaysEarnings}` : "0"}
+              label="Today"
+              color={themeColors.success + '20'}
               size="small"
             />
           </View>
@@ -1144,12 +1206,18 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 16 }}>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Do chores and tasks"
+                accessibilityHint="Navigate to chores page to earn points"
                 style={[styles.actionButton, { backgroundColor: themeColors.secondary, flex: 1, marginHorizontal: 4 }]}
                 onPress={() => router.push('./chores')}
               >
                 <Text style={[styles.actionButtonText, { fontSize: 14 }]}>Do Tasks</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Set savings goals"
+                accessibilityHint="Navigate to goals page to create savings targets"
                 style={[styles.actionButton, { backgroundColor: themeColors.success, flex: 1, marginHorizontal: 4 }]}
                 onPress={() => router.push('./goals')}
               >
@@ -1158,6 +1226,9 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             </View>
 
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="View transaction history"
+              accessibilityHint="Navigate to full activity and transaction history"
               style={[styles.actionButton, { backgroundColor: themeColors.accent, marginTop: 8 }]}
               onPress={() => router.push('./transaction-history')}
             >
@@ -1168,6 +1239,9 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
         {recentActivities.length > 0 && (
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="See all activities and transaction history"
+            accessibilityHint="Navigate to complete activity and transaction history page"
             style={[styles.actionButton, { backgroundColor: themeColors.accent, marginTop: 15 }]}
             onPress={() => router.push('./transaction-history')}
           >

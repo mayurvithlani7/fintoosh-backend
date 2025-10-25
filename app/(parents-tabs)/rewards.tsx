@@ -248,6 +248,9 @@ export default function ParentsRewardsScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Help and information"
+          accessibilityHint="Open help guide for managing child rewards"
           style={{
             backgroundColor: accentColor,
             borderRadius: 16,
@@ -289,6 +292,8 @@ export default function ParentsRewardsScreen() {
           <View style={{ marginBottom: 14 }}>
             <Text style={[styles.inputLabel, { color: themeColors.text }]}>Reward Name</Text>
             <TextInput
+              accessibilityLabel="Reward name"
+              accessibilityHint="Enter the name of the reward for your child"
               style={[styles.input, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
               placeholder="e.g. New Book"
               placeholderTextColor={themeColors.textSecondary}
@@ -311,32 +316,44 @@ export default function ParentsRewardsScreen() {
           {/* Quick Preset Points */}
           <View style={styles.presetContainer}>
             <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
-            <View style={styles.presetRow}>
-              <TouchableOpacity
-                style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
-                onPress={() => setPointsCost('25')}
-              >
-                <Text style={styles.presetBtnText}>25</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
-                onPress={() => setPointsCost('50')}
-              >
-                <Text style={styles.presetBtnText}>50</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
-                onPress={() => setPointsCost('100')}
-              >
-                <Text style={styles.presetBtnText}>100</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
-                onPress={() => setPointsCost('200')}
-              >
-                <Text style={styles.presetBtnText}>200</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.presetRow}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points cost to 25"
+              accessibilityHint="Quick select 25 points for reward cost"
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPointsCost('25')}
+            >
+              <Text style={styles.presetBtnText}>25</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points cost to 50"
+              accessibilityHint="Quick select 50 points for reward cost"
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPointsCost('50')}
+            >
+              <Text style={styles.presetBtnText}>50</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points cost to 100"
+              accessibilityHint="Quick select 100 points for reward cost"
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPointsCost('100')}
+            >
+              <Text style={styles.presetBtnText}>100</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points cost to 200"
+              accessibilityHint="Quick select 200 points for reward cost"
+              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={() => setPointsCost('200')}
+            >
+              <Text style={styles.presetBtnText}>200</Text>
+            </TouchableOpacity>
+          </View>
           </View>
 
           {/* Reward Name Suggestions */}
@@ -346,6 +363,9 @@ export default function ParentsRewardsScreen() {
               {rewardSuggestions.slice(0, 16).map((suggestion) => (
                 <TouchableOpacity
                   key={suggestion}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use reward suggestion: ${suggestion}`}
+                  accessibilityHint="Fill reward name field with this suggestion"
                   style={[styles.suggestionBtn, { backgroundColor: themeColors.secondary }]}
                   onPress={() => {
                     setRewardName(suggestion);
@@ -369,6 +389,10 @@ export default function ParentsRewardsScreen() {
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={editingReward ? "Update reward" : "Add reward"}
+            accessibilityHint={editingReward ? "Save changes to the reward" : "Create a new reward for your child"}
+            accessibilityState={{ disabled: loading }}
             style={[styles.formBtn, { backgroundColor: themeColors.primary, flex: editingReward ? 0.6 : 1 }]}
             onPress={handleAddReward}
             disabled={loading}
@@ -410,6 +434,10 @@ export default function ParentsRewardsScreen() {
               alignItems: 'center',
               justifyContent: 'center'
             }}
+            accessibilityRole="button"
+            accessibilityLabel={loading ? "Refreshing rewards list" : "Refresh rewards list"}
+            accessibilityHint="Reload latest information about your child's rewards"
+            accessibilityState={{ disabled: loading }}
             onPress={() => {
               const selectedChild = children.find(child => child._id === selectedChildId);
               if (selectedChild) {
@@ -429,6 +457,10 @@ export default function ParentsRewardsScreen() {
           {['Available', 'Claimed'].map(tab => (
             <TouchableOpacity
               key={tab}
+              accessibilityRole="tab"
+              accessibilityLabel={`${tab} rewards`}
+              accessibilityHint={`Show ${tab.toLowerCase()} rewards`}
+              accessibilityState={{ selected: rewardsTab === tab }}
               onPress={() => setRewardsTab(tab as "Available" | "Claimed")}
               style={{
                 marginTop: 10,
@@ -528,6 +560,9 @@ export default function ParentsRewardsScreen() {
                   {r.status === 'active' && !r.purchased ? (
                     <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                       <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit reward: ${r.name}`}
+                        accessibilityHint="Open reward edit form with current details"
                         style={{
                           backgroundColor: themeColors.primary,
                           paddingHorizontal: 12,
@@ -547,6 +582,9 @@ export default function ParentsRewardsScreen() {
                         <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete reward: ${r.name}`}
+                        accessibilityHint="Permanently remove this reward"
                         style={{
                           backgroundColor: themeColors.error,
                           paddingHorizontal: 10,
@@ -627,6 +665,9 @@ export default function ParentsRewardsScreen() {
               {/* Archive toggle for claimed rewards */}
               {rewardsTab === 'Claimed' && showArchiveButton && !showAllClaimed && (
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Show all claimed rewards from any time"
+                  accessibilityHint="Display rewards claimed more than 90 days ago"
                   style={{
                     marginTop: 12,
                     alignSelf: 'center',
@@ -642,6 +683,9 @@ export default function ParentsRewardsScreen() {
               )}
               {rewardsTab === 'Claimed' && showAllClaimed && (
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Show only recently claimed rewards"
+                  accessibilityHint="Hide rewards claimed more than 90 days ago"
                   style={{
                     marginTop: 10,
                     alignSelf: 'center',

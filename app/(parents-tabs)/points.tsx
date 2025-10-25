@@ -254,6 +254,10 @@ export default function ParentsPointsScreen() {
       {/* Refresh Button */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={refreshing ? "Refreshing child's data" : "Refresh child's data"}
+          accessibilityHint="Reload latest information about your child's points"
+          accessibilityState={{ disabled: refreshing }}
           style={[styles.actionBtn, { backgroundColor: themeColors.secondary, alignSelf: 'center', minWidth: 200 }]}
           onPress={onRefresh}
           disabled={refreshing}
@@ -271,6 +275,8 @@ export default function ParentsPointsScreen() {
           <View style={{ flex: 1, marginRight: 6 }}>
             <Text style={styles.inputLabel}>Points to Give/Take</Text>
             <TextInput
+              accessibilityLabel="Points to adjust"
+              accessibilityHint="Enter the number of points to add or subtract from child's account"
               style={[styles.input, { minHeight: 40 }]}
               placeholder="e.g. 10"
               keyboardType="numeric"
@@ -309,6 +315,10 @@ export default function ParentsPointsScreen() {
             ) : (
               <View style={{ position: 'relative' }}>
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Select money pot"
+                  accessibilityHint="Choose which pot to add or subtract points from"
+                  accessibilityState={{ expanded: dropdownVisible }}
                   style={{
                     height: 45,
                     backgroundColor: themeColors.surface,
@@ -348,24 +358,36 @@ export default function ParentsPointsScreen() {
           <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
           <View style={styles.presetRow}>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points to 5"
+              accessibilityHint="Quick select 5 points for adjustment"
               style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
               onPress={() => setAmount('5')}
             >
               <Text style={styles.presetBtnText}>5</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points to 10"
+              accessibilityHint="Quick select 10 points for adjustment"
               style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
               onPress={() => setAmount('10')}
             >
               <Text style={styles.presetBtnText}>10</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points to 25"
+              accessibilityHint="Quick select 25 points for adjustment"
               style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
               onPress={() => setAmount('25')}
             >
               <Text style={styles.presetBtnText}>25</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Set points to 50"
+              accessibilityHint="Quick select 50 points for adjustment"
               style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
               onPress={() => setAmount('50')}
             >
@@ -375,10 +397,22 @@ export default function ParentsPointsScreen() {
         </View>
 
         <View style={styles.buttonRow}>
-          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: themeColors.primary }]} onPress={() => handlePoints(true)}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Give points to child"
+            accessibilityHint="Add points to the selected money pot"
+            style={[styles.actionBtn, { backgroundColor: themeColors.primary }]}
+            onPress={() => handlePoints(true)}
+          >
             <Text style={[styles.actionBtnText, { color: themeColors.card }]}>Give Points</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: themeColors.warning }]} onPress={() => handlePoints(false)}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Take points from child"
+            accessibilityHint="Subtract points from the selected money pot"
+            style={[styles.actionBtn, { backgroundColor: themeColors.warning }]}
+            onPress={() => handlePoints(false)}
+          >
             <Text style={[styles.actionBtnText, { color: themeColors.card }]}>Take Points</Text>
           </TouchableOpacity>
         </View>
@@ -505,6 +539,9 @@ export default function ParentsPointsScreen() {
             {jarOptions.map((option) => (
               <TouchableOpacity
                 key={option.value}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${option.label} pot`}
+                accessibilityHint="Choose this money pot for points adjustment"
                 style={{
                   padding: 16,
                   borderBottomWidth: option.value === 'invest' ? 0 : 1,

@@ -190,6 +190,9 @@ export default function LearnScreen() {
               alignItems: 'center',
             }}
             onPress={() => router.push('/')}
+            accessibilityRole="button"
+            accessibilityLabel="Go back to home screen"
+            accessibilityHint="Return to the main kids dashboard"
           >
             <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
           </TouchableOpacity>
@@ -206,6 +209,9 @@ export default function LearnScreen() {
               alignItems: 'center',
             }}
             onPress={() => setHelpModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Help and information"
+            accessibilityHint="Open help guide for learning about money"
           >
             <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
           </TouchableOpacity>
@@ -762,6 +768,9 @@ function FinancialLessonsSection() {
                   borderColor: themeColors.border,
                   shadowColor: themeColors.border
                 }]}
+                accessibilityRole="button"
+                accessibilityLabel={l.title}
+                accessibilityHint="Open this learning lesson"
               >
                 <Text style={styles.lessonIcon}>{l.icon}</Text>
                 <Text
@@ -941,6 +950,9 @@ function MyAchievementsSection() {
           marginTop: 10,
         }}
         onPress={loadBadges}
+        accessibilityRole="button"
+        accessibilityLabel="Refresh achievements"
+        accessibilityHint="Reload your earned badges and achievements"
       >
         <Text style={{ color: themeColors.card, fontWeight: "bold" }}>
           🔄 Refresh Achievements

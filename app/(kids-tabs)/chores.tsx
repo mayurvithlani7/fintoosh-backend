@@ -66,6 +66,9 @@ export default function TasksScreen() {
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Go back to home screen"
+            accessibilityHint="Navigate back to the main dashboard"
             style={{
               backgroundColor: themeColors.surface,
               borderRadius: 16,
@@ -82,6 +85,9 @@ export default function TasksScreen() {
             <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Help and information"
+            accessibilityHint="Open help guide for tasks and chores"
             style={{
               backgroundColor: themeColors.accent,
               borderRadius: 16,
@@ -513,6 +519,10 @@ function ChoresSection() {
       {/* Refresh Button */}
       <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 8 }}>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={loading ? "Refreshing task data" : "Refresh task data"}
+          accessibilityHint="Reload latest information about your tasks"
+          accessibilityState={{ disabled: loading }}
           style={[
             {
               backgroundColor: loading ? "#ccc" : themeColors.secondary,
@@ -540,6 +550,10 @@ function ChoresSection() {
         {["Active", "Completed"].map(t => (
           <TouchableOpacity
             key={t}
+            accessibilityRole="tab"
+            accessibilityLabel={`${t} tasks`}
+            accessibilityHint={`Show ${t.toLowerCase()} tasks`}
+            accessibilityState={{ selected: choresTab === t }}
             style={{
               backgroundColor: choresTab === t ? themeColors.secondary : themeColors.surface,
               paddingHorizontal: 15,
@@ -587,6 +601,9 @@ function ChoresSection() {
             {/* Archive toggle for completed chores */}
             {archived.length > 0 && !showArchive && (
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Show all completed tasks from any time"
+                accessibilityHint="Display tasks completed more than 90 days ago"
                 style={{
                   marginTop: 12,
                   alignSelf: "center",
@@ -604,6 +621,9 @@ function ChoresSection() {
             )}
             {archived.length > 0 && showArchive && (
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Show only recently completed tasks"
+                accessibilityHint="Hide tasks completed more than 90 days ago"
                 style={{
                   marginTop: 10,
                   alignSelf: "center",
@@ -774,6 +794,9 @@ function ChoresSection() {
               </View>
             ) : canClaim ? (
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Claim task: ${c.name} for ${points} points`}
+                accessibilityHint="Submit task completion request to parent for approval"
                 style={{
                   backgroundColor: themeColors.primary,
                   borderRadius: 8,
