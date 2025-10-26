@@ -13,7 +13,7 @@ import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { memo, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useReducer, useState } from "react";
 import {
   RefreshControl,
   SafeAreaView,
@@ -372,10 +372,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   // Theme validation test - toggle between themes to verify color changes
   const [testTheme, setTestTheme] = useState(false);
 
-  // Request deduplication using ref to avoid React state race conditions
-  const activeRequestsRef = useRef<Map<string, AbortController>>(new Map());
-
-  // Consolidated state management with useReducer to prevent race conditions
+  // Simplified state management - removed complex request deduplication to avoid AbortController issues
   const [state, dispatch] = useReducer(appReducer, {
     ...initialState,
     jars: [
@@ -407,21 +404,8 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   const [helpModalVisible, setHelpModalVisible] = React.useState(false);
   const [caregivers, setCaregivers] = React.useState<Array<{ userId: string; role: string; name?: string | null }>>([]);
 
-  // Shared API call function with request deduplication and AbortController
+  // Simplified API call function - removed complex request deduplication
   const fetchUserData = useCallback(async (requestId: string) => {
-    // Prevent duplicate requests - check if this requestId is already active
-    if (activeRequestsRef.current.has(requestId)) {
-      // Request already in progress, abort the existing one and start new
-      const existingController = activeRequestsRef.current.get(requestId);
-      if (existingController) {
-        existingController.abort();
-      }
-    }
-
-    // Create new AbortController for this request
-    const controller = new AbortController();
-    activeRequestsRef.current.set(requestId, controller);
-
     try {
       const token = await getAuthToken();
       const storedUser = await getUserData();
@@ -434,9 +418,8 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       const user = storedUser;
       const userId = user.id;
 
-      // Use regular API calls to fetch user data and transactions
+      // Fetch user data
       const userResponse = await fetch(`${API_URL}/users/${userId}`, {
-        signal: controller.signal,
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -449,11 +432,10 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       try {
         console.log('RECENT_ADVENTURES_LOG: Fetching transactions for user:', userId);
         const transactionsResponse = await fetch(`${API_URL}/transactions/${userId}`, {
-          signal: controller.signal,
           headers: { 'Authorization': `Bearer ${token}` },
         });
 
-        if (transactionsResponse.ok && !controller.signal.aborted) {
+        if (transactionsResponse.ok) {
           const responseData = await transactionsResponse.json();
           transactions = responseData.transactions || [];
           console.log('RECENT_ADVENTURES_LOG: Fetched', transactions.length, 'transactions:', transactions.map(t => ({ type: t.type, amount: t.amount, description: t.description })));
@@ -461,108 +443,93 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           console.log('RECENT_ADVENTURES_LOG: Transaction fetch failed with status:', transactionsResponse.status);
         }
       } catch (txError) {
-        if (!controller.signal.aborted) {
-          console.log('RECENT_ADVENTURES_LOG: Could not load transactions, error:', txError instanceof Error ? txError.message : String(txError));
-        }
+        console.log('RECENT_ADVENTURES_LOG: Could not load transactions, error:', txError instanceof Error ? txError.message : String(txError));
       }
 
-      // Only update state if this request wasn't cancelled
-      if (!controller.signal.aborted) {
+      // Calculate total points for fallback
+      const currentTotalPoints = (data.currentPoints || 0) +
+                                (data.savePoints || 0) +
+                                (data.spendPoints || 0) +
+                                (data.donatePoints || 0) +
+                                (data.investPoints || 0);
 
-        // Calculate total points for fallback
-        const currentTotalPoints = (data.currentPoints || 0) +
-                                  (data.savePoints || 0) +
-                                  (data.spendPoints || 0) +
-                                  (data.donatePoints || 0) +
-                                  (data.investPoints || 0);
+      let activities: Activity[] = [];
 
-        let activities: Activity[] = [];
-
-        // Only use real transactions from the API - no mock data
-        if (transactions && transactions.length > 0) {
-          // Take the 5 most recent transactions
-          activities = transactions.slice(0, 5).map((tx: any) => ({
-            id: tx._id,
-            type: tx.type,
-            amount: tx.amount,
-            description: tx.description || getTransactionDescription(tx),
-            timestamp: tx.createdAt,
-            icon: getTransactionIcon(tx.type)
-          }));
-        }
-        // No fallback to mock data - activities array remains empty if no real transactions
-
-        // Fetch goals, badges, and rewards separately for kids
-        let goals: any[] = [];
-        let badges: any[] = [];
-        let rewards: any[] = [];
-
-        try {
-          // Fetch goals
-          const goalsResponse = await fetch(`${API_URL}/goals/${userId}`, {
-            signal: controller.signal,
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          if (goalsResponse.ok) {
-            const goalsData = await goalsResponse.json();
-            goals = goalsData.goals || [];
-          }
-
-          // Fetch badges/achievements
-          const badgesResponse = await fetch(`${API_URL}/achievements/${userId}`, {
-            signal: controller.signal,
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          if (badgesResponse.ok) {
-            const badgesData = await badgesResponse.json();
-            badges = badgesData.achievements || [];
-          }
-
-          // Fetch rewards
-          const rewardsResponse = await fetch(`${API_URL}/rewards/${userId}`, {
-            signal: controller.signal,
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          if (rewardsResponse.ok) {
-            const rewardsData = await rewardsResponse.json();
-            rewards = rewardsData.rewards || [];
-          }
-        } catch (fetchError) {
-          console.log('Could not fetch goals/badges/rewards, using empty arrays:', fetchError instanceof Error ? fetchError.message : String(fetchError));
-        }
-
-        const jars = [
-          { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
-          { label: 'Savings Pot', key: 'save', value: data.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
-          { label: 'Spending Pot', key: 'spend', value: data.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
-          { label: 'Help Others Pot', key: 'donate', value: data.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
-          { label: 'Grow Money Pot', key: 'invest', value: data.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
-        ];
-
-        // Add goals, badges, and rewards to userData
-        const userDataWithExtras = {
-          ...data,
-          goals,
-          badges,
-          rewards,
-          transactions // Include transactions for setup progress calculation
-        };
-
-        dispatch({ type: 'SET_USER_DATA', payload: { userData: userDataWithExtras, jars, activities } });
+      // Only use real transactions from the API - no mock data
+      if (transactions && transactions.length > 0) {
+        // Take the 5 most recent transactions
+        activities = transactions.slice(0, 5).map((tx: any) => ({
+          id: tx._id,
+          type: tx.type,
+          amount: tx.amount,
+          description: tx.description || getTransactionDescription(tx),
+          timestamp: tx.createdAt,
+          icon: getTransactionIcon(tx.type)
+        }));
       }
+      // No fallback to mock data - activities array remains empty if no real transactions
+
+      // Fetch goals, badges, and rewards separately for kids - simplified approach
+      let goals: any[] = [];
+      let badges: any[] = [];
+      let rewards: any[] = [];
+
+      try {
+        // Fetch goals
+        const goalsResponse = await fetch(`${API_URL}/goals/${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (goalsResponse.ok) {
+          const goalsData = await goalsResponse.json();
+          goals = goalsData.goals || [];
+        }
+
+        // Fetch badges/achievements
+        const badgesResponse = await fetch(`${API_URL}/achievements/${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (badgesResponse.ok) {
+          const badgesData = await badgesResponse.json();
+          badges = badgesData.achievements || [];
+        }
+
+        // Fetch rewards
+        const rewardsResponse = await fetch(`${API_URL}/rewards/${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (rewardsResponse.ok) {
+          const rewardsData = await rewardsResponse.json();
+          rewards = rewardsData.rewards || [];
+        }
+      } catch (fetchError) {
+        console.log('Could not fetch goals/badges/rewards, using empty arrays:', fetchError instanceof Error ? fetchError.message : String(fetchError));
+      }
+
+      const jars = [
+        { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
+        { label: 'Savings Pot', key: 'save', value: data.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
+        { label: 'Spending Pot', key: 'spend', value: data.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
+        { label: 'Help Others Pot', key: 'donate', value: data.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
+        { label: 'Grow Money Pot', key: 'invest', value: data.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
+      ];
+
+      // Add goals, badges, and rewards to userData
+      const userDataWithExtras = {
+        ...data,
+        goals,
+        badges,
+        rewards,
+        transactions // Include transactions for setup progress calculation
+      };
+
+      dispatch({ type: 'SET_USER_DATA', payload: { userData: userDataWithExtras, jars, activities } });
+
     } catch (error) {
-      if (!controller.signal.aborted) {
-        console.error('Error loading user data:', error);
-        dispatch({ type: 'SET_ERROR', payload: 'Oops! 🤔 Having trouble loading your points right now. Please try again!' });
-      }
+      console.error('Error loading user data:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Oops! 🤔 Having trouble loading your points right now. Please try again!' });
     } finally {
-      // Always clean up the request from active requests
-      activeRequestsRef.current.delete(requestId);
-
-      if (!controller.signal.aborted) {
-        dispatch({ type: 'SET_LOADING_PHASE', payload: 'complete' });
-        dispatch({ type: 'SET_REFRESHING', payload: false });
-      }
+      dispatch({ type: 'SET_LOADING_PHASE', payload: 'complete' });
+      dispatch({ type: 'SET_REFRESHING', payload: false });
     }
   }, [themeColors]);
 
@@ -675,9 +642,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       if (interval) {
         clearInterval(interval);
       }
-      // Cancel any pending requests on unmount
-      activeRequestsRef.current.forEach(controller => controller.abort());
-      activeRequestsRef.current.clear();
+      // No pending requests to clean up (simplified approach)
     };
   }, [loadingPhase, fetchUserData, refreshIntervals.kidsHome]);
 
@@ -1526,14 +1491,15 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             const storedUser = await getUserData();
             if (token && storedUser) {
               const user = storedUser;
+              const headers: Record<string, string> = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              };
               await fetch(`${API_URL}/users/${user.id}`, {
                 method: 'PATCH',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
+                headers,
                 body: JSON.stringify({ isFirstTimeUser: false }),
-              });
+              }).catch(err => console.log('Failed to update first-time status:', err));
               // Update local userData via reducer
               dispatch({ type: 'UPDATE_USER_FIRST_TIME_STATUS', payload: false });
             }

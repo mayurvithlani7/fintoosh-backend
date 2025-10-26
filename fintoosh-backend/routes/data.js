@@ -3065,12 +3065,8 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       dateFilter = {};
       if (startDate) dateFilter.$gte = new Date(startDate);
       if (endDate) dateFilter.$lte = new Date(endDate);
-    } else {
-      // Default to last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      dateFilter = { $gte: thirtyDaysAgo };
     }
+    // No default date filter - fetch all data
 
     // Get family transactions
     const transactions = await Transaction.find({
@@ -3180,6 +3176,7 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       realAllowances,
       user: familyUser,
       familyMembers: familyMembers.map(m => ({
+        _id: m._id,
         id: m.id,
         name: m.name,
         role: m.role,

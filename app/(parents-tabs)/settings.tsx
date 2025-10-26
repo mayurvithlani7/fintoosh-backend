@@ -666,10 +666,6 @@ export default function ParentSettingsScreen() {
         throw new Error('Caregiver not found in any child\'s caregivers list');
       }
 
-      if (caregiverIndex === -1) {
-        throw new Error('Caregiver not found in child\'s caregivers list');
-      }
-
       const response = await fetch(`${API_URL}/users/${childUser.id}/caregivers/${caregiverIndex}`, {
         method: 'PATCH',
         headers: {
@@ -687,7 +683,11 @@ export default function ParentSettingsScreen() {
         setSelectedRelationship('');
         // Refresh the caregivers list
         await fetchCaregiversForManagement();
-        setTimeout(() => setCaregiverMessage(''), 3000);
+        // Close modal after successful update
+        setTimeout(() => {
+          setCaregiverMessage('');
+          setCaregiverModalVisible(false);
+        }, 2000);
       } else {
         const errorData = await response.json();
         setCaregiverMessage(errorData.message || 'Failed to update relationship. Please try again.');
@@ -1992,7 +1992,7 @@ export default function ParentSettingsScreen() {
                 style={{ height: 50 }}
               >
                 <Picker.Item label="Choose a caregiver..." value="" />
-                {caregivers.map(caregiver => (
+                {caregivers.map((caregiver: any) => (
                   <Picker.Item
                     key={caregiver._id}
                     label={`${caregiver.name} (${caregiver.relationship || 'No relationship set'})`}

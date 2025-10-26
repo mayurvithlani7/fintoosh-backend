@@ -40,7 +40,7 @@ export default function ParentsAnalyticsScreen() {
   const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [children, setChildren] = useState<{ id: string; name: string }[]>([]);
+  const [children, setChildren] = useState<{ id?: string; _id?: string; name: string }[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string>('');
 
   const { analyticsData, loading, error, refetch, exportData, clearCache } = useAnalytics();
@@ -58,7 +58,7 @@ export default function ParentsAnalyticsScreen() {
         const data = await fetchFamilyChildren(familyId, token);
         setChildren(data);
         if (data.length > 0) {
-          setSelectedChildId(data[0].id ?? "");
+          setSelectedChildId(data[0]._id || data[0].id || "");
         }
       } catch (err) {
         console.error('Failed to load children:', err);
@@ -140,16 +140,16 @@ export default function ParentsAnalyticsScreen() {
           <View style={styles.childSelector}>
             {children.map((child) => (
               <TouchableOpacity
-                key={child.id}
+                key={child._id || child.id}
                 style={[
                   styles.childButton,
-                  selectedChildId === child.id && styles.childButtonSelected
+                  selectedChildId === (child._id || child.id) && styles.childButtonSelected
                 ]}
-                onPress={() => setSelectedChildId(child.id)}
+                onPress={() => setSelectedChildId(child._id || child.id || "")}
               >
                 <Text style={[
                   styles.childButtonText,
-                  selectedChildId === child.id && styles.childButtonTextSelected
+                  selectedChildId === (child._id || child.id) && styles.childButtonTextSelected
                 ]}>
                   {child.name}
                 </Text>
@@ -162,7 +162,7 @@ export default function ParentsAnalyticsScreen() {
       {feedback ? <Text style={styles.statusMessage}>{feedback}</Text> : null}
 
       {/* Simple Analytics Overview */}
-      <AnalyticsOverview analyticsData={analyticsData} analyticsLoading={loading} />
+      <AnalyticsOverview analyticsData={analyticsData} analyticsLoading={loading} selectedChildId={selectedChildId} />
 
       {/* Separator */}
       <View style={{ height: 2, backgroundColor: themeColors.text, opacity: 0.3, marginVertical: 20, width: '90%', alignSelf: 'center' }} />
@@ -366,11 +366,118 @@ export default function ParentsAnalyticsScreen() {
   );
 }
 
-const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData: any, analyticsLoading: boolean }) => {
+const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }: { analyticsData: any, analyticsLoading: boolean, selectedChildId: string }) => {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
 
-  if (analyticsLoading) {
+  const [processedData, setProcessedData] = React.useState<any>(null);
+  const [processing, setProcessing] = React.useState(false);
+
+  // Process child-specific analytics data when analyticsData or selectedChildId changes
+  React.useEffect(() => {
+    const processChildData = async () => {
+      if (!analyticsData || !selectedChildId) {
+        setProcessedData(null);
+        return;
+      }
+
+      setProcessing(true);
+
+      try {
+        // Build summary from processed analytics data
+        console.log('AnalyticsOverview - analyticsData:', analyticsData);
+        const familyMembers = analyticsData.familyMembers || [];
+        console.log('AnalyticsOverview - familyMembers:', familyMembers);
+
+        // Find the selected child for child-specific analytics
+        // familyMembers from analytics API now include '_id' field
+        // selectedChildId from fetchFamilyChildren is the MongoDB _id string
+        // Match by _id first, then fallback to other logic
+        const selectedChild = familyMembers.find((m: any) => m._id === selectedChildId) ||
+                             familyMembers.find((m: any) => m.id === selectedChildId) ||
+                             familyMembers.find((m: any) => m.role === 'child') ||
+                             familyMembers.find((m: any) => m.role !== 'parent');
+
+        console.log('AnalyticsOverview - selectedChildId:', selectedChildId);
+        console.log('AnalyticsOverview - found selected child:', selectedChild);
+        console.log('AnalyticsOverview - selected child name:', selectedChild ? selectedChild.name : 'No child found');
+
+        // Filter data to be child-specific instead of family-wide
+        // Use selectedChildId (MongoDB _id string) for filtering transactions, chores, goals, rewards
+        // Use selectedChild.id (custom id) for filtering real allowances
+        const mongoChildId = selectedChildId; // MongoDB _id string
+        const customChildId = selectedChild ? selectedChild.id : selectedChildId; // custom id for allowances
+
+        const childTransactions = analyticsData.transactions?.filter((t: any) => t.user === mongoChildId) || [];
+        const childChores = analyticsData.chores?.filter((c: any) => c.user === mongoChildId) || [];
+        const childGoals = analyticsData.goals?.filter((g: any) => g.user === mongoChildId) || [];
+        const childRewards = analyticsData.rewards?.filter((r: any) => r.user === mongoChildId) || [];
+        const childRealAllowances = analyticsData.realAllowances?.filter((ra: any) => ra.childId === customChildId) || [];
+
+        console.log('AnalyticsOverview - childTransactions count:', childTransactions.length);
+        console.log('AnalyticsOverview - childChores count:', childChores.length);
+        console.log('AnalyticsOverview - childGoals count:', childGoals.length);
+        console.log('AnalyticsOverview - childRewards count:', childRewards.length);
+        console.log('AnalyticsOverview - childRealAllowances count:', childRealAllowances.length);
+
+        // Process child-specific analytics data
+        const { processSpendingTrends, processChoreCompletion, processGoalProgress, processJarDistribution } = await import('../../utils/analyticsEngine');
+
+        const spendingTrends = processSpendingTrends(childTransactions);
+        const choreCompletion = processChoreCompletion(childChores, childTransactions);
+        const goalProgress = processGoalProgress(childGoals);
+        const jarDistribution = selectedChild ? processJarDistribution(selectedChild, childTransactions) : [];
+        const rewards = childRewards;
+        const realAllowances = childRealAllowances;
+
+        // Get current points from jar distribution
+        const currentJar = jarDistribution.find((jar: any) => jar.jarName === 'Pocket Money');
+        const saveJar = jarDistribution.find((jar: any) => jar.jarName === 'Savings Pot');
+        const spendJar = jarDistribution.find((jar: any) => jar.jarName === 'Spending Pot');
+        const donateJar = jarDistribution.find((jar: any) => jar.jarName === 'Help Others Pot');
+        const investJar = jarDistribution.find((jar: any) => jar.jarName === 'Grow Money Pot');
+
+        const summary = {
+          totalPoints: (currentJar?.currentBalance || 0) + (saveJar?.currentBalance || 0) + (spendJar?.currentBalance || 0) + (donateJar?.currentBalance || 0) + (investJar?.currentBalance || 0),
+          chores: choreCompletion.length,
+          completedChores: choreCompletion.filter((chore: any) => (chore.completedCount || 0) > 0).length,
+          goals: goalProgress.length,
+          completedGoals: goalProgress.filter((g: any) => g.progress === 100 || g.projectedCompletion === 'Completed').length,
+          rewardsCount: rewards.length,
+          completedRewards: rewards.filter((r: any) => r.approved === true).length,
+          jars: {
+            current: currentJar?.currentBalance || 0,
+            save: saveJar?.currentBalance || 0,
+            spend: spendJar?.currentBalance || 0,
+            donate: donateJar?.currentBalance || 0,
+            invest: investJar?.currentBalance || 0
+          },
+          name: selectedChild ? selectedChild.name : 'Child',
+          goalsList: goalProgress.map((g: any) => ({
+            name: g.goalName || 'Goal',
+            progress: Math.max(0, Math.min(1, (g.progress || 0) / 100)),
+          })),
+          spendingTrends,
+          choreCompletion,
+          goalProgress,
+          jarDistribution,
+          rewards: rewards,
+          realAllowances: realAllowances
+        };
+
+        setProcessedData(summary);
+      } catch (error) {
+        console.error('Error processing child analytics data:', error);
+        setProcessedData(null);
+      } finally {
+        setProcessing(false);
+      }
+    };
+
+    processChildData();
+  }, [analyticsData, selectedChildId]);
+
+  if (analyticsLoading || processing) {
     return (
       <View style={[styles.sectionCard]}>
         <ActivityIndicator size="small" color={themeColors.text} />
@@ -387,65 +494,21 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
     );
   }
 
-  // Build summary from processed analytics data
-  console.log('AnalyticsOverview - analyticsData:', analyticsData);
-  const familyMembers = analyticsData.familyMembers || [];
-  console.log('AnalyticsOverview - familyMembers:', familyMembers);
-  const child = familyMembers.find((m: any) => m.role === 'child') || familyMembers.find((m: any) => m.role !== 'parent');
-  console.log('AnalyticsOverview - found child:', child);
-  console.log('AnalyticsOverview - child name:', child ? child.name : 'No child found');
+  if (!processedData) {
+    return (
+      <View style={[styles.sectionCard]}>
+        <Text style={[styles.placeholder, { color: themeColors.textSecondary }]}>Processing child data...</Text>
+      </View>
+    );
+  }
 
-  // Use processed data for summary
-  const choreCompletion = analyticsData.choreCompletion || [];
-  const goalProgress = analyticsData.goalProgress || [];
-  const jarDistribution = analyticsData.jarDistribution || [];
-  const rewards = analyticsData.rewards || [];
-  const realAllowances = analyticsData.realAllowances || [];
+  const summary = processedData;
 
-  // Debug logging for real allowances
-  console.log('AnalyticsOverview - realAllowances:', realAllowances);
-  console.log('AnalyticsOverview - realAllowances length:', realAllowances.length);
-  console.log('AnalyticsOverview - realAllowances sample:', realAllowances.slice(0, 2));
-
-  console.log('AnalyticsOverview - raw analyticsData:', analyticsData);
-  console.log('AnalyticsOverview - choreCompletion:', choreCompletion);
-  console.log('AnalyticsOverview - choreCompletion details:', choreCompletion.map((c: any) => ({ name: c.choreName, completed: c.completedCount })));
-  console.log('AnalyticsOverview - goalProgress:', goalProgress);
-  console.log('AnalyticsOverview - goalProgress details:', goalProgress.map((g: any) => ({ name: g.goalName, progress: g.progress, status: g.projectedCompletion })));
-  console.log('AnalyticsOverview - jarDistribution:', jarDistribution);
-  console.log('AnalyticsOverview - jarDistribution details:', jarDistribution.map((j: any) => ({ name: j.jarName, balance: j.currentBalance, deposits: j.totalDeposits })));
-  console.log('AnalyticsOverview - rewards:', rewards);
-  console.log('AnalyticsOverview - rewards details:', rewards.map((r: any) => ({ name: r.name, purchased: r.purchased, approved: r.approved, completed: r.completed })));
-  console.log('AnalyticsOverview - completedRewards calculation:', rewards.filter((r: any) => r.approved === true));
-
-  // Get current points from jar distribution
-  const currentJar = jarDistribution.find((jar: any) => jar.jarName === 'Pocket Money');
-  const saveJar = jarDistribution.find((jar: any) => jar.jarName === 'Savings Pot');
-  const spendJar = jarDistribution.find((jar: any) => jar.jarName === 'Spending Pot');
-  const donateJar = jarDistribution.find((jar: any) => jar.jarName === 'Help Others Pot');
-  const investJar = jarDistribution.find((jar: any) => jar.jarName === 'Grow Money Pot');
-
-  const summary = {
-    totalPoints: (currentJar?.currentBalance || 0) + (saveJar?.currentBalance || 0) + (spendJar?.currentBalance || 0) + (donateJar?.currentBalance || 0) + (investJar?.currentBalance || 0),
-    chores: choreCompletion.length,
-    completedChores: choreCompletion.filter((chore: any) => (chore.completedCount || 0) > 0).length,
-    goals: goalProgress.length,
-    completedGoals: goalProgress.filter((g: any) => g.progress === 100 || g.projectedCompletion === 'Completed').length,
-    rewards: rewards.length,
-    completedRewards: rewards.filter((r: any) => r.approved === true).length,
-    jars: {
-      current: currentJar?.currentBalance || 0,
-      save: saveJar?.currentBalance || 0,
-      spend: spendJar?.currentBalance || 0,
-      donate: donateJar?.currentBalance || 0,
-      invest: investJar?.currentBalance || 0
-    },
-    name: child ? child.name : 'Child',
-    goalsList: goalProgress.map((g: any) => ({
-      name: g.goalName || 'Goal',
-      progress: Math.max(0, Math.min(1, (g.progress || 0) / 100)),
-    })),
-  };
+  // Extract variables from processedData
+  const saveJar = summary?.jarDistribution?.find((jar: any) => jar.jarName === 'Savings Pot');
+  const spendJar = summary?.jarDistribution?.find((jar: any) => jar.jarName === 'Spending Pot');
+  const jarDistribution = summary?.jarDistribution || [];
+  const realAllowances = summary?.realAllowances || [];
 
   // Theme-aware colors from the theme API (always use themeColors)
   const accentTextColor = themeColors.card;
@@ -497,8 +560,8 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
             <View style={{ alignItems: "center", marginHorizontal: 10 }}>
               <Text style={{ fontWeight: 'bold', color: mainTextColor, marginBottom: 4 }}>Rewards Claimed</Text>
               <ProgressRing
-                percent={summary.rewards > 0 ? summary.completedRewards / summary.rewards : 0}
-                amount={`${summary.completedRewards}/${summary.rewards}`}
+                percent={summary.rewardsCount > 0 ? summary.completedRewards / summary.rewardsCount : 0}
+                amount={`${summary.completedRewards}/${summary.rewardsCount}`}
                 color={themeColors.accent}
                 size={110}
                 strokeWidth={10}

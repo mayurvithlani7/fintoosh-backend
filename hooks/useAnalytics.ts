@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
 import { AnalyticsData, exportAnalyticsData } from '../utils/analyticsEngine';
 
@@ -21,17 +20,15 @@ interface UseAnalyticsReturn {
 export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsReturn {
   const [familyId, setFamilyId] = useState<string | null>(options.familyId || null);
 
-  // Load familyId from AsyncStorage on mount
+  // Load familyId from secure storage on mount
   useEffect(() => {
     const loadFamilyId = async () => {
       if (!options.familyId) {
         try {
-          const userData = await AsyncStorage.getItem('user');
-          if (userData) {
-            const user = JSON.parse(userData);
-            if (user.familyId) {
-              setFamilyId(user.familyId);
-            }
+          const { getUser } = await import('../utils/secureStorage');
+          const user = await getUser();
+          if (user && user.familyId) {
+            setFamilyId(user.familyId);
           }
         } catch (error) {
           console.error('Error loading familyId:', error);

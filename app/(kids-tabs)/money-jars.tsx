@@ -5,7 +5,7 @@ import { RupeeDenominations } from '@/components/RupeeDenominations';
 import { API_URL } from '@/utils/config';
 import { InterestRuleType, useCurrency } from '@/utils/currencyContext';
 import { handleApiError } from '@/utils/errorHandler';
-import { getAuthToken } from '@/utils/secureStorage';
+import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -820,27 +820,38 @@ export default function MoneyJarsScreen() {
   };
 
   const loadUserData = async (showErrors = true) => {
+    console.log('🔄 Money Jars: Starting loadUserData...');
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const storedUser = await getUserData();
+
+      console.log('🔄 Money Jars: Token exists:', !!token, 'User exists:', !!storedUser);
 
       if (!token || !storedUser) {
+        console.log('🔄 Money Jars: Missing token or user data');
         if (showErrors) {
           Alert.alert('Error', 'Not authenticated. Please login again.');
         }
         return;
       }
 
-      const user = JSON.parse(storedUser);
+      const user = storedUser;
       const userId = user.id;
 
+      console.log('🔄 Money Jars: Fetching data for user:', userId);
+
+      // Use simple fetch to avoid CORS issues
       const response = await fetch(`${API_URL}/users/${userId}`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
+      console.log('🔄 Money Jars: API response status:', response.status);
+
       if (!response.ok) {
+        console.log('🔄 Money Jars: API call failed with status:', response.status);
         if (showErrors) {
           await handleApiError(response, { showError: (msg) => Alert.alert('Error', msg), feature: 'Money Jars - User Data' });
         }
@@ -849,13 +860,33 @@ export default function MoneyJarsScreen() {
 
       const freshUserData = await response.json();
 
-      setJars([
-        { label: 'Pocket Money', key: 'current', value: freshUserData.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
-        { label: 'Savings Pot', key: 'save', value: freshUserData.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
-        { label: 'Spending Pot', key: 'spend', value: freshUserData.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
-        { label: 'Help Others Pot', key: 'donate', value: freshUserData.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
-        { label: 'Grow Money Pot', key: 'invest', value: freshUserData.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
-      ]);
+      console.log('🔄 Money Jars: Raw API response:', freshUserData);
+
+      // Validate that we have numeric values for points
+      const validatePoints = (value: any) => {
+        const num = Number(value);
+        return isNaN(num) ? 0 : Math.max(0, num);
+      };
+
+      const jarData = [
+        { label: 'Pocket Money', key: 'current', value: validatePoints(freshUserData.currentPoints), color: themeColors.jarColors.current, icon: '💰' },
+        { label: 'Savings Pot', key: 'save', value: validatePoints(freshUserData.savePoints), color: themeColors.jarColors.save, icon: '🐷' },
+        { label: 'Spending Pot', key: 'spend', value: validatePoints(freshUserData.spendPoints), color: themeColors.jarColors.spend, icon: '🛒' },
+        { label: 'Help Others Pot', key: 'donate', value: validatePoints(freshUserData.donatePoints), color: themeColors.jarColors.donate, icon: '🤲' },
+        { label: 'Grow Money Pot', key: 'invest', value: validatePoints(freshUserData.investPoints), color: themeColors.jarColors.invest, icon: '📈' }
+      ];
+
+      console.log('🔄 Money Jars: Setting jar data:', jarData);
+
+      setJars(jarData);
+
+      console.log('Loaded user points:', {
+        current: validatePoints(freshUserData.currentPoints),
+        save: validatePoints(freshUserData.savePoints),
+        spend: validatePoints(freshUserData.spendPoints),
+        donate: validatePoints(freshUserData.donatePoints),
+        invest: validatePoints(freshUserData.investPoints)
+      });
 
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -865,6 +896,7 @@ export default function MoneyJarsScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      console.log('🔄 Money Jars: loadUserData completed');
     }
   };
 

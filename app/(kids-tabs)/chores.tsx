@@ -3,9 +3,8 @@ import AnimatedCircularProgress from '@/components/animations/AnimatedCircularPr
 import { API_URL } from '@/utils/config';
 import { handleApiError } from '@/utils/errorHandler';
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
-import { getAuthToken } from '@/utils/secureStorage';
+import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -300,15 +299,19 @@ function ChoresSection() {
 
   // Fetch chores, user data, and approval requests from backend
   const loadChoresUserAndRequests = async () => {
+    console.log('🔄 Chores: Starting loadChoresUserAndRequests...');
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
-      if (!token || !storedUser) {
+      const user = await getUserData();
+
+      console.log('🔄 Chores: Token exists:', !!token, 'User exists:', !!user);
+
+      if (!token || !user) {
+        console.log('🔄 Chores: Missing token or user data');
         setLoading(false);
         return;
       }
-      const user = JSON.parse(storedUser);
-      const userId = user.id || user._id;
+      const userId = user.id;
       // User
       const userRes = await fetch(`${API_URL}/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -393,13 +396,12 @@ function ChoresSection() {
   const handleClaimChore = async (choreId: string) => {
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
-      if (!token || !storedUser) {
+      const user = await getUserData();
+      if (!token || !user) {
         showError("Not authenticated");
         return;
       }
-      const user = JSON.parse(storedUser);
-      const userId = user.id || user._id;
+      const userId = user.id;
       const chore = chores.find(c => c._id === choreId);
       if (!chore) {
         showError("Chore not found");
@@ -457,9 +459,20 @@ function ChoresSection() {
         return;
       }
 
+      // Get parent ID from caregivers array
+      const parentId = (user as any).caregivers && (user as any).caregivers.length > 0
+        ? (user as any).caregivers[0].userId // Use first caregiver as parent
+        : null;
+
+      if (!parentId) {
+        showError("Parent information not found. Please contact support.");
+        return;
+      }
+
       // Normal chore handling - Post approval request for chore
       const requestData = {
         userId: userId,
+        parentId: parentId,
         type: "chore",
         name: `Chore: ${chore.name}`,
         amount: chore.points || chore.pointValue || 0,

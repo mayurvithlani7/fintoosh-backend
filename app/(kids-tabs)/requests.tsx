@@ -1,10 +1,9 @@
 import Confetti from '@/components/animations/Confetti';
 import HelpModal from '@/components/HelpModal';
 import { API_URL } from '@/utils/config';
-import { getAuthToken } from '@/utils/secureStorage';
+import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from 'react';
@@ -520,14 +519,18 @@ export default function KidsRequestsScreen() {
   useFocusEffect(useCallback(() => { loadRequests(); }, []));
 
   const loadRequests = async () => {
+    console.log('🔄 Requests: Starting loadRequests...');
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
-      if (!token || !storedUser) {
+      const user = await getUserData();
+
+      console.log('🔄 Requests: Token exists:', !!token, 'User exists:', !!user);
+
+      if (!token || !user) {
+        console.log('🔄 Requests: Missing token or user data');
         Alert.alert('Error', 'Not authenticated. Please login again.');
         return;
       }
-      const user = JSON.parse(storedUser);
       const userId = user.id;
       const response = await fetch(`${API_URL}/requests/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (!response.ok) throw new Error('Failed to load requests');

@@ -365,11 +365,15 @@ function KidGoalsRewardsSection() {
 
   // Load goals, rewards, and requests on component mount
   const loadGoalsAndRewards = async () => {
+    console.log('🔄 Goals: Starting loadGoalsAndRewards...');
     try {
       const token = await getAuthToken();
       const user = await getUserData();
 
+      console.log('🔄 Goals: Token exists:', !!token, 'User exists:', !!user);
+
       if (!token || !user) {
+        console.log('🔄 Goals: Missing token or user data');
         setLoading(false);
         return;
       }
