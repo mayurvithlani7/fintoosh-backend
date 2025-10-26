@@ -67,7 +67,10 @@ export default function ParentsAnalyticsScreen() {
 
     loadChildren();
     clearCache();
-    refetch();
+    // Force fresh data load
+    setTimeout(() => {
+      refetch();
+    }, 100);
   }, []); // Empty dependency array to run only once on mount
 
   const handleExport = () => {
@@ -83,7 +86,7 @@ export default function ParentsAnalyticsScreen() {
 
   const handleRefresh = async () => {
     clearCache(); // Clear cached data first
-    await refetch();
+    await refetch(); // This will now bypass cache due to forceRefresh parameter
   };
 
 

@@ -3053,6 +3053,7 @@ function ensureUserString(arr, key = 'user') {
 }
 // Analytics routes
 router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async (req, res) => {
+  console.log('[ANALYTICS ROUTE] Request for familyId:', req.params.familyId, 'Query params:', req.query);
   try {
     const { familyId } = req.params;
     const { startDate, endDate } = req.query;
@@ -3115,7 +3116,7 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     const memberMongoIds = familyMembers.map(m => m._id);
     const memberCustomIds = familyMembers.map(m => m.id);
 
-    // Get completed chores for all family members
+    // Get ALL chores for family members (both completed and active) for proper completion ratio calculation
     console.log('Analytics - About to query chores with memberMongoIds:', memberMongoIds);
     console.log('Analytics - memberMongoIds as strings:', memberMongoIds.map(id => id.toString()));
 
@@ -3145,8 +3146,8 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     });
     console.log('Analytics - Family completed chores count:', familyCompletedChores.length);
 
+    // Get ALL chores for family members (not just completed ones) for analytics completion ratio
     const chores = await Chore.find({
-      completed: true,
       user: { $in: memberMongoIds }
     }).select('user name points frequency useDefaultSplit customSplit completed approved');
     console.log('Analytics - Found chores count:', chores.length);
@@ -3154,17 +3155,17 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       console.log('Analytics - Sample chore:', { user: chores[0].user, name: chores[0].name, completed: chores[0].completed, approved: chores[0].approved });
     }
 
-    // Get completed goals (status: 'completed') for all members
+    // Get ALL goals for family members (both completed and active) for proper completion ratio calculation
     console.log('Analytics - About to query goals with memberMongoIds:', memberMongoIds);
-    let goalQuery = { user: { $in: memberMongoIds }, status: 'completed' };
+    let goalQuery = { user: { $in: memberMongoIds } };
     // Only add updatedAt date filter if we have date constraints
     if (Object.keys(dateFilter).length > 0) {
       goalQuery.updatedAt = dateFilter;
     }
-    const goals = await Goal.find(goalQuery).select('user name targetAmount currentAmount deadline status jar createdAt');
+    const goals = await Goal.find(goalQuery).select('user name targetAmount currentAmount deadline status jar createdAt completed achieved');
     console.log('Analytics - Found goals count:', goals.length);
     if (goals.length > 0) {
-      console.log('Analytics - Sample goal:', { user: goals[0].user, name: goals[0].name, status: goals[0].status });
+      console.log('Analytics - Sample goal:', { user: goals[0].user, name: goals[0].name, status: goals[0].status, completed: goals[0].completed });
     }
 
     // Get family rewards - get all rewards for progress overview

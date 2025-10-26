@@ -252,7 +252,12 @@ export default function ParentsRequestsScreen() {
 
   const renderRequestCard = ({ item: request }: { item: any }) => (
     <View style={[styles.sectionCard, { alignSelf: 'center', width: '97%', maxWidth: 520, minWidth: 320 }]}>
-      <Text style={styles.sectionTitle}>{getRequestTypeDisplay(request.type)} Request</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Text style={styles.sectionTitle}>{getRequestTypeDisplay(request.type)} Request</Text>
+        <Text style={[styles.childNameBadge, { backgroundColor: themeColors.primary + '20', color: themeColors.primary }]}>
+          {request.childName || request.userName || 'Unknown Child'}
+        </Text>
+      </View>
 
       {/* Enhanced move-points display */}
       {request.type === 'move-points' ? (
@@ -1059,5 +1064,13 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     color: themeColors.card,
     fontSize: 16,
     fontWeight: '600',
+  },
+  childNameBadge: {
+    fontSize: 14,
+    fontWeight: '600',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });

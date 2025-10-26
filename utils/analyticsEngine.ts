@@ -46,6 +46,9 @@ export interface AnalyticsData {
   familyMembers?: any[];
   rewards?: any[];
   realAllowances?: any[];
+  transactions?: any[];
+  chores?: any[];
+  goals?: any[];
 }
 
 // Simple linear regression for trend prediction
@@ -312,7 +315,7 @@ export function processGoalProgress(goals: any[]): GoalMetrics[] {
   const now = new Date();
 
   return goals.map(goal => {
-    console.log('[GOAL PROCESS DEBUG] Processing goal:', {
+    console.log('[GOAL PROCESS DEBUG] or', {
       name: goal.name,
       status: goal.status,
       completed: goal.completed,
@@ -445,7 +448,8 @@ export function generatePredictions(
 export async function fetchAnalyticsRawData(
   familyId: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  forceRefresh?: boolean
 ): Promise<any> {
   try {
     const queryParams = new URLSearchParams();

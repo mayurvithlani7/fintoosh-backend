@@ -52,15 +52,15 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
   // Cache key for this family's analytics
   const cacheKey = familyId ? `analytics_${familyId}` : null;
 
-  const fetchAnalytics = useCallback(async (startDate?: string, endDate?: string) => {
+  const fetchAnalytics = useCallback(async (startDate?: string, endDate?: string, forceRefresh: boolean = false) => {
     if (!familyId) {
       setError('Family ID not available');
       return;
     }
 
-    // Check cache validity
+    // Check cache validity (skip if force refresh)
     const now = Date.now();
-    if (analyticsData && (now - lastFetch) < cacheTime && !startDate && !endDate) {
+    if (!forceRefresh && analyticsData && (now - lastFetch) < cacheTime && !startDate && !endDate) {
       return; // Use cached data
     }
 
@@ -69,8 +69,8 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
 
     try {
       // Lazy loading: fetch raw data first (lightweight)
-      const { fetchAnalyticsRawData, processAnalyticsRawData } = await import('../utils/analyticsEngine');
-      const rawData = await fetchAnalyticsRawData(familyId, startDate, endDate);
+    const { fetchAnalyticsRawData, processAnalyticsRawData } = await import('../utils/analyticsEngine');
+    const rawData = await fetchAnalyticsRawData(familyId, startDate, endDate, forceRefresh);
       setRawData(rawData);
       setIsProcessed(false);
 
@@ -112,7 +112,7 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
   }, [familyId, analyticsData, lastFetch, cacheTime, cacheKey]);
 
   const refetch = useCallback(async (startDate?: string, endDate?: string) => {
-    await fetchAnalytics(startDate, endDate);
+    await fetchAnalytics(startDate, endDate, true); // Force refresh
   }, [fetchAnalytics]);
 
   const exportData = useCallback(() => {
