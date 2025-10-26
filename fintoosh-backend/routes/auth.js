@@ -1005,4 +1005,111 @@ router.delete('/delete-family-account', auth, async (req, res) => {
   }
 });
 
+/**
+ * Generate Family Code for sharing with additional caregivers
+ * Requires parent authentication
+ */
+router.get('/family-code', auth, async (req, res) => {
+  try {
+    // Only parents can generate family codes
+    if (req.user.role !== 'parent') {
+      return res.status(403).json({ message: 'Only parents can generate family codes' });
+    }
+
+    // Generate family code from familyId: FAM-ABC123 (last 6 chars uppercase)
+    const familyCode = `FAM-${req.user.familyId.slice(-6).toUpperCase()}`;
+
+    res.json({
+      familyCode,
+      familyId: req.user.familyId,
+      message: 'Family code generated successfully'
+    });
+  } catch (error) {
+    console.error('Generate family code error:', error);
+    res.status(500).json({ message: 'Failed to generate family code' });
+  }
+});
+
+/**
+ * Join Family using Family Code
+ * Allows new parent accounts to join existing families
+ */
+router.post('/join-family-code', async (req, res) => {
+  try {
+    const { familyCode, name, email, password, mobileNumber } = req.body;
+
+    if (!familyCode || !name || !email || !password || !mobileNumber) {
+      return res.status(400).json({
+        message: 'Family code, name, email, password, and mobile number are required'
+      });
+    }
+
+    // Validate family code format
+    if (!/^FAM-[A-Z0-9]{6}$/.test(familyCode)) {
+      return res.status(400).json({ message: 'Invalid family code format' });
+    }
+
+    // Extract familyId suffix from code: FAM-ABC123 → abc123
+    const familyIdSuffix = familyCode.replace('FAM-', '').toLowerCase();
+
+    // Find existing parent in the family (to get full familyId)
+    const existingParent = await User.findOne({
+      familyId: new RegExp(familyIdSuffix + '$', 'i'), // Case-insensitive match ending
+      role: 'parent'
+    });
+
+    if (!existingParent) {
+      return res.status(400).json({ message: 'Invalid family code. Family not found.' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ $or: [{ email }, { mobileNumber }] });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email or mobile number already exists' });
+    }
+
+    // Create new caregiver account
+    const userId = `user_${Date.now()}`;
+    const caregiver = new User({
+      id: userId,
+      familyId: existingParent.familyId,
+      name,
+      email,
+      mobileNumber,
+      password,
+      role: 'parent',
+      caregivers: [{ userId, role: 'parent' }]
+    });
+
+    await caregiver.save();
+
+    // Add new caregiver to all existing children in the family
+    await User.updateMany(
+      { familyId: existingParent.familyId, role: 'child' },
+      { $push: { caregivers: { userId, role: 'parent' } } }
+    );
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: caregiver._id, email: caregiver.email, role: caregiver.role, familyId: caregiver.familyId },
+      process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+      { expiresIn: '7d' }
+    );
+
+    // Remove password from response
+    const userResponse = caregiver.toObject();
+    delete userResponse.password;
+
+    res.status(201).json({
+      user: userResponse,
+      token,
+      message: 'Successfully joined family as caregiver!'
+    });
+
+  } catch (error) {
+    console.error('Join family with code error:', error);
+    res.status(500).json({ message: 'Failed to join family' });
+  }
+});
+
 module.exports = router;

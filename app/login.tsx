@@ -287,6 +287,15 @@ export default function LoginScreen() {
                       <Text style={styles.signupLink}>Sign up now</Text>
                     </TouchableOpacity>
                   </View>
+
+                  {userType === 'parent' && (
+                    <View style={styles.signupPromptContainer}>
+                      <Text style={styles.signupPromptText}>Join existing family?</Text>
+                      <TouchableOpacity onPress={() => router.push('/join-family')}>
+                        <Text style={styles.signupLink}>Join with code</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </>
               )}
             </View>

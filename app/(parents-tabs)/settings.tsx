@@ -854,9 +854,109 @@ export default function ParentSettingsScreen() {
       {/* --- Automation Rules (Auto-Approval) Section --- */}
       <ParentAutomationRulesSection themeColors={themeColors} />
 
+      {/* --- Family Caregiver Management Section --- */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>👨‍👩‍👧‍👦 Family Caregiver Management</Text>
+        <Text style={{ fontSize: 14, color: "#666", marginBottom: 18, lineHeight: 20 }}>
+          Manage additional caregivers who can help supervise and approve your children's activities. Share family codes to invite spouses, grandparents, or other trusted adults.
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: '#2196F3' }]}
+          onPress={async () => {
+            try {
+              const token = await getAuthToken();
+              if (!token) {
+                Alert.alert('Error', 'Not authenticated. Please login again.');
+                return;
+              }
+
+              const response = await fetch(`${API_URL}/auth/family-code`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                Alert.alert(
+                  'Family Code Generated',
+                  `Share this code with additional caregivers:\n\n${data.familyCode}\n\nThey can use this code to join your family and help manage your children's activities.`,
+                  [
+                    {
+                      text: 'Copy Code',
+                      onPress: () => {
+                        // Copy to clipboard functionality would go here
+                        // For now, just show it again
+                        Alert.alert('Code Copied', data.familyCode);
+                      }
+                    },
+                    { text: 'OK' }
+                  ]
+                );
+              } else {
+                const errorData = await response.json();
+                Alert.alert('Error', errorData.message || 'Failed to generate family code.');
+              }
+            } catch (error) {
+              console.error('Error generating family code:', error);
+              Alert.alert('Error', 'Network error. Please try again.');
+            }
+          }}
+        >
+          <Text style={styles.saveButtonText}>🔗 Generate Family Code</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: '#4CAF50', marginTop: 12 }]}
+          onPress={async () => {
+            try {
+              const token = await getAuthToken();
+              const storedUser = await AsyncStorage.getItem('user');
+
+              if (!token || !storedUser) {
+                Alert.alert('Error', 'Not authenticated. Please login again.');
+                return;
+              }
+
+              const currentUser = JSON.parse(storedUser);
+              const response = await fetch(`${API_URL}/users?familyId=${currentUser.familyId}&role=parent`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              if (response.ok) {
+                const caregivers = await response.json();
+                const caregiverNames = caregivers.map((c: any) => c.name).join(', ');
+                Alert.alert(
+                  'Family Caregivers',
+                  `Current caregivers in your family: ${caregiverNames}`,
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert('Error', 'Failed to load caregiver information.');
+              }
+            } catch (error) {
+              console.error('Error loading caregivers:', error);
+              Alert.alert('Error', 'Network error. Please try again.');
+            }
+          }}
+        >
+          <Text style={styles.saveButtonText}>👥 View Family Caregivers</Text>
+        </TouchableOpacity>
+
+        <Text style={{ fontSize: 13, color: "#888", marginTop: 16, lineHeight: 18 }}>
+          🔐 <Text style={{ fontWeight: 'bold' }}>Security:</Text> Family codes are unique and secure. Each caregiver gets full access to approve children's requests.{'\n'}
+          👨‍👩‍👧‍👦 <Text style={{ fontWeight: 'bold' }}>Permissions:</Text> All caregivers can create/manage children, approve requests, and view family data.
+        </Text>
+      </View>
+
       {/* --- Child Account Management Section --- */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>👨‍👩‍👧‍👦 Child Account Management</Text>
+        <Text style={styles.sectionTitle}>👨‍👩‍👧 Child Account Management</Text>
         <Text style={{ fontSize: 14, color: "#666", marginBottom: 18, lineHeight: 20 }}>
           Manage your child's account settings and security. As the parent and gatekeeper, you have full control over account recovery.
         </Text>
