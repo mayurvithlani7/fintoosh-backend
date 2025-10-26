@@ -4,11 +4,12 @@ require('dotenv').config();
 // Connect to MongoDB
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/fintoosh', {
+    const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://fintoosh_prod:fintoosh2024@fintoosh-cluster.mwuprcs.mongodb.net/fintoosh_prod?retryWrites=true&w=majority&appName=fintoosh-cluster';
+    await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('MongoDB connected');
+    console.log('MongoDB connected to:', mongoUri.split('@')[1].split('?')[0]);
   } catch (error) {
     console.error('MongoDB connection error:', error);
     process.exit(1);
@@ -16,7 +17,7 @@ const connectDB = async () => {
 };
 
 // User model (ensure it's the updated one)
-const User = require('./fintoosh-backend/models/User');
+const User = require('./models/User');
 
 const migrateParentIdToCaregivers = async () => {
   try {

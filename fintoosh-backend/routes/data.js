@@ -1223,12 +1223,12 @@ router.patch('/chores/:choreId', auth, sanitizeInput, async (req, res) => {
         // Create approval request for chore completion (if not auto-approved)
         try {
           const childUser = await User.findById(req.user._id);
-          const parentId = childUser?.parentId;
+          const primaryCaregiver = childUser.caregivers && childUser.caregivers.length > 0 ? childUser.caregivers[0] : null;
 
-          if (parentId) {
+          if (primaryCaregiver) {
             // Check for auto-approval
             let autoApproved = false;
-            const parent = await User.findOne({ id: parentId });
+            const parent = await User.findOne({ id: primaryCaregiver.userId });
             let autoApprovalRules = (parent && parent.autoApprovalRules) || childUser.autoApprovalRules || {};
             const choreClaimMax = autoApprovalRules.choreClaimMax;
 
