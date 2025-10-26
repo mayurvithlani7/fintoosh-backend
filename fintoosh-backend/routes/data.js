@@ -3092,13 +3092,6 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     console.log('Analytics - Sample users in DB:', allUsersSample.map(u => ({ id: u.id, familyId: u.familyId, role: u.role, name: u.name })));
 
     // Debug: Check if familyId is a string or number
-    console.log('Analytics - familyId type:', typeof familyId, 'value:', familyId);
-    console.log('Analytics - user.familyId type:', typeof req.user.familyId, 'value:', req.user.familyId);
-
-    if (familyMembers.length === 0) {
-      return res.status(404).json({ message: 'No family members found' });
-    }
-
     // Build date filter - only include if dates are provided
     let dateFilter = {};
     if (startDate || endDate) {
@@ -3116,31 +3109,11 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       transactionQuery.createdAt = dateFilter;
     }
 
-    console.log('Analytics - Executing transaction query:', JSON.stringify(transactionQuery));
     const transactions = await Transaction.find(transactionQuery).sort({ createdAt: -1 }).select('user type description amount fromJar toJar createdAt');
-    console.log('Analytics - Found transactions:', transactions.length);
-
-    if (transactions.length === 0) {
-      // Debug: Try without user filter
-      const allTransactions = await Transaction.find({}).sort({ createdAt: -1 }).limit(5);
-      console.log('Analytics - Sample transactions in DB:', allTransactions.map(t => ({
-        user: t.user,
-        type: t.type,
-        amount: t.amount,
-        createdAt: t.createdAt
-      })));
-    }
-
     // Get family chores
     const chores = await Chore.find({
       user: { $in: familyMembers.map(m => m._id) }
     }).select('user name points frequency useDefaultSplit customSplit completed approved');
-
-    // console.log('Analytics - found chores:', chores.length, chores.map(c => ({ name: c.name, completed: c.completed, approved: c.approved, user: c.user })));
-    // if (chores.length > 0) {
-    //   console.log('Analytics - SAMPLE CHORE USER:', chores[0].user?.toString ? chores[0].user.toString() : chores[0].user);
-    // }
-    // console.log('Analytics - family member IDs:', familyMembers.map(m => m._id.toString()));
 
     // Get family goals - only apply date filter to updatedAt if dates are provided
     const goalQuery = {
@@ -3158,12 +3131,7 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
 
     const goals = await Goal.find(goalQuery).select('user name targetAmount currentAmount deadline status jar createdAt');
 
-    // if (goals.length > 0) {
-    //   console.log('Analytics - SAMPLE GOAL USER:', goals[0].user?.toString ? goals[0].user.toString() : goals[0].user);
-    // }
-
     // Get family rewards - get all rewards for progress overview
-    console.log('Analytics - looking for rewards with user IDs:', familyMembers.map(m => m._id.toString()));
     const rawRewards = await Reward.find({
       user: { $in: familyMembers.map(m => m._id) }
     }).select('user name cost category purchased approved approvedAt purchasedAt status available completed').lean();
@@ -3183,58 +3151,10 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       completed: r.completed
     }));
 
-    console.log('Analytics - processed rewards:', rewards.length, rewards.map(r => ({
-      name: r.name,
-      purchased: r.purchased,
-      approved: r.approved,
-      completed: r.completed
-    })));
-
     // Get real allowances for the family - show all allowances for analytics overview
-    console.log('Analytics - About to query real allowances for familyId:', familyId);
-    console.log('Analytics - User familyId from token:', req.user.familyId);
-    console.log('Analytics - Are they equal?', familyId === req.user.familyId);
-
     const realAllowances = await RealAllowance.find({
       familyId: familyId
     }).sort({ date: -1 }).limit(50); // Limit to prevent too much data
-
-    console.log('Analytics - RealAllowances query result - count:', realAllowances.length);
-    console.log('Analytics - RealAllowances full data:', realAllowances.map(r => ({
-      _id: r._id,
-      familyId: r.familyId,
-      childId: r.childId,
-      parentId: r.parentId,
-      amount: r.amount,
-      currency: r.currency,
-      method: r.method,
-      category: r.category,
-      date: r.date,
-      note: r.note
-    })));
-
-    // Also check total count in database
-    const totalCount = await RealAllowance.countDocuments({ familyId: req.user.familyId });
-    console.log('Analytics - Total real allowances in DB for req.user.familyId:', totalCount);
-
-    const totalCountParam = await RealAllowance.countDocuments({ familyId: familyId });
-    console.log('Analytics - Total real allowances in DB for param familyId:', totalCountParam);
-
-    // Check if there are any real allowances at all
-    const allAllowances = await RealAllowance.find({}).limit(10);
-    console.log('Analytics - Sample of ALL real allowances in DB:', allAllowances.map(r => ({
-      _id: r._id,
-      familyId: r.familyId,
-      childId: r.childId,
-      amount: r.amount
-    })));
-
-    // Check the familyId in the working allowance history endpoint
-    console.log('Analytics - Checking what allowance history would find...');
-    const historyAllowances = await RealAllowance.find({
-      familyId: req.user.familyId
-    }).sort({ date: -1 }).limit(5);
-    console.log('Analytics - Allowance history would find:', historyAllowances.length, 'allowances');
 
     // Get one family member for settings (they should be the same)
     const familyUser = familyMembers[0];
@@ -3262,8 +3182,8 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
 
     const responseData = {
       transactions: safeTransactions,
-      chores: safeChores,
-      goals: safeGoals,
+      chores: ensureUserString(safeChores),
+      goals: ensureUserString(safeGoals),
       rewards: safeRewards,
       realAllowances,
       user: familyUser,
