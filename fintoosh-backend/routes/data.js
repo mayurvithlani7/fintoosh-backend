@@ -3064,18 +3064,50 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     })));
 
     // Get real allowances for the family - show all allowances for analytics overview
+    console.log('Analytics - About to query real allowances for familyId:', familyId);
+    console.log('Analytics - User familyId from token:', req.user.familyId);
+    console.log('Analytics - Are they equal?', familyId === req.user.familyId);
+
     const realAllowances = await RealAllowance.find({
-      familyId: req.user.familyId
+      familyId: familyId
     }).sort({ date: -1 }).limit(50); // Limit to prevent too much data
 
-    console.log('Analytics - found real allowances:', realAllowances.length, realAllowances.map(r => ({
+    console.log('Analytics - RealAllowances query result - count:', realAllowances.length);
+    console.log('Analytics - RealAllowances full data:', realAllowances.map(r => ({
+      _id: r._id,
+      familyId: r.familyId,
       childId: r.childId,
+      parentId: r.parentId,
       amount: r.amount,
       currency: r.currency,
       method: r.method,
       category: r.category,
-      date: r.date
+      date: r.date,
+      note: r.note
     })));
+
+    // Also check total count in database
+    const totalCount = await RealAllowance.countDocuments({ familyId: req.user.familyId });
+    console.log('Analytics - Total real allowances in DB for req.user.familyId:', totalCount);
+
+    const totalCountParam = await RealAllowance.countDocuments({ familyId: familyId });
+    console.log('Analytics - Total real allowances in DB for param familyId:', totalCountParam);
+
+    // Check if there are any real allowances at all
+    const allAllowances = await RealAllowance.find({}).limit(10);
+    console.log('Analytics - Sample of ALL real allowances in DB:', allAllowances.map(r => ({
+      _id: r._id,
+      familyId: r.familyId,
+      childId: r.childId,
+      amount: r.amount
+    })));
+
+    // Check the familyId in the working allowance history endpoint
+    console.log('Analytics - Checking what allowance history would find...');
+    const historyAllowances = await RealAllowance.find({
+      familyId: req.user.familyId
+    }).sort({ date: -1 }).limit(5);
+    console.log('Analytics - Allowance history would find:', historyAllowances.length, 'allowances');
 
     // Get one family member for settings (they should be the same)
     const familyUser = familyMembers[0];

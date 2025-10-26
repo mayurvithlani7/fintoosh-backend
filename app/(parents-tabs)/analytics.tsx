@@ -26,11 +26,11 @@ export default function ParentsAnalyticsScreen() {
 
   const { analyticsData, loading, error, refetch, exportData, clearCache } = useAnalytics();
 
-  // Auto-refresh analytics data when component mounts
+  // Clear cache and fetch fresh data on mount (only once)
   React.useEffect(() => {
-    clearCache(); // Clear any cached data
-    refetch(); // Fetch fresh data
-  }, [clearCache, refetch]);
+    clearCache();
+    refetch();
+  }, []); // Empty dependency array to run only once on mount
 
   const handleExport = () => {
     const csvData = exportData();
@@ -337,6 +337,11 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
   const jarDistribution = analyticsData.jarDistribution || [];
   const rewards = analyticsData.rewards || [];
   const realAllowances = analyticsData.realAllowances || [];
+
+  // Debug logging for real allowances
+  console.log('AnalyticsOverview - realAllowances:', realAllowances);
+  console.log('AnalyticsOverview - realAllowances length:', realAllowances.length);
+  console.log('AnalyticsOverview - realAllowances sample:', realAllowances.slice(0, 2));
 
   console.log('AnalyticsOverview - raw analyticsData:', analyticsData);
   console.log('AnalyticsOverview - choreCompletion:', choreCompletion);

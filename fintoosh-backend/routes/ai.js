@@ -9,7 +9,7 @@ router.use(auth);
 // GET /api/ai/usage - Get current user's AI usage stats
 router.get('/usage', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id; // Use ObjectId, not string id
 
     const usageStats = await AIUsage.canUserAskQuestion(userId);
 
@@ -41,7 +41,7 @@ router.get('/usage', async (req, res) => {
 // POST /api/ai/question - Record a question being asked
 router.post('/question', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id; // Use ObjectId, not string id
     const { messageLength, responseLength, question, response } = req.body;
 
     console.log('AI Usage Record - Received request:', {
@@ -142,7 +142,7 @@ router.post('/question', async (req, res) => {
 // GET /api/ai/history - Get user's AI usage history
 router.get('/history', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id; // Use ObjectId, not string id
     const limit = parseInt(req.query.limit) || 30; // Default 30 days
 
     // Get usage records for the last N days
@@ -180,7 +180,7 @@ router.get('/history', async (req, res) => {
 router.delete('/reset', async (req, res) => {
   try {
     // In production, this should check for admin role
-    const userId = req.user.id;
+    const userId = req.user._id; // Use ObjectId, not string id
 
     // Only allow reset for testing/development
     if (process.env.NODE_ENV !== 'development') {
