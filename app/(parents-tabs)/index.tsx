@@ -126,8 +126,32 @@ export default function ParentsOverviewScreen() {
     transactionsCount: number;
   } | null>(null);
   const [interestHistory, setInterestHistory] = useState<any[]>([]);
+  const [familyChildren, setFamilyChildren] = useState<Array<{ id: string; name: string }>>([]);
 
+  // Fetch family children data
+  const fetchFamilyChildren = useCallback(async () => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
 
+      const response = await fetch(`${API_URL}/users/children`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFamilyChildren(data.children.map((child: any) => ({
+          id: child.id,
+          name: child.name
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching family children:', error);
+      setFamilyChildren([]);
+    }
+  }, []);
 
   // Fetch interest data for the child
   const fetchInterestData = useCallback(async () => {
@@ -208,11 +232,14 @@ export default function ParentsOverviewScreen() {
     if (refresh === 'true') {
       fetchChildData(true); // Force refresh
       fetchInterestData(); // Also refresh interest data
+      fetchFamilyChildren(); // Refresh children data
     } else if (childData?._id) {
       // Initial load of interest data
       fetchInterestData();
+      // Initial load of children data
+      fetchFamilyChildren();
     }
-  }, [refresh, fetchChildData, fetchInterestData, childData?._id]);
+  }, [refresh, fetchChildData, fetchInterestData, fetchFamilyChildren, childData?._id]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -809,7 +836,7 @@ export default function ParentsOverviewScreen() {
         visible={realAllowanceFormVisible}
         onClose={() => setRealAllowanceFormVisible(false)}
         onSubmit={handleRealAllowanceSubmit}
-        children={[]} // TODO: Pass actual children list from data cache
+        children={familyChildren}
         loading={false}
       />
     </ScrollView>

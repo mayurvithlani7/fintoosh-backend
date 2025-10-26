@@ -330,24 +330,25 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
   const goalProgress = analyticsData.goalProgress || [];
   const jarDistribution = analyticsData.jarDistribution || [];
   const rewards = analyticsData.rewards || [];
+  const realAllowances = analyticsData.realAllowances || [];
 
   console.log('AnalyticsOverview - raw analyticsData:', analyticsData);
   console.log('AnalyticsOverview - choreCompletion:', choreCompletion);
-  console.log('AnalyticsOverview - choreCompletion details:', choreCompletion.map(c => ({ name: c.choreName, completed: c.completedCount })));
+  console.log('AnalyticsOverview - choreCompletion details:', choreCompletion.map((c: any) => ({ name: c.choreName, completed: c.completedCount })));
   console.log('AnalyticsOverview - goalProgress:', goalProgress);
-  console.log('AnalyticsOverview - goalProgress details:', goalProgress.map(g => ({ name: g.goalName, progress: g.progress, status: g.projectedCompletion })));
+  console.log('AnalyticsOverview - goalProgress details:', goalProgress.map((g: any) => ({ name: g.goalName, progress: g.progress, status: g.projectedCompletion })));
   console.log('AnalyticsOverview - jarDistribution:', jarDistribution);
-  console.log('AnalyticsOverview - jarDistribution details:', jarDistribution.map(j => ({ name: j.jarName, balance: j.currentBalance, deposits: j.totalDeposits })));
+  console.log('AnalyticsOverview - jarDistribution details:', jarDistribution.map((j: any) => ({ name: j.jarName, balance: j.currentBalance, deposits: j.totalDeposits })));
   console.log('AnalyticsOverview - rewards:', rewards);
-  console.log('AnalyticsOverview - rewards details:', rewards.map(r => ({ name: r.name, purchased: r.purchased, approved: r.approved, completed: r.completed })));
+  console.log('AnalyticsOverview - rewards details:', rewards.map((r: any) => ({ name: r.name, purchased: r.purchased, approved: r.approved, completed: r.completed })));
   console.log('AnalyticsOverview - completedRewards calculation:', rewards.filter((r: any) => r.approved === true));
 
   // Get current points from jar distribution
-  const currentJar = jarDistribution.find(jar => jar.jarName === 'Pocket Money');
-  const saveJar = jarDistribution.find(jar => jar.jarName === 'Savings Pot');
-  const spendJar = jarDistribution.find(jar => jar.jarName === 'Spending Pot');
-  const donateJar = jarDistribution.find(jar => jar.jarName === 'Help Others Pot');
-  const investJar = jarDistribution.find(jar => jar.jarName === 'Grow Money Pot');
+  const currentJar = jarDistribution.find((jar: any) => jar.jarName === 'Pocket Money');
+  const saveJar = jarDistribution.find((jar: any) => jar.jarName === 'Savings Pot');
+  const spendJar = jarDistribution.find((jar: any) => jar.jarName === 'Spending Pot');
+  const donateJar = jarDistribution.find((jar: any) => jar.jarName === 'Help Others Pot');
+  const investJar = jarDistribution.find((jar: any) => jar.jarName === 'Grow Money Pot');
 
   const summary = {
     totalPoints: (currentJar?.currentBalance || 0) + (saveJar?.currentBalance || 0) + (spendJar?.currentBalance || 0) + (donateJar?.currentBalance || 0) + (investJar?.currentBalance || 0),
@@ -470,6 +471,39 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading }: { analyticsData:
           <Text style={{ color: mutedTextColor, fontSize: 12, marginTop: 8 }}>
             Child: {summary.name}
           </Text>
+
+          {/* Real Allowances Summary */}
+          <Text style={{ fontWeight: "bold", fontSize: 16, marginTop: 18, marginBottom: 7, color: mainTextColor }}>
+            Real Allowances Summary
+          </Text>
+          <View style={{
+            padding: 14,
+            backgroundColor: cardBackgroundColor,
+            borderRadius: 10,
+            borderColor: themeColors.success,
+            borderWidth: 1,
+            marginBottom: 8,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {realAllowances.length === 0 ? (
+              <Text style={{ color: mutedTextColor, fontSize: 14 }}>
+                No real allowances recorded yet.
+              </Text>
+            ) : (
+              <>
+                <Text style={{ color: mainTextColor, fontWeight: '600', fontSize: 18, marginBottom: 6 }}>
+                  {realAllowances.length} allowance{realAllowances.length !== 1 ? 's' : ''} recorded
+                </Text>
+                <Text style={{ color: themeColors.success, fontSize: 16, fontWeight: 'bold' }}>
+                  Total: ₹{realAllowances.reduce((sum: number, allowance: any) => sum + allowance.amount, 0).toLocaleString()}
+                </Text>
+                <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
+                  Most recent: {new Date(realAllowances[0]?.date).toLocaleDateString()}
+                </Text>
+              </>
+            )}
+          </View>
 
           {/* Pie Chart: Points by Pot */}
           <Text style={{ fontWeight: "bold", fontSize: 16, marginTop: 18, marginBottom: 7, color: mainTextColor }}>
@@ -633,7 +667,7 @@ function PieChartPointsByPot({
         maxWidth: 300,
         alignSelf: "center"
       }}>
-        {pieData.map(item => (
+        {pieData.map((item: { name: string; population: number; color: string; key: string }) => (
           <View
             key={item.key}
             style={{

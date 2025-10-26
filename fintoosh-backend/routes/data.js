@@ -3048,6 +3048,21 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       completed: r.completed
     })));
 
+    // Get real allowances for the family
+    const realAllowances = await RealAllowance.find({
+      familyId: req.user.familyId,
+      date: dateFilter
+    }).sort({ date: -1 });
+
+    console.log('Analytics - found real allowances:', realAllowances.length, realAllowances.map(r => ({
+      childId: r.childId,
+      amount: r.amount,
+      currency: r.currency,
+      method: r.method,
+      category: r.category,
+      date: r.date
+    })));
+
     // Get one family member for settings (they should be the same)
     const familyUser = familyMembers[0];
 
@@ -3056,6 +3071,7 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       chores,
       goals,
       rewards,
+      realAllowances,
       user: familyUser,
       familyMembers: familyMembers.map(m => ({
         id: m.id,
