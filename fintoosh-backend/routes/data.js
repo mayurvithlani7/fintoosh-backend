@@ -3116,18 +3116,28 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     const memberCustomIds = familyMembers.map(m => m.id);
 
     // Get completed chores for all family members
+    console.log('Analytics - About to query chores with memberMongoIds:', memberMongoIds);
     const chores = await Chore.find({
       completed: true,
       user: { $in: memberMongoIds }
     }).select('user name points frequency useDefaultSplit customSplit completed approved');
+    console.log('Analytics - Found chores count:', chores.length);
+    if (chores.length > 0) {
+      console.log('Analytics - Sample chore:', { user: chores[0].user, name: chores[0].name, completed: chores[0].completed, approved: chores[0].approved });
+    }
 
     // Get completed goals (status: 'completed') for all members
+    console.log('Analytics - About to query goals with memberMongoIds:', memberMongoIds);
     let goalQuery = { user: { $in: memberMongoIds }, status: 'completed' };
     // Only add updatedAt date filter if we have date constraints
     if (Object.keys(dateFilter).length > 0) {
       goalQuery.updatedAt = dateFilter;
     }
     const goals = await Goal.find(goalQuery).select('user name targetAmount currentAmount deadline status jar createdAt');
+    console.log('Analytics - Found goals count:', goals.length);
+    if (goals.length > 0) {
+      console.log('Analytics - Sample goal:', { user: goals[0].user, name: goals[0].name, status: goals[0].status });
+    }
 
     // Get family rewards - get all rewards for progress overview
     const rawRewards = await Reward.find({
