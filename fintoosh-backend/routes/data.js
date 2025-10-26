@@ -3055,6 +3055,14 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     const familyMembers = await User.find({ familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
     console.log('Analytics - found familyMembers:', familyMembers.length, familyMembers.map(m => ({ id: m.id, role: m.role, familyId: m.familyId })));
 
+    // Debug: Check what familyId values exist in the database
+    const allUsersSample = await User.find({}).select('id familyId role name').limit(10);
+    console.log('Analytics - Sample users in DB:', allUsersSample.map(u => ({ id: u.id, familyId: u.familyId, role: u.role, name: u.name })));
+
+    // Debug: Check if familyId is a string or number
+    console.log('Analytics - familyId type:', typeof familyId, 'value:', familyId);
+    console.log('Analytics - user.familyId type:', typeof req.user.familyId, 'value:', req.user.familyId);
+
     if (familyMembers.length === 0) {
       return res.status(404).json({ message: 'No family members found' });
     }
@@ -3083,7 +3091,8 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       user: { $in: familyMembers.map(m => m._id) }
     }).select('name points frequency useDefaultSplit customSplit');
 
-    console.log('Analytics - found chores:', chores.length, chores.map(c => ({ name: c.name, completed: c.completed, approved: c.approved })));
+    console.log('Analytics - found chores:', chores.length, chores.map(c => ({ name: c.name, completed: c.completed, approved: c.approved, user: c.user })));
+    console.log('Analytics - family member IDs:', familyMembers.map(m => m._id.toString()));
 
     // Get family goals - only apply date filter to updatedAt if dates are provided
     const goalQuery = {
