@@ -3085,15 +3085,21 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
 
     console.log('Analytics - found chores:', chores.length, chores.map(c => ({ name: c.name, completed: c.completed, approved: c.approved })));
 
-    // Get family goals
-    const goals = await Goal.find({
+    // Get family goals - only apply date filter to updatedAt if dates are provided
+    const goalQuery = {
       user: { $in: familyMembers.map(m => m._id) },
       $or: [
         { status: 'active' },
-        { status: 'completed' },
-        { updatedAt: dateFilter }
+        { status: 'completed' }
       ]
-    }).select('name targetAmount currentAmount deadline status jar createdAt');
+    };
+
+    // Only add updatedAt date filter if we have date constraints
+    if (Object.keys(dateFilter).length > 0) {
+      goalQuery.$or.push({ updatedAt: dateFilter });
+    }
+
+    const goals = await Goal.find(goalQuery).select('name targetAmount currentAmount deadline status jar createdAt');
 
     // Get family rewards - get all rewards for progress overview
     console.log('Analytics - looking for rewards with user IDs:', familyMembers.map(m => m._id.toString()));
