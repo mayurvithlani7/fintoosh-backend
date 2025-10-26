@@ -1,16 +1,16 @@
 // Achievement tracking utility
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from './config';
+import { getAuthToken, getUser } from './secureStorage';
+
 // Track learning streak
 export async function trackLearningStreak() {
   try {
     const token = await getAuthToken();
-    const storedUser = await AsyncStorage.getItem('user');
+    const user = await getUser();
 
-    if (!token || !storedUser) return;
+    if (!token || !user) return;
 
-    const user = JSON.parse(storedUser);
-    const userId = user._id;
+    const userId = user.id;
 
     await fetch(`${API_URL}/achievements/${userId}/streak`, {
       method: 'POST',
@@ -25,12 +25,11 @@ export async function trackLearningStreak() {
 export async function checkMilestones() {
   try {
     const token = await getAuthToken();
-    const storedUser = await AsyncStorage.getItem('user');
+    const user = await getUser();
 
-    if (!token || !storedUser) return;
+    if (!token || !user) return;
 
-    const user = JSON.parse(storedUser);
-    const userId = user._id;
+    const userId = user.id;
 
     await fetch(`${API_URL}/achievements/${userId}/check-milestones`, {
       method: 'POST',
@@ -45,12 +44,11 @@ export async function checkMilestones() {
 export async function updateAchievementProgress(achievementType, progress) {
   try {
     const token = await getAuthToken();
-    const storedUser = await AsyncStorage.getItem('user');
+    const user = await getUser();
 
-    if (!token || !storedUser) return;
+    if (!token || !user) return;
 
-    const user = JSON.parse(storedUser);
-    const userId = user._id;
+    const userId = user.id;
 
     // First get the achievement
     const achievementsResponse = await fetch(`${API_URL}/achievements/${userId}`, {

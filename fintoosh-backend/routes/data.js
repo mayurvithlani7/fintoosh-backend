@@ -822,12 +822,25 @@ router.get('/goals/:childId', auth, async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    // Check for expired goals and update them
+    // Check for expired goals and update them, and add current points for progress calculation
     const updatedGoals = await Promise.all(goals.map(async (goal) => {
       if (goal.deadline && goal.status === 'active' && new Date(goal.deadline) < now) {
         goal.status = 'expired';
         await goal.save();
       }
+
+      // Add current points from the child who owns this goal for progress calculation
+      const childUser = await User.findById(goal.user);
+      if (childUser) {
+        goal._doc.currentPoints = {
+          current: childUser.currentPoints || 0,
+          save: childUser.savePoints || 0,
+          spend: childUser.spendPoints || 0,
+          donate: childUser.donatePoints || 0,
+          invest: childUser.investPoints || 0
+        };
+      }
+
       return goal;
     }));
 

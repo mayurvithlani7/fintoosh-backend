@@ -37,6 +37,13 @@ export default function ParentsGoalsScreen() {
     deadline?: string;
     status: string;
     createdAt: string;
+    currentPoints?: {
+      current: number;
+      save: number;
+      spend: number;
+      donate: number;
+      invest: number;
+    };
   }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -852,7 +859,7 @@ export default function ParentsGoalsScreen() {
                     </Text>
 
                     {/* Progress Visualization for Active Goals */}
-                    {g.status === 'active' && childData && (
+                    {g.status === 'active' && g.currentPoints && (
                       <View style={{ marginBottom: 8 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                           <Text style={{ fontSize: 12, color: themeColors.textSecondary, fontWeight: '600' }}>
@@ -860,11 +867,11 @@ export default function ParentsGoalsScreen() {
                           </Text>
                           <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>
                             {(() => {
-                              const jarPoints = g.jar === 'current' ? childData.currentPoints :
-                                               g.jar === 'save' ? childData.savePoints :
-                                               g.jar === 'spend' ? childData.spendPoints :
-                                               g.jar === 'donate' ? childData.donatePoints :
-                                               g.jar === 'invest' ? childData.investPoints : 0;
+                              const jarPoints = g.jar === 'current' ? g.currentPoints.current :
+                                               g.jar === 'save' ? g.currentPoints.save :
+                                               g.jar === 'spend' ? g.currentPoints.spend :
+                                               g.jar === 'donate' ? g.currentPoints.donate :
+                                               g.jar === 'invest' ? g.currentPoints.invest : 0;
                               const progress = Math.min((jarPoints / g.targetAmount) * 100, 100);
                               const remaining = Math.max(g.targetAmount - jarPoints, 0);
                               return `${Math.round(progress)}% • ${remaining} points needed`;
@@ -880,11 +887,11 @@ export default function ParentsGoalsScreen() {
                           borderColor: themeColors.border + '40'
                         }}>
                           {(() => {
-                            const jarPoints = g.jar === 'current' ? childData.currentPoints :
-                                             g.jar === 'save' ? childData.savePoints :
-                                             g.jar === 'spend' ? childData.spendPoints :
-                                             g.jar === 'donate' ? childData.donatePoints :
-                                             g.jar === 'invest' ? childData.investPoints : 0;
+                            const jarPoints = g.jar === 'current' ? g.currentPoints.current :
+                                             g.jar === 'save' ? g.currentPoints.save :
+                                             g.jar === 'spend' ? g.currentPoints.spend :
+                                             g.jar === 'donate' ? g.currentPoints.donate :
+                                             g.jar === 'invest' ? g.currentPoints.invest : 0;
                             const progress = Math.min((jarPoints / g.targetAmount) * 100, 100);
                             return (
                               <View style={{
