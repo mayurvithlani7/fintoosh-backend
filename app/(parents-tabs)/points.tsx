@@ -17,6 +17,8 @@ export default function ParentsPointsScreen() {
   const { showError, showFeedback } = useGlobalFeedback();
   const [amount, setAmount] = useState('');
   const [toJar, setToJar] = useState<string>('current'); // Initialize with first option since Android Picker doesn't show placeholder well
+  const [selectedChildId, setSelectedChildId] = useState<string>('');
+  const [children, setChildren] = useState<{ id: string; name: string }[]>([]);
   const [childData, setChildData] = useState<{
     name: string;
     currentPoints: number;
@@ -50,21 +52,28 @@ export default function ParentsPointsScreen() {
   };
 
   useEffect(() => {
-    loadChildData();
+    loadChildren();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      loadChildData();
+      loadChildren();
     }, [])
   );
+
+  // Load child data when selected child changes
+  useEffect(() => {
+    if (selectedChildId && children.length > 0) {
+      loadChildData();
+    }
+  }, [selectedChildId, children]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadChildData();
   }, []);
 
-  const loadChildData = async () => {
+  const loadChildren = async () => {
     try {
       const currentUserStr = await AsyncStorage.getItem('user');
       if (!currentUserStr) {
@@ -82,16 +91,44 @@ export default function ParentsPointsScreen() {
 
       // Get family children
       const token = await getAuthToken();
-      const children = await fetchFamilyChildren(currentUser.familyId, token);
+      if (!token) {
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+      const childrenData = await fetchFamilyChildren(currentUser.familyId as string, token);
 
-      if (children && children.length > 0) {
-        // Get the first child's data
-        const firstChild = children[0];
-        const childUserData = await fetchUser(firstChild.id, token);
+      if (childrenData && childrenData.length > 0) {
+        setChildren(childrenData.map((child: any) => ({ id: child._id || child.id, name: child.name })));
+
+        // Auto-select first child if available and none selected
+        if (childrenData.length > 0 && !selectedChildId) {
+          const firstChildId = childrenData[0]._id || childrenData[0].id;
+          setSelectedChildId(firstChildId);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading children:', error);
+    }
+  };
+
+  const loadChildData = async () => {
+    if (!selectedChildId) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    try {
+      const token = await getAuthToken();
+      const selectedChild = children.find(child => child.id === selectedChildId);
+
+      if (selectedChild) {
+        const childUserData = await fetchUser(selectedChild.id, token);
 
         if (childUserData) {
           setChildData({
-            name: childUserData.name || firstChild.name || 'Child',
+            name: childUserData.name || selectedChild.name || 'Child',
             currentPoints: childUserData.currentPoints || 0,
             savePoints: childUserData.savePoints || 0,
             spendPoints: childUserData.spendPoints || 0,
@@ -101,7 +138,7 @@ export default function ParentsPointsScreen() {
 
           // Fetch recent transactions for the child
           try {
-            const transactions = await fetchTransactions(firstChild.id, token, 1, 5); // Get last 5 transactions
+            const transactions = await fetchTransactions(selectedChild.id, token, 1, 5); // Get last 5 transactions
             if (transactions && transactions.transactions) {
               // Filter for parent point adjustments only
               const parentAdjustments = transactions.transactions
@@ -155,7 +192,7 @@ export default function ParentsPointsScreen() {
         return;
       }
 
-      const children = await fetchFamilyChildren(currentUser.familyId, token);
+      const children = await fetchFamilyChildren(currentUser.familyId as string, token);
       console.log('Fetched children:', children);
 
       if (!children || children.length === 0) {
@@ -163,7 +200,12 @@ export default function ParentsPointsScreen() {
         return;
       }
 
-      const child = children[0]; // Use first child
+      // Find the selected child
+      const child = children.find((c: any) => (c._id || c.id) === selectedChildId);
+      if (!child) {
+        showError('Selected child not found.');
+        return;
+      }
       console.log('Using child:', child);
 
       const pointsField = toJar + 'Points';
@@ -205,7 +247,7 @@ export default function ParentsPointsScreen() {
       await loadChildData();
 
       // Check what the updated value is
-      const updatedChildren = await fetchFamilyChildren(currentUser.familyId, token);
+      const updatedChildren = await fetchFamilyChildren(currentUser.familyId as string, token);
       if (updatedChildren && updatedChildren.length > 0) {
         const updatedChild = updatedChildren[0];
         const updatedChildData = await fetchUser(updatedChild.id, token);
@@ -250,6 +292,66 @@ export default function ParentsPointsScreen() {
       </View>
 
       <Text style={[styles.title, { color: themeColors.primary }]}>Manage Your Child's Points</Text>
+
+      {/* Child Selector */}
+      {children.length > 1 && (
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
+          <View style={styles.childSelector}>
+            {children.map((child) => (
+              <TouchableOpacity
+                key={child.id}
+                style={[
+                  styles.childButton,
+                  selectedChildId === child.id && styles.childButtonSelected
+                ]}
+                onPress={() => setSelectedChildId(child.id)}
+              >
+                <Text style={[
+                  styles.childButtonText,
+                  selectedChildId === child.id && styles.childButtonTextSelected
+                ]}>
+                  {child.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Child Name Display - Single Child per Parent */}
+      {children.length === 1 && (
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          marginBottom: 14,
+          marginTop: 6,
+          width: '100%',
+        }}>
+          <Text style={{ fontSize: 15, color: themeColors.primary, fontWeight: '600', marginRight: 4 }}>Child:</Text>
+          <Text
+            style={{
+              backgroundColor: themeColors.primary,
+              color: themeColors.card,
+              borderRadius: 18,
+              paddingHorizontal: 14,
+              paddingVertical: 6,
+              fontWeight: '700',
+              maxWidth: 140,
+              fontSize: 15,
+              overflow: 'hidden',
+              textAlign: 'center',
+            }}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            allowFontScaling
+          >
+            {children[0].name}
+          </Text>
+        </View>
+      )}
 
       {/* Refresh Button */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
@@ -684,4 +786,19 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   presetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   presetBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 6, marginHorizontal: 2, alignItems: 'center', minWidth: 50 },
   presetBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
+  childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
+  childButton: {
+    backgroundColor: themeColors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    margin: 4,
+    minWidth: 80,
+    maxWidth: 180,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  childButtonSelected: { backgroundColor: themeColors.primary },
+  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonTextSelected: { color: themeColors.card },
 });
