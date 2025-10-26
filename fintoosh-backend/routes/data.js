@@ -3108,25 +3108,19 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     const memberMongoIds = familyMembers.map(m => m._id);
     const memberCustomIds = familyMembers.map(m => m.id);
 
-    // Get completed chores for all family members (by _id or id fields) for analytics
+    // Get completed chores for all family members
     const chores = await Chore.find({
       completed: true,
-      $or: [
-        { user: { $in: memberMongoIds } },
-        { user: { $in: memberCustomIds } },
-      ]
+      user: { $in: memberMongoIds }
     }).select('user name points frequency useDefaultSplit customSplit completed approved');
 
     // Get completed goals (status: 'completed') for all members
-    let goalOr = [
-      { user: { $in: memberMongoIds }, status: 'completed' },
-      { user: { $in: memberCustomIds }, status: 'completed' }
-    ];
+    let goalQuery = { user: { $in: memberMongoIds }, status: 'completed' };
     // Only add updatedAt date filter if we have date constraints
     if (Object.keys(dateFilter).length > 0) {
-      goalOr = goalOr.map(cond => ({ ...cond, updatedAt: dateFilter }));
+      goalQuery.updatedAt = dateFilter;
     }
-    const goals = await Goal.find({ $or: goalOr }).select('user name targetAmount currentAmount deadline status jar createdAt');
+    const goals = await Goal.find(goalQuery).select('user name targetAmount currentAmount deadline status jar createdAt');
 
     // Get family rewards - get all rewards for progress overview
     const rawRewards = await Reward.find({
