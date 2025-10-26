@@ -171,6 +171,21 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
   }
 });
 
+// Get family children - must come before /users/:id to avoid route conflict
+router.get('/users/children', auth, requireParent, async (req, res) => {
+  try {
+    const children = await User.find({
+      parentId: req.user.id,
+      role: 'child'
+    }).select('-password -pin -otpCode -otpExpiresAt -otpVerified');
+
+    res.json({ children });
+  } catch (error) {
+    console.error('Error fetching children:', error);
+    res.status(500).json({ message: 'Failed to fetch children' });
+  }
+});
+
 // User routes
 router.get('/users/:id', async (req, res) => {
   try {
