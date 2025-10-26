@@ -341,6 +341,32 @@ export default function ParentsOverviewScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Add Child Button - For parents who already have children */}
+      {familyChildren.length > 0 && (
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.success + '15',
+          shadowColor: themeColors.border,
+          borderWidth: 2,
+          borderColor: themeColors.success,
+          borderStyle: 'dashed'
+        }]}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Add another child to your family"
+            accessibilityHint="Create an account for another child in your family"
+            style={[styles.quickBtn, { backgroundColor: themeColors.success, alignSelf: 'center', minWidth: 200 }]}
+            onPress={() => router.push('/addChild')}
+          >
+            <Text style={[styles.quickBtnText, { color: themeColors.card }]}>
+              👶 Add Another Child
+            </Text>
+          </TouchableOpacity>
+          <Text style={{ textAlign: 'center', color: themeColors.textSecondary, marginTop: 8 }}>
+            Currently managing {familyChildren.length} child{familyChildren.length > 1 ? 'ren' : ''}
+          </Text>
+        </View>
+      )}
+
       {/* Enhanced Interest Section with Gamification */}
       {(() => {
         console.log('InterestMotivator Debug:', {
