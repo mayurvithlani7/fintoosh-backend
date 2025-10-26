@@ -44,6 +44,14 @@ router.post('/question', async (req, res) => {
     const userId = req.user.id;
     const { messageLength, responseLength, question, response } = req.body;
 
+    console.log('AI Usage Record - Received request:', {
+      userId,
+      messageLength,
+      responseLength,
+      hasQuestion: !!question,
+      hasResponse: !!response
+    });
+
     // Validate input
     if (typeof messageLength !== 'number' || messageLength < 0) {
       return res.status(400).json({
@@ -61,6 +69,7 @@ router.post('/question', async (req, res) => {
 
     // Check if user can ask a question
     const usageCheck = await AIUsage.canUserAskQuestion(userId);
+    console.log('AI Usage Record - Usage check result:', usageCheck);
 
     if (!usageCheck.canAsk) {
       return res.status(429).json({
@@ -75,16 +84,31 @@ router.post('/question', async (req, res) => {
     }
 
     // Record the question
-    await AIUsage.recordQuestion(
+    console.log('AI Usage Record - About to record question for user:', userId);
+    const recordResult = await AIUsage.recordQuestion(
       userId,
       messageLength,
       responseLength,
       question || '',
       response || ''
     );
+    console.log('AI Usage Record - Question recorded successfully:', recordResult);
+
+    // Verify the record was created
+    const verifyRecord = await AIUsage.findOne({
+      userId,
+      date: new Date().toISOString().split('T')[0]
+    });
+    console.log('AI Usage Record - Verification - found record:', !!verifyRecord, {
+      userId: verifyRecord?.userId,
+      date: verifyRecord?.date,
+      questionCount: verifyRecord?.questionCount,
+      messagesCount: verifyRecord?.messages?.length || 0
+    });
 
     // Get updated usage stats
     const updatedStats = await AIUsage.canUserAskQuestion(userId);
+    console.log('AI Usage Record - Updated stats:', updatedStats);
 
     res.json({
       success: true,
@@ -97,11 +121,16 @@ router.post('/question', async (req, res) => {
 
   } catch (error) {
     console.error('Error recording AI question:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
 
     // Return fallback data on database error
     res.json({
       success: true,
-      message: 'Question processed',
+      message: 'Question processed (logging failed)',
       data: {
         remainingQuestions: 9,
         resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
