@@ -10,6 +10,7 @@ import { useCurrency } from '@/utils/currencyContext';
 import { useDataCache } from '@/utils/dataCacheContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
+import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
@@ -129,6 +130,7 @@ export default function ParentsOverviewScreen() {
   } | null>(null);
   const [interestHistory, setInterestHistory] = useState<any[]>([]);
   const [familyChildren, setFamilyChildren] = useState<Array<{ id: string; name: string; caregivers?: Array<{ userId: string; role: string }> }>>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
 
   // Fetch family children data
   const fetchFamilyChildren = useCallback(async () => {
@@ -144,16 +146,22 @@ export default function ParentsOverviewScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        setFamilyChildren(data.children.map((child: any) => ({
+        const children = data.children.map((child: any) => ({
           id: child.id,
           name: child.name
-        })));
+        }));
+        setFamilyChildren(children);
+
+        // Auto-select first child if we don't have one selected
+        if (children.length > 0 && !selectedChildId) {
+          setSelectedChildId(children[0].id);
+        }
       }
     } catch (error) {
       console.error('Error fetching family children:', error);
       setFamilyChildren([]);
     }
-  }, []);
+  }, [selectedChildId]);
 
   // Fetch interest data for the child
   const fetchInterestData = useCallback(async () => {
@@ -317,6 +325,44 @@ export default function ParentsOverviewScreen() {
           <Text style={[styles.title, { color: themeColors.primary }]}>Family Finance Hub</Text>
         </View>
       </View>
+
+      {/* Child Selector - Only show when multiple children */}
+      {familyChildren.length > 1 && (
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.surface,
+          shadowColor: themeColors.border,
+          borderWidth: 2,
+          borderColor: themeColors.accent,
+          borderStyle: 'solid',
+          marginBottom: 12
+        }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18 }]}>
+            👶 Select Child to View
+          </Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={selectedChildId || ''}
+              onValueChange={(value) => {
+                setSelectedChildId(value);
+                // Here we would typically refetch data for the selected child
+                // For now, we'll just update the selection state
+              }}
+              style={{ height: 50 }}
+            >
+              {familyChildren.map((child) => (
+                <Picker.Item
+                  key={child.id}
+                  label={child.name}
+                  value={child.id}
+                />
+              ))}
+            </Picker>
+          </View>
+          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+            Switch between your children to view their individual progress and manage their accounts
+          </Text>
+        </View>
+      )}
 
       {/* Refresh Button */}
       <View style={[styles.sectionCard, {
@@ -1056,6 +1102,13 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   moreActionsText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: themeColors.surface,
   },
   // Collapsible section styles
   sectionHeader: {
