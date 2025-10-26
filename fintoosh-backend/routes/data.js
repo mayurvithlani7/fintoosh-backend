@@ -3117,6 +3117,21 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
 
     // Get completed chores for all family members
     console.log('Analytics - About to query chores with memberMongoIds:', memberMongoIds);
+    console.log('Analytics - memberMongoIds as strings:', memberMongoIds.map(id => id.toString()));
+
+    // First, let's see all chores for debugging
+    const allChores = await Chore.find({}).select('user name points completed approved status');
+    console.log('Analytics - Total chores in DB:', allChores.length);
+    if (allChores.length > 0) {
+      console.log('Analytics - Sample all chores:', allChores.slice(0, 3).map(c => ({
+        user: c.user?.toString(),
+        name: c.name,
+        completed: c.completed,
+        approved: c.approved,
+        status: c.status
+      })));
+    }
+
     const chores = await Chore.find({
       completed: true,
       user: { $in: memberMongoIds }
