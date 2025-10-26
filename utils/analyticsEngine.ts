@@ -228,10 +228,16 @@ export function processJarDistribution(user: any, transactions: any[], days: num
     const growthRate = previousBalance > 0 ?
       ((stats.current - previousBalance) / previousBalance) * 100 : 0;
 
+    // If no deposits and no withdrawals but there is a current balance, use it as deposits for chart population.
+    const displayDeposits =
+      stats.deposits === 0 && stats.withdrawals === 0 && stats.current > 0
+        ? stats.current
+        : stats.deposits;
+
     return {
       jarName: jarNames[jar as keyof typeof jarNames],
       currentBalance: stats.current,
-      totalDeposits: stats.deposits,
+      totalDeposits: displayDeposits,
       totalWithdrawals: stats.withdrawals,
       growthRate: Math.round(growthRate * 100) / 100
     };

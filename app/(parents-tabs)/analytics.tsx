@@ -632,10 +632,23 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            {saveJar?.totalDeposits === 0 && spendJar?.totalDeposits === 0 ? (
-              <Text style={{ color: mutedTextColor, fontSize: 14 }}>
-                No savings or spending data available yet.
-              </Text>
+            {(saveJar?.totalDeposits === 0 && spendJar?.totalDeposits === 0) ? (
+              (saveJar?.currentBalance === 0 && spendJar?.currentBalance === 0) ? (
+                <Text style={{ color: mutedTextColor, fontSize: 14 }}>
+                  No savings or spending data available yet.
+                </Text>
+              ) : (
+                <>
+                  <Text style={{ color: mainTextColor, fontWeight: '600', fontSize: 20, marginBottom: 6 }}>
+                    {`₹${(saveJar?.currentBalance || 0).toLocaleString()} saved vs ₹${(spendJar?.currentBalance || 0).toLocaleString()} spent`}
+                  </Text>
+                  <Text style={{ color: secondaryTextColor, fontSize: 15 }}>
+                    {(saveJar?.currentBalance || 0) > 0
+                      ? `Saved ${((saveJar?.currentBalance || 0) / (spendJar?.currentBalance || 1)).toFixed(2)}x as much as spent`
+                      : `Spent ${((spendJar?.currentBalance || 0) / Math.max(1, saveJar?.currentBalance || 0)).toFixed(2)}x as much as saved`}
+                  </Text>
+                </>
+              )
             ) : spendJar?.totalDeposits === 0 ? (
               <Text style={{ color: themeColors.success, fontWeight: 'bold', fontSize: 16 }}>
                 All earnings have been saved!<Text style={{ color: mainTextColor, fontWeight: '400', fontSize: 14 }}> (No spending yet)</Text>

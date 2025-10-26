@@ -3134,10 +3134,13 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     // Get family chores
     const chores = await Chore.find({
       user: { $in: familyMembers.map(m => m._id) }
-    }).select('name points frequency useDefaultSplit customSplit user');
+    }).select('user name points frequency useDefaultSplit customSplit completed approved');
 
-    console.log('Analytics - found chores:', chores.length, chores.map(c => ({ name: c.name, completed: c.completed, approved: c.approved, user: c.user })));
-    console.log('Analytics - family member IDs:', familyMembers.map(m => m._id.toString()));
+    // console.log('Analytics - found chores:', chores.length, chores.map(c => ({ name: c.name, completed: c.completed, approved: c.approved, user: c.user })));
+    // if (chores.length > 0) {
+    //   console.log('Analytics - SAMPLE CHORE USER:', chores[0].user?.toString ? chores[0].user.toString() : chores[0].user);
+    // }
+    // console.log('Analytics - family member IDs:', familyMembers.map(m => m._id.toString()));
 
     // Get family goals - only apply date filter to updatedAt if dates are provided
     const goalQuery = {
@@ -3153,13 +3156,17 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       goalQuery.$or.push({ updatedAt: dateFilter });
     }
 
-    const goals = await Goal.find(goalQuery).select('name targetAmount currentAmount deadline status jar createdAt user');
+    const goals = await Goal.find(goalQuery).select('user name targetAmount currentAmount deadline status jar createdAt');
+
+    // if (goals.length > 0) {
+    //   console.log('Analytics - SAMPLE GOAL USER:', goals[0].user?.toString ? goals[0].user.toString() : goals[0].user);
+    // }
 
     // Get family rewards - get all rewards for progress overview
     console.log('Analytics - looking for rewards with user IDs:', familyMembers.map(m => m._id.toString()));
     const rawRewards = await Reward.find({
       user: { $in: familyMembers.map(m => m._id) }
-    }).select('name cost category purchased approved approvedAt purchasedAt status available completed').lean();
+    }).select('user name cost category purchased approved approvedAt purchasedAt status available completed').lean();
 
     // Convert to plain objects to ensure serialization
     const rewards = rawRewards.map(r => ({
@@ -3274,11 +3281,11 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       }))
     };
 
-    console.log('Analytics - response data rewards:', responseData.rewards?.length || 0);
-    console.log('Analytics - sending response with rewards count:', responseData.rewards?.length || 0);
+    // console.log('Analytics - response data rewards:', responseData.rewards?.length || 0);
+    // console.log('Analytics - sending response with rewards count:', responseData.rewards?.length || 0);
 
-    // Double-check right before sending
-    console.log('Analytics - FINAL responseData.rewards sample:', responseData.rewards?.slice(0, 2));
+    // // Double-check right before sending
+    // console.log('Analytics - FINAL responseData.rewards sample:', responseData.rewards?.slice(0, 2));
 
     // Return aggregated data
     res.json(responseData);
