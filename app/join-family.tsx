@@ -1,6 +1,7 @@
 import { API_URL } from '@/utils/config';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Picker } from "@react-native-picker/picker";
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -26,6 +27,7 @@ export default function JoinFamilyScreen() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [relationship, setRelationship] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [statusColor, setStatusColor] = useState('red');
@@ -98,7 +100,8 @@ export default function JoinFamilyScreen() {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password: password,
-          mobileNumber: mobileNumber.trim()
+          mobileNumber: mobileNumber.trim(),
+          relationship: relationship.trim() || undefined
         }),
       });
 
@@ -269,6 +272,29 @@ export default function JoinFamilyScreen() {
                   editable={!loading}
                   placeholderTextColor="#c0cbe7"
                 />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Relationship to Children (Optional)</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={relationship}
+                    onValueChange={(value) => setRelationship(value)}
+                    style={{ height: 50 }}
+                    enabled={!loading}
+                  >
+                    <Picker.Item label="Select relationship..." value="" />
+                    <Picker.Item label="Mother" value="mother" />
+                    <Picker.Item label="Father" value="father" />
+                    <Picker.Item label="Grandmother" value="grandmother" />
+                    <Picker.Item label="Grandfather" value="grandfather" />
+                    <Picker.Item label="Guardian" value="guardian" />
+                    <Picker.Item label="Other" value="other" />
+                  </Picker>
+                </View>
+                <Text style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
+                  This helps personalize the app for your family
+                </Text>
               </View>
 
               <TouchableOpacity
@@ -449,6 +475,13 @@ const styles = StyleSheet.create({
     padding: 13,
     fontSize: 17,
     color: '#101928',
+  },
+  pickerContainer: {
+    borderWidth: 2,
+    borderColor: '#b6a0e6',
+    borderRadius: 14,
+    backgroundColor: '#f4f7fe',
+    marginBottom: 4,
   },
   joinButton: {
     backgroundColor: '#a869ef',

@@ -6,10 +6,11 @@ import { deleteAuthToken, getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -275,6 +276,14 @@ export default function ParentSettingsScreen() {
   const [deletionPassword, setDeletionPassword] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deletionMessage, setDeletionMessage] = useState('');
+
+  // Caregiver Relationship Management State
+  const [caregiverModalVisible, setCaregiverModalVisible] = useState(false);
+  const [caregivers, setCaregivers] = useState<any[]>([]);
+  const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
+  const [selectedRelationship, setSelectedRelationship] = useState('');
+  const [updatingRelationship, setUpdatingRelationship] = useState(false);
+  const [caregiverMessage, setCaregiverMessage] = useState('');
 
   // Secure: Reset children state and refetch on parent session/token/user change
   useEffect(() => {
@@ -569,6 +578,128 @@ export default function ParentSettingsScreen() {
     }
   };
 
+  // Caregiver Relationship Management Functions
+  const fetchCaregiversForManagement = useCallback(async () => {
+    try {
+      const token = await getAuthToken();
+      const { getUser } = await import('@/utils/secureStorage');
+      const currentUser = await getUser();
+
+      if (!token || !currentUser) {
+        Alert.alert('Error', 'Not authenticated. Please login again.');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users?familyId=${currentUser.familyId}&role=parent`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const caregivers = await response.json();
+        setCaregivers(caregivers || []);
+      } else {
+        console.error('Failed to fetch caregivers for management');
+        setCaregivers([]);
+        Alert.alert('Error', 'Failed to load caregivers.');
+      }
+    } catch (error) {
+      console.error('Error fetching caregivers for management:', error);
+      setCaregivers([]);
+      Alert.alert('Error', 'Network error. Please try again.');
+    }
+  }, []);
+
+  const handleUpdateCaregiverRelationship = async () => {
+    if (!selectedCaregiver) {
+      setCaregiverMessage('Please select a caregiver first.');
+      return;
+    }
+
+    if (!selectedRelationship.trim()) {
+      setCaregiverMessage('Please select a relationship.');
+      return;
+    }
+
+    setUpdatingRelationship(true);
+    setCaregiverMessage('');
+
+    try {
+      const token = await getAuthToken();
+      const { getUser } = await import('@/utils/secureStorage');
+      const currentUser = await getUser();
+
+      if (!token || !currentUser) {
+        throw new Error('Authentication required');
+      }
+
+      // Get all child users in the family to find the one that has this caregiver
+      const childResponse = await fetch(`${API_URL}/users?familyId=${currentUser.familyId}&role=child`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!childResponse.ok) {
+        throw new Error('Failed to get child data');
+      }
+
+      const childUsers = await childResponse.json();
+
+      // Find the child user that has this caregiver in their caregivers array
+      let childUser = null;
+      let caregiverIndex = -1;
+
+      for (const child of childUsers) {
+        const index = child.caregivers.findIndex((c: any) => c.userId === selectedCaregiver.id);
+        if (index !== -1) {
+          childUser = child;
+          caregiverIndex = index;
+          break;
+        }
+      }
+
+      if (!childUser || caregiverIndex === -1) {
+        throw new Error('Caregiver not found in any child\'s caregivers list');
+      }
+
+      if (caregiverIndex === -1) {
+        throw new Error('Caregiver not found in child\'s caregivers list');
+      }
+
+      const response = await fetch(`${API_URL}/users/${childUser.id}/caregivers/${caregiverIndex}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          relationship: selectedRelationship
+        }),
+      });
+
+      if (response.ok) {
+        setCaregiverMessage('Caregiver relationship updated successfully!');
+        setSelectedCaregiver(null);
+        setSelectedRelationship('');
+        // Refresh the caregivers list
+        await fetchCaregiversForManagement();
+        setTimeout(() => setCaregiverMessage(''), 3000);
+      } else {
+        const errorData = await response.json();
+        setCaregiverMessage(errorData.message || 'Failed to update relationship. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating caregiver relationship:', error);
+      setCaregiverMessage('Network error. Please try again.');
+    } finally {
+      setUpdatingRelationship(false);
+    }
+  };
+
   // Account Deletion Function
   const handleDeleteAccount = async () => {
     if (!deletionPassword.trim()) {
@@ -826,14 +957,14 @@ export default function ParentSettingsScreen() {
           </View>
         </View>
         <View style={{ marginBottom: 12 }}>
-          <Text style={styles.inputLabel}>Target Jar</Text>
+          <Text style={styles.inputLabel}>Target Pot</Text>
           <TextInput
-            value="save"
+            value="Saving Pot"
             editable={false}
             style={[styles.input, { backgroundColor: "#edeff2", color: "#888" }]}
           />
           <Text style={{ fontSize: 13, color: "#888" }}>
-            (Interest will only be applied to the Savings jar)
+            (Interest will only be applied to the Saving Pot)
           </Text>
         </View>
         <TouchableOpacity
@@ -856,8 +987,9 @@ export default function ParentSettingsScreen() {
       <ParentAutomationRulesSection themeColors={themeColors} />
 
       {/* --- Family Caregiver Management Section --- */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>👨‍👩‍👧‍👦 Family Caregiver Management</Text>
+      {(Platform.OS === 'web' || Platform.OS === 'android') && (
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>👨‍👩‍👧‍👦 Family Caregiver Management</Text>
         <Text style={{ fontSize: 14, color: "#666", marginBottom: 18, lineHeight: 20 }}>
           Manage additional caregivers who can help supervise and approve your children's activities. Share family codes to invite spouses, grandparents, or other trusted adults.
         </Text>
@@ -865,13 +997,17 @@ export default function ParentSettingsScreen() {
         <TouchableOpacity
           style={[styles.saveButton, { backgroundColor: '#2196F3' }]}
           onPress={async () => {
+            console.log('[SETTINGS] Generate Family Code button pressed');
             try {
+              console.log('[SETTINGS] Getting auth token...');
               const token = await getAuthToken();
+              console.log('[SETTINGS] Token retrieved:', token ? 'YES' : 'NO');
               if (!token) {
                 Alert.alert('Error', 'Not authenticated. Please login again.');
                 return;
               }
 
+              console.log('[SETTINGS] Making API call to generate family code...');
               const response = await fetch(`${API_URL}/auth/family-code`, {
                 method: 'GET',
                 headers: {
@@ -879,8 +1015,12 @@ export default function ParentSettingsScreen() {
                 },
               });
 
+              console.log('[SETTINGS] API response status:', response.status);
+              console.log('[SETTINGS] API response headers:', Object.fromEntries(response.headers.entries()));
+
               if (response.ok) {
                 const data = await response.json();
+                console.log('[SETTINGS] Family code data:', data);
                 Alert.alert(
                   'Family Code Generated',
                   `Share this code with additional caregivers:\n\n${data.familyCode}\n\nThey can use this code to join your family and help manage your children's activities.`,
@@ -897,12 +1037,20 @@ export default function ParentSettingsScreen() {
                   ]
                 );
               } else {
-                const errorData = await response.json();
-                Alert.alert('Error', errorData.message || 'Failed to generate family code.');
+                let errorMessage = 'Failed to generate family code.';
+                try {
+                  const errorData = await response.json();
+                  errorMessage = errorData.message || errorMessage;
+                  console.log('[SETTINGS] Error response:', errorData);
+                } catch (parseError) {
+                  console.log('[SETTINGS] Could not parse error response:', parseError);
+                }
+                Alert.alert('Error', errorMessage);
               }
             } catch (error) {
-              console.error('Error generating family code:', error);
-              Alert.alert('Error', 'Network error. Please try again.');
+              console.error('[SETTINGS] Error generating family code:', error);
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              Alert.alert('Error', `Network error: ${errorMessage}. Please try again.`);
             }
           }}
         >
@@ -910,38 +1058,74 @@ export default function ParentSettingsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: '#FF6B35', marginTop: 12 }]}
+          onPress={() => {
+            fetchCaregiversForManagement();
+            setCaregiverModalVisible(true);
+          }}
+        >
+          <Text style={styles.saveButtonText}>👨‍👩‍👧‍👦 Manage Caregiver Relationships</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.saveButton, { backgroundColor: '#4CAF50', marginTop: 12 }]}
           onPress={async () => {
+            console.log('[SETTINGS] View Family Caregivers button pressed');
             try {
+              console.log('[SETTINGS] Getting auth token for caregivers...');
               const token = await getAuthToken();
+              console.log('[SETTINGS] Token retrieved:', token ? 'YES' : 'NO');
+
               const { getUser } = await import('@/utils/secureStorage');
+              console.log('[SETTINGS] Getting current user...');
               const currentUser = await getUser();
+              console.log('[SETTINGS] Current user:', currentUser ? { id: currentUser.id, familyId: currentUser.familyId } : 'NULL');
 
               if (!token || !currentUser) {
                 Alert.alert('Error', 'Not authenticated. Please login again.');
                 return;
               }
-              const response = await fetch(`${API_URL}/users?familyId=${currentUser.familyId}&role=parent`, {
+
+              const apiUrl = `${API_URL}/users?familyId=${currentUser.familyId}&role=parent`;
+              console.log('[SETTINGS] Making API call to:', apiUrl);
+
+              const response = await fetch(apiUrl, {
                 method: 'GET',
                 headers: {
                   'Authorization': `Bearer ${token}`,
                 },
               });
 
+              console.log('[SETTINGS] Caregivers API response status:', response.status);
+              console.log('[SETTINGS] Caregivers API response headers:', Object.fromEntries(response.headers.entries()));
+
               if (response.ok) {
                 const caregivers = await response.json();
+                console.log('[SETTINGS] Caregivers data:', caregivers);
+
                 const caregiverNames = caregivers.map((c: any) => c.name).join(', ');
+                console.log('[SETTINGS] Caregiver names:', caregiverNames);
+
                 Alert.alert(
                   'Family Caregivers',
                   `Current caregivers in your family: ${caregiverNames}`,
                   [{ text: 'OK' }]
                 );
               } else {
-                Alert.alert('Error', 'Failed to load caregiver information.');
+                let errorMessage = 'Failed to load caregiver information.';
+                try {
+                  const errorData = await response.json();
+                  errorMessage = errorData.message || errorMessage;
+                  console.log('[SETTINGS] Caregivers error response:', errorData);
+                } catch (parseError) {
+                  console.log('[SETTINGS] Could not parse caregivers error response:', parseError);
+                }
+                Alert.alert('Error', errorMessage);
               }
             } catch (error) {
-              console.error('Error loading caregivers:', error);
-              Alert.alert('Error', 'Network error. Please try again.');
+              console.error('[SETTINGS] Error loading caregivers:', error);
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              Alert.alert('Error', `Network error: ${errorMessage}. Please try again.`);
             }
           }}
         >
@@ -953,6 +1137,7 @@ export default function ParentSettingsScreen() {
           👨‍👩‍👧‍👦 <Text style={{ fontWeight: 'bold' }}>Permissions:</Text> All caregivers can create/manage children, approve requests, and view family data.
         </Text>
       </View>
+      )}
 
       {/* --- Child Account Management Section --- */}
       <View style={styles.sectionCard}>
@@ -1766,6 +1951,121 @@ export default function ParentSettingsScreen() {
                   </TouchableOpacity>
                 </View>
               </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Caregiver Relationship Management Modal */}
+      <Modal
+        visible={caregiverModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCaregiverModalVisible(false)}
+      >
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(0,0,0,0.5)'
+        }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 14,
+            padding: 20,
+            width: '90%',
+            maxWidth: 400,
+            maxHeight: '80%'
+          }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>👨‍👩‍👧‍👦 Manage Caregiver Relationships</Text>
+
+            <Text style={styles.inputLabel}>Select Caregiver:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedCaregiver?._id || ''}
+                onValueChange={(value) => {
+                  const caregiver = caregivers.find(c => c._id === value);
+                  setSelectedCaregiver(caregiver);
+                  // Pre-populate relationship if it exists
+                  setSelectedRelationship(caregiver?.relationship || '');
+                }}
+                style={{ height: 50 }}
+              >
+                <Picker.Item label="Choose a caregiver..." value="" />
+                {caregivers.map(caregiver => (
+                  <Picker.Item
+                    key={caregiver._id}
+                    label={`${caregiver.name} (${caregiver.relationship || 'No relationship set'})`}
+                    value={caregiver._id}
+                  />
+                ))}
+              </Picker>
+            </View>
+
+            {selectedCaregiver && (
+              <>
+                <Text style={styles.inputLabel}>Relationship to Child:</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={selectedRelationship}
+                    onValueChange={setSelectedRelationship}
+                    style={{ height: 50 }}
+                  >
+                    <Picker.Item label="Select relationship..." value="" />
+                    <Picker.Item label="Mother" value="mother" />
+                    <Picker.Item label="Father" value="father" />
+                    <Picker.Item label="Grandmother" value="grandmother" />
+                    <Picker.Item label="Grandfather" value="grandfather" />
+                    <Picker.Item label="Step-Mother" value="step-mother" />
+                    <Picker.Item label="Step-Father" value="step-father" />
+                    <Picker.Item label="Guardian" value="guardian" />
+                    <Picker.Item label="Other" value="other" />
+                  </Picker>
+                </View>
+
+                <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginBottom: 16, lineHeight: 18 }}>
+                  Setting the relationship helps kids understand who their caregivers are. For example, "mother" will show as "Mom" on the child's dashboard.
+                </Text>
+
+                {caregiverMessage ? (
+                  <Text style={[styles.statusMessage, {
+                    color: caregiverMessage.includes('successfully') ? '#18722a' : '#d32f2f',
+                    marginBottom: 16
+                  }]}>
+                    {caregiverMessage}
+                  </Text>
+                ) : null}
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: '#666', flex: 1, marginRight: 8 }]}
+                    onPress={() => {
+                      setCaregiverModalVisible(false);
+                      setSelectedCaregiver(null);
+                      setSelectedRelationship('');
+                      setCaregiverMessage('');
+                    }}
+                  >
+                    <Text style={styles.saveButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.saveButton, { flex: 2 }, updatingRelationship && { opacity: 0.6 }]}
+                    onPress={handleUpdateCaregiverRelationship}
+                    disabled={updatingRelationship || !selectedRelationship.trim()}
+                  >
+                    <Text style={styles.saveButtonText}>
+                      {updatingRelationship ? 'Updating...' : 'Update Relationship'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
+            {!selectedCaregiver && (
+              <Text style={{ textAlign: 'center', color: themeColors.textSecondary, marginTop: 20 }}>
+                Select a caregiver to set their relationship to the child.
+              </Text>
             )}
           </View>
         </View>

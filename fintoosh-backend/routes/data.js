@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
+const logger = require('../utils/logger');
 
 const User = require('../models/User');
 const Goal = require('../models/Goal');
@@ -237,6 +238,50 @@ router.patch('/users/:id', async (req, res) => {
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Failed to patch user', error });
+  }
+});
+
+// Update caregiver relationship
+router.patch('/users/:userId/caregivers/:caregiverIndex', auth, async (req, res) => {
+  try {
+    const { userId, caregiverIndex } = req.params;
+    const { relationship } = req.body;
+
+    // Validate relationship enum
+    const validRelationships = ['mother', 'father', 'grandmother', 'grandfather', 'step-mother', 'step-father', 'guardian', 'other'];
+    if (!validRelationships.includes(relationship)) {
+      return res.status(400).json({ message: 'Invalid relationship type' });
+    }
+
+    // Find the user
+    const user = await User.findOne({ id: userId });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check authorization - only parents in the same family
+    if (req.user.role !== 'parent' || req.user.familyId !== user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to update caregiver relationships' });
+    }
+
+    const index = parseInt(caregiverIndex);
+    if (isNaN(index) || index < 0 || index >= user.caregivers.length) {
+      return res.status(400).json({ message: 'Invalid caregiver index' });
+    }
+
+    // Update the relationship
+    user.caregivers[index].relationship = relationship;
+    user.updatedAt = new Date();
+
+    await user.save();
+
+    res.json({
+      message: 'Caregiver relationship updated successfully',
+      caregiver: user.caregivers[index]
+    });
+  } catch (error) {
+    console.error('Error updating caregiver relationship:', error);
+    res.status(500).json({ message: 'Failed to update caregiver relationship', error: error.message });
   }
 });
 

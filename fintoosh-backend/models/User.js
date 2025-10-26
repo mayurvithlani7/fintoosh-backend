@@ -57,7 +57,8 @@ const userSchema = new mongoose.Schema({
   requests: [{}],
   caregivers: [{
     userId: { type: String, required: true },
-    role: { type: String, enum: ['parent', 'guardian', 'step-parent', 'other'], default: 'parent' }
+    role: { type: String, enum: ['parent', 'guardian', 'step-parent', 'other'], default: 'parent' },
+    relationship: { type: String, enum: ['mother', 'father', 'grandmother', 'grandfather', 'step-mother', 'step-father', 'guardian', 'other'], default: null }
   }], // replaces parentId, supports multiple caregivers
   userLevel: { type: Number, default: 1 },
   userExperience: { type: Number, default: 0 },

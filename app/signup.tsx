@@ -1,5 +1,6 @@
 import { API_URL } from '@/utils/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Picker } from "@react-native-picker/picker";
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -23,8 +24,9 @@ export default function SignupScreen() {
   const [mobileDigits, setMobileDigits] = useState('');
   const [password, setPassword] = useState('');
   const [referralCode, setReferralCode] = useState('');
-  const [touched, setTouched] = useState<{ fullName: boolean; email: boolean; mobileNumber: boolean; password: boolean; referralCode: boolean }>({ fullName: false, email: false, mobileNumber: false, password: false, referralCode: false });
-  const [errors, setErrors] = useState<{ fullName: string; email: string; mobileNumber: string; password: string; referralCode: string }>({ fullName: '', email: '', mobileNumber: '', password: '', referralCode: '' });
+  const [relationship, setRelationship] = useState('');
+  const [touched, setTouched] = useState<{ fullName: boolean; email: boolean; mobileNumber: boolean; password: boolean; referralCode: boolean; relationship: boolean }>({ fullName: false, email: false, mobileNumber: false, password: false, referralCode: false, relationship: false });
+  const [errors, setErrors] = useState<{ fullName: string; email: string; mobileNumber: string; password: string; referralCode: string; relationship: string }>({ fullName: '', email: '', mobileNumber: '', password: '', referralCode: '', relationship: '' });
 
   // Computed mobile number
   const mobileNumber = `${countryCode}${mobileDigits}`;
@@ -64,6 +66,7 @@ export default function SignupScreen() {
       mobileNumber: validateField('mobileNumber', mobileNumber),
       password: validateField('password', password),
       referralCode: validateField('referralCode', referralCode),
+      relationship: '',
     };
   }
 
@@ -100,7 +103,8 @@ export default function SignupScreen() {
       email: true,
       mobileNumber: true,
       password: true,
-      referralCode: true
+      referralCode: true,
+      relationship: true
     });
     const fieldErrors = validateAll();
     setErrors(fieldErrors);
@@ -120,7 +124,8 @@ export default function SignupScreen() {
         email: email.trim(),
         mobileNumber: mobileNumber.trim(),
         password: password,
-        referralCode: referralCode.trim() || undefined
+        referralCode: referralCode.trim() || undefined,
+        relationship: relationship.trim() || undefined
       };
 
       const response = await fetch(`${API_URL}/auth/register`, {
@@ -292,6 +297,30 @@ export default function SignupScreen() {
                 {touched.referralCode && errors.referralCode ? (
                   <Text style={styles.validation}>{errors.referralCode}</Text>
                 ) : null}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Relationship to Children (Optional)</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={relationship}
+                    onValueChange={(value) => setRelationship(value)}
+                    style={{ height: 50 }}
+                    enabled={!loading}
+                  >
+                    <Picker.Item label="Select relationship..." value="" />
+                    <Picker.Item label="Mother" value="mother" />
+                    <Picker.Item label="Father" value="father" />
+                    <Picker.Item label="Grandmother" value="grandmother" />
+                    <Picker.Item label="Grandfather" value="grandfather" />
+                  
+                    <Picker.Item label="Guardian" value="guardian" />
+                    <Picker.Item label="Other" value="other" />
+                  </Picker>
+                </View>
+                <Text style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
+                  This helps personalize the app for your family
+                </Text>
               </View>
               <TouchableOpacity style={[styles.button, loading && { opacity: 0.5 }]} onPress={handleSubmit} disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create Account</Text>}
@@ -516,6 +545,13 @@ const styles = StyleSheet.create({
     padding: 13,
     fontSize: 17,
     color: '#101928',
+  },
+  pickerContainer: {
+    borderWidth: 2,
+    borderColor: '#b6a0e6',
+    borderRadius: 14,
+    backgroundColor: '#f4f7fe',
+    marginBottom: 4,
   },
   validation: {
     color: '#f03a47',

@@ -944,36 +944,119 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         {userData && userData.caregivers && userData.caregivers.length > 0 && (
           <View style={[dynamicStyles.quickActionCard, { backgroundColor: themeColors.surface + '80', borderColor: themeColors.success }]} >
             <Text style={[dynamicStyles.sectionTitle, { color: themeColors.success, textAlign: 'center' }]}>
-              👨‍👩‍👧‍👦 My Family Caregivers
+              👨‍👩‍👧‍👦 My Family Helpers
             </Text>
             <Text style={{ textAlign: 'center', color: themeColors.textSecondary, fontSize: 14, marginBottom: 12 }}>
-              These amazing people help me with my money journey!
+              These amazing people help me with my money adventure! 💪
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
-              {userData.caregivers.map((caregiver: any, index: number) => (
-                <View key={index} style={{
-                  backgroundColor: themeColors.card,
-                  borderRadius: 12,
-                  padding: 12,
-                  minWidth: 100,
-                  alignItems: 'center',
-                  elevation: 2,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 2,
-                  borderWidth: 1,
-                  borderColor: themeColors.border
-                }}>
-                  <Text style={{ fontSize: 24, marginBottom: 4 }}>
-                    {caregiver.role === 'parent' ? '👨' : caregiver.role === 'guardian' ? '👩' : '❤️'}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: themeColors.textSecondary, textAlign: 'center' }}>
-                    {caregiver.role ? caregiver.role.charAt(0).toUpperCase() + caregiver.role.slice(1) : 'Caregiver'}
-                  </Text>
-                </View>
-              ))}
+              {userData.caregivers.map((caregiver: any, index: number) => {
+                // Create kid-friendly labels and avoid duplicates
+                const getKidFriendlyLabel = () => {
+                  const role = caregiver.role || 'caregiver';
+                  const relationship = caregiver.relationship;
+                  const name = caregiver.name;
+
+                  // Use name if available, otherwise use kid-friendly role names
+                  if (name && name.trim()) {
+                    return name;
+                  }
+
+                  // Use relationship field if available (more specific)
+                  if (relationship) {
+                    switch (relationship.toLowerCase()) {
+                      case 'mother':
+                        return 'Mom';
+                      case 'father':
+                        return 'Dad';
+                      case 'grandmother':
+                        return 'Grandma';
+                      case 'grandfather':
+                        return 'Grandpa';
+                      case 'step-mother':
+                        return 'Step-Mom';
+                      case 'step-father':
+                        return 'Step-Dad';
+                      case 'guardian':
+                        return 'Guardian';
+                      default:
+                        return 'Helper';
+                    }
+                  }
+
+                  // Fallback to role-based labels (less specific)
+                  switch (role.toLowerCase()) {
+                    case 'parent':
+                      return index === 0 ? 'My Parent' : 'Parent';
+                    case 'mother':
+                    case 'mom':
+                      return 'Mom';
+                    case 'father':
+                    case 'dad':
+                      return 'Dad';
+                    case 'guardian':
+                      return 'Guardian';
+                    case 'grandparent':
+                    case 'grandma':
+                    case 'grandpa':
+                      return index === 0 ? 'Grandparent' : 'Grandma/Pa';
+                    default:
+                      return 'Helper';
+                  }
+                };
+
+                const getKidFriendlyEmoji = () => {
+                  const role = caregiver.role || 'caregiver';
+
+                  switch (role.toLowerCase()) {
+                    case 'mother':
+                    case 'mom':
+                      return '👩';
+                    case 'father':
+                    case 'dad':
+                      return '👨';
+                    case 'grandparent':
+                    case 'grandma':
+                    case 'grandpa':
+                      return '👴';
+                    case 'guardian':
+                      return '🛡️';
+                    default:
+                      return '❤️';
+                  }
+                };
+
+                const label = getKidFriendlyLabel();
+                const emoji = getKidFriendlyEmoji();
+
+                return (
+                  <View key={String(index)} style={{
+                    backgroundColor: themeColors.card,
+                    borderRadius: 12,
+                    padding: 12,
+                    minWidth: 100,
+                    alignItems: 'center',
+                    elevation: 2,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 2,
+                    borderWidth: 1,
+                    borderColor: themeColors.border
+                  }}>
+                    <Text style={{ fontSize: 24, marginBottom: 4 }}>
+                      {emoji}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: themeColors.textSecondary, textAlign: 'center', fontWeight: '500' }}>
+                      {label}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
+            <Text style={{ textAlign: 'center', color: themeColors.textSecondary, fontSize: 12, marginTop: 8, fontStyle: 'italic' }}>
+              Ask them for help with your money pots! 🎯
+            </Text>
           </View>
         )}
       </View>
