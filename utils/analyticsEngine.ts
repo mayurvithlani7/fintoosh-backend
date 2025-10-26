@@ -45,6 +45,7 @@ export interface AnalyticsData {
   predictions: PredictionData;
   familyMembers?: any[];
   rewards?: any[];
+  realAllowances?: any[];
 }
 
 // Simple linear regression for trend prediction
@@ -468,8 +469,11 @@ export function processAnalyticsRawData(rawData: any): AnalyticsData {
     hasChores: !!rawData.chores,
     hasGoals: !!rawData.goals,
     hasRewards: !!rawData.rewards,
+    hasRealAllowances: !!rawData.realAllowances,
     rewardsLength: Array.isArray(rawData.rewards) ? rawData.rewards.length : 'not array',
-    rewards: rawData.rewards
+    realAllowancesLength: Array.isArray(rawData.realAllowances) ? rawData.realAllowances.length : 'not array',
+    rewards: rawData.rewards,
+    realAllowances: rawData.realAllowances
   });
 
   // Validate and provide defaults for raw data
@@ -479,8 +483,10 @@ export function processAnalyticsRawData(rawData: any): AnalyticsData {
   const user = rawData.user || {};
   const familyMembers = Array.isArray(rawData.familyMembers) ? rawData.familyMembers : [];
   const rewards = Array.isArray(rawData.rewards) ? rawData.rewards : [];
+  const realAllowances = Array.isArray(rawData.realAllowances) ? rawData.realAllowances : [];
 
   console.log('[ANALYTICS PROCESS] Processed rewards:', rewards);
+  console.log('[ANALYTICS PROCESS] Processed realAllowances:', realAllowances);
 
   const spendingTrends = processSpendingTrends(transactions);
   const choreCompletion = processChoreCompletion(chores, transactions);
@@ -495,10 +501,12 @@ export function processAnalyticsRawData(rawData: any): AnalyticsData {
     goalProgress,
     predictions,
     familyMembers: familyMembers,
-    rewards: rewards
+    rewards: rewards,
+    realAllowances: realAllowances
   };
 
   console.log('[ANALYTICS PROCESS] Final result rewards:', result.rewards);
+  console.log('[ANALYTICS PROCESS] Final result realAllowances:', result.realAllowances);
 
   return result;
 }
