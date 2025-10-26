@@ -75,7 +75,8 @@ router.get('/summary/:childId', auth, async (req, res) => {
 
     // Verify the child belongs to the authenticated parent
     const child = await User.findById(childId);
-    if (!child || child.parentId.toString() !== req.user.id) {
+    const isCaregiver = child && child.caregivers && child.caregivers.some(c => c.userId === req.user.id);
+    if (!child || !isCaregiver) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -139,7 +140,8 @@ router.get('/history/:childId', auth, async (req, res) => {
 
     // Verify the child belongs to the authenticated parent
     const child = await User.findById(childId);
-    if (!child || child.parentId.toString() !== req.user.id) {
+    const isCaregiver = child && child.caregivers && child.caregivers.some(c => c.userId === req.user.id);
+    if (!child || !isCaregiver) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -167,9 +169,9 @@ router.post('/process-payouts', auth, async (req, res) => {
 
     for (const rule of activeRules) {
       try {
-        // Find children of this parent
+        // Find children where this user is a caregiver
         const children = await User.find({
-          parentId: rule.userId,
+          'caregivers.userId': rule.userId,
           role: 'child'
         });
 

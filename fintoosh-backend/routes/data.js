@@ -2899,7 +2899,7 @@ router.patch('/notifications/mark-all-read', auth, async (req, res) => {
 router.get('/users/children', auth, requireParent, async (req, res) => {
   try {
     const children = await User.find({
-      parentId: req.user.id,
+      'caregivers.userId': req.user.id,
       role: 'child'
     }).select('-password -pin -otpCode -otpExpiresAt -otpVerified');
 

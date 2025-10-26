@@ -128,7 +128,7 @@ export default function ParentsOverviewScreen() {
     transactionsCount: number;
   } | null>(null);
   const [interestHistory, setInterestHistory] = useState<any[]>([]);
-  const [familyChildren, setFamilyChildren] = useState<Array<{ id: string; name: string }>>([]);
+  const [familyChildren, setFamilyChildren] = useState<Array<{ id: string; name: string; caregivers?: Array<{ userId: string; role: string }> }>>([]);
 
   // Fetch family children data
   const fetchFamilyChildren = useCallback(async () => {
