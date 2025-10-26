@@ -167,9 +167,9 @@ export default function ParentsAnalyticsScreen() {
       {/* Separator */}
       <View style={{ height: 2, backgroundColor: themeColors.text, opacity: 0.3, marginVertical: 20, width: '90%', alignSelf: 'center' }} />
 
-      <Text style={[styles.title, { fontSize: 24 }]}>Advanced Analytics Dashboard</Text>
+      <Text style={[styles.title, { fontSize: 24 }]}>Family AI Financial Insights (All Children)</Text>
 
-      {/* AI-Powered Insights */}
+      {/* Family-Wide AI Insights */}
       <View style={[styles.sectionCard]}>
         <SpendingInsights
           onExport={handleExport}

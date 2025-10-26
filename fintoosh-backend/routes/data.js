@@ -3067,29 +3067,24 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
 
     // Try different query approaches to debug
     console.log('Analytics - Executing User.find({ familyId }) query...');
-    const familyMembers = await User.find({ familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
-    console.log('Analytics - Query completed. Raw result count:', familyMembers.length);
-
+    let familyMembers = await User.find({ familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit familyId');
+    // Fallback: try as string if empty
     if (familyMembers.length === 0) {
-      // Try alternative query with explicit string conversion
-      console.log('Analytics - Trying alternative query with String() conversion...');
-      const altFamilyMembers = await User.find({ familyId: String(familyId) }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
-      console.log('Analytics - Alternative query result count:', altFamilyMembers.length);
-
-      // Try finding all users and filtering manually
-      console.log('Analytics - Trying manual filtering approach...');
-      const allUsers = await User.find({}).select('_id id name role familyId currentPoints savePoints spendPoints donatePoints investPoints defaultSplit').limit(20);
-      console.log('Analytics - Total users in DB:', allUsers.length);
-      const manualFiltered = allUsers.filter(u => u.familyId === familyId);
-      console.log('Analytics - Manual filter result count:', manualFiltered.length);
-      console.log('Analytics - Manual filter sample:', manualFiltered.slice(0, 3).map(u => ({ id: u.id, familyId: u.familyId, role: u.role })));
+      familyMembers = await User.find({ familyId: String(familyId) }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit familyId');
     }
-
-    console.log('Analytics - found familyMembers:', familyMembers.length, familyMembers.map(m => ({ id: m.id, role: m.role, familyId: m.familyId })));
+    // Fallback: try all users and filter
+    if (familyMembers.length === 0) {
+      const allUsers = await User.find({}).select('_id id name role familyId currentPoints savePoints spendPoints donatePoints investPoints defaultSplit');
+      familyMembers = allUsers.filter(u => u.familyId == familyId);
+    }
+    // If STILL empty, try as array
+    if (familyMembers.length === 0) {
+      console.warn('[ANALYTICS] No family members found for familyId:', familyId);
+    }
 
     // Debug: Check what familyId values exist in the database
     const allUsersSample = await User.find({}).select('id familyId role name').limit(10);
-    console.log('Analytics - Sample users in DB:', allUsersSample.map(u => ({ id: u.id, familyId: u.familyId, role: u.role, name: u.name })));
+   // console.log('Analytics - Sample users in DB:', allUsersSample.map(u => ({ id: u.id, familyId: u.familyId, role: u.role, name: u.name })));
 
     // Debug: Check if familyId is a string or number
     // Build date filter - only include if dates are provided
