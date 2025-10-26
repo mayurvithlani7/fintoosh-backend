@@ -3059,20 +3059,24 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       return res.status(404).json({ message: 'No family members found' });
     }
 
-    // Build date filter
+    // Build date filter - only include if dates are provided
     let dateFilter = {};
     if (startDate || endDate) {
-      dateFilter = {};
       if (startDate) dateFilter.$gte = new Date(startDate);
       if (endDate) dateFilter.$lte = new Date(endDate);
     }
-    // No default date filter - fetch all data
 
-    // Get family transactions
-    const transactions = await Transaction.find({
-      user: { $in: familyMembers.map(m => m._id) },
-      createdAt: dateFilter
-    }).sort({ createdAt: -1 });
+    // Get family transactions - only apply date filter if dates are provided
+    const transactionQuery = {
+      user: { $in: familyMembers.map(m => m._id) }
+    };
+
+    // Only add createdAt filter if we have date constraints
+    if (Object.keys(dateFilter).length > 0) {
+      transactionQuery.createdAt = dateFilter;
+    }
+
+    const transactions = await Transaction.find(transactionQuery).sort({ createdAt: -1 });
 
     // Get family chores
     const chores = await Chore.find({

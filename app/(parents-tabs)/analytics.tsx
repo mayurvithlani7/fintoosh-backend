@@ -437,7 +437,7 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
         const donateJar = jarDistribution.find((jar: any) => jar.jarName === 'Help Others Pot');
         const investJar = jarDistribution.find((jar: any) => jar.jarName === 'Grow Money Pot');
 
-        const summary = {
+        const summaryData = {
           totalPoints: (currentJar?.currentBalance || 0) + (saveJar?.currentBalance || 0) + (spendJar?.currentBalance || 0) + (donateJar?.currentBalance || 0) + (investJar?.currentBalance || 0),
           chores: choreCompletion.length,
           completedChores: choreCompletion.filter((chore: any) => (chore.completedCount || 0) > 0).length,
@@ -465,7 +465,7 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
           realAllowances: realAllowances
         };
 
-        setProcessedData(summary);
+        setProcessedData(summaryData);
       } catch (error) {
         console.error('Error processing child analytics data:', error);
         setProcessedData(null);
