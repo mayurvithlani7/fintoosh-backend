@@ -92,9 +92,16 @@ router.post('/register', sanitizeInput, validateUserInput, validateMobileNumber,
       mobileNumber,
       password,
       role,
-      parentId: finalParentId || null,
+      parentId: finalParentId || null, // Keep for backward compatibility during migration
       referralCode: role === 'parent' ? referralCode : null
     };
+
+    // Set caregivers array for new users
+    if (role === 'parent') {
+      userData.caregivers = [{ userId: userId, role: 'parent' }];
+    } else if (role === 'child' && finalParentId) {
+      userData.caregivers = [{ userId: finalParentId, role: 'parent' }];
+    }
 
     // Only set username/pin for children
     if (role === 'child') {
@@ -437,11 +444,7 @@ router.post('/create-child', auth, sanitizeInput, async (req, res) => {
       return res.status(400).json({ message: 'Username already taken' });
     }
 
-    // Check if parent already has a child (enforce one child per parent for now)
-    const existingChild = await User.findOne({ parentId: req.user.id, role: 'child' });
-    if (existingChild) {
-      return res.status(400).json({ message: 'A child account already exists for this parent' });
-    }
+    // Allow multiple children per family (no longer restrict to one child per parent)
 
     // Create child user
     const childUser = new User({
@@ -452,7 +455,8 @@ router.post('/create-child', auth, sanitizeInput, async (req, res) => {
       mobileNumber: req.user.mobileNumber, // Use parent's mobile for child
       password: pin, // PIN as password for simplicity
       role: 'child',
-      parentId: req.user.id,
+      parentId: req.user.id, // Keep for backward compatibility
+      caregivers: [{ userId: req.user.id, role: 'parent' }], // Set caregivers array
       username,
       pin,
       isFirstTimeUser: true
