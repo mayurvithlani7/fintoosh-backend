@@ -3132,6 +3132,19 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       })));
     }
 
+    // Check specifically for completed chores
+    const allCompletedChores = await Chore.find({ completed: true }).select('user name points completed approved status');
+    console.log('Analytics - Total completed chores in DB:', allCompletedChores.length);
+    console.log('Analytics - Completed chore user IDs:', allCompletedChores.map(c => c.user?.toString()));
+
+    // Check if any completed chores belong to family members
+    const familyCompletedChores = allCompletedChores.filter(c => {
+      const choreUserId = c.user?.toString();
+      const isInFamily = memberMongoIds.some(memberId => memberId.toString() === choreUserId);
+      return isInFamily;
+    });
+    console.log('Analytics - Family completed chores count:', familyCompletedChores.length);
+
     const chores = await Chore.find({
       completed: true,
       user: { $in: memberMongoIds }
