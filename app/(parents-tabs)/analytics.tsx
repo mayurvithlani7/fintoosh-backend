@@ -410,6 +410,10 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
 
         // Debug transaction filtering
         console.log('AnalyticsOverview - DEBUG filtering transactions for mongoChildId:', mongoChildId);
+        console.log('AnalyticsOverview - DEBUG analyticsData.transactions length:', analyticsData.transactions?.length);
+        console.log('AnalyticsOverview - DEBUG analyticsData.chores length:', analyticsData.chores?.length);
+        console.log('AnalyticsOverview - DEBUG analyticsData.goals length:', analyticsData.goals?.length);
+
         if (analyticsData.transactions?.length > 0) {
           console.log('AnalyticsOverview - DEBUG first transaction user field:', analyticsData.transactions[0].user, 'type:', typeof analyticsData.transactions[0].user);
           console.log('AnalyticsOverview - DEBUG comparison test:', analyticsData.transactions[0].user === mongoChildId);
@@ -418,18 +422,36 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
           console.log('AnalyticsOverview - DEBUG converted user field:', userAsString, 'comparison:', userAsString === mongoChildId);
         }
 
+        if (analyticsData.chores?.length > 0) {
+          console.log('AnalyticsOverview - DEBUG first chore user field:', analyticsData.chores[0].user, 'type:', typeof analyticsData.chores[0].user);
+          const choreUserAsString = typeof analyticsData.chores[0].user === 'object' ? analyticsData.chores[0].user.toString() : analyticsData.chores[0].user;
+          console.log('AnalyticsOverview - DEBUG chore user converted:', choreUserAsString, 'comparison:', choreUserAsString === mongoChildId);
+        }
+
+        if (analyticsData.goals?.length > 0) {
+          console.log('AnalyticsOverview - DEBUG first goal user field:', analyticsData.goals[0].user, 'type:', typeof analyticsData.goals[0].user);
+          const goalUserAsString = typeof analyticsData.goals[0].user === 'object' ? analyticsData.goals[0].user.toString() : analyticsData.goals[0].user;
+          console.log('AnalyticsOverview - DEBUG goal user converted:', goalUserAsString, 'comparison:', goalUserAsString === mongoChildId);
+        }
+
         // Try multiple filtering approaches
         const childTransactions = analyticsData.transactions?.filter((t: any) => {
           const transactionUser = typeof t.user === 'object' ? t.user.toString() : t.user;
-          return transactionUser === mongoChildId;
+          const matches = transactionUser === mongoChildId;
+          console.log('AnalyticsOverview - DEBUG transaction filter:', { transactionUser, mongoChildId, matches });
+          return matches;
         }) || [];
         const childChores = analyticsData.chores?.filter((c: any) => {
           const choreUser = typeof c.user === 'object' ? c.user.toString() : c.user;
-          return choreUser === mongoChildId;
+          const matches = choreUser === mongoChildId;
+          console.log('AnalyticsOverview - DEBUG chore filter:', { choreUser, mongoChildId, matches });
+          return matches;
         }) || [];
         const childGoals = analyticsData.goals?.filter((g: any) => {
           const goalUser = typeof g.user === 'object' ? g.user.toString() : g.user;
-          return goalUser === mongoChildId;
+          const matches = goalUser === mongoChildId;
+          console.log('AnalyticsOverview - DEBUG goal filter:', { goalUser, mongoChildId, matches });
+          return matches;
         }) || [];
         const childRewards = analyticsData.rewards?.filter((r: any) => {
           const rewardUser = typeof r.user === 'object' ? r.user.toString() : r.user;
