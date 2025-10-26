@@ -255,7 +255,6 @@ app.use('/api', require('./routes/data'));
 app.use('/api/education', require('./routes/education'));
 app.use('/api/interest', require('./routes/interest'));
 app.use('/api/ai', require('./routes/ai'));
-app.use('/api/festival', require('./routes/festival'));
 
 // Basic routes
 app.get('/', (req, res) => {
