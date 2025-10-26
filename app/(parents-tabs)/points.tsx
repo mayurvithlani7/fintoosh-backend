@@ -6,7 +6,6 @@ import { createTransaction, fetchFamilyChildren, fetchTransactions, fetchUser, p
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 /* @ts-ignore */
 import BackButton from '@/components/BackButton';
@@ -75,14 +74,13 @@ export default function ParentsPointsScreen() {
 
   const loadChildren = async () => {
     try {
-      const currentUserStr = await AsyncStorage.getItem('user');
-      if (!currentUserStr) {
+      const { getUser } = await import('@/utils/secureStorage');
+      const currentUser = await getUser();
+      if (!currentUser) {
         setLoading(false);
         setRefreshing(false);
         return;
       }
-
-      const currentUser = JSON.parse(currentUserStr);
       if (currentUser.role !== 'parent' || !currentUser.familyId) {
         setLoading(false);
         setRefreshing(false);
@@ -99,11 +97,11 @@ export default function ParentsPointsScreen() {
       const childrenData = await fetchFamilyChildren(currentUser.familyId as string, token);
 
       if (childrenData && childrenData.length > 0) {
-        setChildren(childrenData.map((child: any) => ({ id: child._id || child.id, name: child.name })));
+        setChildren(childrenData.map((child: any) => ({ id: child.id, name: child.name })));
 
         // Auto-select first child if available and none selected
         if (childrenData.length > 0 && !selectedChildId) {
-          const firstChildId = childrenData[0]._id || childrenData[0].id;
+          const firstChildId = childrenData[0].id;
           setSelectedChildId(firstChildId);
         }
       }
@@ -173,13 +171,12 @@ export default function ParentsPointsScreen() {
 
     try {
       // Get current user and child info
-      const currentUserStr = await AsyncStorage.getItem('user');
-      if (!currentUserStr) {
+      const { getUser } = await import('@/utils/secureStorage');
+      const currentUser = await getUser();
+      if (!currentUser) {
         showError('User not logged in.');
         return;
       }
-
-      const currentUser = JSON.parse(currentUserStr);
       if (currentUser.role !== 'parent' || !currentUser.familyId) {
         showError('Invalid parent account.');
         return;
@@ -201,7 +198,7 @@ export default function ParentsPointsScreen() {
       }
 
       // Find the selected child
-      const child = children.find((c: any) => (c._id || c.id) === selectedChildId);
+      const child = children.find((c: any) => c.id === selectedChildId);
       if (!child) {
         showError('Selected child not found.');
         return;

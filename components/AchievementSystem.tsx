@@ -1,7 +1,6 @@
 import { API_URL } from '@/utils/config';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -51,11 +50,10 @@ export const AchievementSystem: React.FC<AchievementSystemProps> = ({ onClose })
   const loadAchievements = async () => {
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const { getUser } = await import('@/utils/secureStorage');
+      const user = await getUser();
 
-      if (!token || !storedUser) return;
-
-      const user = JSON.parse(storedUser);
+      if (!token || !user) return;
       const userId = user.id;
 
       // Initialize achievements if not already done
@@ -96,11 +94,10 @@ export const AchievementSystem: React.FC<AchievementSystemProps> = ({ onClose })
   const checkMilestones = async () => {
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const { getUser } = await import('@/utils/secureStorage');
+      const user = await getUser();
 
-      if (!token || !storedUser) return;
-
-      const user = JSON.parse(storedUser);
+      if (!token || !user) return;
       const userId = user.id;
 
       await fetch(`${API_URL}/achievements/${userId}/check-milestones`, {

@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { API_URL, DEFAULT_REFRESH_INTERVALS } from './config';
 import { getAuthToken } from './secureStorage';
@@ -143,13 +142,12 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.log('updateSettings called with:', settings);
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const { getUser } = await import('./secureStorage');
+      const user = await getUser();
 
-      if (!token || !storedUser) {
+      if (!token || !user) {
         throw new Error('Not authenticated');
       }
-
-      const user = JSON.parse(storedUser);
       console.log('Making API call to update settings for user:', user.id);
 
       const response = await fetch(`${API_URL}/users/${user.id}/settings`, {
@@ -215,8 +213,9 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setRefreshIntervals(settings.refreshIntervals);
       }
 
-      // Update stored user data
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      // Update stored user data using secure storage
+      const { setUser } = await import('./secureStorage');
+      await setUser(updatedUser);
 
     } catch (error) {
       console.error('Error updating currency settings:', error);
@@ -228,9 +227,9 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const reloadSettings = async () => {
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
-      if (!token || !storedUser) return;
-      const user = JSON.parse(storedUser);
+      const { getUser } = await import('./secureStorage');
+      const user = await getUser();
+      if (!token || !user) return;
       const response = await fetch(`${API_URL}/users/${user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -132,7 +132,7 @@ function ParentsTabLayoutInner() {
     const checkAuth = async () => {
       try {
         console.log('[PARENTS LAYOUT] Starting auth check...');
-        const { getAuthToken, getUserData, clearAllAuthData } = await import('@/utils/secureStorage');
+        const { getAuthToken, getUser, clearAllAuthData } = await import('@/utils/secureStorage');
 
         // Check if auth token exists
         const token = await getAuthToken();
@@ -141,7 +141,7 @@ function ParentsTabLayoutInner() {
         // Check if user data exists with extra error handling
         let user = null;
         try {
-          user = await getUserData();
+          user = await getUser();
           console.log(`[PARENTS LAYOUT] User data retrieved: ${user ? 'present' : 'null'}, type: ${typeof user}`);
 
           // Additional validation - ensure user is a valid object
@@ -208,9 +208,9 @@ function ParentsTabLayoutInner() {
   // Function to load notifications
   const loadNotifications = async () => {
     try {
-      const { getAuthToken, getUserData } = await import('@/utils/secureStorage');
+      const { getAuthToken, getUser } = await import('@/utils/secureStorage');
       const token = await getAuthToken();
-      const user = await getUserData();
+      const user = await getUser();
 
       if (token && user) {
         const notifList = await fetchNotifications(user.id, token);
@@ -411,9 +411,9 @@ function ParentsTabLayoutInner() {
                         style={[styles.markAllReadButton, { backgroundColor: themeColors.primary }]}
                         onPress={async () => {
                           try {
-                            const { getAuthToken, getUserData } = await import('@/utils/secureStorage');
+                            const { getAuthToken, getUser } = await import('@/utils/secureStorage');
                             const token = await getAuthToken();
-                            const user = await getUserData();
+                            const user = await getUser();
                             if (token && user) {
                               await fetch(`${require('@/utils/config').API_URL}/notifications/mark-all-read?userId=${user.id}`, {
                                 method: "PATCH",

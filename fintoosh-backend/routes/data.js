@@ -370,7 +370,7 @@ router.post('/rewards', auth, requireParent, sanitizeInput, async (req, res) => 
   try {
     const { childId, name, description, cost, category } = req.body;
     console.log("DEBUG: Parent creating reward. AuthUser:", req.user, "childId:", childId);
-    const child = await User.findOne({ _id: childId, familyId: req.user.familyId, role: 'child' });
+    const child = await User.findOne({ id: childId, familyId: req.user.familyId, role: 'child' });
     console.log("DEBUG: Found child for reward:", child);
     if (!child) {
       return res.status(404).json({ message: "Child not found or does not belong to your family." });
@@ -874,7 +874,7 @@ router.post('/goals', auth, sanitizeInput, async (req, res) => {
       return res.status(400).json({ message: "childId is required for parent goal creation." });
     }
     console.log('[GOALS POST DEBUG] Looking for child:', { childId, parentFamilyId: req.user.familyId, parentId: req.user.id });
-    const child = await User.findOne({ _id: childId, familyId: req.user.familyId, role: 'child' });
+    const child = await User.findOne({ id: childId, familyId: req.user.familyId, role: 'child' });
     console.log('[GOALS POST DEBUG] Child query result:', child ? { id: child.id, name: child.name, familyId: child.familyId, role: child.role } : 'NOT FOUND');
     if (!child) {
       return res.status(404).json({ message: "Child not found or does not belong to your family." });

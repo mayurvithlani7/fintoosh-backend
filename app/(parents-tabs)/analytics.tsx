@@ -2,6 +2,8 @@ import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { SpendingInsights } from '@/components/SpendingInsights';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { fetchFamilyChildren } from '@/utils/api';
+import { getAuthToken, getUser } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 
 import React, { useState } from 'react';
@@ -16,6 +18,21 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
   statusMessage: { fontSize: 15, fontWeight: '600', marginTop: 8, marginBottom: 16, textAlign: 'center', padding: 10, borderRadius: 8, width: '97%', maxWidth: 520, color: themeColors.success },
   placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, marginBottom: 8 },
+  childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
+  childButton: {
+    backgroundColor: themeColors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    margin: 4,
+    minWidth: 80,
+    maxWidth: 180,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  childButtonSelected: { backgroundColor: themeColors.primary },
+  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonTextSelected: { color: themeColors.card },
 });
 
 export default function ParentsAnalyticsScreen() {
@@ -23,11 +40,32 @@ export default function ParentsAnalyticsScreen() {
   const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [children, setChildren] = useState<{ id: string; name: string }[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string>('');
 
   const { analyticsData, loading, error, refetch, exportData, clearCache } = useAnalytics();
 
-  // Clear cache and fetch fresh data on mount (only once)
+  // Load children and initialize analytics
   React.useEffect(() => {
+    async function loadChildren() {
+      try {
+        const token = await getAuthToken();
+        const parentProfile = await getUser();
+        if (!token || !parentProfile) return;
+        const familyId = parentProfile.familyId;
+        if (!familyId) return;
+
+        const data = await fetchFamilyChildren(familyId, token);
+        setChildren(data);
+        if (data.length > 0) {
+          setSelectedChildId(data[0].id ?? "");
+        }
+      } catch (err) {
+        console.error('Failed to load children:', err);
+      }
+    }
+
+    loadChildren();
     clearCache();
     refetch();
   }, []); // Empty dependency array to run only once on mount
@@ -94,6 +132,32 @@ export default function ParentsAnalyticsScreen() {
 
 
       <Text style={styles.title}>Child's Progress Report</Text>
+
+      {/* Child Selection */}
+      {children.length > 1 && (
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border, marginBottom: 12 }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
+          <View style={styles.childSelector}>
+            {children.map((child) => (
+              <TouchableOpacity
+                key={child.id}
+                style={[
+                  styles.childButton,
+                  selectedChildId === child.id && styles.childButtonSelected
+                ]}
+                onPress={() => setSelectedChildId(child.id)}
+              >
+                <Text style={[
+                  styles.childButtonText,
+                  selectedChildId === child.id && styles.childButtonTextSelected
+                ]}>
+                  {child.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {feedback ? <Text style={styles.statusMessage}>{feedback}</Text> : null}
 

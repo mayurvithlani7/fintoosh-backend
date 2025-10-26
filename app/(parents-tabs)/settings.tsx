@@ -4,7 +4,6 @@ import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { deleteAuthToken, getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from "react";
@@ -281,7 +280,8 @@ export default function ParentSettingsScreen() {
   useEffect(() => {
     async function checkUser() {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const { getUser } = await import('@/utils/secureStorage');
+      const storedUser = await getUser();
       if (!token || !storedUser) {
         setChildren([]);
         setSelectedChild(null);
@@ -407,16 +407,15 @@ export default function ParentSettingsScreen() {
   const fetchChildren = async () => {
     setLoadingChildren(true);
     try {
-      const currentUserStr = await AsyncStorage.getItem('user');
+      const { getUser } = await import('@/utils/secureStorage');
+      const currentUser = await getUser();
       const token = await getAuthToken();
 
-      if (!currentUserStr || !token) {
+      if (!currentUser || !token) {
         setChildren([]);
         setLoadingChildren(false);
         return;
       }
-
-      const currentUser = JSON.parse(currentUserStr);
       const response = await fetch(`${API_URL}/users?familyId=${currentUser.familyId}&role=child`, {
         method: 'GET',
         headers: {
@@ -546,7 +545,8 @@ export default function ParentSettingsScreen() {
             dataCache.resetDataCache();
             // Clear all authentication data
             await deleteAuthToken();
-            await AsyncStorage.removeItem('user');
+            const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+            await clearSensitiveAppData();
             console.log('Auth data cleared, navigating to login...');
             // Use dismissAll to ensure clean navigation state
             router.dismissAll();
@@ -605,7 +605,8 @@ export default function ParentSettingsScreen() {
             dataCache.resetDataCache();
             // Clear all authentication data
             await deleteAuthToken();
-            await AsyncStorage.removeItem('user');
+            const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+            await clearSensitiveAppData();
             console.log('Account deleted, clearing auth and navigating to login...');
             // Navigate to login screen directly
             router.replace('/login');
@@ -913,14 +914,13 @@ export default function ParentSettingsScreen() {
           onPress={async () => {
             try {
               const token = await getAuthToken();
-              const storedUser = await AsyncStorage.getItem('user');
+              const { getUser } = await import('@/utils/secureStorage');
+              const currentUser = await getUser();
 
-              if (!token || !storedUser) {
+              if (!token || !currentUser) {
                 Alert.alert('Error', 'Not authenticated. Please login again.');
                 return;
               }
-
-              const currentUser = JSON.parse(storedUser);
               const response = await fetch(`${API_URL}/users?familyId=${currentUser.familyId}&role=parent`, {
                 method: 'GET',
                 headers: {

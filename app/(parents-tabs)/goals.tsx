@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -68,7 +67,8 @@ export default function ParentsGoalsScreen() {
   useEffect(() => {
     async function checkUser() {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const { getUser } = await import('@/utils/secureStorage');
+      const storedUser = await getUser();
       if (!token || !storedUser) {
         setChildren([]);
         setSelectedChild('');
@@ -104,13 +104,12 @@ export default function ParentsGoalsScreen() {
       console.log('Loading children with token:', token.substring(0, 20) + '...');
 
       // First get current user to get familyId
-      const currentUserStr = await AsyncStorage.getItem('user');
-      if (!currentUserStr) {
+      const { getUser } = await import('@/utils/secureStorage');
+      const currentUser = await getUser();
+      if (!currentUser) {
         console.log('No user data in storage');
         return;
       }
-
-      const currentUser = JSON.parse(currentUserStr);
       const familyId = currentUser.familyId;
       console.log('Loading children for familyId:', familyId);
 
@@ -124,11 +123,11 @@ export default function ParentsGoalsScreen() {
         const childUsers = await response.json();
         console.log('Family children fetched:', childUsers.length, 'children');
 
-        setChildren(childUsers.map((child: any) => ({ id: child._id || child.id, name: child.name })));
+        setChildren(childUsers.map((child: any) => ({ id: child.id, name: child.name })));
 
         // Auto-select first child if available
         if (childUsers.length > 0) {
-          const childId = childUsers[0]._id || childUsers[0].id;
+          const childId = childUsers[0].id;
           console.log('Auto-selecting first child:', childUsers[0].name, 'with ID:', childId);
           setSelectedChild(childId);
         }
@@ -172,8 +171,8 @@ export default function ParentsGoalsScreen() {
           goalsData.length > 0 &&
           goalsData.some((g: any) => (g.childId && g.childId !== selectedChild))
         ) {
-          const { clearSensitiveAppData } = await import('@/utils/secureStorage');
-          await clearSensitiveAppData();
+          const { secureLogout } = await import('@/utils/secureStorage');
+          await secureLogout();
           if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
           return;
         }
@@ -458,6 +457,32 @@ export default function ParentsGoalsScreen() {
         </TouchableOpacity>
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Set Child Goals</Text>
+
+      {/* Child Selection */}
+      {children.length > 1 && (
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
+          <View style={styles.childSelector}>
+            {children.map((child) => (
+              <TouchableOpacity
+                key={child.id}
+                style={[
+                  styles.childButton,
+                  selectedChild === child.id && styles.childButtonSelected
+                ]}
+                onPress={() => handleChildChange(child.id)}
+              >
+                <Text style={[
+                  styles.childButtonText,
+                  selectedChild === child.id && styles.childButtonTextSelected
+                ]}>
+                  {child.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Child Name Display - Single Child per Parent */}
       {children.length === 1 && (

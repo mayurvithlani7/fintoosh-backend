@@ -4,7 +4,6 @@ import HelpModal from '@/components/HelpModal';
 import { fetchFamilyChildren, fetchTransactions } from "@/utils/api";
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from "@/utils/themeContext";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -157,6 +156,21 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   dateFieldText: {
     fontSize: 15,
   },
+  childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
+  childButton: {
+    backgroundColor: themeColors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    margin: 4,
+    minWidth: 80,
+    maxWidth: 180,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  childButtonSelected: { backgroundColor: themeColors.primary },
+  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonTextSelected: { color: themeColors.card },
 });
 
 const typeLabels: { [key: string]: string } = {
@@ -650,6 +664,8 @@ export default function ParentTransactionHistoryScreen() {
   const [type, setType] = useState("");
   const [loading, setLoading] = useState(true);
   const [childMap, setChildMap] = useState<{ [key: string]: string }>({});
+  const [children, setChildren] = useState<{ id: string; name: string }[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string>('all');
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [helpModalVisible, setHelpModalVisible] = useState(false);
@@ -661,20 +677,21 @@ export default function ParentTransactionHistoryScreen() {
     if (!append) setLoading(true);
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
-      if (!token || !storedUser) throw new Error("Not authenticated.");
-      const parent = JSON.parse(storedUser);
+      const { getUser } = await import('@/utils/secureStorage');
+      const parent = await getUser();
+      if (!token || !parent) throw new Error("Not authenticated.");
       const familyId = parent.familyId;
-      const children = await fetchFamilyChildren(familyId, token);
+      const childrenData = await fetchFamilyChildren(familyId, token);
+      setChildren(childrenData); // Set the children state
       const childIdMap: { [key: string]: string } = {};
-      children.forEach((c: any) => {
+      childrenData.forEach((c: any) => {
         childIdMap[c._id] = c.name || c.id;
         childIdMap[c.id] = c.name || c.id;
       });
       setChildMap(childIdMap);
 
       let allTxs: any[] = append ? [...transactions] : [];
-      for (const child of children) {
+      for (const child of childrenData) {
         const txs = await fetchTransactions(child.id, token, page);
         if (txs && txs.transactions) {
           allTxs = allTxs.concat((txs.transactions || []).map((t: any) => ({ ...t, childName: child.name || child.id })));
@@ -693,6 +710,12 @@ export default function ParentTransactionHistoryScreen() {
 
   // Filtering logic
   const filtered = transactions.filter(tx => {
+    // Child filter
+    if (selectedChildId !== 'all') {
+      const childId = tx.userId || tx.childId;
+      if (childId !== selectedChildId) return false;
+    }
+
     const txDateStr = tx.date || tx.createdAt || "";
     const txDate = new Date(txDateStr);
     let afterStart = true; let beforeEnd = true;
@@ -731,6 +754,47 @@ export default function ParentTransactionHistoryScreen() {
         </TouchableOpacity>
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Family Points Story</Text>
+
+      {/* Child Selection */}
+      {children.length >= 1 && (
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
+          <View style={styles.childSelector}>
+            <TouchableOpacity
+              style={[
+                styles.childButton,
+                selectedChildId === 'all' && styles.childButtonSelected
+              ]}
+              onPress={() => setSelectedChildId('all')}
+            >
+              <Text style={[
+                styles.childButtonText,
+                selectedChildId === 'all' && styles.childButtonTextSelected
+              ]}>
+                All Children
+              </Text>
+            </TouchableOpacity>
+            {children.map((child) => (
+              <TouchableOpacity
+                key={child.id}
+                style={[
+                  styles.childButton,
+                  selectedChildId === child.id && styles.childButtonSelected
+                ]}
+                onPress={() => setSelectedChildId(child.id)}
+              >
+                <Text style={[
+                  styles.childButtonText,
+                  selectedChildId === child.id && styles.childButtonTextSelected
+                ]}>
+                  {child.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card }]}>
         {/* Filters, vertical on mobile, horizontal on web */}
         <View style={styles.filtersRow}>
@@ -827,8 +891,8 @@ export default function ParentTransactionHistoryScreen() {
                 themeColors={themeColors}
                 isExpanded={expandedTransactionId === (tx._id || tx.id)}
                 onToggle={() => {
-                  setExpandedTransactionId((prev: string | null) => {
-                    const txId = tx._id || tx.id || Math.random().toString();
+                  setExpandedTransactionId((prev: string | null): string | null => {
+                    const txId = tx._id || tx.id || '';
                     return prev === txId ? null : txId;
                   });
                 }}

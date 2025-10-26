@@ -91,6 +91,21 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   suggestionBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 6, marginHorizontal: 2, marginVertical: 4, alignItems: 'center', minWidth: 70, maxWidth: 120 },
   suggestionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 12, textAlign: 'center' },
+  childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
+  childButton: {
+    backgroundColor: themeColors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    margin: 4,
+    minWidth: 80,
+    maxWidth: 180,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  childButtonSelected: { backgroundColor: themeColors.primary },
+  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonTextSelected: { color: themeColors.card },
 });
 
 export default function ParentsChoresScreen() {
@@ -457,6 +472,32 @@ export default function ParentsChoresScreen() {
         </TouchableOpacity>
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Manage Tasks</Text>
+
+      {/* Child Selection */}
+      {children.length > 1 && (
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
+          <View style={styles.childSelector}>
+            {children.map((child) => (
+              <TouchableOpacity
+                key={child.id}
+                style={[
+                  styles.childButton,
+                  selectedChild === child.id && styles.childButtonSelected
+                ]}
+                onPress={() => handleChildChange(child.id)}
+              >
+                <Text style={[
+                  styles.childButtonText,
+                  selectedChild === child.id && styles.childButtonTextSelected
+                ]}>
+                  {child.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Child Name Display - Single Child per Parent */}
       {children.length === 1 && (

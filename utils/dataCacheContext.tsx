@@ -75,18 +75,16 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!force && !isDataStale('childData')) return;
     setChildDataStatus('loading');
     try {
-      // Get current user from AsyncStorage to get familyId
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const currentUserStr = await AsyncStorage.getItem('user');
+      // Get current user from secure storage to get familyId
+      const { getUser } = await import('./secureStorage');
+      const currentUser = await getUser();
       const token = await getAuthToken();
 
-      console.log('fetchChildData: userStr exists:', !!currentUserStr, 'token exists:', !!token, 'childId:', childId);
+      console.log('fetchChildData: user exists:', !!currentUser, 'token exists:', !!token, 'childId:', childId);
 
-      if (!currentUserStr || !token) {
+      if (!currentUser || !token) {
         throw new Error('No user session found');
       }
-
-      const currentUser = JSON.parse(currentUserStr);
       const familyId = currentUser.familyId;
       const userId = currentUser.id;
 
@@ -157,15 +155,13 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setChoresStatus('loading');
     try {
       // Get current user for authentication
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const currentUserStr = await AsyncStorage.getItem('user');
+      const { getUser } = await import('./secureStorage');
+      const currentUser = await getUser();
       const token = await getAuthToken();
 
-      if (!currentUserStr || !token) {
+      if (!currentUser || !token) {
         throw new Error('No user session found');
       }
-
-      const currentUser = JSON.parse(currentUserStr);
       const res = await fetch(`${API_URL}/chores/${currentUser.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -186,15 +182,13 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setRequestsStatus('loading');
     try {
       // Get current user for authentication
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const currentUserStr = await AsyncStorage.getItem('user');
+      const { getUser } = await import('./secureStorage');
+      const currentUser = await getUser();
       const token = await getAuthToken();
 
-      if (!currentUserStr || !token) {
+      if (!currentUser || !token) {
         throw new Error('No user session found');
       }
-
-      const currentUser = JSON.parse(currentUserStr);
       const res = await fetch(`${API_URL}/requests/${currentUser.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -215,15 +209,13 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setGoalsStatus('loading');
     try {
       // Get current user for authentication
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const currentUserStr = await AsyncStorage.getItem('user');
+      const { getUser } = await import('./secureStorage');
+      const currentUser = await getUser();
       const token = await getAuthToken();
 
-      if (!currentUserStr || !token) {
+      if (!currentUser || !token) {
         throw new Error('No user session found');
       }
-
-      const currentUser = JSON.parse(currentUserStr);
       const res = await fetch(`${API_URL}/goals/${currentUser.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`

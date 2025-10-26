@@ -5,7 +5,6 @@ import { API_URL } from '@/utils/config';
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -66,7 +65,8 @@ export default function ParentsRewardsScreen() {
   useEffect(() => {
     async function checkUser() {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const { getUser } = await import('@/utils/secureStorage');
+      const storedUser = await getUser();
       if (!token || !storedUser) {
         setChildren([]);
         setSelectedChildId('');
@@ -77,7 +77,7 @@ export default function ParentsRewardsScreen() {
       setChildren([]);
       setSelectedChildId('');
       setRewards([]);
-      await loadChildren();
+      loadChildren();
     }
     checkUser();
 
@@ -97,7 +97,7 @@ export default function ParentsRewardsScreen() {
   useFocusEffect(
     React.useCallback(() => {
       if (selectedChildId) {
-        const selectedChild = children.find(child => child._id === selectedChildId);
+        const selectedChild = children.find(child => child.id === selectedChildId);
         if (selectedChild) {
           loadRewards(selectedChild.id);
         }
@@ -109,14 +109,14 @@ export default function ParentsRewardsScreen() {
     try {
       setLoading(true);
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const { getUser } = await import('@/utils/secureStorage');
+      const parentProfile = await getUser();
 
-      if (!token || !storedUser) {
+      if (!token || !parentProfile) {
         showError('Not authenticated.');
         setLoading(false);
         return;
       }
-      const parentProfile = JSON.parse(storedUser);
       const familyId = parentProfile.familyId;
       if (!familyId) {
         showError('No familyId found for parent.');
@@ -126,7 +126,7 @@ export default function ParentsRewardsScreen() {
       const data = await fetchFamilyChildren(familyId, token);
       setChildren(data);
       if (data.length > 0) {
-        setSelectedChildId(data[0]._id ?? "");
+        setSelectedChildId(data[0].id ?? "");
       }
     } catch (err) {
       showError('Failed to load children for family.');
@@ -145,9 +145,9 @@ export default function ParentsRewardsScreen() {
       }
       const data: Reward[] = await fetchRewards(childId, token as any);
       // Security: Validate rewards belong to this family
-      const storedUser = await AsyncStorage.getItem('user');
-      if (storedUser) {
-        const parentProfile = JSON.parse(storedUser);
+      const { getUser } = await import('@/utils/secureStorage');
+      const parentProfile = await getUser();
+      if (parentProfile) {
         const allowedChildIds = children.map(c => c.id);
         if (
           data &&
@@ -232,7 +232,7 @@ export default function ParentsRewardsScreen() {
       setDescription('');
       setEditingReward(null);
       // Find selected child for correct id on fetchRewards
-      const selectedChild = children.find(child => child._id === selectedChildId);
+      const selectedChild = children.find(child => child.id === selectedChildId);
       if (selectedChild) {
         await loadRewards(selectedChild.id);
       }
@@ -267,6 +267,32 @@ export default function ParentsRewardsScreen() {
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Manage Child Rewards</Text>
 
+      {/* Child Selection */}
+      {children.length > 1 && (
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
+          <View style={styles.childSelector}>
+            {children.map((child) => (
+              <TouchableOpacity
+                key={child.id}
+                style={[
+                  styles.childButton,
+                  selectedChildId === child.id && styles.childButtonSelected
+                ]}
+                onPress={() => setSelectedChildId(child.id)}
+              >
+                <Text style={[
+                  styles.childButtonText,
+                  selectedChildId === child.id && styles.childButtonTextSelected
+                ]}>
+                  {child.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
       {/* Add/Edit Reward */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>{editingReward ? 'Edit Reward' : 'Add New Reward'}</Text>
@@ -282,8 +308,12 @@ export default function ParentsRewardsScreen() {
               minHeight: 36,
               justifyContent: 'center'
             }}>
-              {children.length === 1 ? (
-                <Text style={{ color: themeColors.text, fontWeight: "600" }}>{children[0].name}</Text>
+              {loading ? (
+                <Text style={{ color: themeColors.textSecondary }}>Loading children...</Text>
+              ) : children.length > 0 ? (
+                <Text style={{ color: themeColors.text, fontWeight: "600" }}>
+                  {children.find(child => child.id === selectedChildId)?.name || children[0].name}
+                </Text>
               ) : (
                 <Text style={{ color: themeColors.textSecondary }}>No children found.</Text>
               )}
@@ -439,7 +469,7 @@ export default function ParentsRewardsScreen() {
             accessibilityHint="Reload latest information about your child's rewards"
             accessibilityState={{ disabled: loading }}
             onPress={() => {
-              const selectedChild = children.find(child => child._id === selectedChildId);
+              const selectedChild = children.find(child => child.id === selectedChildId);
               if (selectedChild) {
                 loadRewards(selectedChild.id);
               }
@@ -631,7 +661,7 @@ export default function ParentsRewardsScreen() {
                             showFeedback('Reward deleted successfully.');
                             setTimeout(() => showFeedback(''), 3000);
 
-                            const selectedChild = children.find(child => child._id === selectedChildId);
+                            const selectedChild = children.find(child => child.id === selectedChildId);
                             if (selectedChild) {
                               console.log('[FRONTEND DELETE REWARD] Reloading rewards for child:', selectedChild.id);
                               await loadRewards(selectedChild.id);
@@ -1002,4 +1032,19 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   suggestionBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 6, marginHorizontal: 2, marginVertical: 4, alignItems: 'center', minWidth: 70, maxWidth: 120 },
   suggestionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 12, textAlign: 'center' },
+  childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
+  childButton: {
+    backgroundColor: themeColors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    margin: 4,
+    minWidth: 80,
+    maxWidth: 180,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  childButtonSelected: { backgroundColor: themeColors.primary },
+  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonTextSelected: { color: themeColors.card },
 });
