@@ -3039,6 +3039,18 @@ router.post('/fix-parent-child-relationships', auth, requireParent, async (req, 
   }
 });
 
+/**
+ * Ensures all .user fields in analytics objects are strings for frontend filtering.
+ */
+function ensureUserString(arr, key = 'user') {
+  if (!Array.isArray(arr)) return arr;
+  return arr.map(obj => {
+    if (obj && obj[key] && typeof obj[key] !== 'string') {
+      return { ...obj, [key]: obj[key].toString() };
+    }
+    return obj;
+  });
+}
 // Analytics routes
 router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async (req, res) => {
   try {
@@ -3104,7 +3116,20 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       transactionQuery.createdAt = dateFilter;
     }
 
+    console.log('Analytics - Executing transaction query:', JSON.stringify(transactionQuery));
     const transactions = await Transaction.find(transactionQuery).sort({ createdAt: -1 }).select('user type description amount fromJar toJar createdAt');
+    console.log('Analytics - Found transactions:', transactions.length);
+
+    if (transactions.length === 0) {
+      // Debug: Try without user filter
+      const allTransactions = await Transaction.find({}).sort({ createdAt: -1 }).limit(5);
+      console.log('Analytics - Sample transactions in DB:', allTransactions.map(t => ({
+        user: t.user,
+        type: t.type,
+        amount: t.amount,
+        createdAt: t.createdAt
+      })));
+    }
 
     // Get family chores
     const chores = await Chore.find({
@@ -3207,11 +3232,32 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     // Get one family member for settings (they should be the same)
     const familyUser = familyMembers[0];
 
+    // Ensure all 'user' fields in analytics arrays are stringified for frontend filtering
+    const safeTransactions = ensureUserString(transactions);
+    const safeChores = ensureUserString(chores);
+    const safeGoals = ensureUserString(goals);
+    // Rewards: already mapped to POJOs, but user field missing - add user as string
+    const safeRewards = rawRewards.map(r => ({
+      _id: r._id?.toString(),
+      user: r.user?.toString ? r.user.toString() : (r.user || ''),
+      name: r.name,
+      cost: r.cost,
+      category: r.category,
+      purchased: r.purchased,
+      approved: r.approved,
+      approvedAt: r.approvedAt,
+      purchasedAt: r.purchasedAt,
+      status: r.status,
+      available: r.available,
+      completed: r.completed
+    }));
+    // realAllowances: childId is a string already
+
     const responseData = {
-      transactions,
-      chores,
-      goals,
-      rewards,
+      transactions: safeTransactions,
+      chores: safeChores,
+      goals: safeGoals,
+      rewards: safeRewards,
       realAllowances,
       user: familyUser,
       familyMembers: familyMembers.map(m => ({

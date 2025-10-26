@@ -408,11 +408,58 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
         const mongoChildId = selectedChildId; // MongoDB _id string
         const customChildId = selectedChild ? selectedChild.id : selectedChildId; // custom id for allowances
 
-        const childTransactions = analyticsData.transactions?.filter((t: any) => t.user === mongoChildId) || [];
-        const childChores = analyticsData.chores?.filter((c: any) => c.user === mongoChildId) || [];
-        const childGoals = analyticsData.goals?.filter((g: any) => g.user === mongoChildId) || [];
-        const childRewards = analyticsData.rewards?.filter((r: any) => r.user === mongoChildId) || [];
+        // Debug transaction filtering
+        console.log('AnalyticsOverview - DEBUG filtering transactions for mongoChildId:', mongoChildId);
+        if (analyticsData.transactions?.length > 0) {
+          console.log('AnalyticsOverview - DEBUG first transaction user field:', analyticsData.transactions[0].user, 'type:', typeof analyticsData.transactions[0].user);
+          console.log('AnalyticsOverview - DEBUG comparison test:', analyticsData.transactions[0].user === mongoChildId);
+          // Try converting ObjectId to string if needed
+          const userAsString = typeof analyticsData.transactions[0].user === 'object' ? analyticsData.transactions[0].user.toString() : analyticsData.transactions[0].user;
+          console.log('AnalyticsOverview - DEBUG converted user field:', userAsString, 'comparison:', userAsString === mongoChildId);
+        }
+
+        // Try multiple filtering approaches
+        const childTransactions = analyticsData.transactions?.filter((t: any) => {
+          const transactionUser = typeof t.user === 'object' ? t.user.toString() : t.user;
+          return transactionUser === mongoChildId;
+        }) || [];
+        const childChores = analyticsData.chores?.filter((c: any) => {
+          const choreUser = typeof c.user === 'object' ? c.user.toString() : c.user;
+          return choreUser === mongoChildId;
+        }) || [];
+        const childGoals = analyticsData.goals?.filter((g: any) => {
+          const goalUser = typeof g.user === 'object' ? g.user.toString() : g.user;
+          return goalUser === mongoChildId;
+        }) || [];
+        const childRewards = analyticsData.rewards?.filter((r: any) => {
+          const rewardUser = typeof r.user === 'object' ? r.user.toString() : r.user;
+          return rewardUser === mongoChildId;
+        }) || [];
         const childRealAllowances = analyticsData.realAllowances?.filter((ra: any) => ra.childId === customChildId) || [];
+
+        // More detailed debugging
+        console.log('AnalyticsOverview - DETAILED FILTERING:');
+        console.log('AnalyticsOverview - Total transactions:', analyticsData.transactions?.length || 0);
+        console.log('AnalyticsOverview - Total chores:', analyticsData.chores?.length || 0);
+        console.log('AnalyticsOverview - Total goals:', analyticsData.goals?.length || 0);
+        console.log('AnalyticsOverview - Total rewards:', analyticsData.rewards?.length || 0);
+
+        if (analyticsData.transactions?.length > 0) {
+          console.log('AnalyticsOverview - Sample transaction users:', analyticsData.transactions.slice(0, 3).map(t => ({
+            user: t.user,
+            userType: typeof t.user,
+            userString: typeof t.user === 'object' ? t.user.toString() : t.user,
+            matches: (typeof t.user === 'object' ? t.user.toString() : t.user) === mongoChildId
+          })));
+        }
+        if (analyticsData.chores?.length > 0) {
+          console.log('AnalyticsOverview - Sample chore users:', analyticsData.chores.slice(0, 3).map(c => ({
+            user: c.user,
+            userType: typeof c.user,
+            userString: typeof c.user === 'object' ? c.user.toString() : c.user,
+            matches: (typeof c.user === 'object' ? c.user.toString() : c.user) === mongoChildId
+          })));
+        }
 
         console.log('AnalyticsOverview - childTransactions count:', childTransactions.length);
         console.log('AnalyticsOverview - childChores count:', childChores.length);

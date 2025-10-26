@@ -170,16 +170,32 @@ export function processChoreCompletion(chores: any[], transactions: any[], days:
 
 // Process jar distribution analytics for a single user
 export function processJarDistribution(user: any, transactions: any[], days: number = 30): JarAnalytics[] {
+  console.log('[JAR DISTRIBUTION DEBUG] Input user:', {
+    id: user?.id,
+    name: user?.name,
+    currentPoints: user?.currentPoints,
+    savePoints: user?.savePoints,
+    spendPoints: user?.spendPoints,
+    donatePoints: user?.donatePoints,
+    investPoints: user?.investPoints
+  });
+  console.log('[JAR DISTRIBUTION DEBUG] Input transactions count:', transactions?.length || 0);
+  if (transactions?.length > 0) {
+    console.log('[JAR DISTRIBUTION DEBUG] Sample transaction:', transactions[0]);
+  }
+
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
 
   const jarStats: { [jar: string]: { deposits: number; withdrawals: number; current: number } } = {
-    current: { deposits: 0, withdrawals: 0, current: user.currentPoints || 0 },
-    save: { deposits: 0, withdrawals: 0, current: user.savePoints || 0 },
-    spend: { deposits: 0, withdrawals: 0, current: user.spendPoints || 0 },
-    donate: { deposits: 0, withdrawals: 0, current: user.donatePoints || 0 },
-    invest: { deposits: 0, withdrawals: 0, current: user.investPoints || 0 }
+    current: { deposits: 0, withdrawals: 0, current: user?.currentPoints || 0 },
+    save: { deposits: 0, withdrawals: 0, current: user?.savePoints || 0 },
+    spend: { deposits: 0, withdrawals: 0, current: user?.spendPoints || 0 },
+    donate: { deposits: 0, withdrawals: 0, current: user?.donatePoints || 0 },
+    invest: { deposits: 0, withdrawals: 0, current: user?.investPoints || 0 }
   };
+
+  console.log('[JAR DISTRIBUTION DEBUG] Initial jar stats:', jarStats);
 
   const recentTransactions = transactions.filter(t => {
     try {
