@@ -3105,23 +3105,24 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     }
 
     const transactions = await Transaction.find(transactionQuery).sort({ createdAt: -1 }).select('user type description amount fromJar toJar createdAt');
-    // Get family chores
+    const memberMongoIds = familyMembers.map(m => m._id);
+    const memberCustomIds = familyMembers.map(m => m.id);
+
+    // Get completed chores for all family members (by _id or id fields) for analytics
     const chores = await Chore.find({
-      user: { $in: familyMembers.map(m => m._id) }
+      completed: true,
+      user: { $in: [...memberMongoIds, ...memberCustomIds] }
     }).select('user name points frequency useDefaultSplit customSplit completed approved');
 
-    // Get family goals - only apply date filter to updatedAt if dates are provided
+    // Get completed goals (status: 'completed') for all members
     const goalQuery = {
-      user: { $in: familyMembers.map(m => m._id) },
-      $or: [
-        { status: 'active' },
-        { status: 'completed' }
-      ]
+      user: { $in: [...memberMongoIds, ...memberCustomIds] },
+      status: 'completed'
     };
 
     // Only add updatedAt date filter if we have date constraints
     if (Object.keys(dateFilter).length > 0) {
-      goalQuery.$or.push({ updatedAt: dateFilter });
+      goalQuery.updatedAt = dateFilter;
     }
 
     const goals = await Goal.find(goalQuery).select('user name targetAmount currentAmount deadline status jar createdAt');
