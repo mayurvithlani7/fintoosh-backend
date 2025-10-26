@@ -312,11 +312,28 @@ export function processGoalProgress(goals: any[]): GoalMetrics[] {
   const now = new Date();
 
   return goals.map(goal => {
+    console.log('[GOAL PROCESS DEBUG] Processing goal:', {
+      name: goal.name,
+      status: goal.status,
+      completed: goal.completed,
+      achieved: goal.achieved,
+      currentAmount: goal.currentAmount,
+      targetAmount: goal.targetAmount
+    });
+
     // Check if goal is completed (multiple ways to detect completion)
     const isCompleted = goal.status === 'completed' ||
                        goal.completed === true ||
                        goal.achieved === true ||
                        (goal.currentAmount && goal.targetAmount && goal.currentAmount >= goal.targetAmount);
+
+    console.log('[GOAL PROCESS DEBUG] Goal completion check:', {
+      statusCheck: goal.status === 'completed',
+      completedCheck: goal.completed === true,
+      achievedCheck: goal.achieved === true,
+      amountCheck: (goal.currentAmount && goal.targetAmount && goal.currentAmount >= goal.targetAmount),
+      isCompleted
+    });
 
     // If completed, set progress to 100%
     const progressPercent = isCompleted ? 100 :
@@ -524,7 +541,11 @@ export function processAnalyticsRawData(rawData: any): AnalyticsData {
     predictions,
     familyMembers: familyMembers,
     rewards: rewards,
-    realAllowances: realAllowances
+    realAllowances: realAllowances,
+    // Include raw data for child-specific filtering in AnalyticsOverview
+    transactions: transactions,
+    chores: chores,
+    goals: goals
   };
 
   console.log('[ANALYTICS PROCESS] Final result rewards:', result.rewards);

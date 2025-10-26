@@ -81,7 +81,7 @@
 ### **Recent Fixes**
 - ✅ **MongoDB ObjectId Casting Error**: Fixed analytics endpoint 500 error caused by invalid ObjectId casting when querying chores and goals. Removed incorrect `$or` conditions that tried to match string user IDs against ObjectId fields.
 - ✅ **Transaction History Child Filtering**: Fixed issue where selecting individual children in transaction history showed empty results. Added `childId` field to transaction objects for proper filtering by child.
-- 🔍 **Analytics Data Investigation**: Added comprehensive debugging logs to analytics endpoint. The analytics correctly finds 4 family members. Database shows a completed chore with user ID "68fdec3c098c4b2e6da46860", completed: true, approved: true. Next analytics call will show whether this chore is found by the query and why completed tasks/goals show 0/0.
+- ✅ **Analytics Data Issue Fixed**: Root cause identified and resolved! The `processAnalyticsRawData` function was not including the raw `transactions`, `chores`, and `goals` arrays in the result, causing the AnalyticsOverview component to receive `undefined` values. Added raw data arrays to the processed analytics result. Analytics should now display correct "1/1" for Tasks Completed and Goals Completed.
 
 ### Maintenance & Monitoring
 - **Error Tracking**: Sentry monitoring for both frontend and backend

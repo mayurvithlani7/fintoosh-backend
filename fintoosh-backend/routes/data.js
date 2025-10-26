@@ -3187,6 +3187,15 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       completed: r.completed
     }));
 
+    // Get family goals - convert to plain objects to ensure serialization
+    const processedGoals = await Goal.find(goalQuery).select('user name targetAmount currentAmount deadline status jar createdAt completed achieved').lean();
+
+    // Convert ObjectIds to strings for JSON serialization
+    processedGoals.forEach(g => {
+      g._id = g._id?.toString();
+      g.user = g.user?.toString();
+    });
+
     // Get real allowances for the family - show all allowances for analytics overview
     const realAllowances = await RealAllowance.find({
       familyId: familyId

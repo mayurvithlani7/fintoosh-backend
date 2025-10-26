@@ -393,6 +393,9 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
         // familyMembers from analytics API now include '_id' field
         // selectedChildId from fetchFamilyChildren is the MongoDB _id string
         // Match by _id first, then fallback to other logic
+        console.log('AnalyticsOverview - selectedChildId from state:', selectedChildId);
+        console.log('AnalyticsOverview - familyMembers available:', familyMembers.map(m => ({ _id: m._id, id: m.id, name: m.name, role: m.role })));
+
         const selectedChild = familyMembers.find((m: any) => m._id === selectedChildId) ||
                              familyMembers.find((m: any) => m.id === selectedChildId) ||
                              familyMembers.find((m: any) => m.role === 'child') ||
@@ -401,6 +404,8 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
         console.log('AnalyticsOverview - selectedChildId:', selectedChildId);
         console.log('AnalyticsOverview - found selected child:', selectedChild);
         console.log('AnalyticsOverview - selected child name:', selectedChild ? selectedChild.name : 'No child found');
+        console.log('AnalyticsOverview - selected child _id:', selectedChild ? selectedChild._id : 'No _id');
+        console.log('AnalyticsOverview - selected child id:', selectedChild ? selectedChild.id : 'No id');
 
         // Filter data to be child-specific instead of family-wide
         // Use selectedChildId (MongoDB _id string) for filtering transactions, chores, goals, rewards
