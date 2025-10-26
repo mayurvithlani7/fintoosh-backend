@@ -55,7 +55,10 @@ const userSchema = new mongoose.Schema({
   rewards: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Reward' }],
   transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' }],
   requests: [{}],
-  parentId: { type: String, default: null }, // links to parent user's id
+  caregivers: [{
+    userId: { type: String, required: true },
+    role: { type: String, enum: ['parent', 'guardian', 'step-parent', 'other'], default: 'parent' }
+  }], // replaces parentId, supports multiple caregivers
   userLevel: { type: Number, default: 1 },
   userExperience: { type: Number, default: 0 },
   achievements: [{ type: Object, default: [] }],

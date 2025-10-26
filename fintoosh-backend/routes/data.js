@@ -175,7 +175,7 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
 router.get('/users/children', auth, requireParent, async (req, res) => {
   try {
     const children = await User.find({
-      parentId: req.user.id,
+      'caregivers.userId': req.user.id,
       role: 'child'
     }).select('-password -pin -otpCode -otpExpiresAt -otpVerified');
 
@@ -530,13 +530,14 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
       // Reload and send updated reward after save
       const updatedReward = await Reward.findById(reward._id);
 
-      // Create approval request
-      const parentId = rewardOwner.parentId;
-      if (!parentId) return res.status(400).json({ message: 'No parent found for user.' });
+      // Create approval request - use first caregiver as primary approver
+      const primaryCaregiver = rewardOwner.caregivers && rewardOwner.caregivers.length > 0 ? rewardOwner.caregivers[0] : null;
+      if (!primaryCaregiver) return res.status(400).json({ message: 'No caregiver found for user.' });
       const approvalRequest = new ApprovalRequest({
         familyId: rewardOwner.familyId,
         childId: rewardOwner.id,
-        parentId,
+        parentId: primaryCaregiver.userId, // Backward compatibility field
+        caregiverId: primaryCaregiver.userId, // New field for clarity
         type: 'reward',
         name: reward.name,
         amount: reward.cost,
@@ -1409,11 +1410,11 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
     const { userId, note } = req.body;
     const childUser = await User.findOne({ id: userId });
     if (!childUser) return res.status(404).json({ message: 'Child user not found' });
-    const parentId = childUser.parentId;
-    if (!parentId) return res.status(400).json({ message: 'No parentId for this user.' });
+    const primaryCaregiver = childUser.caregivers && childUser.caregivers.length > 0 ? childUser.caregivers[0] : null;
+    if (!primaryCaregiver) return res.status(400).json({ message: 'No caregiver for this user.' });
 
     // ---------------- AUTO-APPROVAL LOGIC for chores & point moves ----------------
-    let parent = await User.findOne({ id: parentId });
+    let parent = await User.findOne({ id: primaryCaregiver.userId });
     let autoApprovalRules = (parent && parent.autoApprovalRules) || childUser.autoApprovalRules || {};
     let type = req.body.type;
     let autoApproved = false;
@@ -1637,7 +1638,8 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
       ...req.body,
       familyId: childUser.familyId,
       childId: userId,
-      parentId,
+      parentId: primaryCaregiver.userId, // Use primary caregiver
+      caregiverId: primaryCaregiver.userId, // New field for clarity
       status: 'Pending',
       createdAt: new Date()
     });
