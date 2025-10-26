@@ -694,7 +694,11 @@ export default function ParentTransactionHistoryScreen() {
       for (const child of childrenData) {
         const txs = await fetchTransactions(child.id, token, page);
         if (txs && txs.transactions) {
-          allTxs = allTxs.concat((txs.transactions || []).map((t: any) => ({ ...t, childName: child.name || child.id })));
+          allTxs = allTxs.concat((txs.transactions || []).map((t: any) => ({
+            ...t,
+            childName: child.name || child.id,
+            childId: child.id // Add childId field for filtering
+          })));
         }
       }
       setTransactions(allTxs);
@@ -712,8 +716,8 @@ export default function ParentTransactionHistoryScreen() {
   const filtered = transactions.filter(tx => {
     // Child filter
     if (selectedChildId !== 'all') {
-      const childId = tx.userId || tx.childId;
-      if (childId !== selectedChildId) return false;
+      const childId = tx.childId || tx.userId;
+      if (!childId || childId !== selectedChildId) return false;
     }
 
     const txDateStr = tx.date || tx.createdAt || "";

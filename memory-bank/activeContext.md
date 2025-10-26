@@ -71,12 +71,17 @@
 
 ## Current Operational State
 
-### Production Ready Features
-- **User Management**: Complete registration and authentication flows
+### **Fully Functional Features**
+- **User Onboarding**: Complete parent/child registration and setup flows
 - **Financial Operations**: All money jar transactions, chore rewards, goal tracking
 - **Communication**: In-app messaging, request approvals, family coordination
 - **Learning**: Educational modules, achievement tracking, progress monitoring
 - **Analytics**: Comprehensive financial insights, data visualization, reporting
+
+### **Recent Fixes**
+- ✅ **MongoDB ObjectId Casting Error**: Fixed analytics endpoint 500 error caused by invalid ObjectId casting when querying chores and goals. Removed incorrect `$or` conditions that tried to match string user IDs against ObjectId fields.
+- ✅ **Transaction History Child Filtering**: Fixed issue where selecting individual children in transaction history showed empty results. Added `childId` field to transaction objects for proper filtering by child.
+- 🔍 **Analytics Data Investigation**: Added debugging logs to analytics endpoint to investigate why Tasks Completed and Goals Completed show 0/0. The analytics endpoint now logs family member discovery and query results.
 
 ### Maintenance & Monitoring
 - **Error Tracking**: Sentry monitoring for both frontend and backend

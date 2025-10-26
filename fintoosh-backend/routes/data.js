@@ -3057,17 +3057,24 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
     const { familyId } = req.params;
     const { startDate, endDate } = req.query;
 
+    // Use the authenticated user's familyId instead of the parameter for security
+    const userFamilyId = req.user.familyId;
+
     // Verify user has access to this family
-    if (req.user.familyId !== familyId) {
+    if (userFamilyId !== familyId) {
       return res.status(403).json({ message: 'Not authorized to view analytics for this family' });
     }
 
     // Get all family members
-    console.log('Analytics - REQUEST familyId:', familyId, 'USER familyId:', req.user.familyId, 'USER id:', req.user.id);
+    console.log('Analytics - REQUEST familyId:', familyId, 'USER familyId:', userFamilyId, 'USER id:', req.user.id, 'USER role:', req.user.role);
 
     // Try different query approaches to debug
     console.log('Analytics - Executing User.find({ familyId }) query...');
-    let familyMembers = await User.find({ familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit familyId');
+    let familyMembers = await User.find({ familyId: userFamilyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit familyId');
+    console.log('Analytics - Found familyMembers count:', familyMembers.length);
+    if (familyMembers.length > 0) {
+      console.log('Analytics - First family member:', { id: familyMembers[0].id, name: familyMembers[0].name, familyId: familyMembers[0].familyId });
+    }
     // Fallback: try as string if empty
     if (familyMembers.length === 0) {
       familyMembers = await User.find({ familyId: String(familyId) }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit familyId');
