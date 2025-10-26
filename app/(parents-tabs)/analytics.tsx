@@ -26,6 +26,12 @@ export default function ParentsAnalyticsScreen() {
 
   const { analyticsData, loading, error, refetch, exportData, clearCache } = useAnalytics();
 
+  // Auto-refresh analytics data when component mounts
+  React.useEffect(() => {
+    clearCache(); // Clear any cached data
+    refetch(); // Fetch fresh data
+  }, [clearCache, refetch]);
+
   const handleExport = () => {
     const csvData = exportData();
     if (csvData) {

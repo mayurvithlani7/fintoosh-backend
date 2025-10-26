@@ -1,5 +1,6 @@
 import HelpModal from '@/components/HelpModal';
 import RealAllowanceForm, { RealAllowanceData } from '@/components/RealAllowanceForm';
+import RealAllowanceHistory from '@/components/RealAllowanceHistory';
 import { ActionSuggestions } from '@/components/ui/ActionSuggestions';
 import { EnhancedJar } from '@/components/ui/EnhancedJar';
 import { InterestMotivator } from '@/components/ui/InterestMotivator';
@@ -111,6 +112,7 @@ export default function ParentsOverviewScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
   const [realAllowanceFormVisible, setRealAllowanceFormVisible] = useState(false);
+  const [realAllowanceHistoryVisible, setRealAllowanceHistoryVisible] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     notifications: true,  // Always expanded if there are unread notifications
     interest: false,      // Collapsed by default - secondary info
@@ -598,6 +600,20 @@ export default function ParentsOverviewScreen() {
 
                 <TouchableOpacity
                   accessibilityRole="button"
+                  accessibilityLabel="View allowance history"
+                  accessibilityHint="See all recorded real allowances given to your children"
+                  style={[styles.moreActionBtn, { backgroundColor: themeColors.success }]}
+                  onPress={() => {
+                    setShowMoreActions(false);
+                    setRealAllowanceHistoryVisible(true);
+                  }}
+                >
+                  <Text style={styles.moreActionEmoji}>📜</Text>
+                  <Text style={[styles.moreActionText, { color: themeColors.card }]}>Allowance History</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  accessibilityRole="button"
                   accessibilityLabel="Close menu"
                   accessibilityHint="Close the more actions menu"
                   style={[styles.moreActionBtn, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}
@@ -838,6 +854,13 @@ export default function ParentsOverviewScreen() {
         onSubmit={handleRealAllowanceSubmit}
         children={familyChildren}
         loading={false}
+      />
+
+      {/* Real Allowance History */}
+      <RealAllowanceHistory
+        visible={realAllowanceHistoryVisible}
+        onClose={() => setRealAllowanceHistoryVisible(false)}
+        children={familyChildren}
       />
     </ScrollView>
   );

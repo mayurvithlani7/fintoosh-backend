@@ -3063,11 +3063,10 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       completed: r.completed
     })));
 
-    // Get real allowances for the family
+    // Get real allowances for the family - show all allowances for analytics overview
     const realAllowances = await RealAllowance.find({
-      familyId: req.user.familyId,
-      date: dateFilter
-    }).sort({ date: -1 });
+      familyId: req.user.familyId
+    }).sort({ date: -1 }).limit(50); // Limit to prevent too much data
 
     console.log('Analytics - found real allowances:', realAllowances.length, realAllowances.map(r => ({
       childId: r.childId,
