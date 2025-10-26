@@ -131,6 +131,7 @@ interface UserData {
   transactions?: any[];
   badges?: any[];
   rewards?: any[];
+  caregivers?: Array<{ userId: string; role: string; name?: string | null }>;
 }
 
 interface Activity {
@@ -404,6 +405,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
   // Local UI state not managed by reducer
   const [helpModalVisible, setHelpModalVisible] = React.useState(false);
+  const [caregivers, setCaregivers] = React.useState<Array<{ userId: string; role: string; name?: string | null }>>([]);
 
   // Shared API call function with request deduplication and AbortController
   const fetchUserData = useCallback(async (requestId: string) => {
@@ -937,6 +939,43 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
         {/* Time-Based Contextual Content */}
         <TimeBasedContent dynamicStyles={dynamicStyles} themeColors={themeColors} />
+
+        {/* Caregivers Section */}
+        {userData && userData.caregivers && userData.caregivers.length > 0 && (
+          <View style={[dynamicStyles.quickActionCard, { backgroundColor: themeColors.surface + '80', borderColor: themeColors.success }]} >
+            <Text style={[dynamicStyles.sectionTitle, { color: themeColors.success, textAlign: 'center' }]}>
+              👨‍👩‍👧‍👦 My Family Caregivers
+            </Text>
+            <Text style={{ textAlign: 'center', color: themeColors.textSecondary, fontSize: 14, marginBottom: 12 }}>
+              These amazing people help me with my money journey!
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+              {userData.caregivers.map((caregiver: any, index: number) => (
+                <View key={index} style={{
+                  backgroundColor: themeColors.card,
+                  borderRadius: 12,
+                  padding: 12,
+                  minWidth: 100,
+                  alignItems: 'center',
+                  elevation: 2,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 2,
+                  borderWidth: 1,
+                  borderColor: themeColors.border
+                }}>
+                  <Text style={{ fontSize: 24, marginBottom: 4 }}>
+                    {caregiver.role === 'parent' ? '👨' : caregiver.role === 'guardian' ? '👩' : '❤️'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: themeColors.textSecondary, textAlign: 'center' }}>
+                    {caregiver.role ? caregiver.role.charAt(0).toUpperCase() + caregiver.role.slice(1) : 'Caregiver'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Gamified Progress Bar */}
