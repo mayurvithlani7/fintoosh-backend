@@ -3104,12 +3104,12 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       transactionQuery.createdAt = dateFilter;
     }
 
-    const transactions = await Transaction.find(transactionQuery).sort({ createdAt: -1 });
+    const transactions = await Transaction.find(transactionQuery).sort({ createdAt: -1 }).select('user type description amount fromJar toJar createdAt');
 
     // Get family chores
     const chores = await Chore.find({
       user: { $in: familyMembers.map(m => m._id) }
-    }).select('name points frequency useDefaultSplit customSplit');
+    }).select('name points frequency useDefaultSplit customSplit user');
 
     console.log('Analytics - found chores:', chores.length, chores.map(c => ({ name: c.name, completed: c.completed, approved: c.approved, user: c.user })));
     console.log('Analytics - family member IDs:', familyMembers.map(m => m._id.toString()));
@@ -3128,7 +3128,7 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       goalQuery.$or.push({ updatedAt: dateFilter });
     }
 
-    const goals = await Goal.find(goalQuery).select('name targetAmount currentAmount deadline status jar createdAt');
+    const goals = await Goal.find(goalQuery).select('name targetAmount currentAmount deadline status jar createdAt user');
 
     // Get family rewards - get all rewards for progress overview
     console.log('Analytics - looking for rewards with user IDs:', familyMembers.map(m => m._id.toString()));
