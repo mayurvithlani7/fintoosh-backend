@@ -14,6 +14,7 @@ const ParentMilestone = require('../models/ParentMilestone');
 const FamilyDiscussion = require('../models/FamilyDiscussion');
 const FamilyTimeline = require('../models/FamilyTimeline');
 const DreamBoard = require('../models/DreamBoard');
+const RealAllowance = require('../models/RealAllowance');
 const Notification = require('../models/Notification');
 const { calculateNextDueDate } = require('../scripts/recurringTasksJob');
 const { auth, requireParent } = require('../middleware/auth');
@@ -3382,6 +3383,139 @@ const handleRunRecurringJobs = (req, res) => {
 
 router.get('/run-recurring-jobs', handleRunRecurringJobs);
 router.post('/run-recurring-jobs', handleRunRecurringJobs);
+
+// Real Allowance routes
+router.get('/real-allowances', auth, requireParent, async (req, res) => {
+  try {
+    const { childId, page = 1, limit = 20 } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build query
+    let query = { familyId: req.user.familyId };
+    if (childId) {
+      query.childId = childId;
+    }
+
+    // Get total count for pagination
+    const totalAllowances = await RealAllowance.countDocuments(query);
+
+    const allowances = await RealAllowance.find(query)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      allowances,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalAllowances,
+        totalPages: Math.ceil(totalAllowances / limit),
+        hasNextPage: page < Math.ceil(totalAllowances / limit),
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post('/real-allowances', auth, requireParent, sanitizeInput, async (req, res) => {
+  try {
+    const { childId, amount, currency, date, method, note, category } = req.body;
+
+    // Validate required fields
+    if (!childId || !amount) {
+      return res.status(400).json({ message: 'childId and amount are required' });
+    }
+
+    // Verify child belongs to parent's family
+    const child = await User.findOne({ id: childId, familyId: req.user.familyId, role: 'child' });
+    if (!child) {
+      return res.status(404).json({ message: 'Child not found in your family' });
+    }
+
+    // Validate amount
+    if (amount <= 0 || amount > 100000) {
+      return res.status(400).json({ message: 'Amount must be between 0.01 and 100,000' });
+    }
+
+    const realAllowance = new RealAllowance({
+      familyId: req.user.familyId,
+      childId,
+      parentId: req.user.id,
+      amount: parseFloat(amount),
+      currency: currency || 'INR',
+      date: date ? new Date(date) : new Date(),
+      method: method || 'Cash',
+      note: note || '',
+      category: category || 'Allowance'
+    });
+
+    const savedAllowance = await realAllowance.save();
+    res.status(201).json(savedAllowance);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.patch('/real-allowances/:allowanceId', auth, requireParent, sanitizeInput, async (req, res) => {
+  try {
+    const { allowanceId } = req.params;
+    const updates = req.body;
+
+    const allowance = await RealAllowance.findById(allowanceId);
+    if (!allowance) {
+      return res.status(404).json({ message: 'Real allowance record not found' });
+    }
+
+    // Verify ownership
+    if (allowance.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to update this record' });
+    }
+
+    // Only allow updating certain fields
+    const allowedUpdates = ['amount', 'currency', 'date', 'method', 'note', 'category'];
+    const filteredUpdates = {};
+    for (const key of allowedUpdates) {
+      if (updates[key] !== undefined) {
+        filteredUpdates[key] = updates[key];
+      }
+    }
+
+    if (filteredUpdates.amount !== undefined && (filteredUpdates.amount <= 0 || filteredUpdates.amount > 100000)) {
+      return res.status(400).json({ message: 'Amount must be between 0.01 and 100,000' });
+    }
+
+    Object.assign(allowance, filteredUpdates, { updatedAt: new Date() });
+    await allowance.save();
+
+    res.json(allowance);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.delete('/real-allowances/:allowanceId', auth, requireParent, async (req, res) => {
+  try {
+    const { allowanceId } = req.params;
+
+    const allowance = await RealAllowance.findById(allowanceId);
+    if (!allowance) {
+      return res.status(404).json({ message: 'Real allowance record not found' });
+    }
+
+    // Verify ownership
+    if (allowance.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to delete this record' });
+    }
+
+    await RealAllowance.findByIdAndDelete(allowanceId);
+    res.json({ message: 'Real allowance record deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete real allowance record', error: error.message });
+  }
+});
 
 /**
  * GET /notifications?userId=...

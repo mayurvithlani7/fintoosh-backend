@@ -1,4 +1,5 @@
 import HelpModal from '@/components/HelpModal';
+import RealAllowanceForm, { RealAllowanceData } from '@/components/RealAllowanceForm';
 import { ActionSuggestions } from '@/components/ui/ActionSuggestions';
 import { EnhancedJar } from '@/components/ui/EnhancedJar';
 import { InterestMotivator } from '@/components/ui/InterestMotivator';
@@ -109,6 +110,7 @@ export default function ParentsOverviewScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
+  const [realAllowanceFormVisible, setRealAllowanceFormVisible] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     notifications: true,  // Always expanded if there are unread notifications
     interest: false,      // Collapsed by default - secondary info
@@ -139,8 +141,8 @@ export default function ParentsOverviewScreen() {
       const summaryResponse = await fetch(`${API_URL}/interest/summary/${childData._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-        },
-      });
+  },
+});
 
       if (summaryResponse.ok) {
         const summaryData = await summaryResponse.json();
@@ -216,6 +218,36 @@ export default function ParentsOverviewScreen() {
     setRefreshing(true);
     fetchChildData(true).finally(() => setRefreshing(false));
   }, [fetchChildData]);
+
+  // Handle real allowance form submission
+  const handleRealAllowanceSubmit = useCallback(async (data: RealAllowanceData) => {
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
+      const response = await fetch(`${API_URL}/real-allowances`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save real allowance');
+      }
+
+      // Success - could show a success message or refresh data
+      console.log('Real allowance saved successfully');
+    } catch (error) {
+      console.error('Error saving real allowance:', error);
+      throw error; // Re-throw to let the form handle it
+    }
+  }, []);
 
 
 
@@ -309,6 +341,8 @@ export default function ParentsOverviewScreen() {
           />
         ) : null;
       })()}
+
+
 
       {/* Child Jars Panel */}
       <View style={[styles.sectionCard, {
@@ -519,6 +553,20 @@ export default function ParentsOverviewScreen() {
                 >
                   <Text style={styles.moreActionEmoji}>📜</Text>
                   <Text style={[styles.moreActionText, { color: themeColors.card }]}>See History</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Record real allowance"
+                  accessibilityHint="Log actual cash or digital allowances given to your child"
+                  style={[styles.moreActionBtn, { backgroundColor: themeColors.accent }]}
+                  onPress={() => {
+                    setShowMoreActions(false);
+                    setRealAllowanceFormVisible(true);
+                  }}
+                >
+                  <Text style={styles.moreActionEmoji}>💵</Text>
+                  <Text style={[styles.moreActionText, { color: themeColors.card }]}>Record Allowance</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -755,9 +803,21 @@ export default function ParentsOverviewScreen() {
           }
         ]}
       />
+
+      {/* Real Allowance Form */}
+      <RealAllowanceForm
+        visible={realAllowanceFormVisible}
+        onClose={() => setRealAllowanceFormVisible(false)}
+        onSubmit={handleRealAllowanceSubmit}
+        children={[]} // TODO: Pass actual children list from data cache
+        loading={false}
+      />
     </ScrollView>
   );
 }
+
+
+
 function getNextInterestPayout(
   rule: InterestRuleType,
   childData: { lastInterestPayoutDate?: string }

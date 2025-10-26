@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
 const KidsHomeScreen = memo(function KidsHomeScreen() {
   // For quick actions show-more toggle
   const [showMore, setShowMore] = useState(false);
-  const { themeColors, theme, setTheme, themes } = useTheme();
+  const { themeColors } = useTheme();
   const { refreshIntervals, formatAmount } = useCurrency();
   // Theme validation test - toggle between themes to verify color changes
   const [testTheme, setTestTheme] = useState(false);
@@ -460,7 +460,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         }
       } catch (txError) {
         if (!controller.signal.aborted) {
-          console.log('RECENT_ADVENTURES_LOG: Could not load transactions, error:', txError.message);
+          console.log('RECENT_ADVENTURES_LOG: Could not load transactions, error:', txError instanceof Error ? txError.message : String(txError));
         }
       }
 
@@ -526,7 +526,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             rewards = rewardsData.rewards || [];
           }
         } catch (fetchError) {
-          console.log('Could not fetch goals/badges/rewards, using empty arrays:', fetchError.message);
+          console.log('Could not fetch goals/badges/rewards, using empty arrays:', fetchError instanceof Error ? fetchError.message : String(fetchError));
         }
 
         const jars = [
@@ -1425,6 +1425,8 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     </SafeAreaView>
   );
 });
+
+
 
 // Wrap with swipe navigation for tabs. Order MUST match your Tabs!
 export default function KidsHomeScreenWithSwipe() {

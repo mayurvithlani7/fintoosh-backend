@@ -41,6 +41,7 @@ export default function RootLayout() {
                     <Stack.Screen name="test" options={{ title: "Test Components" }} />
                     <Stack.Screen name="(parents-tabs)" options={{ headerShown: false }} />
                     <Stack.Screen name="(kids-tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(festivals)" options={{ headerShown: false }} />
                   </Stack>
                   <OfflineIndicator />
                   <GlobalSnackbar />
