@@ -342,10 +342,12 @@ export default function ParentsOverviewScreen() {
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={selectedChildId || ''}
-              onValueChange={(value) => {
+              onValueChange={async (value) => {
                 setSelectedChildId(value);
-                // Here we would typically refetch data for the selected child
-                // For now, we'll just update the selection state
+                // Fetch data for the newly selected child
+                await fetchChildData(true, value); // Force refresh with specific child
+                // Also refresh interest data for the selected child
+                await fetchInterestData();
               }}
               style={{ height: 50 }}
             >

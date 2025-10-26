@@ -26,7 +26,7 @@ interface DataCacheContextType {
     goals: number | null;
   };
   // Core cache helpers
-  fetchChildData: (force?: boolean) => Promise<void>;
+  fetchChildData: (force?: boolean, childId?: string) => Promise<void>;
   fetchChores: (force?: boolean) => Promise<void>;
   fetchRequests: (force?: boolean) => Promise<void>;
   fetchGoals: (force?: boolean) => Promise<void>;
@@ -71,7 +71,7 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 
   // Batch API request for optimized data fetching
-  const fetchChildData = useCallback(async (force = false) => {
+  const fetchChildData = useCallback(async (force = false, childId?: string) => {
     if (!force && !isDataStale('childData')) return;
     setChildDataStatus('loading');
     try {
@@ -80,7 +80,7 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const currentUserStr = await AsyncStorage.getItem('user');
       const token = await getAuthToken();
 
-      console.log('fetchChildData: userStr exists:', !!currentUserStr, 'token exists:', !!token);
+      console.log('fetchChildData: userStr exists:', !!currentUserStr, 'token exists:', !!token, 'childId:', childId);
 
       if (!currentUserStr || !token) {
         throw new Error('No user session found');
@@ -126,13 +126,24 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       const children = await res.json();
+      console.log('fetchChildData: fetched children count:', children?.length || 0);
 
-      // For now, return the first child (assuming single child per family)
-      // TODO: Update UI to handle multiple children
-      const childData = children && children.length > 0 ? children[0] : null;
+      let selectedChild = null;
 
-      console.log('fetchChildData: setting childData:', childData?.name || 'null');
-      setChildData(childData);
+      if (children && children.length > 0) {
+        if (childId) {
+          // Find the specific child by ID
+          selectedChild = children.find((child: any) => child.id === childId) || null;
+          console.log('fetchChildData: found specific child:', selectedChild?.name || 'not found');
+        } else {
+          // Default to first child if no specific child requested
+          selectedChild = children[0];
+          console.log('fetchChildData: using first child:', selectedChild?.name || 'null');
+        }
+      }
+
+      console.log('fetchChildData: setting childData:', selectedChild?.name || 'null');
+      setChildData(selectedChild);
       setLastFetched(prev => ({ ...prev, childData: Math.floor(Date.now() / 1000) }));
       setChildDataStatus('idle');
     } catch (err) {
