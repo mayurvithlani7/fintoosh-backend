@@ -2337,10 +2337,11 @@ router.post('/achievements/:userId/streak', auth, async (req, res) => {
       '🔥'
     );
 
-    // Update streak
+    // Update streak - increment current streak
+    const currentStreak = achievement.streakCount || 0;
     const updatedAchievement = await achievement.updateProgress(
       achievement.progress,
-      { current: (achievement.streakCount || 0) + 1 }
+      { current: currentStreak + 1 }
     );
 
     res.json(updatedAchievement);
@@ -2387,7 +2388,20 @@ router.post('/achievements/:userId/check-milestones', auth, async (req, res) => 
     );
     await goalAchievement.updateProgress(completedGoals);
 
-    res.json({ message: 'Milestones checked and updated' });
+    // Also update learning streak if needed
+    const learningAchievement = await Achievement.getOrCreate(
+      user._id, 'learning_streak', 7, 'Learning Streak', 'Learn for 7 days in a row', '🔥'
+    );
+
+    // Update quiz master achievement
+    const quizAchievement = await Achievement.getOrCreate(
+      user._id, 'quiz_master', 20, 'Quiz Master', 'Answer 20 quiz questions correctly', '🧠'
+    );
+
+    res.json({
+      message: 'Milestones checked and updated',
+      achievements: [pointsAchievement, choreAchievement, goalAchievement, learningAchievement, quizAchievement]
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

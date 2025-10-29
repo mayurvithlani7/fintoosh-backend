@@ -329,33 +329,37 @@ export default function KidsGuideScreen() {
       ]
     },
     {
-      title: "📞 Getting Help",
+      title: "�‍👩‍👦 Family Helpers",
       content: [
         {
           type: "text",
-          text: "Never get stuck - there's always someone to help!",
-          icon: "📞"
+          text: "You might have lots of family helpers who can help you with money!",
+          icon: "�‍👩‍👧‍👦"
         },
         {
           type: "bullet",
-          text: "Tap the ❓ button on any screen for hints"
+          text: "Parents, step-parents, grandparents can all help!"
         },
         {
           type: "bullet",
-          text: "Ask your parent if you need help with the app"
+          text: "Any family helper can approve your requests"
         },
         {
           type: "bullet",
-          text: "Look for guide messages when you first start"
+          text: "You can ask anyone for help with the app"
         },
         {
           type: "bullet",
-          text: "Check notifications for important updates"
+          text: "Check your Home screen to see all your helpers"
+        },
+        {
+          type: "bullet",
+          text: "All helpers get your notifications and updates"
         },
         {
           type: "highlight",
-          text: "Everyone needs help sometimes - asking questions makes you smarter!",
-          icon: "🧠"
+          text: "You have a whole team helping you become a money expert!",
+          icon: "�"
         }
       ]
     },
@@ -573,7 +577,7 @@ export default function KidsGuideScreen() {
               },
               {
                 type: "bullet",
-                text: "Ask your parent to explain anything confusing"
+                text: "Ask any family helper (parent, step-parent, grandparent) to explain"
               },
               {
                 type: "bullet",
@@ -584,9 +588,13 @@ export default function KidsGuideScreen() {
                 text: "Look at the pictures and examples"
               },
               {
+                type: "bullet",
+                text: "Check your Home screen to see all your family helpers"
+              },
+              {
                 type: "highlight",
-                text: "You're doing great just by trying to learn!",
-                icon: "🌟"
+                text: "You have a whole team helping you become a money expert!",
+                icon: "👨‍👩‍👧‍👦"
               }
             ]
           }

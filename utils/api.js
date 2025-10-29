@@ -27,8 +27,10 @@ const PERFORMANCE_THRESHOLDS = {
   TIMEOUT_MS: 10000 // 10 seconds
 };
 
-// Request deduplication cache
-const pendingRequests = new Map();
+// Import request deduplication utility
+const { deduplicatedFetch, cancelPendingRequests, cancelAllPendingRequests, getDeduplicationStats } = require('./requestDeduplication');
+
+// Legacy cache for backward compatibility (request deduplication now handled by deduplication utility)
 const requestCache = new Map();
 
 // Loading state management
@@ -92,27 +94,17 @@ async function enhancedFetch(
     timeout = PERFORMANCE_THRESHOLDS.TIMEOUT_MS,
     retries = 0,
     feature = 'api',
-    useCache = false
+    useCache = false,
+    deduplicationKey
   } = {}
 ) {
   const startTime = Date.now();
-  const controller = new AbortController();
-  let timeoutId;
-
-  // Create cache key for deduplication
-  const cacheKey = `${options.method || 'GET'}-${url}`;
-
-  // Check for pending duplicate requests
-  if (pendingRequests.has(cacheKey)) {
-    console.log(`Deduplicating request: ${cacheKey}`);
-    return pendingRequests.get(cacheKey);
-  }
 
   // Check cache for GET requests
-  if (useCache && options.method === 'GET' && requestCache.has(cacheKey)) {
-    const cached = requestCache.get(cacheKey);
+  if (useCache && options.method === 'GET' && requestCache.has(url)) {
+    const cached = requestCache.get(url);
     if (Date.now() - cached.timestamp < 30000) { // 30 second cache
-      console.log(`Using cached response for: ${cacheKey}`);
+      console.log(`Using cached response for: ${url}`);
       return cached.data;
     }
   }
@@ -122,7 +114,10 @@ async function enhancedFetch(
     setLoadingState(loadingKey, true);
   }
 
-  // Create timeout
+  // Create timeout controller
+  const controller = new AbortController();
+  let timeoutId;
+
   if (timeout > 0) {
     timeoutId = setTimeout(() => {
       controller.abort();
@@ -131,96 +126,91 @@ async function enhancedFetch(
     }, timeout);
   }
 
-  // Create request promise
-  const requestPromise = (async () => {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-      });
+  // Enhanced options with abort signal
+  const enhancedOptions = {
+    ...options,
+    signal: controller.signal,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  };
 
-      // Clear timeout
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+  try {
+    // Use deduplicated fetch for automatic deduplication
+    const response = await deduplicatedFetch(url, enhancedOptions, deduplicationKey);
 
-      // Handle rate limiting with retry
-      if (response.status === 429 && retries < PERFORMANCE_THRESHOLDS.MAX_RETRIES) {
-        const retryAfter = response.headers.get('Retry-After');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 1000;
-
-        console.warn(`Rate limited, retrying in ${waitTime}ms`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-
-        return enhancedFetch(url, options, {
-          loadingKey,
-          timeout,
-          retries: retries + 1,
-          feature,
-          useCache
-        });
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      // Cache successful GET responses
-      if (useCache && options.method === 'GET') {
-        requestCache.set(cacheKey, {
-          data,
-          timestamp: Date.now()
-        });
-      }
-
-      recordRequestMetrics(startTime, true);
-      return data;
-
-    } catch (error) {
-      recordRequestMetrics(startTime, false, error.name === 'AbortError');
-
-      if (error.name === 'AbortError') {
-        throw new Error('Request was cancelled');
-      }
-
-      // Retry on network errors
-      if (retries < PERFORMANCE_THRESHOLDS.MAX_RETRIES &&
-          (error.message.includes('fetch') || error.message.includes('network'))) {
-        console.warn(`Network error, retrying (${retries + 1}/${PERFORMANCE_THRESHOLDS.MAX_RETRIES}): ${error.message}`);
-
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retries + 1))); // Exponential backoff
-
-        return enhancedFetch(url, options, {
-          loadingKey,
-          timeout,
-          retries: retries + 1,
-          feature,
-          useCache
-        });
-      }
-
-      throw error;
-    } finally {
-      // Clear loading state
-      if (loadingKey) {
-        setLoadingState(loadingKey, false);
-      }
-
-      // Remove from pending requests
-      pendingRequests.delete(cacheKey);
+    // Clear timeout
+    if (timeoutId) {
+      clearTimeout(timeoutId);
     }
-  })();
 
-  // Store pending request for deduplication
-  pendingRequests.set(cacheKey, requestPromise);
+    // Handle rate limiting with retry
+    if (response.status === 429 && retries < PERFORMANCE_THRESHOLDS.MAX_RETRIES) {
+      const retryAfter = response.headers.get('Retry-After');
+      const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 1000;
 
-  return requestPromise;
+      console.warn(`Rate limited, retrying in ${waitTime}ms`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+
+      return enhancedFetch(url, options, {
+        loadingKey,
+        timeout,
+        retries: retries + 1,
+        feature,
+        useCache,
+        deduplicationKey
+      });
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Cache successful GET responses
+    if (useCache && options.method === 'GET') {
+      requestCache.set(url, {
+        data,
+        timestamp: Date.now()
+      });
+    }
+
+    recordRequestMetrics(startTime, true);
+    return data;
+
+  } catch (error) {
+    recordRequestMetrics(startTime, false, error.name === 'AbortError');
+
+    if (error.name === 'AbortError') {
+      throw new Error('Request was cancelled');
+    }
+
+    // Retry on network errors
+    if (retries < PERFORMANCE_THRESHOLDS.MAX_RETRIES &&
+        (error.message.includes('fetch') || error.message.includes('network'))) {
+      console.warn(`Network error, retrying (${retries + 1}/${PERFORMANCE_THRESHOLDS.MAX_RETRIES}): ${error.message}`);
+
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retries + 1))); // Exponential backoff
+
+      return enhancedFetch(url, options, {
+        loadingKey,
+        timeout,
+        retries: retries + 1,
+        feature,
+        useCache,
+        deduplicationKey
+      });
+    }
+
+    throw error;
+  } finally {
+    // Clear loading state
+    if (loadingKey) {
+      setLoadingState(loadingKey, false);
+    }
+  }
 }
 
 // Get performance metrics

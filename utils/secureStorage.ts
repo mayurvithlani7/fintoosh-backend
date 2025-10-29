@@ -239,3 +239,31 @@ export const getAuthToken = secureStorage.getAuthToken;
 export const saveAuthToken = secureStorage.setAuthToken;
 export const saveUserData = secureStorage.setUser;
 export const getUserData = secureStorage.getUser;
+
+// Refresh user data from API (useful when cached data might be stale)
+export const refreshUserData = async (): Promise<UserProfile | null> => {
+  try {
+    const currentUser = await secureStorage.getUser();
+    if (!currentUser) return null;
+
+    const { fetchUser } = await import('./api');
+    const token = await secureStorage.getAuthToken();
+
+    if (!token) return currentUser; // Return cached data if no token
+
+    const freshUserData = await fetchUser(currentUser.id, token);
+
+    // Update cached data with fresh data
+    await secureStorage.setUser({
+      ...currentUser,
+      ...freshUserData,
+      caregivers: freshUserData.caregivers // Ensure caregivers are included
+    });
+
+    return freshUserData;
+  } catch (error) {
+    console.error('Error refreshing user data:', error);
+    // Return cached data on error
+    return await secureStorage.getUser();
+  }
+};

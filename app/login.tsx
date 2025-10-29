@@ -118,23 +118,40 @@ export default function LoginScreen() {
       await clearAllAuthData();
       console.log('Login response token length:', data.token.length, 'user object size:', JSON.stringify(data.user).length);
 
-      // Store minimal user data to avoid SecureStore size limits
-      const minimalUserData = {
-        _id: data.user._id,
-        id: data.user.id,
-        familyId: data.user.familyId,
-        name: data.user.name,
-        email: data.user.email,
-        role: data.user.role,
-        status: data.user.status,
-        avatar: data.user.avatar,
-        parentId: data.user.parentId,
-        username: data.user.username
+      // Fetch complete user profile with caregivers data from /users/:id endpoint
+      console.log('[LOGIN] Fetching complete user profile for userId:', data.user.id);
+      const { fetchUser } = await import('@/utils/api');
+      const fullUserData = await fetchUser(data.user.id, data.token);
+
+      console.log('[LOGIN] Full user profile received:', {
+        hasCaregivers: !!(fullUserData.caregivers),
+        caregiversCount: fullUserData.caregivers?.length || 0,
+        parentId: fullUserData.parentId
+      });
+
+      // Store complete user data including caregivers
+      const completeUserData = {
+        _id: fullUserData._id,
+        id: fullUserData.id,
+        familyId: fullUserData.familyId,
+        name: fullUserData.name,
+        email: fullUserData.email,
+        role: fullUserData.role,
+        status: fullUserData.status,
+        avatar: fullUserData.avatar,
+        parentId: fullUserData.parentId,
+        username: fullUserData.username,
+        caregivers: fullUserData.caregivers, // Include caregivers!
+        // Include other fields that might be needed
+        goals: fullUserData.goals,
+        chores: fullUserData.chores,
+        rewards: fullUserData.rewards,
+        transactions: fullUserData.transactions
       };
 
       await saveAuthToken(data.token);
-      await saveUserData(minimalUserData);
-      console.log('Login successful: stored token and minimal user data securely');
+      await saveUserData(completeUserData);
+      console.log('[LOGIN] Login successful: stored token and complete user profile with caregivers');
 
       // Ensure token and user data are actually stored
       let retries = 0;

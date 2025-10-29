@@ -3,11 +3,11 @@ import { useTheme } from '@/utils/themeContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function UserGuideScreen() {
@@ -19,20 +19,24 @@ export default function UserGuideScreen() {
 
   const guideTabs = [
     {
-      title: "🚀 Quick Start",
+      title: "�‍👩‍👦 Family Management",
       content: [
         {
           type: "text",
-          text: "Welcome to Fintoosh! This guide will help you get started with teaching your child about money management.",
+          text: "Welcome to Fintoosh! This guide will help you get started with teaching your children about money management.",
           icon: "🎉"
         },
         {
           type: "bullet",
-          text: "Download the app and create your parent account"
+          text: "Download the app and create the first parent account"
         },
         {
           type: "bullet",
-          text: "Add your child with a username and PIN"
+          text: "Choose: New Family or Join Existing Family (for multiple parents)"
+        },
+        {
+          type: "bullet",
+          text: "Add your children with usernames and PINs"
         },
         {
           type: "bullet",
@@ -40,12 +44,12 @@ export default function UserGuideScreen() {
         },
         {
           type: "bullet",
-          text: "Create initial chores and watch your child explore!"
+          text: "Create initial chores and watch your children explore!"
         },
         {
           type: "highlight",
-          text: "Your child gets a guided tour and welcome task automatically!",
-          icon: "⭐"
+          text: "Multiple parents can share family management using family codes!",
+          icon: "👨‍👩‍👧‍👦"
         }
       ]
     },
@@ -264,7 +268,42 @@ export default function UserGuideScreen() {
       ]
     },
     {
-      title: "🚨 Troubleshooting",
+      title: "�‍👩‍👦 Family Management",
+      content: [
+        {
+          type: "text",
+          text: "Fintoosh supports modern family structures with multiple parents and children:",
+          icon: "👨‍👩‍👧‍👦"
+        },
+        {
+          type: "bullet",
+          text: "Multiple caregivers can join using family codes (FAM-ABC123)"
+        },
+        {
+          type: "bullet",
+          text: "Any caregiver can approve requests and manage children"
+        },
+        {
+          type: "bullet",
+          text: "Easy switching between multiple children in parent dashboard"
+        },
+        {
+          type: "bullet",
+          text: "Shared notifications and family-wide updates"
+        },
+        {
+          type: "bullet",
+          text: "Perfect for step-parents, grandparents, or divorced co-parents"
+        },
+        {
+          type: "highlight",
+          text: "Family codes make it easy to coordinate parenting responsibilities!",
+          icon: "🔗"
+        }
+      ]
+    },
+    {
+      title: "�🚨 Troubleshooting",
       content: [
         {
           type: "text",

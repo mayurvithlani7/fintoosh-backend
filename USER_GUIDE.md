@@ -10,16 +10,21 @@ This guide will walk you through everything you need to know to get started and 
 
 ## 🚀 Quick Start: Your First 30 Minutes
 
-### **Step 1: Parent Setup (10 minutes)**
+### **Step 1: Family Setup (10 minutes)**
 1. **Download the app** from App Store or Google Play
-2. **Create your parent account**:
+2. **Create the first parent account**:
    - Enter your email address
    - Verify with OTP sent to your phone
    - Set a strong password
-3. **Add your first child**:
+3. **Choose your setup path**:
+   - **New Family**: Create a fresh family account
+   - **Join Existing Family**: Use a family code to join (for multiple parents)
+4. **Add your first child**:
    - Choose their name and avatar
    - Create a simple username (e.g., "alex2025")
    - Set a 4-digit PIN they can remember
+
+**💡 Pro Tip**: Multiple parents can share family management! Have your partner join using the family code for seamless collaboration.
 
 ### **Step 2: Family Configuration (10 minutes)**
 1. **Set point distribution rules**:
@@ -81,16 +86,19 @@ If you've enabled interest:
 3. **Reward Purchase**: Child wants to buy something from the reward store
 
 #### **Approval Process**
-1. **Review the request details**
+1. **Review the request details** (any family caregiver can approve)
 2. **See balance impact** (before/after amounts)
 3. **Read child's message** (if any)
 4. **Add your response** to teach a lesson
 5. **Approve/Deny** with explanation
 
+**💡 Multi-Parent Power**: Any caregiver in your family can review and approve requests! Perfect for busy families where both parents want to stay involved.
+
 #### **Smart Approval Tips**
 - **For transfers**: Discuss why they're moving money
 - **For rewards**: Talk about value and budgeting
 - **For chores**: Praise effort and responsibility
+- **Coordinate with partner**: Check if they already responded to avoid double approvals
 
 ---
 
@@ -448,11 +456,53 @@ Override default distributions for teaching moments:
 
 ## 📈 Scaling Up: Advanced Usage
 
-### **Multiple Children**
-- Individual accounts with family sharing
-- Sibling competitions and collaborations
-- Shared family goals
-- Individual vs. group chores
+### **👨‍👩‍👦 Multiple Parents & Caregivers**
+Fintoosh supports modern family structures with multiple parents, step-parents, grandparents, or other caregivers:
+
+#### **Adding Multiple Caregivers**
+1. **First Parent Creates Family**: Sets up initial account and family code
+2. **Share Family Code**: `FAM-ABC123` format for easy joining
+3. **Additional Parents Join**: Use family code to connect accounts
+4. **Automatic Synchronization**: All caregivers see the same data instantly
+
+#### **Caregiver Coordination**
+- **Shared Approval Rights**: Any caregiver can approve requests
+- **Notification Distribution**: All caregivers get notified of activities
+- **Discussion Continuity**: Messages visible to entire caregiver team
+- **Role Flexibility**: Parents, step-parents, grandparents all have equal access
+
+#### **Benefits for Busy Families**
+- **Work-Life Balance**: Partner can approve requests while you're at work
+- **Extended Family**: Grandparents can help teach financial lessons
+- **Divorced Parents**: Co-parenting support with shared oversight
+- **Educational Continuity**: Consistent teaching across all caregivers
+
+### **👨‍👩‍👧‍👦 Multiple Children**
+Manage multiple children with individual accounts while maintaining family-wide oversight:
+
+#### **Child Account Management**
+- **Individual Profiles**: Each child has their own username/PIN
+- **Separate Point Balances**: Individual pots for each child
+- **Personal Goals**: Child-specific savings targets
+- **Achievement Tracking**: Individual progress milestones
+
+#### **Parent Dashboard Features**
+- **Child Switching**: Easy switching between children's accounts
+- **Family Overview**: See all children's progress at a glance
+- **Bulk Operations**: Add points or create chores for multiple children
+- **Comparative Analytics**: Track progress across siblings
+
+#### **Sibling Interactions**
+- **Friendly Competition**: Compare achievements and progress
+- **Shared Family Goals**: Work together on family-wide objectives
+- **Group Chores**: Family tasks that benefit everyone
+- **Learning Together**: Siblings can teach each other money concepts
+
+#### **Managing Multiple Children**
+- **Fair Distribution**: Ensure equitable point allocation
+- **Individual Attention**: Personal teaching moments for each child
+- **Group Activities**: Family financial discussions and planning
+- **Age-Appropriate Tasks**: Different chores based on age and ability
 
 ### **Seasonal Adjustments**
 - Holiday spending plans
