@@ -190,6 +190,21 @@ router.get('/users/children', auth, requireParent, async (req, res) => {
 // User routes
 router.get('/users/:id', async (req, res) => {
   try {
+    console.log('[DEBUG] /users/:id - Fetching user:', req.params.id);
+
+    // First get raw user data to see what's in database
+    const rawUser = await User.findOne({ id: req.params.id }).select('-password');
+    console.log('[DEBUG] Raw user data from DB:', {
+      id: rawUser?.id,
+      name: rawUser?.name,
+      role: rawUser?.role,
+      hasCaregivers: !!(rawUser?.caregivers),
+      caregivers: rawUser?.caregivers,
+      parentId: rawUser?.parentId,
+      familyId: rawUser?.familyId
+    });
+
+    // Now populate related data
     const user = await User.findOne({ id: req.params.id })
       .populate('goals')
       .populate('chores')
@@ -198,10 +213,23 @@ router.get('/users/:id', async (req, res) => {
       .populate('caregivers')  // Include caregivers for multi-parent support
       .select('-password');
 
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    console.log('[DEBUG] User data after populate:', {
+      id: user?.id,
+      hasCaregivers: !!(user?.caregivers),
+      caregiversLength: user?.caregivers?.length,
+      caregivers: user?.caregivers,
+      parentId: user?.parentId
+    });
 
+    if (!user) {
+      console.log('[DEBUG] User not found for id:', req.params.id);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log('[DEBUG] Sending user response with caregivers:', !!user.caregivers);
     res.json(user);
   } catch (error) {
+    console.error('[DEBUG] Error fetching user:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -496,9 +524,20 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
       // Get auto-approval thresholds for this family/parent
       // Prefer parent if assigned, otherwise family-wide rule from rewardOwner
       let parent = null;
-      if (rewardOwner.parentId) {
+
+      // Find primary caregiver (first in caregivers array) - NEW MULTI-PARENT LOGIC
+      if (rewardOwner.caregivers && Array.isArray(rewardOwner.caregivers) && rewardOwner.caregivers.length > 0) {
+        const primaryCaregiver = rewardOwner.caregivers[0];
+        if (primaryCaregiver && primaryCaregiver.userId) {
+          parent = await User.findOne({ id: primaryCaregiver.userId });
+        }
+      }
+
+      // Fallback to legacy parentId for backward compatibility
+      if (!parent && rewardOwner.parentId) {
         parent = await User.findOne({ id: rewardOwner.parentId });
       }
+
       let autoApprovalRules = (parent && parent.autoApprovalRules) || rewardOwner.autoApprovalRules || {};
       const rewardClaimMax = autoApprovalRules.rewardClaimMax;
 
@@ -939,15 +978,25 @@ router.post('/goals', auth, sanitizeInput, async (req, res) => {
       return res.status(404).json({ message: "Child not found or does not belong to your family." });
     }
     targetUserId = child._id;
-  } else if (req.user.role === 'child') {
+    } else if (req.user.role === 'child') {
     // Children can create goals for themselves
     targetUserId = req.user._id;
-    // For children, parent is their assigned parent
+    // For children, parent is their assigned caregiver
     const childUser = await User.findById(req.user._id);
-    if (childUser.parentId) {
-      // parentId is stored as string, need to convert to ObjectId
+
+    // Find primary caregiver (first in caregivers array) - NEW MULTI-PARENT LOGIC
+    if (childUser.caregivers && Array.isArray(childUser.caregivers) && childUser.caregivers.length > 0) {
+      const primaryCaregiver = childUser.caregivers[0];
+      if (primaryCaregiver && primaryCaregiver.userId) {
+        const parentUser = await User.findOne({ id: primaryCaregiver.userId });
+        parentId = parentUser ? parentUser._id : req.user._id;
+      } else {
+        parentId = req.user._id; // fallback if caregiver exists but has no userId
+      }
+    } else if (childUser.parentId) {
+      // Fallback to legacy parentId for backward compatibility
       const parentUser = await User.findOne({ id: childUser.parentId });
-      parentId = parentUser ? parentUser._id : req.user._id; // fallback to self if parent not found
+      parentId = parentUser ? parentUser._id : req.user._id;
     } else {
       parentId = req.user._id; // fallback to self if no parent assigned
     }
