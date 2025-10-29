@@ -238,7 +238,7 @@ function GiftsSection() {
       }
       // Always fetch freshest user data from backend (not AsyncStorage!)
       const userId = user.id;
-      const userRes = await fetch(`${API_URL}/users/${user.id || user._id}`, {
+      const userRes = await fetch(`${API_URL}/users/${user.id || (user as any)._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!userRes.ok) {
@@ -446,170 +446,294 @@ function GiftsSection() {
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: themeColors.card, borderRadius: 14, marginBottom: 16, alignSelf: 'center', maxWidth: 520, width: "97%", shadowColor: themeColors.border, elevation: 2 }}
-      contentContainerStyle={{ padding: 18, paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>My Gifts</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity
-            style={[styles.refreshBtn, { backgroundColor: loading ? themeColors.surface : themeColors.primary }]}
-            onPress={() => loadRewardsAndRequests()}
-            disabled={loading}
-            accessibilityRole="button"
-            accessibilityLabel={loading ? "Refreshing gifts and rewards" : "Refresh gifts and rewards"}
-            accessibilityHint="Double tap to reload your available gifts"
-            accessibilityState={{ disabled: loading }}
-          >
-            <Text style={[styles.refreshBtnText, { color: loading ? themeColors.textSecondary : themeColors.card }]}>
-              {loading ? 'Refreshing...' : '🔄 Refresh Gifts'}
-            </Text>
-          </TouchableOpacity>
+    <View style={{ flex: 1 }}>
+      {/* Quick Actions Header */}
+      <View style={{
+        backgroundColor: themeColors.surface,
+        borderRadius: 16,
+        marginBottom: 16,
+        padding: 16,
+        width: '97%',
+        maxWidth: 520,
+        alignSelf: 'center',
+        elevation: 3,
+        shadowColor: themeColors.border,
+        borderWidth: 1,
+        borderColor: themeColors.border + '30',
+      }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: themeColors.secondary,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 10,
+            alignItems: 'center',
+            elevation: 1,
+          }}
+          onPress={() => loadRewardsAndRequests()}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel={loading ? "Refreshing gifts and rewards" : "Refresh gifts and rewards"}
+          accessibilityHint="Double tap to reload your available gifts"
+          accessibilityState={{ disabled: loading }}
+        >
+          <Text style={{
+            color: themeColors.card,
+            fontSize: 14,
+            fontWeight: '600'
+          }}>
+            {loading ? '🔄 Refreshing...' : '🔄 Refresh Gifts'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Gifts Section - Always Visible */}
+      <View
+        style={{
+          backgroundColor: themeColors.card,
+          borderRadius: 14,
+          marginBottom: 16,
+          width: '97%',
+          maxWidth: 520,
+          alignSelf: 'center',
+          elevation: 2,
+          shadowColor: themeColors.border,
+        }}
+      >
+        <View style={{
+          padding: 18,
+          paddingBottom: 8,
+          borderBottomWidth: 1,
+          borderBottomColor: themeColors.border + '30'
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>🎁 My Gifts</Text>
+              <View style={{
+                backgroundColor: themeColors.primary,
+                borderRadius: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                marginLeft: 8
+              }}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                  {rewards.length}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
       </View>
 
-      {/* Rewards Tabs - colorful and engaging */}
+      {/* Full-Width Gifts Content */}
       <View style={{
-        flexDirection: "row",
-        justifyContent: "center",
-        marginBottom: 16,
-        backgroundColor: themeColors.surface + '80',
-        borderRadius: 20,
-        padding: 4
+        backgroundColor: themeColors.background,
+        paddingHorizontal: 16,
+        paddingTop: 20,
+        paddingBottom: 40,
       }}>
-        {["Available", "Claimed"].map(t => (
-          <TouchableOpacity
-            key={t}
-            style={{
-              backgroundColor: rewardsTab === t ? themeColors.accent : 'transparent',
-              paddingHorizontal: 20,
-              paddingVertical: 10,
-              borderRadius: 16,
-              marginHorizontal: 2,
-              flex: 1,
-              alignItems: 'center',
-              shadowColor: rewardsTab === t ? themeColors.accent : 'transparent',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 4,
-              elevation: rewardsTab === t ? 3 : 0,
-            }}
-            onPress={() => { setRewardsTab(t as "Available" | "Claimed"); setShowRewardsArchive(false); }}
-            accessibilityRole="tab"
-            accessibilityLabel={`${t} rewards`}
-            accessibilityHint={`Show ${t.toLowerCase()} rewards`}
-            accessibilityState={{ selected: rewardsTab === t }}
-          >
-            <Text style={{
-              color: rewardsTab === t ? themeColors.card : themeColors.text,
-              fontWeight: rewardsTab === t ? "bold" : "600",
-              fontSize: 16
-            }}>
-              {t === "Available" ? "🎯 Ready to Win!" : "🏆 My Treasures!"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      {/* Rewards content - always shows appropriate empty states */}
-      {(() => {
-        // Helper for claimed date
-        const getRewardClaimedDate = (r: any) => {
-          if (r.purchasedAt && typeof r.purchasedAt === "string") return new Date(r.purchasedAt);
-          if (r.createdAt && typeof r.createdAt === "string") return new Date(r.createdAt);
-          if (r._id && typeof r._id === "string" && r._id.length >= 8) {
-            const timestamp = parseInt(r._id.slice(0, 8), 16) * 1000;
-            return new Date(timestamp);
-          }
-          return new Date();
-        };
-        let availableRewards = rewards.filter(r => !r.purchased).sort((a, b) =>
-          getRewardClaimedDate(b).getTime() - getRewardClaimedDate(a).getTime()
-        );
-        let claimedAll = rewards.filter(r => r.purchased);
-        const now = new Date();
-        const ninetyDaysAgo = new Date(now);
-        ninetyDaysAgo.setDate(now.getDate() - 90);
-        const claimedRecent = claimedAll.filter(r => getRewardClaimedDate(r) >= ninetyDaysAgo).sort((a, b) =>
-          getRewardClaimedDate(b).getTime() - getRewardClaimedDate(a).getTime()
-        );
-        const claimedArchived = claimedAll.filter(r => getRewardClaimedDate(r) < ninetyDaysAgo);
-        let claimedRewards = claimedRecent;
-        if (showRewardsArchive) {
-          claimedRewards = [...claimedRecent, ...claimedArchived].sort((a, b) =>
-            getRewardClaimedDate(b).getTime() - getRewardClaimedDate(a).getTime()
-          );
-        }
-        if (rewardsTab === "Available") {
-          if (availableRewards.length === 0)
-            return <Text style={styles.placeholder}>No gifts available to claim right now!</Text>;
-          return (
-            <FlatList
-              data={availableRewards}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item }) => renderReward(item)}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 10 }}
-              style={{ flex: 1 }}
-              scrollEnabled={false }
-            />
-          );
-        }
-        // Claimed
-        if (claimedRewards.length === 0)
-          return <Text style={styles.placeholder}>No claimed gifts in the last 90 days.</Text>;
-        return (
-          <>
-            <FlatList
-              data={claimedRewards}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item }) => renderReward(item)}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 10 }}
-              style={{ flex: 1 }}
-              scrollEnabled={false }
-            />
-            {claimedArchived.length > 0 && !showRewardsArchive && (
+        <ScrollView
+          style={{ backgroundColor: themeColors.background }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Enhanced Tabs */}
+          <View style={{
+            flexDirection: 'row',
+            backgroundColor: themeColors.surface,
+            borderRadius: 16,
+            padding: 4,
+            marginBottom: 20,
+            elevation: 2,
+            shadowColor: themeColors.border,
+          }}>
+            {["Available", "Claimed"].map(t => (
               <TouchableOpacity
+                key={t}
                 style={{
-                  marginTop: 12,
-                  alignSelf: "center",
-                  backgroundColor: themeColors.surface,
-                  borderColor: themeColors.border,
-                  borderWidth: 1,
-                  paddingHorizontal: 20,
-                  paddingVertical: 8,
-                  borderRadius: 16
+                  flex: 1,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderRadius: 12,
+                  backgroundColor: rewardsTab === t ? themeColors.primary : 'transparent',
+                  alignItems: 'center',
+                  minHeight: 48,
                 }}
-                onPress={() => setShowRewardsArchive(true)}
+                onPress={() => { setRewardsTab(t as "Available" | "Claimed"); setShowRewardsArchive(false); }}
+                accessibilityRole="tab"
+                accessibilityLabel={`${t} rewards`}
+                accessibilityHint={`Show ${t.toLowerCase()} rewards`}
+                accessibilityState={{ selected: rewardsTab === t }}
               >
-                <Text style={{ color: themeColors.primary, fontWeight: "600" }}>Show All Claimed Gifts</Text>
+                <Text style={{
+                  color: rewardsTab === t ? 'white' : themeColors.text,
+                  fontWeight: rewardsTab === t ? "bold" : "600",
+                  fontSize: 16
+                }}>
+                  {t === "Available" ? "🎯 Ready to Win!" : "🏆 My Treasures!"}
+                </Text>
               </TouchableOpacity>
-            )}
-            {claimedArchived.length > 0 && showRewardsArchive && (
-              <TouchableOpacity
-                style={{
-                  marginTop: 10,
-                  alignSelf: "center",
-                  backgroundColor: themeColors.surface,
-                  borderColor: themeColors.border,
-                  borderWidth: 1,
-                  paddingHorizontal: 14,
-                  paddingVertical: 7,
-                  borderRadius: 16
-                }}
-                onPress={() => setShowRewardsArchive(false)}
-              >
-                <Text style={{ color: themeColors.primary, fontWeight: "500" }}>Show Only Last 90 Days</Text>
-              </TouchableOpacity>
-            )}
-          </>
-        );
-      })()}
+            ))}
+          </View>
 
-      {msg ? <Text style={styles.statusMessage}>{msg}</Text> : null}
-    </ScrollView>
+          {/* Rewards content */}
+          {(() => {
+            // Helper for claimed date
+            const getRewardClaimedDate = (r: any) => {
+              if (r.purchasedAt && typeof r.purchasedAt === "string") return new Date(r.purchasedAt);
+              if (r.createdAt && typeof r.createdAt === "string") return new Date(r.createdAt);
+              if (r._id && typeof r._id === "string" && r._id.length >= 8) {
+                const timestamp = parseInt(r._id.slice(0, 8), 16) * 1000;
+                return new Date(timestamp);
+              }
+              return new Date();
+            };
+            let availableRewards = rewards.filter(r => !r.purchased).sort((a, b) =>
+              getRewardClaimedDate(b).getTime() - getRewardClaimedDate(a).getTime()
+            );
+            let claimedAll = rewards.filter(r => r.purchased);
+            const now = new Date();
+            const ninetyDaysAgo = new Date(now);
+            ninetyDaysAgo.setDate(now.getDate() - 90);
+            const claimedRecent = claimedAll.filter(r => getRewardClaimedDate(r) >= ninetyDaysAgo).sort((a, b) =>
+              getRewardClaimedDate(b).getTime() - getRewardClaimedDate(a).getTime()
+            );
+            const claimedArchived = claimedAll.filter(r => getRewardClaimedDate(r) < ninetyDaysAgo);
+            let claimedRewards = claimedRecent;
+            if (showRewardsArchive) {
+              claimedRewards = [...claimedRecent, ...claimedArchived].sort((a, b) =>
+                getRewardClaimedDate(b).getTime() - getRewardClaimedDate(a).getTime()
+              );
+            }
+            if (rewardsTab === "Available") {
+              if (availableRewards.length === 0) {
+                return (
+                  <View style={{
+                    alignItems: 'center',
+                    paddingVertical: 60,
+                    paddingHorizontal: 20,
+                  }}>
+                    <Text style={{ fontSize: 72, marginBottom: 20 }}>🎁</Text>
+                    <Text style={{
+                      fontSize: 22,
+                      fontWeight: 'bold',
+                      color: themeColors.text,
+                      marginBottom: 12,
+                      textAlign: 'center'
+                    }}>
+                      No Gifts Available Yet
+                    </Text>
+                    <Text style={{
+                      fontSize: 16,
+                      color: themeColors.textSecondary,
+                      textAlign: 'center',
+                      marginBottom: 32,
+                      lineHeight: 24
+                    }}>
+                      Keep earning points and more magical gifts will appear! 🌟
+                    </Text>
+                  </View>
+                );
+              }
+              return (
+                <FlatList
+                  data={availableRewards}
+                  keyExtractor={(item) => item._id}
+                  renderItem={({ item }) => renderReward(item)}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 10 }}
+                  style={{ flex: 1 }}
+                  scrollEnabled={false}
+                />
+              );
+            }
+            // Claimed
+            if (claimedRewards.length === 0) {
+              return (
+                <View style={{
+                  alignItems: 'center',
+                  paddingVertical: 60,
+                  paddingHorizontal: 20,
+                }}>
+                  <Text style={{ fontSize: 72, marginBottom: 20 }}>🏆</Text>
+                  <Text style={{
+                    fontSize: 22,
+                    fontWeight: 'bold',
+                    color: themeColors.text,
+                    marginBottom: 12,
+                    textAlign: 'center'
+                  }}>
+                    No Claimed Gifts Yet
+                  </Text>
+                  <Text style={{
+                    fontSize: 16,
+                    color: themeColors.textSecondary,
+                    textAlign: 'center',
+                    marginBottom: 32,
+                    lineHeight: 24
+                  }}>
+                    Claim your first gift to see your treasures here! 💎
+                  </Text>
+                </View>
+              );
+            }
+            return (
+              <>
+                <FlatList
+                  data={claimedRewards}
+                  keyExtractor={(item) => item._id}
+                  renderItem={({ item }) => renderReward(item)}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 10 }}
+                  style={{ flex: 1 }}
+                  scrollEnabled={false}
+                />
+                {claimedArchived.length > 0 && !showRewardsArchive && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Show all claimed gifts from any time"
+                    accessibilityHint="Display gifts claimed more than 90 days ago"
+                    style={{
+                      marginTop: 20,
+                      alignSelf: "center",
+                      backgroundColor: themeColors.accent + "22",
+                      paddingHorizontal: 24,
+                      paddingVertical: 12,
+                      borderRadius: 20,
+                      minHeight: 48,
+                    }}
+                    onPress={() => setShowRewardsArchive(true)}
+                  >
+                    <Text style={{ color: themeColors.primary, fontWeight: "600", fontSize: 16 }}>Show All Claimed Gifts</Text>
+                  </TouchableOpacity>
+                )}
+                {claimedArchived.length > 0 && showRewardsArchive && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Show only recently claimed gifts"
+                    accessibilityHint="Hide gifts claimed more than 90 days ago"
+                    style={{
+                      marginTop: 16,
+                      alignSelf: "center",
+                      backgroundColor: themeColors.surface,
+                      paddingHorizontal: 18,
+                      paddingVertical: 10,
+                      borderRadius: 18,
+                      minHeight: 48,
+                    }}
+                    onPress={() => setShowRewardsArchive(false)}
+                  >
+                    <Text style={{ color: themeColors.primary, fontWeight: "500", fontSize: 16 }}>Show Only Last 90 Days</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            );
+          })()}
+
+          {msg ? <Text style={styles.statusMessage}>{msg}</Text> : null}
+        </ScrollView>
+      </View>
+    </View>
   );
 
   // Individual reward renderer - visually engaging for kids

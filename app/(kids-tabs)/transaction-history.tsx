@@ -3,9 +3,8 @@ import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { fetchTransactions } from "@/utils/api";
 import { API_URL } from '@/utils/config';
-import { getAuthToken } from '@/utils/secureStorage';
+import { getAuthToken, getUser } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -32,17 +31,21 @@ if (Platform.OS !== "web") {
 const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     backgroundColor: themeColors.background,
     flex: 1
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
-    marginTop: 12,
-    marginBottom: 10,
-    color: themeColors.primary,
+    marginTop: 8,
+    marginBottom: 16,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    textShadowColor: 'rgba(255, 107, 107, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   sectionCard: {
     backgroundColor: themeColors.card,
@@ -631,20 +634,21 @@ export default function TransactionHistoryScreen() {
   // Expanded transaction state management
   const [expandedTransactionId, setExpandedTransactionId] = useState<string | null>(null);
 
+
+
   const loadTransactions = async (isBackground = false, page = 1) => {
     if (!isBackground) setLoading(true);
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
-      if (!token || !storedUser) throw new Error("Not authenticated.");
-      const user = JSON.parse(storedUser);
-      let userId = user.id || user._id;
+      const user = await getUser();
+      if (!token || !user) throw new Error("Not authenticated.");
+      let userId = user.id;
 
       if (fetchTransactions) {
         const result = await fetchTransactions(userId, token, page);
         if (page === 1) {
           const txns = result.transactions || [];
-          console.log('Loaded transactions:', txns.map(tx => ({ type: tx.type, amount: tx.amount, description: tx.description })));
+          console.log('Loaded transactions:', txns.map((tx: any) => ({ type: tx.type, amount: tx.amount, description: tx.description })));
           setTransactions(txns);
         } else {
           setTransactions(prev => [...prev, ...(result.transactions || [])]);
@@ -815,16 +819,14 @@ export default function TransactionHistoryScreen() {
               offset: 80 * index,
               index
             })}
-            renderItem={({ item: tx }) => (
+            renderItem={({ item: tx }: { item: any }) => (
               <TransactionCard
                 tx={tx}
                 themeColors={themeColors}
                 isExpanded={expandedTransactionId === (tx._id || tx.id)}
                 onToggle={() => {
-                  setExpandedTransactionId((prev: any) => {
-                    const txId = tx._id || tx.id;
-                    return prev === txId ? null : txId;
-                  });
+                  const txId = tx._id || tx.id || '';
+                  setExpandedTransactionId(expandedTransactionId === txId ? null : txId);
                 }}
               />
             )}

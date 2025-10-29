@@ -29,9 +29,13 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): UseAnalyticsRet
           const user = await getUser();
           if (user && user.familyId) {
             setFamilyId(user.familyId);
+          } else {
+            // If no user or familyId, set error immediately
+            setError('Family ID not available');
           }
         } catch (error) {
           console.error('Error loading familyId:', error);
+          setError('Family ID not available');
         }
       }
     };

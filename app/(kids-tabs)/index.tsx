@@ -4,8 +4,6 @@ import BouncingCoin from '@/components/animations/BouncingCoin';
 import GuidedTour from '@/components/GuidedTour';
 import HelpModal from '@/components/HelpModal';
 import ActionCard from '@/components/ui/ActionCard';
-import JarCard from '@/components/ui/JarCard';
-import StatCard from '@/components/ui/StatCard';
 import { fetchNotifications } from '@/utils/api';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
@@ -40,7 +38,7 @@ const EmptyStateWithAction = ({
 }) => {
   const emptyStates = {
     activities: {
-      icon: "🚀",
+      icon: "🎯",
       title: "Ready to Start Earning?",
       message: "Complete tasks, set goals, or move money to see your activity here!",
       action: "Do First Task",
@@ -73,7 +71,7 @@ const EmptyStateWithAction = ({
 };
 
 // Time-Based Contextual Content
-const TimeBasedContent = ({ dynamicStyles, themeColors }: { dynamicStyles: any; themeColors: any }) => {
+const TimeBasedContent = ({ dynamicStyles, themeColors, expanded, onToggle }: { dynamicStyles: any; themeColors: any; expanded: boolean; onToggle: () => void }) => {
   const getTimeContext = () => {
     const hour = new Date().getHours();
 
@@ -101,11 +99,28 @@ const TimeBasedContent = ({ dynamicStyles, themeColors }: { dynamicStyles: any; 
   const context = getTimeContext();
 
   return (
-    <View style={[dynamicStyles.timeContext, { backgroundColor: themeColors.surface }]}>
-      <Text style={[dynamicStyles.timeGreeting, { color: themeColors.primary }]}>{context.greeting}</Text>
-      <Text style={[dynamicStyles.timeTip, { color: themeColors.text }]}>{context.tip}</Text>
-      <Text style={[dynamicStyles.timeSuggestion, { color: themeColors.textSecondary }]}>{context.suggestion}</Text>
-    </View>
+    <TouchableOpacity
+      style={[dynamicStyles.timeContext, { backgroundColor: themeColors.surface }]}
+      onPress={onToggle}
+      accessibilityRole="button"
+      accessibilityLabel={expanded ? "Collapse daily tip" : "Expand daily tip"}
+      accessibilityHint="Show or hide today's helpful money tip"
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={[dynamicStyles.timeGreeting, { color: themeColors.primary }]}>{context.greeting}</Text>
+          {expanded && (
+            <>
+              <Text style={[dynamicStyles.timeTip, { color: themeColors.text }]}>{context.tip}</Text>
+              <Text style={[dynamicStyles.timeSuggestion, { color: themeColors.textSecondary }]}>{context.suggestion}</Text>
+            </>
+          )}
+        </View>
+        <Text style={{ fontSize: 16, color: themeColors.primary, marginLeft: 8 }}>
+          {expanded ? '▲' : '▼'}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -182,10 +197,10 @@ type AppAction =
 
 const initialState: AppState = {
   jars: [
-    { label: 'Pocket Money', key: 'current', value: 0, color: '#4CAF50', icon: '💰' },
-    { label: 'Savings Pot', key: 'save', value: 0, color: '#2196F3', icon: '🐷' },
+    { label: 'Pocket Money', key: 'current', value: 0, color: '#4CAF50', icon: '💵' },
+    { label: 'Savings Pot', key: 'save', value: 0, color: '#2196F3', icon: '🏦' },
     { label: 'Spending Pot', key: 'spend', value: 0, color: '#FF9800', icon: '🛒' },
-    { label: 'Help Others Pot', key: 'donate', value: 0, color: '#9C27B0', icon: '🤲' },
+    { label: 'Help Others Pot', key: 'donate', value: 0, color: '#9C27B0', icon: '❤️' },
     { label: 'Grow Money Pot', key: 'invest', value: 0, color: '#607D8B', icon: '📈' }
   ],
   userData: null,
@@ -260,11 +275,11 @@ const getTransactionDescription = (tx: any) => {
 const getTransactionIcon = (type: string) => {
   switch (type) {
     case 'chore-completed':
-      return '🧹';
+      return '✅';
     case 'goal-completion':
       return '🎯';
     case 'points-move':
-      return '🔄';
+      return '↔️';
     case 'parent-points-adjustment':
       return '👨‍👩‍👧‍👦';
     case 'reward-purchase':
@@ -280,61 +295,63 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 16,
-    paddingHorizontal: 4,
+    paddingHorizontal: 16,
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 22,
-    marginTop: 6,
+    marginBottom: 24,
+    marginTop: 8,
     // color moved to dynamicStyles
   },
   jarBox: {
     minWidth: 85,
     alignItems: "center",
     // backgroundColor moved to dynamicStyles
-    padding: 8,
-    borderRadius: 8,
-    margin: 8,
+    padding: 12,
+    borderRadius: 12,
+    margin: 6,
     borderWidth: 1,
     // borderColor moved to dynamicStyles
   },
   jarLabel: {
     fontWeight: "bold",
-    marginBottom: 2,
+    marginBottom: 4,
     // color moved to dynamicStyles
-    fontSize: 16,
+    fontSize: 14,
   },
   jarPoints: {
     fontWeight: "700",
-    fontSize: 21,
-    marginBottom: 1,
+    fontSize: 18,
+    marginBottom: 2,
     // color moved to dynamicStyles
   },
   quickActionCard: {
     // backgroundColor moved to dynamicStyles
-    borderRadius: 14,
-    marginBottom: 16,
-    padding: 18,
-    minWidth: 300,
-    width: "97%",
+    borderRadius: 16,
+    marginBottom: 20,
+    padding: 20,
+    width: "100%",
     maxWidth: 520,
-    elevation: 2,
-    shadowColor: "#aaa",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 12,
     // color moved to dynamicStyles
   },
   actionButton: {
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    marginVertical: 8,
+    marginVertical: 6,
     alignItems: "center",
-    elevation: 2,
+    elevation: 1,
   },
   actionButtonText: {
     color: "#fff",
@@ -343,20 +360,26 @@ const styles = StyleSheet.create({
   },
   statCard: {
     // backgroundColor moved to dynamicStyles
-    borderRadius: 10,
-    padding: 15,
-    marginVertical: 5,
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 4,
     alignItems: "center",
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     // color moved to dynamicStyles
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 13,
     // color moved to dynamicStyles
-    marginTop: 5,
+    marginTop: 4,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 8,
+    width: '100%',
   },
   // Empty state styles - moved to dynamicStyles
   // Time-based content styles - moved to dynamicStyles
@@ -367,6 +390,10 @@ const styles = StyleSheet.create({
 const KidsHomeScreen = memo(function KidsHomeScreen() {
   // For quick actions show-more toggle
   const [showMore, setShowMore] = useState(false);
+  // Collapsible section states
+  const [timeExpanded, setTimeExpanded] = useState(false);
+  const [caregiversExpanded, setCaregiversExpanded] = useState(false);
+  const [activityExpanded, setActivityExpanded] = useState(false);
   const { themeColors } = useTheme();
   const { refreshIntervals, formatAmount } = useCurrency();
   // Theme validation test - toggle between themes to verify color changes
@@ -376,10 +403,10 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   const [state, dispatch] = useReducer(appReducer, {
     ...initialState,
     jars: [
-      { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
-      { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🐷' },
+      { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💵' },
+      { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🏦' },
       { label: 'Spending Pot', key: 'spend', value: 0, color: themeColors.jarColors.spend, icon: '🛒' },
-      { label: 'Help Others Pot', key: 'donate', value: 0, color: themeColors.jarColors.donate, icon: '🤲' },
+      { label: 'Help Others Pot', key: 'donate', value: 0, color: themeColors.jarColors.donate, icon: '❤️' },
       { label: 'Grow Money Pot', key: 'invest', value: 0, color: themeColors.jarColors.invest, icon: '📈' }
     ]
   });
@@ -411,7 +438,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       const storedUser = await getUserData();
 
       if (!token || !storedUser) {
-        dispatch({ type: 'SET_ERROR', payload: 'Oops! 😅 We need to log you back in. Please ask a grown-up for help!' });
+        dispatch({ type: 'SET_ERROR', payload: 'Oops! 🔐 We need to log you back in. Please ask a grown-up for help!' });
         return;
       }
 
@@ -506,10 +533,10 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       }
 
       const jars = [
-        { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💰' },
-        { label: 'Savings Pot', key: 'save', value: data.savePoints || 0, color: themeColors.jarColors.save, icon: '🐷' },
+        { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💵' },
+        { label: 'Savings Pot', key: 'save', value: data.savePoints || 0, color: themeColors.jarColors.save, icon: '🏦' },
         { label: 'Spending Pot', key: 'spend', value: data.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
-        { label: 'Help Others Pot', key: 'donate', value: data.donatePoints || 0, color: themeColors.jarColors.donate, icon: '🤲' },
+        { label: 'Help Others Pot', key: 'donate', value: data.donatePoints || 0, color: themeColors.jarColors.donate, icon: '❤️' },
         { label: 'Grow Money Pot', key: 'invest', value: data.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
       ];
 
@@ -526,7 +553,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
     } catch (error) {
       console.error('Error loading user data:', error);
-      dispatch({ type: 'SET_ERROR', payload: 'Oops! 🤔 Having trouble loading your points right now. Please try again!' });
+      dispatch({ type: 'SET_ERROR', payload: 'Oops! 🔄 Having trouble loading your points right now. Please try again!' });
     } finally {
       dispatch({ type: 'SET_LOADING_PHASE', payload: 'complete' });
       dispatch({ type: 'SET_REFRESHING', payload: false });
@@ -871,158 +898,205 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
 
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Help and information"
-            accessibilityHint="Open help guide for money pots"
-            style={{
-              backgroundColor: themeColors.accent,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-            onPress={() => setHelpModalVisible(true)}
-          >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={{ alignItems: 'center' }}>
-          <Text
-            style={[dynamicStyles.title, { color: themeColors.primary }]}
-            accessibilityRole="header"
-            accessibilityLabel="My Money Adventure - Home Dashboard"
-          >
-            🏠 My Money Adventure
-          </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Text
+              style={[dynamicStyles.title, { color: themeColors.primary }]}
+              accessibilityRole="header"
+              accessibilityLabel="My Money Adventure - Home Dashboard"
+            >
+              💰 My Money Adventure
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={refreshing ? "Refreshing points data" : "Refresh my points"}
+              accessibilityHint="Update to get the latest points and activities"
+              accessibilityState={{ disabled: refreshing }}
+              style={{
+                backgroundColor: themeColors.secondary,
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                justifyContent: 'center',
+                alignItems: 'center',
+                elevation: 1,
+                marginRight: 8,
+              }}
+              onPress={onRefresh}
+              disabled={refreshing}
+            >
+              <Text style={{ fontSize: 16, color: themeColors.card }}>{refreshing ? '⏳' : '↻'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Help and information"
+              accessibilityHint="Open help guide for money pots"
+              style={{
+                backgroundColor: themeColors.accent,
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                justifyContent: 'center',
+                alignItems: 'center',
+                elevation: 1,
+              }}
+              onPress={() => setHelpModalVisible(true)}
+            >
+              <Text style={{ color: themeColors.card, fontSize: 16 }}>❓</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Time-Based Contextual Content */}
-        <TimeBasedContent dynamicStyles={dynamicStyles} themeColors={themeColors} />
+        <TimeBasedContent
+          dynamicStyles={dynamicStyles}
+          themeColors={themeColors}
+          expanded={timeExpanded}
+          onToggle={() => setTimeExpanded(!timeExpanded)}
+        />
 
         {/* Caregivers Section */}
         {userData && userData.caregivers && userData.caregivers.length > 0 && (
-          <View style={[dynamicStyles.quickActionCard, { backgroundColor: themeColors.surface + '80', borderColor: themeColors.success }]} >
-            <Text style={[dynamicStyles.sectionTitle, { color: themeColors.success, textAlign: 'center' }]}>
-              👨‍👩‍👧‍👦 My Family Helpers
-            </Text>
-            <Text style={{ textAlign: 'center', color: themeColors.textSecondary, fontSize: 14, marginBottom: 12 }}>
-              These amazing people help me with my money adventure! 💪
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
-              {userData.caregivers.map((caregiver: any, index: number) => {
-                // Create kid-friendly labels and avoid duplicates
-                const getKidFriendlyLabel = () => {
-                  const role = caregiver.role || 'caregiver';
-                  const relationship = caregiver.relationship;
-                  const name = caregiver.name;
-
-                  // Use name if available, otherwise use kid-friendly role names
-                  if (name && name.trim()) {
-                    return name;
-                  }
-
-                  // Use relationship field if available (more specific)
-                  if (relationship) {
-                    switch (relationship.toLowerCase()) {
-                      case 'mother':
-                        return 'Mom';
-                      case 'father':
-                        return 'Dad';
-                      case 'grandmother':
-                        return 'Grandma';
-                      case 'grandfather':
-                        return 'Grandpa';
-                      case 'step-mother':
-                        return 'Step-Mom';
-                      case 'step-father':
-                        return 'Step-Dad';
-                      case 'guardian':
-                        return 'Guardian';
-                      default:
-                        return 'Helper';
-                    }
-                  }
-
-                  // Fallback to role-based labels (less specific)
-                  switch (role.toLowerCase()) {
-                    case 'parent':
-                      return index === 0 ? 'My Parent' : 'Parent';
-                    case 'mother':
-                    case 'mom':
-                      return 'Mom';
-                    case 'father':
-                    case 'dad':
-                      return 'Dad';
-                    case 'guardian':
-                      return 'Guardian';
-                    case 'grandparent':
-                    case 'grandma':
-                    case 'grandpa':
-                      return index === 0 ? 'Grandparent' : 'Grandma/Pa';
-                    default:
-                      return 'Helper';
-                  }
-                };
-
-                const getKidFriendlyEmoji = () => {
-                  const role = caregiver.role || 'caregiver';
-
-                  switch (role.toLowerCase()) {
-                    case 'mother':
-                    case 'mom':
-                      return '👩';
-                    case 'father':
-                    case 'dad':
-                      return '👨';
-                    case 'grandparent':
-                    case 'grandma':
-                    case 'grandpa':
-                      return '👴';
-                    case 'guardian':
-                      return '🛡️';
-                    default:
-                      return '❤️';
-                  }
-                };
-
-                const label = getKidFriendlyLabel();
-                const emoji = getKidFriendlyEmoji();
-
-                return (
-                  <View key={String(index)} style={{
-                    backgroundColor: themeColors.card,
-                    borderRadius: 12,
-                    padding: 12,
-                    minWidth: 100,
-                    alignItems: 'center',
-                    elevation: 2,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 2,
-                    borderWidth: 1,
-                    borderColor: themeColors.border
-                  }}>
-                    <Text style={{ fontSize: 24, marginBottom: 4 }}>
-                      {emoji}
+          <TouchableOpacity
+            style={[dynamicStyles.quickActionCard, { backgroundColor: themeColors.surface + '80', borderColor: themeColors.success }]}
+            onPress={() => setCaregiversExpanded(!caregiversExpanded)}
+            accessibilityRole="button"
+            accessibilityLabel={caregiversExpanded ? "Collapse family helpers" : "Expand family helpers"}
+            accessibilityHint="Show or hide family caregiver information"
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[dynamicStyles.sectionTitle, { color: themeColors.success, textAlign: 'left', marginBottom: 4 }]}>
+                  👨‍👩‍👧‍👦 My Family Helpers ({userData.caregivers.length})
+                </Text>
+                {!caregiversExpanded && (
+                  <Text style={{ fontSize: 14, color: themeColors.textSecondary }}>
+                    Amazing people who help with my money adventure!
+                  </Text>
+                )}
+                {caregiversExpanded && (
+                  <>
+                    <Text style={{ textAlign: 'center', color: themeColors.textSecondary, fontSize: 14, marginBottom: 12 }}>
+                      These amazing people help me with my money adventure! 👨‍👩‍👧‍👦
                     </Text>
-                    <Text style={{ fontSize: 12, color: themeColors.textSecondary, textAlign: 'center', fontWeight: '500' }}>
-                      {label}
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+                      {userData.caregivers.map((caregiver: any, index: number) => {
+                        // Create kid-friendly labels and avoid duplicates
+                        const getKidFriendlyLabel = () => {
+                          const role = caregiver.role || 'caregiver';
+                          const relationship = caregiver.relationship;
+                          const name = caregiver.name;
+
+                          // Use name if available, otherwise use kid-friendly role names
+                          if (name && name.trim()) {
+                            return name;
+                          }
+
+                          // Use relationship field if available (more specific)
+                          if (relationship) {
+                            switch (relationship.toLowerCase()) {
+                              case 'mother':
+                                return 'Mom';
+                              case 'father':
+                                return 'Dad';
+                              case 'grandmother':
+                                return 'Grandma';
+                              case 'grandfather':
+                                return 'Grandpa';
+                              case 'step-mother':
+                                return 'Step-Mom';
+                              case 'step-father':
+                                return 'Step-Dad';
+                              case 'guardian':
+                                return 'Guardian';
+                              default:
+                                return 'Helper';
+                            }
+                          }
+
+                          // Fallback to role-based labels (less specific)
+                          switch (role.toLowerCase()) {
+                            case 'parent':
+                              return index === 0 ? 'My Parent' : 'Parent';
+                            case 'mother':
+                            case 'mom':
+                              return 'Mom';
+                            case 'father':
+                            case 'dad':
+                              return 'Dad';
+                            case 'guardian':
+                              return 'Guardian';
+                            case 'grandparent':
+                            case 'grandma':
+                            case 'grandpa':
+                              return index === 0 ? 'Grandparent' : 'Grandma/Pa';
+                            default:
+                              return 'Helper';
+                          }
+                        };
+
+                        const getKidFriendlyEmoji = () => {
+                          const role = caregiver.role || 'caregiver';
+
+                          switch (role.toLowerCase()) {
+                            case 'mother':
+                            case 'mom':
+                              return '👩';
+                            case 'father':
+                            case 'dad':
+                              return '👨';
+                            case 'grandparent':
+                            case 'grandma':
+                            case 'grandpa':
+                              return '👴';
+                            case 'guardian':
+                              return '🛡️';
+                            default:
+                              return '👤';
+                          }
+                        };
+
+                        const label = getKidFriendlyLabel();
+                        const emoji = getKidFriendlyEmoji();
+
+                        return (
+                          <View key={String(index)} style={{
+                            backgroundColor: themeColors.card,
+                            borderRadius: 12,
+                            padding: 12,
+                            minWidth: 100,
+                            alignItems: 'center',
+                            elevation: 2,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 1 },
+                            shadowOpacity: 0.2,
+                            shadowRadius: 2,
+                            borderWidth: 1,
+                            borderColor: themeColors.border
+                          }}>
+                            <Text style={{ fontSize: 24, marginBottom: 4 }}>
+                              {emoji}
+                            </Text>
+                            <Text style={{ fontSize: 12, color: themeColors.textSecondary, textAlign: 'center', fontWeight: '500' }}>
+                              {label}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    <Text style={{ textAlign: 'center', color: themeColors.textSecondary, fontSize: 12, marginTop: 8, fontStyle: 'italic' }}>
+                      Ask them for help with your money pots! 👨‍👩‍👧‍👦
                     </Text>
-                  </View>
-                );
-              })}
+                  </>
+                )}
+              </View>
+              <Text style={{ fontSize: 16, color: themeColors.primary, marginLeft: 8 }}>
+                {caregiversExpanded ? '▲' : '▼'}
+              </Text>
             </View>
-            <Text style={{ textAlign: 'center', color: themeColors.textSecondary, fontSize: 12, marginTop: 8, fontStyle: 'italic' }}>
-              Ask them for help with your money pots! 🎯
-            </Text>
-          </View>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -1030,7 +1104,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       {userData && userData.isFirstTimeUser && (
         <View style={[dynamicStyles.quickActionCard, { backgroundColor: themeColors.secondary + '20', borderColor: themeColors.primary }]}>
           <Text style={[dynamicStyles.sectionTitle, { color: themeColors.primary, textAlign: 'center' }]}>
-            🎯 Getting Started Progress
+            📈 Getting Started Progress
           </Text>
           <Text style={{ textAlign: 'center', color: themeColors.textSecondary, fontSize: 14, marginBottom: 10 }}>
             Complete these steps to master your money pots!
@@ -1046,7 +1120,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 }}>
             <View style={{ alignItems: 'center', flex: 1 }}>
               <Text style={{ fontSize: 20, marginBottom: 4 }}>
-                {userData && !userData.isFirstTimeUser ? '✅' : '🎯'}
+                {userData && !userData.isFirstTimeUser ? '✅' : '❌'}
               </Text>
               <Text style={{ fontSize: 12, color: themeColors.textSecondary, textAlign: 'center' }}>
                 Claim{'\n'}First Task
@@ -1054,7 +1128,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             </View>
             <View style={{ alignItems: 'center', flex: 1 }}>
               <Text style={{ fontSize: 20, marginBottom: 4 }}>
-                {userData && userData.goals && userData.goals.length > 0 ? '✅' : '🎯'}
+                {userData && userData.goals && userData.goals.length > 0 ? '✅' : '❌'}
               </Text>
               <Text style={{ fontSize: 12, color: themeColors.textSecondary, textAlign: 'center' }}>
                 Set{'\n'}a Goal
@@ -1062,7 +1136,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             </View>
             <View style={{ alignItems: 'center', flex: 1 }}>
               <Text style={{ fontSize: 20, marginBottom: 4 }}>
-                {userData && userData.transactions && userData.transactions.some((tx: any) => tx.type === 'points-move') ? '✅' : '🎯'}
+                {userData && userData.transactions && userData.transactions.some((tx: any) => tx.type === 'points-move') ? '✅' : '❌'}
               </Text>
               <Text style={{ fontSize: 12, color: themeColors.textSecondary, textAlign: 'center' }}>
                 Move{'\n'}Points
@@ -1083,96 +1157,270 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         </View>
       )}
 
-      {/* Refresh Button */}
-      <View style={dynamicStyles.quickActionCard}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={refreshing ? "Refreshing points data" : "Update my points"}
-          accessibilityHint="Refresh to get the latest points and activities"
-          accessibilityState={{ disabled: refreshing }}
-          style={[styles.actionButton, { backgroundColor: themeColors.secondary, marginBottom: 0 }]}
-          onPress={onRefresh}
-          disabled={refreshing}
-        >
-        <Text style={styles.actionButtonText}>
-          {refreshing ? '🔄 Getting Latest...' : '🔄 Update My Points'}
-        </Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Hero Section with Total Points and Quick Stats */}
-      <View style={[dynamicStyles.quickActionCard, {
-        backgroundColor: themeColors.primary + '10',
-        borderColor: themeColors.primary,
-        borderWidth: 2,
-      }]}>
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 16,
-        }}>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <AnimatedCounter
-              value={totalPoints}
-              fontSize={42}
-              color={themeColors.primary}
-              suffix=""
-            />
-            <Text style={{
-              fontSize: 16,
-              color: themeColors.textSecondary,
-              marginTop: 4,
-              textAlign: 'center'
-            }}>
-              My Points
-            </Text>
-          </View>
-
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-around',
-            flex: 1,
-          }}>
-            <StatCard
-              icon="🎁"
-              value={userData && userData.rewards ? userData.rewards.length.toString() : "0"}
-              label="Rewards"
-              color={themeColors.accent + '20'}
-              size="small"
-            />
-            <StatCard
-              icon="🎯"
-              value={userData && userData.goals ? userData.goals.length.toString() : "0"}
-              label="Goals"
-              color={themeColors.warning + '20'}
-              size="small"
-            />
-            <StatCard
-              icon="📈"
-              value={todaysEarnings > 0 ? `+${todaysEarnings}` : "0"}
-              label="Today"
-              color={themeColors.success + '20'}
-              size="small"
-            />
-          </View>
-        </View>
-      </View>
 
       {/* Enhanced Money Jars Overview */}
       <View style={dynamicStyles.quickActionCard}>
         <Text style={dynamicStyles.sectionTitle}>My Pots</Text>
-        <View style={{flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 10}}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingVertical: 8 }}>
           {jars.map(jar => (
-            <JarCard
+            <TouchableOpacity
               key={jar.label}
-              jar={jar}
-              progress={(jar.value / totalPoints) * 100}
-              trend="+5%"
-              showInsights={true}
-            />
+              style={{ marginHorizontal: 6, alignItems: 'center' }}
+              accessibilityRole="button"
+              accessibilityLabel={`${jar.label}: ${jar.value} points`}
+              onPress={() => router.push('./money-jars')}
+            >
+              <View style={{
+                width: 80,
+                height: 80,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                elevation: 2,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.2,
+                shadowRadius: 2,
+                backgroundColor: themeColors.card,
+                borderWidth: 2,
+                borderColor: jar.color,
+              }}>
+                <Text style={{ fontSize: 20, marginBottom: 2 }}>{jar.icon}</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: themeColors.text }}>{jar.value}</Text>
+                <Text style={{ fontSize: 10, textAlign: 'center', lineHeight: 12, color: themeColors.textSecondary }}>
+                  {jar.label.replace(' Pot', '').replace(' Money', '')}
+                </Text>
+              </View>
+            </TouchableOpacity>
           ))}
+        </ScrollView>
+      </View>
+
+      {/* Enhanced Hero Section with Total Points and Quick Stats */}
+      <View style={{
+        backgroundColor: `linear-gradient(135deg, ${themeColors.primary}15 0%, ${themeColors.primary}08 100%)`,
+        borderRadius: 20,
+        marginBottom: 20,
+        padding: 24,
+        width: '100%',
+        maxWidth: 520,
+        alignSelf: 'center',
+        elevation: 4,
+        shadowColor: themeColors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        borderWidth: 2,
+        borderColor: themeColors.primary + '30',
+      }}>
+        {/* Main Points Display */}
+        <View style={{ alignItems: 'center', marginBottom: 20 }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '600',
+            color: themeColors.primary,
+            marginBottom: 8,
+            textAlign: 'center'
+          }}>
+            💰 My Total Points
+          </Text>
+
+          <AnimatedCounter
+            value={totalPoints}
+            fontSize={48}
+            color={themeColors.primary}
+            suffix=""
+          />
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.success,
+              fontWeight: '500',
+              marginRight: 12
+            }}>
+              📈 +{todaysEarnings} Today
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.accent,
+              fontWeight: '500'
+            }}>
+              🎯 {userData && userData.goals ? userData.goals.length : 0} Active Goals
+            </Text>
+          </View>
         </View>
+
+        {/* Stats Grid - Responsive Layout */}
+        <View style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'space-around',
+          gap: 12,
+        }}>
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.card,
+              borderRadius: 16,
+              padding: 16,
+              minWidth: 80,
+              alignItems: 'center',
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              borderWidth: 1,
+              borderColor: themeColors.border,
+            }}
+            onPress={() => router.push('./gifts')}
+            accessibilityRole="button"
+            accessibilityLabel={`Rewards: ${userData && userData.rewards ? userData.rewards.length : 0} available rewards`}
+            accessibilityHint="Navigate to rewards and gifts page"
+          >
+            <Text style={{ fontSize: 24, marginBottom: 4 }}>🎁</Text>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: themeColors.accent,
+              marginBottom: 2
+            }}>
+              {userData && userData.rewards ? userData.rewards.length : 0}
+            </Text>
+            <Text style={{
+              fontSize: 12,
+              color: themeColors.textSecondary,
+              textAlign: 'center'
+            }}>
+              Rewards
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.card,
+              borderRadius: 16,
+              padding: 16,
+              minWidth: 80,
+              alignItems: 'center',
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              borderWidth: 1,
+              borderColor: themeColors.border,
+            }}
+            onPress={() => router.push('./goals')}
+            accessibilityRole="button"
+            accessibilityLabel={`Goals: ${userData && userData.goals ? userData.goals.length : 0} active goals`}
+            accessibilityHint="Navigate to goals and savings page"
+          >
+            <Text style={{ fontSize: 24, marginBottom: 4 }}>🎯</Text>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: themeColors.warning,
+              marginBottom: 2
+            }}>
+              {userData && userData.goals ? userData.goals.length : 0}
+            </Text>
+            <Text style={{
+              fontSize: 12,
+              color: themeColors.textSecondary,
+              textAlign: 'center'
+            }}>
+              Goals
+            </Text>
+          </TouchableOpacity>
+
+          <View style={{
+            backgroundColor: themeColors.card,
+            borderRadius: 16,
+            padding: 16,
+            minWidth: 80,
+            alignItems: 'center',
+            elevation: 2,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            borderWidth: 1,
+            borderColor: themeColors.border,
+          }}>
+            <Text style={{ fontSize: 24, marginBottom: 4 }}>📅</Text>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: themeColors.success,
+              marginBottom: 2
+            }}>
+              {todaysEarnings > 0 ? `+${todaysEarnings}` : todaysEarnings}
+            </Text>
+            <Text style={{
+              fontSize: 12,
+              color: themeColors.textSecondary,
+              textAlign: 'center'
+            }}>
+              Today
+            </Text>
+          </View>
+
+          <View style={{
+            backgroundColor: themeColors.card,
+            borderRadius: 16,
+            padding: 16,
+            minWidth: 80,
+            alignItems: 'center',
+            elevation: 2,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            borderWidth: 1,
+            borderColor: themeColors.border,
+          }}>
+            <Text style={{ fontSize: 24, marginBottom: 4 }}>📊</Text>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: themeColors.secondary,
+              marginBottom: 2
+            }}>
+              {userData && userData.transactions ? userData.transactions.length : 0}
+            </Text>
+            <Text style={{
+              fontSize: 12,
+              color: themeColors.textSecondary,
+              textAlign: 'center'
+            }}>
+              Activities
+            </Text>
+          </View>
+        </View>
+
+        {/* Achievement Message */}
+        {totalPoints > 100 && (
+          <View style={{
+            marginTop: 16,
+            padding: 12,
+            backgroundColor: themeColors.success + '15',
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: themeColors.success + '30',
+            alignItems: 'center'
+          }}>
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.success,
+              fontWeight: '600',
+              textAlign: 'center'
+            }}>
+              🌟 Amazing! You're building great money habits!
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Enhanced Quick Actions */}
@@ -1181,7 +1429,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
         {/* Smart Action Cards - Always show 2-3 most important actions */}
         <ActionCard
-          icon="🔄"
+          icon="↔️"
           title="Move My Points"
           subtitle="Switch money between your pots!"
           color={themeColors.warning}
@@ -1249,46 +1497,72 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
           }}
         >
           <Text style={{ fontWeight: 'bold', color: themeColors.primary, fontSize: 16 }}>
-            {showMore ? "Show Less ▲" : "Show More ▼"}
+            {showMore ? "Show Less 🔽" : "Show More 🔽"}
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Recent Activity Feed */}
       <View style={dynamicStyles.quickActionCard}>
-        <Text style={dynamicStyles.sectionTitle}>🎉 My Recent Adventures</Text>
+        <Text style={dynamicStyles.sectionTitle}>🏃‍♂️ My Recent Adventures</Text>
 
         {recentActivities.length > 0 ? (
-          recentActivities.map((activity, index) => (
-            <View
-              key={activity.id || index}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 8,
-                paddingHorizontal: 4,
-                borderBottomWidth: index < recentActivities.length - 1 ? 1 : 0,
-                borderBottomColor: themeColors.border,
-              }}
-            >
-              <Text style={{ fontSize: 24, marginRight: 12 }}>{activity.icon}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '500' }}>
-                  {activity.description}
-                </Text>
-                <Text style={{ fontSize: 12, color: themeColors.textSecondary, marginTop: 2 }}>
-                  {new Date(activity.timestamp).toLocaleDateString()} • {activity.amount > 0 ? '+' : ''}{formatAmount(Math.abs(activity.amount))} points
-                </Text>
+          <>
+            {(activityExpanded ? recentActivities : recentActivities.slice(0, 2)).map((activity, index) => (
+              <View
+                key={activity.id || index}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 8,
+                  paddingHorizontal: 4,
+                  borderBottomWidth: index < (activityExpanded ? recentActivities.length - 1 : Math.min(recentActivities.length - 1, 1)) ? 1 : 0,
+                  borderBottomColor: themeColors.border,
+                }}
+              >
+                <Text style={{ fontSize: 24, marginRight: 12 }}>{activity.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '500' }}>
+                    {activity.description}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: themeColors.textSecondary, marginTop: 2 }}>
+                    {new Date(activity.timestamp).toLocaleDateString()} • {Number(activity.amount) > 0 ? '+' : ''}{formatAmount(Math.abs(Number(activity.amount) || 0))} points
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))
+            ))}
+
+            {recentActivities.length > 2 && (
+              <TouchableOpacity
+                onPress={() => setActivityExpanded(!activityExpanded)}
+                accessibilityRole="button"
+                accessibilityLabel={activityExpanded ? "Show fewer adventures" : "Show more adventures"}
+                accessibilityHint="Expand or collapse the activity feed"
+                style={{
+                  marginTop: 8,
+                  alignItems: 'center',
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: themeColors.surface,
+                  borderWidth: 1,
+                  borderColor: themeColors.border,
+                }}
+              >
+                <Text style={{ fontSize: 14, color: themeColors.primary, fontWeight: '500' }}>
+                  {activityExpanded ? 'Show Less ▲' : `Show ${recentActivities.length - 2} More ▼`}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+
+          </>
         ) : (
           <View style={{ paddingVertical: 20, alignItems: 'center' }}>
             <Text style={{ fontSize: 16, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 16 }}>
-              🚀 Ready for your first adventure?
+              🎯 Ready for your first adventure?
             </Text>
             <Text style={{ fontSize: 14, color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20 }}>
-              Complete chores, claim rewards, or set goals to earn points! Your awesome activities will appear here after your parent gives the thumbs up! 🎉
+              Complete chores, claim rewards, or set goals to earn points! Your awesome activities will appear here after your parent gives the thumbs up! 👨‍👩‍👧‍👦
             </Text>
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 16 }}>
@@ -1319,7 +1593,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               style={[styles.actionButton, { backgroundColor: themeColors.accent, marginTop: 8 }]}
               onPress={() => router.push('./transaction-history')}
             >
-              <Text style={[styles.actionButtonText, { fontSize: 14 }]}>View All History 📊</Text>
+              <Text style={[styles.actionButtonText, { fontSize: 14 }]}>View All History 📜</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1343,7 +1617,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       <HelpModal
         visible={helpModalVisible}
         onClose={() => setHelpModalVisible(false)}
-        title="🏠 My Money Pots - Help"
+        title="❓ My Money Pots - Help"
         tabs={[
           {
             title: "Start",
@@ -1351,7 +1625,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               {
                 type: "text",
                 text: "Welcome to your Money Pots! This is your home base where you can see all your points and what you can do with them.",
-                icon: "🏠"
+                icon: "💰"
               },
               {
                 type: "bullet",
@@ -1367,7 +1641,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               },
               {
                 type: "highlight",
-                text: "Parents approve most actions, so ask nicely! 😊",
+                text: "Parents approve most actions, so ask nicely! 👨‍👩‍👧‍👦",
                 icon: "👨‍👩‍👧‍👦"
               }
             ]
@@ -1378,15 +1652,15 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               {
                 type: "text",
                 text: "You have 5 special pots for your points:",
-                icon: "🏺"
+                icon: "💰"
               },
               {
                 type: "bullet",
-                text: "💰 Pocket Money - Spend right now"
+                text: "💵 Pocket Money - Spend right now"
               },
               {
                 type: "bullet",
-                text: "🐷 Savings Pot - Big goals later"
+                text: "🏦 Savings Pot - Big goals later"
               },
               {
                 type: "bullet",
@@ -1394,7 +1668,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               },
               {
                 type: "bullet",
-                text: "🤲 Help Others Pot - Charity & giving"
+                text: "❤️ Help Others Pot - Charity & giving"
               },
               {
                 type: "bullet",
@@ -1403,7 +1677,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               {
                 type: "highlight",
                 text: "Tap 'See My Pots' to move points (needs parent approval)",
-                icon: "🔄"
+                icon: "🔍"
               }
             ]
           },
@@ -1413,7 +1687,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               {
                 type: "text",
                 text: "Things you can do:",
-                icon: "🎯"
+                icon: "⚡"
               },
               {
                 type: "bullet",
@@ -1438,7 +1712,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               {
                 type: "highlight",
                 text: "Most actions need parent approval first!",
-                icon: "🤝"
+                icon: "👨‍👩‍👧‍👦"
               }
             ]
           },
@@ -1452,7 +1726,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               },
               {
                 type: "bullet",
-                text: "🧹 - Chores completed"
+                text: "✅ - Chores completed"
               },
               {
                 type: "bullet",
@@ -1460,7 +1734,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               },
               {
                 type: "bullet",
-                text: "🔄 - Points moved"
+                text: "↔️ - Points moved"
               },
               {
                 type: "bullet",
@@ -1473,7 +1747,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               {
                 type: "highlight",
                 text: "Tap 'See All Activities' for full history!",
-                icon: "📈"
+                icon: "📜"
               }
             ]
           }

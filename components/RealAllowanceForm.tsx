@@ -2,14 +2,14 @@ import { useTheme } from '@/utils/themeContext';
 import { Picker } from '@react-native-picker/picker';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface RealAllowanceFormProps {

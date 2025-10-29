@@ -7,7 +7,6 @@ import { InterestRuleType, useCurrency } from '@/utils/currencyContext';
 import { handleApiError } from '@/utils/errorHandler';
 import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -340,10 +339,12 @@ const TransferTimeline = ({ requests, router }: { requests: any[]; router: any }
 };
 
 // Smart Allocation Coach Component
-const AllocationCoach = ({ jars, router, scrollToMovePoints }: {
+const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle }: {
   jars: any[];
   router: any;
   scrollToMovePoints?: () => void;
+  expanded: boolean;
+  onToggle: () => void;
 }) => {
   const { themeColors } = useTheme();
 
@@ -397,192 +398,207 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints }: {
   const insights = getAllocationInsights();
 
   return (
-    <View style={{
-      borderRadius: 14,
-      marginBottom: 16,
-      padding: 18,
-      minWidth: 300,
-      width: "97%",
-      maxWidth: 520,
-      elevation: 2,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      backgroundColor: themeColors.surface
-    }}>
-      <Text style={{
-        fontSize: 20,
-        fontWeight: "bold",
+    <TouchableOpacity
+      style={{
+        borderRadius: 14,
         marginBottom: 16,
-        textAlign: 'center',
-        color: themeColors.primary
-      }}>
-        🎯 Smart Allocation Coach
-      </Text>
-
-      {/* Current vs Ideal Comparison - Simplified Bar Chart */}
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{
-          fontSize: 16,
-          fontWeight: "600",
-          marginBottom: 12,
-          textAlign: 'center',
-          color: themeColors.text
-        }}>Your Current Balance:</Text>
-        {jars.map(jar => {
-          const percentage = insights.current[jar.key] || 0;
-          return (
-            <View key={jar.key} style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 8,
-            }}>
-              <Text style={{
-                fontSize: 20,
-                marginRight: 8,
-                width: 30,
-                textAlign: 'center',
-                color: themeColors.text
-              }}>{jar.icon}</Text>
-              <Text style={{
-                fontSize: 14,
-                flex: 1,
-                color: themeColors.text
-              }}>{jar.label}</Text>
-              <View style={{
-                flex: 2,
-                height: 8,
-                backgroundColor: themeColors.border,
-                borderRadius: 4,
-                marginHorizontal: 8,
-                overflow: 'hidden',
-              }}>
-                <View
-                  style={{
-                    height: '100%',
-                    width: `${percentage}%`,
-                    borderRadius: 4,
-                    backgroundColor: jar.color || themeColors.primary
-                  }}
-                />
-              </View>
-              <Text style={{
-                fontSize: 12,
-                fontWeight: 'bold',
-                width: 35,
-                textAlign: 'right',
-                color: themeColors.text
-              }}>
-                {Math.round(percentage)}%
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-
-      {/* Recommendations */}
-      {insights.recommendations.length > 0 && (
-        <View style={{ marginBottom: 16 }}>
+        padding: 18,
+        minWidth: 300,
+        width: "97%",
+        maxWidth: 520,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        backgroundColor: themeColors.surface
+      }}
+      onPress={onToggle}
+      accessibilityRole="button"
+      accessibilityLabel={expanded ? "Collapse allocation coach" : "Expand allocation coach"}
+      accessibilityHint="Show or hide smart money allocation suggestions"
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
           <Text style={{
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: "600",
-            marginBottom: 8,
-            color: themeColors.text
+            marginBottom: expanded ? 16 : 0,
+            color: themeColors.primary
           }}>
-            💡 Smart Suggestions:
+            🎯 Smart Allocation Coach
           </Text>
-          {insights.recommendations.map((rec, index) => (
-            <View
-              key={index}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: 12,
-                borderRadius: 8,
-                marginBottom: 8,
-                backgroundColor: themeColors.card,
-                borderWidth: 1,
-                borderColor: themeColors.border
-              }}
-            >
-              <Text style={{
-                fontSize: 24,
-                marginRight: 12,
-              }}>{rec.icon}</Text>
-              <Text style={{
-                flex: 1,
-                fontSize: 14,
-                color: themeColors.text
-              }}>
-                {rec.message}
-              </Text>
-              {rec.action ? (
+
+          {!expanded && (
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.textSecondary,
+              marginTop: 4
+            }}>
+              Get personalized tips for your money pots
+            </Text>
+          )}
+
+          {expanded && (
+            <>
+              {/* Current vs Ideal Comparison - Simplified Bar Chart */}
+              <View style={{ marginBottom: 16 }}>
                 <Text style={{
                   fontSize: 14,
-                  fontWeight: 'bold',
-                  color: themeColors.primary
-                }}>
-                  {rec.action} →
-                </Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
-      )}
+                  fontWeight: "600",
+                  marginBottom: 12,
+                  color: themeColors.text
+                }}>Your Current Balance:</Text>
+                {jars.map(jar => {
+                  const percentage = insights.current[jar.key] || 0;
+                  return (
+                    <View key={jar.key} style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 6,
+                    }}>
+                      <Text style={{
+                        fontSize: 18,
+                        marginRight: 8,
+                        width: 25,
+                        textAlign: 'center'
+                      }}>{jar.icon}</Text>
+                      <Text style={{
+                        fontSize: 13,
+                        flex: 1,
+                        color: themeColors.text
+                      }}>{jar.label.replace(' Pot', '')}</Text>
+                      <View style={{
+                        flex: 2,
+                        height: 6,
+                        backgroundColor: themeColors.border,
+                        borderRadius: 3,
+                        marginHorizontal: 8,
+                        overflow: 'hidden',
+                      }}>
+                        <View
+                          style={{
+                            height: '100%',
+                            width: `${percentage}%`,
+                            borderRadius: 3,
+                            backgroundColor: jar.color || themeColors.primary
+                          }}
+                        />
+                      </View>
+                      <Text style={{
+                        fontSize: 11,
+                        fontWeight: 'bold',
+                        width: 30,
+                        textAlign: 'right',
+                        color: themeColors.text
+                      }}>
+                        {Math.round(percentage)}%
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
 
-      {/* Quick Actions */}
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 8,
-      }}>
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 8,
-            alignItems: 'center',
-            elevation: 1,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 2,
-            backgroundColor: themeColors.secondary
-          }}
-          onPress={scrollToMovePoints}
-        >
-          <Text style={{
-            fontSize: 14,
-            fontWeight: 'bold',
-            color: themeColors.card
-          }}>⚖️ Balance Jars</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={{
-            flex: 1,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 8,
-            alignItems: 'center',
-            elevation: 1,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 2,
-            backgroundColor: themeColors.success
-          }}
-          onPress={() => router.push('./goals')}
-        >
-          <Text style={{
-            fontSize: 14,
-            fontWeight: 'bold',
-            color: themeColors.card
-          }}>🎯 My Goals</Text>
-        </TouchableOpacity>
+              {/* Recommendations */}
+              {insights.recommendations.length > 0 && (
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    marginBottom: 8,
+                    color: themeColors.text
+                  }}>
+                    💡 Smart Suggestions:
+                  </Text>
+                  {insights.recommendations.slice(0, 2).map((rec, index) => (
+                    <View
+                      key={index}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        padding: 10,
+                        borderRadius: 6,
+                        marginBottom: 6,
+                        backgroundColor: themeColors.card,
+                        borderWidth: 1,
+                        borderColor: themeColors.border
+                      }}
+                    >
+                      <Text style={{
+                        fontSize: 20,
+                        marginRight: 10,
+                      }}>{rec.icon}</Text>
+                      <Text style={{
+                        flex: 1,
+                        fontSize: 13,
+                        color: themeColors.text
+                      }}>
+                        {rec.message}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Quick Actions */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    paddingHorizontal: 14,
+                    borderRadius: 6,
+                    alignItems: 'center',
+                    elevation: 1,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    backgroundColor: themeColors.secondary
+                  }}
+                  onPress={scrollToMovePoints}
+                >
+                  <Text style={{
+                    fontSize: 13,
+                    fontWeight: 'bold',
+                    color: themeColors.card
+                  }}>⚖️ Balance</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    paddingHorizontal: 14,
+                    borderRadius: 6,
+                    alignItems: 'center',
+                    elevation: 1,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    backgroundColor: themeColors.success
+                  }}
+                  onPress={() => router.push('./goals')}
+                >
+                  <Text style={{
+                    fontSize: 13,
+                    fontWeight: 'bold',
+                    color: themeColors.card
+                  }}>🎯 Goals</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+        <Text style={{ fontSize: 16, color: themeColors.primary, marginLeft: 8 }}>
+          {expanded ? '▲' : '▼'}
+        </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -812,6 +828,7 @@ export default function MoneyJarsScreen() {
   const [optimisticRequests, setOptimisticRequests] = useState<any[]>([]);
   const [transferRequests, setTransferRequests] = useState<any[]>([]);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [coachExpanded, setCoachExpanded] = useState(false);
   const router = useRouter();
 
   const scrollToMovePoints = () => {
@@ -823,19 +840,17 @@ export default function MoneyJarsScreen() {
     console.log('🔄 Money Jars: Starting loadUserData...');
     try {
       const token = await getAuthToken();
-      const storedUser = await getUserData();
+      const user = await getUserData();
 
-      console.log('🔄 Money Jars: Token exists:', !!token, 'User exists:', !!storedUser);
+      console.log('🔄 Money Jars: Token exists:', !!token, 'User exists:', !!user);
 
-      if (!token || !storedUser) {
+      if (!token || !user) {
         console.log('🔄 Money Jars: Missing token or user data');
         if (showErrors) {
           Alert.alert('Error', 'Not authenticated. Please login again.');
         }
         return;
       }
-
-      const user = storedUser;
       const userId = user.id;
 
       console.log('🔄 Money Jars: Fetching data for user:', userId);
@@ -910,11 +925,10 @@ export default function MoneyJarsScreen() {
   const loadTransferRequests = async () => {
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const user = await getUserData();
 
-      if (!token || !storedUser) return;
+      if (!token || !user) return;
 
-      const user = JSON.parse(storedUser);
       const userId = user.id;
 
       console.log('Loading transfer requests for user:', userId);
@@ -973,6 +987,7 @@ export default function MoneyJarsScreen() {
       }
     >
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 2 }}>
+        {/* Header Row with Back and Action Buttons */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
             style={{
@@ -993,47 +1008,57 @@ export default function MoneyJarsScreen() {
           >
             <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              backgroundColor: themeColors.accent,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-            onPress={() => setHelpModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Help and information"
-            accessibilityHint="Double tap to open help guide for money pots"
-          >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
-          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: themeColors.secondary,
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                justifyContent: 'center',
+                alignItems: 'center',
+                elevation: 1,
+                marginRight: 8,
+                opacity: refreshing ? 0.7 : 1,
+                transform: [{ scale: refreshing ? 0.98 : 1 }],
+              }}
+              onPress={onRefresh}
+              disabled={refreshing}
+              accessibilityRole="button"
+              accessibilityLabel={refreshing ? "Updating money pot points" : "Update money pot points"}
+              accessibilityHint="Double tap to reload your current point balances"
+              accessibilityState={{ disabled: refreshing }}
+            >
+              <Text style={{ fontSize: 16, color: themeColors.card }}>{refreshing ? '⏳' : '↻'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: themeColors.accent,
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                justifyContent: 'center',
+                alignItems: 'center',
+                elevation: 1,
+              }}
+              onPress={() => setHelpModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Help and information"
+              accessibilityHint="Double tap to open help guide for money pots"
+            >
+              <Text style={{ color: themeColors.card, fontSize: 16 }}>❓</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={{ alignItems: 'center' }}>
+
+        {/* Title Below Header */}
+        <View style={{ alignItems: 'center', marginBottom: 12 }}>
           <Text style={styles.title}>🏺 My Money Pots</Text>
         </View>
       </View>
 
-      {/* Refresh Button */}
-      <View style={[styles.sectionCard]}>
-        <TouchableOpacity
-          style={[styles.formBtn, { backgroundColor: themeColors.primary, alignSelf: 'center', minWidth: 200 }]}
-          onPress={onRefresh}
-          disabled={refreshing}
-          accessibilityRole="button"
-          accessibilityLabel={refreshing ? "Updating money pot points" : "Update money pot points"}
-          accessibilityHint="Double tap to reload your current point balances"
-          accessibilityState={{ disabled: refreshing }}
-        >
-          <Text style={[styles.formBtnText, { color: themeColors.card }]}>
-            {refreshing ? 'Updating...' : '🔄 Update the Points'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+
 
       {/* JARS DISPLAY */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 18 }}>
@@ -1071,21 +1096,50 @@ export default function MoneyJarsScreen() {
         ))}
       </View>
 
+      {/* Section Divider */}
+      <View style={{
+        height: 1,
+        backgroundColor: themeColors.border + '40',
+        marginVertical: 12,
+        width: '90%',
+        alignSelf: 'center'
+      }} />
+
       {/* SMART ALLOCATION COACH */}
       <AllocationCoach
         jars={jars}
         router={router}
         scrollToMovePoints={scrollToMovePoints}
+        expanded={coachExpanded}
+        onToggle={() => setCoachExpanded(!coachExpanded)}
       />
+
+      {/* Section Divider */}
+      <View style={{
+        height: 1,
+        backgroundColor: themeColors.border + '40',
+        marginVertical: 12,
+        width: '90%',
+        alignSelf: 'center'
+      }} />
+
+      {/* MOVE POINTS SECTION */}
+      <MovePointsSection jars={jars} setJars={setJars} onRequestSubmitted={loadTransferRequests} />
+
+      {/* Section Divider */}
+      <View style={{
+        height: 1,
+        backgroundColor: themeColors.border + '40',
+        marginVertical: 12,
+        width: '90%',
+        alignSelf: 'center'
+      }} />
 
       {/* TRANSFER TIMELINE */}
       <TransferTimeline
         requests={transferRequests}
         router={router}
       />
-
-      {/* MOVE POINTS SECTION */}
-      <MovePointsSection jars={jars} setJars={setJars} onRequestSubmitted={loadTransferRequests} />
 
       {/* Help Modal */}
       <HelpModal
@@ -1361,9 +1415,9 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
 
     try {
       const token = await getAuthToken();
-      const storedUser = await AsyncStorage.getItem('user');
+      const user = await getUserData();
 
-      if (!token || !storedUser) {
+      if (!token || !user) {
         setStatus({ type: "error", msg: "Not authenticated. Please login again." });
         setAmount(originalAmount);
         setFrom(originalFrom);
@@ -1372,7 +1426,6 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
         return;
       }
 
-      const user = JSON.parse(storedUser);
       const userId = user.id;
 
       const toJar = jars.find(j => j.key === to);
@@ -1429,7 +1482,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
   return (
     <View style={[{
       backgroundColor: themeColors.card,
-      borderRadius: 14,
+      borderRadius: 0,
       marginBottom: 16,
       padding: 18,
       minWidth: 300,

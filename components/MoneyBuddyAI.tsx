@@ -82,10 +82,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    // TODO: Replace with LinearGradient for gradient background
+    backgroundColor: themeColors.primary,
   },
   compactHeader: {
-    backgroundColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    // TODO: Replace with LinearGradient for gradient background
+    backgroundColor: themeColors.primary,
     borderBottomWidth: 1,
     borderBottomColor: themeColors.border,
   },
@@ -258,7 +260,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   conversationStarters: {
     padding: 20,
-    backgroundColor: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+    // TODO: Replace with LinearGradient for gradient background
+    backgroundColor: themeColors.primary + '11',
     borderRadius: 16,
     margin: 20,
     marginBottom: 12,
@@ -273,7 +276,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     textAlign: 'center',
   },
   starterButton: {
-    backgroundColor: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
+    // TODO: Replace with LinearGradient for gradient background
+    backgroundColor: themeColors.primary + '22',
     borderWidth: 1,
     borderColor: themeColors.primary + '30',
     borderRadius: 24,
@@ -294,7 +298,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   errorContainer: {
     padding: 20,
-    backgroundColor: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(183, 28, 28, 0.1) 100%)',
+    // TODO: Replace with LinearGradient for gradient background
+    backgroundColor: themeColors.error + '11',
     borderRadius: 16,
     margin: 20,
     borderWidth: 1,
@@ -309,7 +314,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   retryButton: {
     marginTop: 12,
     alignSelf: 'center',
-    backgroundColor: 'linear-gradient(135deg, #f44336 0%, #b71c1c 100%)',
+    // TODO: Replace with LinearGradient for gradient background
+    backgroundColor: themeColors.error,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 20,
@@ -653,17 +659,24 @@ export default function MoneyBuddyAI({ onClose, initialMessage, compact = false 
         {showStarters && conversationStarters.length > 0 && messages.length <= 1 && (
           <View style={styles.conversationStarters}>
             <Text style={styles.startersTitle}>💡 Try asking:</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', width: '100%' }}>
               {conversationStarters.slice(0, 3).map((starter, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={styles.starterButton}
+                  style={[
+                    styles.starterButton,
+                    { maxWidth: '90%', minWidth: 150, marginBottom: 10, alignSelf: 'flex-start' }
+                  ]}
                   onPress={() => handleStarterClick(starter)}
                   accessibilityRole="button"
                   accessibilityLabel={`Ask: ${starter}`}
                   accessibilityHint="Send this suggested question to MoneyBuddy"
                 >
-                  <Text style={styles.starterButtonText} numberOfLines={2} adjustsFontSizeToFit>
+                  <Text
+                    style={styles.starterButtonText}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
                     {starter}
                   </Text>
                 </TouchableOpacity>

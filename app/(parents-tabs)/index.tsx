@@ -2,7 +2,6 @@ import HelpModal from '@/components/HelpModal';
 import RealAllowanceForm, { RealAllowanceData } from '@/components/RealAllowanceForm';
 import RealAllowanceHistory from '@/components/RealAllowanceHistory';
 import { ActionSuggestions } from '@/components/ui/ActionSuggestions';
-import { EnhancedJar } from '@/components/ui/EnhancedJar';
 import { InterestMotivator } from '@/components/ui/InterestMotivator';
 import SkeletonJar from '@/components/ui/SkeletonJar';
 import { API_URL } from '@/utils/config';
@@ -114,10 +113,11 @@ export default function ParentsOverviewScreen() {
   const [showMoreActions, setShowMoreActions] = useState(false);
   const [realAllowanceFormVisible, setRealAllowanceFormVisible] = useState(false);
   const [realAllowanceHistoryVisible, setRealAllowanceHistoryVisible] = useState(false);
+  const [showChildDropdown, setShowChildDropdown] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
-    notifications: true,  // Always expanded if there are unread notifications
     interest: false,      // Collapsed by default - secondary info
     pots: true,          // Expanded by default - core child status
+    advanced: false,     // Collapsed by default - less used features
   });
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [lastAllowanceDate, setLastAllowanceDate] = useState<Date | undefined>(undefined);
@@ -300,212 +300,369 @@ export default function ParentsOverviewScreen() {
 
       {/* Heading */}
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Help and information"
-            accessibilityHint="Open help guide for parent dashboard features"
+            accessibilityLabel="Refresh child's data"
+            accessibilityHint="Reload latest information about your child's points and activities"
+            accessibilityState={{ disabled: refreshing }}
             style={{
-              backgroundColor: themeColors.accent,
-              borderRadius: 16,
-              paddingHorizontal: 16, // Increased from 8 for accessibility
-              paddingVertical: 12,  // Increased from 4 for accessibility
-              elevation: 2,
-              minWidth: 48,         // Explicit minimum for accessibility
-              minHeight: 48,        // Explicit minimum for accessibility
+              backgroundColor: themeColors.secondary,
+              borderRadius: 20,
+              width: 40,
+              height: 40,
               justifyContent: 'center',
               alignItems: 'center',
+              elevation: 1,
             }}
-            onPress={() => setHelpModalVisible(true)}
+            onPress={onRefresh}
+            disabled={refreshing}
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+            <Text style={{ fontSize: 16, color: themeColors.card }}>{refreshing ? '⏳' : '↻'}</Text>
           </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {familyChildren.length > 0 && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Add another child"
+                accessibilityHint="Create an account for another child in your family"
+                style={{
+                  backgroundColor: themeColors.success,
+                  borderRadius: 20,
+                  width: 40,
+                  height: 40,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  elevation: 1,
+                  marginRight: 8,
+                }}
+                onPress={() => router.push('/addChild')}
+              >
+                <Text style={{ color: themeColors.card, fontSize: 20, fontWeight: 'bold' }}>+</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Help and information"
+              accessibilityHint="Open help guide for parent dashboard features"
+              style={{
+                backgroundColor: themeColors.accent,
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                justifyContent: 'center',
+                alignItems: 'center',
+                elevation: 1,
+              }}
+              onPress={() => setHelpModalVisible(true)}
+            >
+              <Text style={{ color: themeColors.card, fontSize: 16 }}>❓</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={{ alignItems: 'center' }}>
           <Text style={[styles.title, { color: themeColors.primary }]}>Family Finance Hub</Text>
         </View>
       </View>
 
-      {/* Child Selector - Only show when multiple children */}
-      {familyChildren.length > 1 && (
+      {/* Single Child Indicator - Show when only one child exists */}
+      {familyChildren.length === 1 && childData && (
+        <View style={{
+          backgroundColor: themeColors.surface,
+          borderRadius: 12,
+          padding: 8,
+          marginBottom: 8,
+          marginTop: 8,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          alignSelf: 'center',
+          minWidth: 200,
+          alignItems: 'center'
+        }}>
+          <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
+            👶 Viewing: {childData.name}
+          </Text>
+        </View>
+      )}
+
+      {/* Child Selector - Enhanced Horizontal Cards - Show for any number of children */}
+      {familyChildren.length > 0 && (
         <View style={[styles.sectionCard, {
           backgroundColor: themeColors.surface,
           shadowColor: themeColors.border,
-          borderWidth: 2,
-          borderColor: themeColors.accent,
-          borderStyle: 'solid',
-          marginBottom: 12
+          borderWidth: 3,
+          borderColor: themeColors.primary,
+          borderRadius: 16,
+          marginBottom: 12,
+          marginTop: 12
         }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18 }]}>
-            👶 Select Child to View
-          </Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={selectedChildId || ''}
-              onValueChange={async (value) => {
-                setSelectedChildId(value);
-                // Fetch data for the newly selected child
-                await fetchChildData(true, value); // Force refresh with specific child
-                // Also refresh interest data for the selected child
-                await fetchInterestData();
-              }}
-              style={{ height: 50 }}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+              👨‍👩‍👦 Select Child to View
+            </Text>
+            <View style={[styles.selectedIndicator, {
+              position: 'relative',
+              marginLeft: 8,
+              backgroundColor: themeColors.success
+            }]}>
+              <Text style={styles.selectedCheckmark}>{familyChildren.length}</Text>
+            </View>
+
+            {/* Dropdown Alternative for many children */}
+            {familyChildren.length > 3 && (
+              <TouchableOpacity
+                style={[styles.dropdownToggle, { backgroundColor: themeColors.secondary }]}
+                onPress={() => setShowChildDropdown(!showChildDropdown)}
+                accessibilityLabel="Toggle child selection dropdown"
+                accessibilityHint="Show or hide dropdown to select child"
+              >
+                <Text style={{ color: themeColors.card, fontSize: 14 }}>▼</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Dropdown Picker for many children */}
+          {showChildDropdown && familyChildren.length > 3 && (
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedChildId || ''}
+                onValueChange={async (value) => {
+                  setSelectedChildId(value);
+                  setShowChildDropdown(false);
+                  // Fetch data for the newly selected child
+                  await fetchChildData(true, value); // Force refresh with specific child
+                  // Also refresh interest data for the selected child
+                  await fetchInterestData();
+                }}
+                style={{ height: 50 }}
+              >
+                {familyChildren.map((child) => (
+                  <Picker.Item
+                    key={child.id}
+                    label={child.name}
+                    value={child.id}
+                  />
+                ))}
+              </Picker>
+            </View>
+          )}
+
+          {/* Horizontal Card Selector - Show for all cases unless dropdown is active */}
+          {(!showChildDropdown || familyChildren.length <= 3) && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.childrenScroll}
+              contentContainerStyle={styles.childrenScrollContent}
             >
               {familyChildren.map((child) => (
-                <Picker.Item
+                <TouchableOpacity
                   key={child.id}
-                  label={child.name}
-                  value={child.id}
-                />
+                  style={[
+                    styles.childCard,
+                    {
+                      backgroundColor: selectedChildId === child.id ? themeColors.primary : themeColors.card,
+                      borderColor: selectedChildId === child.id ? themeColors.primary : themeColors.border,
+                      borderWidth: selectedChildId === child.id ? 3 : 2,
+                    }
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select ${child.name} - ${selectedChildId === child.id ? 'currently selected' : 'tap to select'}`}
+                  accessibilityHint="Switch to view this child's financial progress and manage their account"
+                  onPress={async () => {
+                    setSelectedChildId(child.id);
+                    // Fetch data for the newly selected child
+                    await fetchChildData(true, child.id); // Force refresh with specific child
+                    // Also refresh interest data for the selected child
+                    await fetchInterestData();
+                  }}
+                >
+                  <View style={styles.childAvatar}>
+                    <Text style={[styles.childAvatarText, {
+                      color: selectedChildId === child.id ? themeColors.card : themeColors.primary
+                    }]}>
+                      {child.name.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={[styles.childName, {
+                    color: selectedChildId === child.id ? themeColors.card : themeColors.text
+                  }]}>
+                    {child.name}
+                  </Text>
+                  {selectedChildId === child.id && (
+                    <View style={styles.selectedIndicator}>
+                      <Text style={styles.selectedCheckmark}>👑</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
               ))}
-            </Picker>
-          </View>
+            </ScrollView>
+          )}
+
           <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
-            Switch between your children to view their individual progress and manage their accounts
+            Currently viewing: {childData?.name || 'No child selected'} • Tap any child above to switch{familyChildren.length > 3 ? ' • Use dropdown for more options' : ''}
           </Text>
         </View>
       )}
 
-      {/* Refresh Button */}
-      <View style={[styles.sectionCard, {
-        backgroundColor: themeColors.card,
-        shadowColor: themeColors.border,
-        borderWidth: 2,
-        borderColor: themeColors.primary,
-        borderStyle: 'dashed'
-      }]}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={refreshing ? "Refreshing child's data" : "Refresh child's data"}
-          accessibilityHint="Reload latest information about your child's points and activities"
-          accessibilityState={{ disabled: refreshing }}
-          style={[styles.quickBtn, { backgroundColor: themeColors.primary, alignSelf: 'center', minWidth: 200 }]}
-          onPress={onRefresh}
-          disabled={refreshing}
-        >
-          <Text style={[styles.quickBtnText, { color: themeColors.card }]}>
-            {refreshing ? 'Refreshing...' : '🔄 Refresh Your Child\'s Data'}
-          </Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Add Child Button - For parents who already have children */}
-      {familyChildren.length > 0 && (
-        <View style={[styles.sectionCard, {
-          backgroundColor: themeColors.success + '15',
-          shadowColor: themeColors.border,
-          borderWidth: 2,
-          borderColor: themeColors.success,
-          borderStyle: 'dashed'
-        }]}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Add another child to your family"
-            accessibilityHint="Create an account for another child in your family"
-            style={[styles.quickBtn, { backgroundColor: themeColors.success, alignSelf: 'center', minWidth: 200 }]}
-            onPress={() => router.push('/addChild')}
-          >
-            <Text style={[styles.quickBtnText, { color: themeColors.card }]}>
-              👶 Add Another Child
-            </Text>
-          </TouchableOpacity>
-          <Text style={{ textAlign: 'center', color: themeColors.textSecondary, marginTop: 8 }}>
-            Currently managing {familyChildren.length} child{familyChildren.length > 1 ? 'ren' : ''}
-          </Text>
-        </View>
-      )}
 
-      {/* Enhanced Interest Section with Gamification */}
+
+
+
+
+      {/* Compact Interest Summary - Only when relevant */}
       {(() => {
-        console.log('InterestMotivator Debug:', {
-          interestRule: interestRule ? 'exists' : 'null',
-          childData: childData ? 'exists' : 'null',
-          savePoints: childData?.savePoints,
-          rate: interestRule?.rate,
-          frequency: interestRule?.frequency
-        });
-
-        // Only show interest section if interest is configured and rate > 0
+        // Only show interest summary if interest is configured, rate > 0, and child has savings
         const effectiveInterestRule = interestRule;
         const shouldShowInterest = effectiveInterestRule && effectiveInterestRule.rate > 0 && childData && childData.savePoints > 0;
 
-        return shouldShowInterest ? (
-          <InterestMotivator
-            nextPayout={{
-              amount: Math.max(1, Math.round(childData.savePoints * (effectiveInterestRule.rate / 100))), // Calculate next payout amount
-              days: effectiveInterestRule.frequency === 'monthly' ? 30 : 7
-            }}
-            totalEarned={interestSummary?.totalEarned || 0}
-            streak={interestSummary?.currentStreak || 0}
-            recentPayouts={interestHistory}
-            themeColors={themeColors}
-            onExpand={() => setExpandedSections(prev => ({ ...prev, interest: !prev.interest }))}
-            isExpanded={expandedSections.interest}
-          />
-        ) : null;
+        if (!shouldShowInterest) return null;
+
+        const nextPayoutAmount = Math.max(1, Math.round(childData.savePoints * (effectiveInterestRule.rate / 100)));
+        const nextPayoutDays = effectiveInterestRule.frequency === 'monthly' ? 30 : 7;
+
+        return (
+          <View style={[styles.sectionCard, {
+            backgroundColor: themeColors.surface,
+            shadowColor: themeColors.border,
+            borderWidth: 2,
+            borderColor: themeColors.accent,
+            borderRadius: 16
+          }]}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              accessibilityRole="button"
+              accessibilityLabel={expandedSections.interest ? "Collapse interest details" : "Expand interest details"}
+              accessibilityHint="Show or hide interest earning information"
+              onPress={() => setExpandedSections(prev => ({ ...prev, interest: !prev.interest }))}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Text style={styles.interestEmoji}>💰</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 16, marginBottom: 2 }]}>
+                    Interest Earnings
+                  </Text>
+                  <Text style={[styles.placeholder, { color: themeColors.textSecondary, fontSize: 14 }]}>
+                    Earned: ₹{interestSummary?.totalEarned || 0} | Next: ₹{nextPayoutAmount} in {nextPayoutDays} days
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.expandIcon, { color: themeColors.textSecondary }]}>
+                {expandedSections.interest ? '▲' : '▼'}
+              </Text>
+            </TouchableOpacity>
+
+            {expandedSections.interest && (
+              <View style={styles.expandedContent}>
+                <InterestMotivator
+                  nextPayout={{
+                    amount: nextPayoutAmount,
+                    days: nextPayoutDays
+                  }}
+                  totalEarned={interestSummary?.totalEarned || 0}
+                  streak={interestSummary?.currentStreak || 0}
+                  recentPayouts={interestHistory}
+                  themeColors={themeColors}
+                  onExpand={() => {}} // Handled by parent
+                  isExpanded={true} // Always expanded when shown
+                />
+              </View>
+            )}
+          </View>
+        );
       })()}
 
 
 
-      {/* Child Jars Panel */}
+      {/* Child Jars Panel - Compact Horizontal Layout */}
       <View style={[styles.sectionCard, {
         backgroundColor: themeColors.surface,
         shadowColor: themeColors.border,
-        borderWidth: 3,
+        borderWidth: 2,
         borderColor: themeColors.success,
-        borderRadius: 20
+        borderRadius: 16
       }]}>
-        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-          {childData ? `${childData.name}'s Pots` : 'Your Child\'s Pots'}
+        <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18 }]}>
+          {childData ? `${childData.name}'s Money Pots` : 'Money Pots'}
         </Text>
         {childDataStatus === 'loading' ? (
-          (() => {
-            return (
-              <View style={styles.jarsContainer}>
-                {[...Array(5)].map((_, i) => (
-                  <SkeletonJar key={i} size={70} />
-                ))}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.compactJarsScroll}>
+            {[...Array(5)].map((_, i) => (
+              <View key={i} style={styles.compactJarWrapper}>
+                <SkeletonJar size={50} />
               </View>
-            );
-          })()
+            ))}
+          </ScrollView>
         ) : childData ? (
-          <View style={styles.jarsContainer}>
-            <EnhancedJar
-              label="Pocket Money"
-              value={childData.currentPoints}
-              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
-              themeColors={themeColors}
-              status={getJarStatus(childData.currentPoints, 'pocket')}
-            />
-            <EnhancedJar
-              label="Savings Pot"
-              value={childData.savePoints}
-              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
-              themeColors={themeColors}
-              status={getJarStatus(childData.savePoints, 'savings')}
-            />
-            <EnhancedJar
-              label="Spending Pot"
-              value={childData.spendPoints}
-              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
-              themeColors={themeColors}
-              status={getJarStatus(childData.spendPoints, 'spending')}
-            />
-            <EnhancedJar
-              label="Help Others Pot"
-              value={childData.donatePoints}
-              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
-              themeColors={themeColors}
-              status={getJarStatus(childData.donatePoints, 'donate')}
-            />
-            <EnhancedJar
-              label="Grow Money Pot"
-              value={childData.investPoints}
-              totalPoints={childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
-              themeColors={themeColors}
-              status={getJarStatus(childData.investPoints, 'invest')}
-            />
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.compactJarsScroll}>
+            <TouchableOpacity
+              style={styles.compactJarWrapper}
+              accessibilityRole="button"
+              accessibilityLabel={`Pocket Money: ${childData.currentPoints} points`}
+              onPress={() => router.push('/(parents-tabs)/points')}
+            >
+              <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.compactJarEmoji}>🤑</Text>
+                <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.currentPoints}</Text>
+                <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Pocket</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.compactJarWrapper}
+              accessibilityRole="button"
+              accessibilityLabel={`Savings Pot: ${childData.savePoints} points`}
+              onPress={() => router.push('/(parents-tabs)/goals')}
+            >
+              <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.compactJarEmoji}>🐷</Text>
+                <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.savePoints}</Text>
+                <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Savings</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.compactJarWrapper}
+              accessibilityRole="button"
+              accessibilityLabel={`Spending Pot: ${childData.spendPoints} points`}
+              onPress={() => router.push('/(parents-tabs)/requests')}
+            >
+              <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.compactJarEmoji}>🛍️</Text>
+                <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.spendPoints}</Text>
+                <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Spending</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.compactJarWrapper}
+              accessibilityRole="button"
+              accessibilityLabel={`Help Others Pot: ${childData.donatePoints} points`}
+              onPress={() => router.push('/(parents-tabs)/points')}
+            >
+              <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.compactJarEmoji}>❤️</Text>
+                <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.donatePoints}</Text>
+                <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Help Others</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.compactJarWrapper}
+              accessibilityRole="button"
+              accessibilityLabel={`Grow Money Pot: ${childData.investPoints} points`}
+              onPress={() => router.push('/(parents-tabs)/points')}
+            >
+              <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
+                <Text style={styles.compactJarEmoji}>📈</Text>
+                <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.investPoints}</Text>
+                <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Grow Money</Text>
+              </View>
+            </TouchableOpacity>
+          </ScrollView>
         ) : (
           <EmptyState styles={styles} />
         )}
@@ -921,21 +1078,51 @@ export default function ParentsOverviewScreen() {
         ]}
       />
 
-      {/* Real Allowance Form */}
-      <RealAllowanceForm
-        visible={realAllowanceFormVisible}
-        onClose={() => setRealAllowanceFormVisible(false)}
-        onSubmit={handleRealAllowanceSubmit}
-        children={familyChildren}
-        loading={false}
-      />
+      {/* Advanced Features Section - Collapsible */}
+      <View style={[styles.sectionCard, {
+        backgroundColor: themeColors.surface,
+        shadowColor: themeColors.border,
+        borderWidth: 1,
+        borderColor: themeColors.border,
+        borderRadius: 12
+      }]}>
+        <TouchableOpacity
+          style={styles.sectionHeader}
+          accessibilityRole="button"
+          accessibilityLabel={expandedSections.advanced ? "Collapse advanced features" : "Expand advanced features"}
+          accessibilityHint="Show or hide additional management tools"
+          onPress={() => setExpandedSections(prev => ({ ...prev, advanced: !prev.advanced }))}
+        >
+          <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18 }]}>Advanced Tools</Text>
+          <Text style={[styles.expandIcon, { color: themeColors.textSecondary }]}>
+            {expandedSections.advanced ? '▲' : '▼'}
+          </Text>
+        </TouchableOpacity>
 
-      {/* Real Allowance History */}
-      <RealAllowanceHistory
-        visible={realAllowanceHistoryVisible}
-        onClose={() => setRealAllowanceHistoryVisible(false)}
-        children={familyChildren}
-      />
+        {expandedSections.advanced && (
+          <View style={styles.expandedContent}>
+            {/* Real Allowance Form */}
+            <RealAllowanceForm
+              visible={realAllowanceFormVisible}
+              onClose={() => setRealAllowanceFormVisible(false)}
+              onSubmit={handleRealAllowanceSubmit}
+              children={familyChildren}
+              loading={false}
+            />
+
+            {/* Real Allowance History */}
+            <RealAllowanceHistory
+              visible={realAllowanceHistoryVisible}
+              onClose={() => setRealAllowanceHistoryVisible(false)}
+              children={familyChildren}
+            />
+
+            <Text style={[styles.placeholder, { color: themeColors.textSecondary, textAlign: 'center', marginTop: 16 }]}>
+              Additional advanced tools will appear here as you use more features.
+            </Text>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -968,8 +1155,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   navBtn: { backgroundColor: themeColors.secondary, borderRadius: 8, marginHorizontal: 4, paddingVertical: 8, paddingHorizontal: 16 },
   navBtnText: { color: themeColors.card, fontWeight: 'bold', fontSize: 16 },
   title: { fontSize: 35, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
-  sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 2, shadowColor: themeColors.border }, // Standard elevation for regular cards
-  actionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 4, borderWidth: 2, borderColor: themeColors.primary, shadowColor: themeColors.border }, // Higher elevation for action sections
+  sectionCard: { backgroundColor: themeColors.card, borderRadius: 12, marginBottom: 12, padding: 12, minWidth: 320, width: '97%', maxWidth: 450, elevation: 1, shadowColor: themeColors.border }, // Reduced bulk and maxWidth
+  actionCard: { backgroundColor: themeColors.card, borderRadius: 12, marginBottom: 12, padding: 12, minWidth: 320, width: '97%', maxWidth: 450, elevation: 2, borderWidth: 1, borderColor: themeColors.primary, shadowColor: themeColors.border }, // Reduced bulk and maxWidth
   sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8, color: themeColors.text },
   placeholder: { fontStyle: 'italic', fontSize: 15, marginBottom: 1, marginTop: 2, minHeight: 26, color: themeColors.textSecondary },
   quickActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -1129,5 +1316,105 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+  },
+  interestEmoji: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  // Compact jar styles
+  compactJarsScroll: {
+    paddingVertical: 8,
+  },
+  compactJarWrapper: {
+    marginHorizontal: 6,
+    alignItems: 'center',
+  },
+  compactJar: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: themeColors.shadow || '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  compactJarEmoji: {
+    fontSize: 20,
+    marginBottom: 2,
+  },
+  compactJarValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  compactJarLabel: {
+    fontSize: 10,
+    textAlign: 'center',
+    lineHeight: 12,
+  },
+  // Child selector styles
+  childrenScroll: {
+    marginTop: 8,
+  },
+  childrenScrollContent: {
+    paddingHorizontal: 4,
+  },
+  childCard: {
+    width: 90,
+    height: 90,
+    borderRadius: 16,
+    marginHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    elevation: 2,
+    shadowColor: themeColors.shadow || '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  childAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: themeColors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  childAvatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  childName: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: themeColors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedCheckmark: {
+    color: themeColors.card,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  dropdownToggle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 1,
   },
 });

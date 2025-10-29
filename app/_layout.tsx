@@ -33,9 +33,11 @@ export default function RootLayout() {
                 <DataCacheProvider>
                   <Stack>
                     <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-                    <Stack.Screen name="login" options={{ title: "Login" }} />
-                    <Stack.Screen name="signup" options={{ title: "Sign Up" }} />
-                    <Stack.Screen name="forgot-password" options={{ title: "Forgot Password" }} />
+                    <Stack.Screen name="login" options={{ headerShown: false }} />
+                    <Stack.Screen name="signup" options={{ headerShown: false }} />
+                    <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+                    <Stack.Screen name="addChild" options={{ headerShown: false }} />
+                    <Stack.Screen name="join-family" options={{ headerShown: false }} />
                     <Stack.Screen name="kid-dashboard" options={{ title: "Kid Dashboard" }} />
                     <Stack.Screen name="parent-dashboard" options={{ title: "Parent Dashboard" }} />
                     <Stack.Screen name="test" options={{ title: "Test Components" }} />

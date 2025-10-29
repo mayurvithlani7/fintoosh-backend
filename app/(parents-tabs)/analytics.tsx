@@ -33,6 +33,73 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   childButtonSelected: { backgroundColor: themeColors.primary },
   childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
   childButtonTextSelected: { color: themeColors.card },
+  // Child selector styles for enhanced design
+  countBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: {
+    color: themeColors.card,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  childrenScroll: {
+    marginTop: 8,
+  },
+  childrenScrollContent: {
+    paddingHorizontal: 4,
+  },
+  childCard: {
+    width: 90,
+    height: 90,
+    borderRadius: 16,
+    marginHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    elevation: 2,
+    shadowColor: themeColors.shadow || '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  childAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: themeColors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  childAvatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  childName: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: themeColors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedCheckmark: {
+    color: themeColors.card,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
 
 export default function ParentsAnalyticsScreen() {
@@ -51,9 +118,15 @@ export default function ParentsAnalyticsScreen() {
       try {
         const token = await getAuthToken();
         const parentProfile = await getUser();
-        if (!token || !parentProfile) return;
+        if (!token || !parentProfile) {
+          setFeedback('Please log in to view analytics.');
+          return;
+        }
         const familyId = parentProfile.familyId;
-        if (!familyId) return;
+        if (!familyId) {
+          setFeedback('Family information not available. Please contact support.');
+          return;
+        }
 
         const data = await fetchFamilyChildren(familyId, token);
         setChildren(data);
@@ -62,15 +135,12 @@ export default function ParentsAnalyticsScreen() {
         }
       } catch (err) {
         console.error('Failed to load children:', err);
+        setFeedback('Failed to load family data. Please try refreshing.');
       }
     }
 
     loadChildren();
-    clearCache();
-    // Force fresh data load
-    setTimeout(() => {
-      refetch();
-    }, 100);
+    // Don't clear cache immediately - let the analytics hook handle caching
   }, []); // Empty dependency array to run only once on mount
 
   const handleExport = () => {
@@ -100,9 +170,11 @@ export default function ParentsAnalyticsScreen() {
             style={{
               backgroundColor: themeColors.secondary,
               borderRadius: 20,
-              paddingHorizontal: 12,
+              paddingHorizontal: 8,
               paddingVertical: 6,
               elevation: 2,
+              minWidth: 32,
+              alignItems: 'center',
             }}
             onPress={handleRefresh}
             disabled={loading}
@@ -112,7 +184,7 @@ export default function ParentsAnalyticsScreen() {
             accessibilityState={{ disabled: loading }}
           >
             <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>
-              {loading ? 'Refreshing...' : '🔄 Refresh'}
+              {loading ? '⏳' : '↻'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -136,29 +208,72 @@ export default function ParentsAnalyticsScreen() {
 
       <Text style={styles.title}>Child's Progress Report</Text>
 
-      {/* Child Selection */}
+      {/* Enhanced Child Selector */}
       {children.length > 1 && (
-        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border, marginBottom: 12 }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
-          <View style={styles.childSelector}>
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.card,
+          shadowColor: themeColors.border,
+          borderWidth: 3,
+          borderColor: themeColors.primary,
+          borderRadius: 16,
+          marginBottom: 12
+        }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+              👨‍👩‍👦 Select Child to View Analytics
+            </Text>
+            <View style={[styles.countBadge, {
+              position: 'relative',
+              marginLeft: 8,
+              backgroundColor: themeColors.success
+            }]}>
+              <Text style={styles.countText}>{children.length}</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.childrenScroll}
+            contentContainerStyle={styles.childrenScrollContent}
+          >
             {children.map((child) => (
               <TouchableOpacity
                 key={child._id || child.id}
                 style={[
-                  styles.childButton,
-                  selectedChildId === (child._id || child.id) && styles.childButtonSelected
+                  styles.childCard,
+                  {
+                    backgroundColor: selectedChildId === (child._id || child.id) ? themeColors.primary : themeColors.card,
+                    borderColor: selectedChildId === (child._id || child.id) ? themeColors.primary : themeColors.border,
+                  }
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${child.name} - ${selectedChildId === (child._id || child.id) ? 'currently selected' : 'tap to select'}`}
+                accessibilityHint="Switch to view this child's analytics and progress"
                 onPress={() => setSelectedChildId(child._id || child.id || "")}
               >
-                <Text style={[
-                  styles.childButtonText,
-                  selectedChildId === (child._id || child.id) && styles.childButtonTextSelected
-                ]}>
+                <View style={styles.childAvatar}>
+                  <Text style={[styles.childAvatarText, {
+                    color: selectedChildId === (child._id || child.id) ? themeColors.card : themeColors.primary
+                  }]}>
+                    {child.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={[styles.childName, {
+                  color: selectedChildId === (child._id || child.id) ? themeColors.card : themeColors.text
+                }]}>
                   {child.name}
                 </Text>
+                {selectedChildId === (child._id || child.id) && (
+                  <View style={styles.selectedIndicator}>
+                    <Text style={styles.selectedCheckmark}>👑</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
+          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+            Tap any child to view their individual analytics and progress
+          </Text>
         </View>
       )}
 
@@ -175,13 +290,12 @@ export default function ParentsAnalyticsScreen() {
       {/* Family-Wide AI Insights */}
       <View style={[styles.sectionCard]}>
         <SpendingInsights
-          onExport={handleExport}
           onRefresh={handleRefresh}
         />
       </View>
 
-      {/* Error Display */}
-      {error && (
+      {/* Error Display - Only show for actual data loading errors, not authentication issues */}
+      {error && !error.includes('Family ID not available') && (
         <View style={styles.sectionCard}>
           <Text style={{ color: themeColors.error, fontSize: 16 }}>
             ⚠️ Error loading analytics: {error}
@@ -416,6 +530,10 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
         const mongoChildId = selectedChildId; // MongoDB _id string
         const customChildId = selectedChild ? selectedChild.id : selectedChildId; // custom id for allowances
 
+        console.log('AnalyticsOverview - CHILD FILTERING DEBUG:');
+        console.log('AnalyticsOverview - mongoChildId (selectedChildId):', mongoChildId);
+        console.log('AnalyticsOverview - selectedChild object:', selectedChild);
+
         // Debug transaction filtering
         console.log('AnalyticsOverview - DEBUG filtering transactions for mongoChildId:', mongoChildId);
         console.log('AnalyticsOverview - DEBUG analyticsData.transactions length:', analyticsData.transactions?.length);
@@ -458,9 +576,23 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
         const childGoals = analyticsData.goals?.filter((g: any) => {
           const goalUser = typeof g.user === 'object' ? g.user.toString() : g.user;
           const matches = goalUser === mongoChildId;
-          console.log('AnalyticsOverview - DEBUG goal filter:', { goalUser, mongoChildId, matches });
+          console.log('AnalyticsOverview - DEBUG goal filter:', {
+            goal: g,
+            goalUser,
+            goalUserType: typeof g.user,
+            mongoChildId,
+            mongoChildIdType: typeof mongoChildId,
+            matches
+          });
           return matches;
         }) || [];
+
+        console.log('AnalyticsOverview - GOALS FILTERING RESULTS:');
+        console.log('AnalyticsOverview - analyticsData.goals length:', analyticsData.goals?.length || 0);
+        console.log('AnalyticsOverview - childGoals length:', childGoals.length);
+        console.log('AnalyticsOverview - childGoals content:', childGoals);
+        console.log('AnalyticsOverview - analyticsData.goals sample:', analyticsData.goals?.slice(0, 2));
+        console.log('AnalyticsOverview - childGoals sample:', childGoals.slice(0, 2));
         const childRewards = analyticsData.rewards?.filter((r: any) => {
           const rewardUser = typeof r.user === 'object' ? r.user.toString() : r.user;
           return rewardUser === mongoChildId;
@@ -500,6 +632,11 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
         // Process child-specific analytics data
         const { processSpendingTrends, processChoreCompletion, processGoalProgress, processJarDistribution } = await import('../../utils/analyticsEngine');
 
+        console.log('AnalyticsOverview - ABOUT TO PROCESS GOALS:');
+        console.log('AnalyticsOverview - childGoals before processing:', childGoals);
+        console.log('AnalyticsOverview - childGoals[0]:', childGoals[0]);
+        console.log('AnalyticsOverview - childGoals[1]:', childGoals[1]);
+
         const spendingTrends = processSpendingTrends(childTransactions);
         const choreCompletion = processChoreCompletion(childChores, childTransactions);
         const goalProgress = processGoalProgress(childGoals);
@@ -514,14 +651,39 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
         const donateJar = jarDistribution.find((jar: any) => jar.jarName === 'Help Others Pot');
         const investJar = jarDistribution.find((jar: any) => jar.jarName === 'Grow Money Pot');
 
+        console.log('AnalyticsOverview - GOAL PROGRESS RESULTS:');
+        console.log('AnalyticsOverview - goalProgress array:', goalProgress);
+        console.log('AnalyticsOverview - goalProgress length:', goalProgress.length);
+        goalProgress.forEach((g, index) => {
+          console.log(`AnalyticsOverview - goal ${index}:`, {
+            name: g.goalName,
+            progress: g.progress,
+            projectedCompletion: g.projectedCompletion,
+            isCompleted: g.progress === 100 || g.projectedCompletion === 'Completed'
+          });
+        });
+
+        const completedGoalsCount = goalProgress.filter((g: any) => g.progress === 100 || g.projectedCompletion === 'Completed').length;
+        console.log('AnalyticsOverview - completedGoalsCount:', completedGoalsCount);
+
+        // Output full structure of childChores for the first 5 elements
+        const assignedChoreCount = childChores.length;
+        console.log('[CHORE COMPLETION DEBUG] Full childChores[0..4] (for field inspection):', childChores.slice(0, 5));
+        // Try to handle common nesting (_doc, data, details etc.)
+        // FINAL: Count only chores with _doc.completed === true
+        const completedTaskCount = childChores.filter(c => c._doc && c._doc.completed === true).length;
+
         const summaryData = {
           totalPoints: (currentJar?.currentBalance || 0) + (saveJar?.currentBalance || 0) + (spendJar?.currentBalance || 0) + (donateJar?.currentBalance || 0) + (investJar?.currentBalance || 0),
           chores: choreCompletion.length,
           completedChores: choreCompletion.filter((chore: any) => (chore.completedCount || 0) > 0).length,
           goals: goalProgress.length,
-          completedGoals: goalProgress.filter((g: any) => g.progress === 100 || g.projectedCompletion === 'Completed').length,
+          completedGoals: completedGoalsCount,
           rewardsCount: rewards.length,
-          completedRewards: rewards.filter((r: any) => r.approved === true).length,
+          completedRewards: rewards.filter((r: any) => r.approved === true || r.purchased === true || r.status === 'claimed').length,
+          // New: Real task stats
+          assignedChoreCount,
+          completedTaskCount,
           jars: {
             current: currentJar?.currentBalance || 0,
             save: saveJar?.currentBalance || 0,
@@ -610,15 +772,22 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
             {/* Animated circular progress ring for chores */}
             <View style={{ alignItems: "center", marginHorizontal: 10 }}>
               <Text style={{ fontWeight: 'bold', color: mainTextColor, marginBottom: 4 }}>Tasks Completed</Text>
-              <ProgressRing
-                percent={summary.chores > 0 ? summary.completedChores / summary.chores : 0}
-                amount={`${summary.completedChores}/${summary.chores}`}
-                color={themeColors.success}
-                size={110}
-                strokeWidth={10}
-                labelColor={mainTextColor}
-                ringBackground={cardBackgroundColor}
-              />
+              {/* Show proper progress or fallback if chore fields are all undefined */}
+              {summary.assignedChoreCount === 0 ? (
+                <Text style={{ color: mutedTextColor }}>No assigned tasks found.</Text>
+              ) : (Object.values(summary).includes(undefined) || summary.completedTaskCount === undefined) ? (
+                <Text style={{ color: mutedTextColor }}>Incomplete task data.</Text>
+              ) : (
+                <ProgressRing
+                  percent={summary.assignedChoreCount > 0 ? summary.completedTaskCount / summary.assignedChoreCount : 0}
+                  amount={`${summary.completedTaskCount}/${summary.assignedChoreCount}`}
+                  color={themeColors.success}
+                  size={110}
+                  strokeWidth={10}
+                  labelColor={mainTextColor}
+                  ringBackground={cardBackgroundColor}
+                />
+              )}
             </View>
             {/* Animated circular progress ring for goals */}
             <View style={{ alignItems: "center", marginHorizontal: 10 }}>

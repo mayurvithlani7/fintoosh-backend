@@ -56,10 +56,10 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
           {onRefresh && (
             <TouchableOpacity
               onPress={onRefresh}
-              style={{ padding: 8, backgroundColor: tintColor, borderRadius: 6 }}
+              style={{ padding: 8, backgroundColor: tintColor, borderRadius: 6, minWidth: 32, alignItems: 'center' }}
             >
               <Text style={{ color: backgroundColor, fontSize: 14, fontWeight: '600' }}>
-                Refresh
+                ↻
               </Text>
             </TouchableOpacity>
           )}

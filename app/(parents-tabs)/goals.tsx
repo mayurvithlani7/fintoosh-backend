@@ -1,4 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -15,6 +16,7 @@ import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 import { goalSuggestions } from '@/constants/goalSuggestions';
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 export default function ParentsGoalsScreen() {
+  const router = useRouter();
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const { childData, fetchChildData } = useDataCache();
@@ -465,88 +467,233 @@ export default function ParentsGoalsScreen() {
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Set Child Goals</Text>
 
-      {/* Child Selection */}
+      {/* Enhanced Child Selector */}
       {children.length > 1 && (
-        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
-          <View style={styles.childSelector}>
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.card,
+          shadowColor: themeColors.border,
+          borderWidth: 3,
+          borderColor: themeColors.primary,
+          borderRadius: 16,
+          marginBottom: 12
+        }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+              👨‍👩‍👦 Select Child to View Goals
+            </Text>
+            <View style={[styles.countBadge, {
+              position: 'relative',
+              marginLeft: 8,
+              backgroundColor: themeColors.success
+            }]}>
+              <Text style={styles.countText}>{children.length}</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.childrenScroll}
+            contentContainerStyle={styles.childrenScrollContent}
+          >
             {children.map((child) => (
               <TouchableOpacity
                 key={child.id}
                 style={[
-                  styles.childButton,
-                  selectedChild === child.id && styles.childButtonSelected
+                  styles.childCard,
+                  {
+                    backgroundColor: selectedChild === child.id ? themeColors.primary : themeColors.card,
+                    borderColor: selectedChild === child.id ? themeColors.primary : themeColors.border,
+                  }
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${child.name} - ${selectedChild === child.id ? 'currently selected' : 'tap to select'}`}
+                accessibilityHint="Switch to view this child's goals and progress"
                 onPress={() => handleChildChange(child.id)}
               >
-                <Text style={[
-                  styles.childButtonText,
-                  selectedChild === child.id && styles.childButtonTextSelected
-                ]}>
+                <View style={styles.childAvatar}>
+                  <Text style={[styles.childAvatarText, {
+                    color: selectedChild === child.id ? themeColors.card : themeColors.primary
+                  }]}>
+                    {child.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={[styles.childName, {
+                  color: selectedChild === child.id ? themeColors.card : themeColors.text
+                }]}>
                   {child.name}
                 </Text>
+                {selectedChild === child.id && (
+                  <View style={styles.selectedIndicator}>
+                    <Text style={styles.selectedCheckmark}>👑</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
-          </View>
-        </View>
-      )}
-
-      {/* Child Name Display - Single Child per Parent */}
-      {children.length === 1 && (
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          marginBottom: 14,
-          marginTop: 6,
-          width: '100%',
-        }}>
-          <Text style={{ fontSize: 15, color: themeColors.primary, fontWeight: '600', marginRight: 4 }}>Child:</Text>
-          <Text
-            style={{
-              backgroundColor: themeColors.primary,
-              color: themeColors.card,
-              borderRadius: 18,
-              paddingHorizontal: 14,
-              paddingVertical: 6,
-              fontWeight: '700',
-              maxWidth: 140,
-              fontSize: 15,
-              overflow: 'hidden',
-              textAlign: 'center',
-            }}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            allowFontScaling
-          >
-            {children[0].name}
+          </ScrollView>
+          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+            Tap any child to view their individual goals and progress
           </Text>
         </View>
       )}
 
+      {/* Single Child Display */}
+      {children.length === 1 && (
+        <View style={{
+          backgroundColor: themeColors.surface,
+          borderRadius: 12,
+          padding: 8,
+          marginBottom: 8,
+          marginTop: 8,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          alignSelf: 'center',
+          minWidth: 200,
+          alignItems: 'center'
+        }}>
+          <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
+            👶 Viewing: {children[0].name}
+          </Text>
+        </View>
+      )}
+
+      {/* Goals Summary Dashboard */}
+      {children.length > 0 && selectedChild && (
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.surface,
+          shadowColor: themeColors.border,
+          borderWidth: 3,
+          borderColor: themeColors.success,
+          borderRadius: 16,
+          marginBottom: 12
+        }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+              🎯 Goals Summary
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={refreshing ? "Refreshing data" : "Refresh data"}
+              accessibilityHint="Reload latest goals information"
+              accessibilityState={{ disabled: refreshing }}
+              style={[styles.refreshBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={onRefresh}
+              disabled={refreshing}
+            >
+              <Text style={{ fontSize: 14, color: themeColors.card }}>
+                {refreshing ? '⏳' : '↻'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.summaryGrid}>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>📋 Active</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary }]}>
+                {goals.filter(g => g.status === 'active').length}
+              </Text>
+            </View>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>⏳ Pending</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.warning }]}>
+                {goals.filter(g => g.status === 'pending').length}
+              </Text>
+            </View>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>✅ Completed</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.success }]}>
+                {goals.filter(g => g.status === 'completed').length}
+              </Text>
+            </View>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text, fontWeight: 'bold' }]}>🏆 Total</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary, fontWeight: 'bold' }]}>
+                {goals.length}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* No Children Empty State */}
+      {children.length === 0 && (
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.surface,
+          shadowColor: themeColors.border,
+          borderWidth: 3,
+          borderColor: themeColors.warning,
+          borderRadius: 16,
+          marginBottom: 12,
+          alignItems: 'center',
+          paddingVertical: 24
+        }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 12 }]}>
+            👶 No Children Linked Yet
+          </Text>
+          <Text style={[styles.placeholder, { color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20 }]}>
+            You need to add a child to your family account before you can set goals.
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Add your first child"
+            accessibilityHint="Navigate to add child screen to create a family account"
+            style={{
+              backgroundColor: themeColors.success,
+              borderRadius: 12,
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              elevation: 2,
+            }}
+            onPress={() => router.push('/addChild')}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 16 }}>
+              Add Your First Child
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Add/Edit Goal Form */}
-      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>{editingGoal ? 'Edit Goal' : 'Add New Goal'}</Text>
+      <View style={[styles.sectionCard, {
+        backgroundColor: themeColors.card,
+        shadowColor: themeColors.border,
+        elevation: 4,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      }]}>
+        {/* Simple Header */}
+        <View style={styles.simpleHeader}>
+          <Text style={[styles.headerTitle, { color: themeColors.primary }]}>
+            {editingGoal ? '✏️ Edit Goal' : '🎯 Create New Goal'}
+          </Text>
           {!editingGoal && (
             <TouchableOpacity
-              style={[styles.templateBtn, { backgroundColor: themeColors.secondary }]}
+              style={[styles.templateBtn, { backgroundColor: themeColors.accent }]}
               onPress={() => setShowTemplates(true)}
               accessibilityRole="button"
               accessibilityLabel="Use goal template"
               accessibilityHint="Browse and select from pre-made goal templates"
             >
-              <Text style={[styles.templateBtnText, { color: themeColors.card }]}>🎯 Use Template</Text>
+              <Text style={[styles.templateBtnText, { color: themeColors.card }]}>🎯 Templates</Text>
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Form Title */}
+        <View style={styles.formTitleContainer}>
+          <Text style={[styles.formTitle, { color: themeColors.text }]}>
+            {editingGoal ? '✏️ Edit Goal' : '🎯 Goal Details'}
+          </Text>
+        </View>
+
+        {/* Goal Details */}
+        <Text style={[styles.sectionSubtitle, { color: themeColors.primary }]}>🎯 Goal Details</Text>
+
         <View style={styles.formRow}>
           <View style={styles.formGroup}>
-            <Text style={styles.inputLabel}>Goal Name</Text>
+            <Text style={styles.inputLabel}>Goal Name <Text style={{ color: themeColors.error }}>*</Text></Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. New bike"
+              placeholder="e.g. New bike, vacation fund..."
               value={goal}
               onChangeText={val => {
                 setGoal(val);
@@ -557,14 +704,21 @@ export default function ParentsGoalsScreen() {
                 else setGoalNameError(null);
               }}
               accessibilityLabel="Goal Name"
+              maxLength={50}
             />
             <ValidationMessage message={goalNameError} type={goalNameError ? "error" : "success"} />
           </View>
+        </View>
+
+        {/* Points & Money Pot */}
+        <Text style={[styles.sectionSubtitle, { color: themeColors.primary, marginTop: 20 }]}>💰 Points & Money Pot</Text>
+
+        <View style={styles.formRow}>
           <View style={styles.formGroup}>
-            <Text style={styles.inputLabel}>Points Needed</Text>
+            <Text style={styles.inputLabel}>Points Needed <Text style={{ color: themeColors.error }}>*</Text></Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 500"
+              placeholder="How many points?"
               keyboardType="numeric"
               value={pointsNeeded}
               onChangeText={val => {
@@ -574,6 +728,7 @@ export default function ParentsGoalsScreen() {
                 else setPointsError(null);
               }}
               accessibilityLabel="Points Needed"
+              maxLength={6}
             />
             <ValidationMessage message={pointsError} type={pointsError ? "error" : "success"} />
           </View>
@@ -583,7 +738,7 @@ export default function ParentsGoalsScreen() {
         <View style={styles.suggestionsContainer}>
           <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Goal Ideas:</Text>
           <View style={styles.suggestionsGrid}>
-            {goalSuggestions.slice(0, 16).map((suggestion) => (
+            {goalSuggestions.slice(0, 12).map((suggestion) => (
               <TouchableOpacity
                 key={suggestion}
                 style={[styles.suggestionBtn, { backgroundColor: themeColors.secondary }]}
@@ -602,32 +757,50 @@ export default function ParentsGoalsScreen() {
         <View style={styles.presetContainer}>
           <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
           <View style={styles.presetRow}>
-            <TouchableOpacity
-              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
-              onPress={() => setPointsNeeded('100')}
-            >
-              <Text style={styles.presetBtnText}>100</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
-              onPress={() => setPointsNeeded('250')}
-            >
-              <Text style={styles.presetBtnText}>250</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
-              onPress={() => setPointsNeeded('500')}
-            >
-              <Text style={styles.presetBtnText}>500</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.presetBtn, { backgroundColor: themeColors.secondary }]}
-              onPress={() => setPointsNeeded('1000')}
-            >
-              <Text style={styles.presetBtnText}>1000</Text>
-            </TouchableOpacity>
+            {['100', '250', '500', '1000'].map((amount) => (
+              <TouchableOpacity
+                key={amount}
+                style={[styles.presetBtn, {
+                  backgroundColor: pointsNeeded === amount ? themeColors.primary : themeColors.surface,
+                  borderWidth: 1,
+                  borderColor: pointsNeeded === amount ? themeColors.primary : themeColors.border
+                }]}
+                onPress={() => {
+                  setPointsNeeded(amount);
+                  setPointsError(null);
+                }}
+              >
+                <Text style={[styles.presetBtnText, {
+                  color: pointsNeeded === amount ? themeColors.card : themeColors.text
+                }]}>
+                  {amount}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
+
+        <Text style={styles.inputLabel}>Money Pot <Text style={{ color: themeColors.error }}>*</Text></Text>
+        <View style={styles.jarSelector}>
+          {jarOptions.map(jar => (
+            <TouchableOpacity
+              key={jar.value}
+              style={[
+                styles.jarButton,
+                selectedJar === jar.value && styles.jarButtonSelected
+              ]}
+              onPress={() => setSelectedJar(jar.value)}
+            >
+              <Text style={[
+                styles.jarButtonText,
+                selectedJar === jar.value && styles.jarButtonTextSelected
+              ]}>
+                {jar.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <Text style={styles.inputLabel}>Description (Optional)</Text>
         <TextInput
           style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
@@ -636,8 +809,10 @@ export default function ParentsGoalsScreen() {
           onChangeText={setDescription}
           multiline
           numberOfLines={3}
+          maxLength={200}
         />
-        <Text style={styles.inputLabel}>Deadline (Optional)</Text>
+
+        <Text style={styles.inputLabel}>Target Date (Optional)</Text>
         {Platform.OS === "web" ? (
           <View style={{ width: '100%' }}>
             <input
@@ -645,10 +820,10 @@ export default function ParentsGoalsScreen() {
                 width: '100%',
                 padding: 8,
                 borderRadius: 7,
-                border: '1px solid #abc',
+                border: `1px solid ${themeColors.border}`,
                 fontSize: 16,
-                background: '#f5fafd',
-                color: '#112',
+                backgroundColor: themeColors.surface,
+                color: themeColors.text,
                 marginBottom: 2,
                 boxSizing: 'border-box',
               }}
@@ -665,8 +840,8 @@ export default function ParentsGoalsScreen() {
               onPress={() => setShowDatePicker(true)}
               activeOpacity={0.75}
             >
-              <Text style={{ color: deadline ? '#112' : '#999', fontSize: 16 }}>
-                {deadline ? deadline : 'Select deadline date'}
+              <Text style={{ color: deadline ? themeColors.text : themeColors.textSecondary, fontSize: 16 }}>
+                {deadline ? deadline : 'Set target date'}
               </Text>
               <Text style={{ marginLeft: 8, fontSize: 18 }}>📅</Text>
             </TouchableOpacity>
@@ -702,34 +877,21 @@ export default function ParentsGoalsScreen() {
             )}
           </>
         )}
-        <Text style={styles.inputLabel}>Which Pot?</Text>
-        <View style={styles.jarSelector}>
-          {jarOptions.map(jar => (
-            <TouchableOpacity
-              key={jar.value}
-              style={[
-                styles.jarButton,
-                selectedJar === jar.value && styles.jarButtonSelected
-              ]}
-              onPress={() => setSelectedJar(jar.value)}
-            >
-              <Text style={[
-                styles.jarButtonText,
-                selectedJar === jar.value && styles.jarButtonTextSelected
-              ]}>
-                {jar.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
           <TouchableOpacity
-            style={[styles.formBtn, { backgroundColor: themeColors.primary, flex: editingGoal ? 0.6 : 1 }]}
+            style={[styles.formBtn, {
+              backgroundColor: themeColors.primary,
+              flex: editingGoal ? 0.6 : 1,
+              opacity: (goalNameError || pointsError) ? 0.6 : 1
+            }]}
             onPress={handleAddGoal}
             disabled={Boolean(goalNameError || pointsError)}
             accessibilityLabel={editingGoal ? "Update Goal" : "Add Goal"}
           >
-            <Text style={[styles.formBtnText, { color: themeColors.card }]}>{editingGoal ? 'Update Goal' : 'Add Goal'}</Text>
+            <Text style={[styles.formBtnText, { color: themeColors.card }]}>
+              {editingGoal ? 'Update Goal' : 'Add Goal'}
+            </Text>
           </TouchableOpacity>
           {editingGoal && (
             <TouchableOpacity
@@ -764,12 +926,12 @@ export default function ParentsGoalsScreen() {
             {children.length === 1 ? `${children[0].name}'s Goals` : 'Current Goals'}
           </Text>
           <TouchableOpacity
-            style={[styles.refreshBtn, { backgroundColor: refreshing ? '#ccc' : themeColors.secondary }, refreshing && styles.refreshBtnDisabled]}
+            style={[styles.refreshBtn, { backgroundColor: refreshing ? themeColors.surface : themeColors.secondary }]}
             onPress={onRefresh}
             disabled={refreshing}
           >
-            <Text style={[styles.refreshBtnText, { color: refreshing ? '#666' : themeColors.card }, refreshing && styles.refreshBtnTextDisabled]}>
-              {refreshing ? 'Refreshing...' : '🔄 Refresh Child\'s Goals'}
+            <Text style={[styles.refreshBtnText, { color: refreshing ? themeColors.textSecondary : themeColors.card }]}>
+              {refreshing ? '⏳' : '↻'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1223,29 +1385,121 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   childButtonSelected: { backgroundColor: themeColors.primary },
   childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
   childButtonTextSelected: { color: themeColors.card },
+  // Child selector styles for enhanced design
+  countBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: {
+    color: themeColors.card,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  childrenScroll: {
+    marginTop: 8,
+  },
+  childrenScrollContent: {
+    paddingHorizontal: 4,
+  },
+  childCard: {
+    width: 90,
+    height: 90,
+    borderRadius: 16,
+    marginHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    elevation: 2,
+    shadowColor: themeColors.shadow || '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  childAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: themeColors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  childAvatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  childName: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: themeColors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedCheckmark: {
+    color: themeColors.card,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  // Goals summary dashboard
+  refreshBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 1,
+  },
+  refreshBtnText: {
+    color: themeColors.card,
+    fontSize: 14,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  summaryItem: {
+    flex: 1,
+    minWidth: 140,
+    maxWidth: 160,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: themeColors.shadow || '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
   jarSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: 8, marginBottom: 8 },
   jarButton: { backgroundColor: themeColors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, margin: 2, minWidth: 60, alignItems: 'center' },
   jarButtonSelected: { backgroundColor: themeColors.secondary },
   jarButtonText: { color: themeColors.text, fontSize: 12, fontWeight: '600' },
   jarButtonTextSelected: { color: themeColors.card },
-  refreshBtn: {
-    backgroundColor: themeColors.secondary,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  refreshBtnDisabled: {
-    backgroundColor: themeColors.surface,
-  },
-  refreshBtnText: {
-    color: themeColors.card,
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  refreshBtnTextDisabled: {
-    color: themeColors.textSecondary,
-  },
   cancelBtn: {
     backgroundColor: themeColors.surface,
     borderWidth: 1,
@@ -1279,4 +1533,116 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   suggestionBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 6, marginHorizontal: 2, marginVertical: 4, alignItems: 'center', minWidth: 70, maxWidth: 120 },
   suggestionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 12, textAlign: 'center' },
+  // Complete form styles
+  formSection: {
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border + '40',
+  },
+  sectionSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: themeColors.primary,
+  },
+  formActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: themeColors.border + '40',
+  },
+  // Enhanced form header styles
+  formHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: themeColors.border + '40',
+  },
+  formIllustration: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: themeColors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  formIcon: {
+    fontSize: 28,
+  },
+  formTitleSection: {
+    flex: 1,
+  },
+  // Hero banner styles
+  heroBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: themeColors.primary + '08',
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: themeColors.primary + '20',
+  },
+  bannerDecoration: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: themeColors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  bannerIcon: {
+    fontSize: 32,
+  },
+  bannerText: {
+    flex: 1,
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  bannerTemplateBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  bannerTemplateText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  formTitleContainer: {
+    marginBottom: 16,
+  },
+  formTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: themeColors.text,
+    textAlign: 'center',
+  },
+  // Simple header styles
+  simpleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: themeColors.primary,
+  },
 });

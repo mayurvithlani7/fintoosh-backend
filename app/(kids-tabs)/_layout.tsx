@@ -24,8 +24,8 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
     { name: '📚 Money Gyaan', route: '/(kids-tabs)/learn', icon: 'book.fill' },
     { name: '🎮 Games', route: '/(kids-tabs)/games', icon: 'gamecontroller.fill' },
     { name: '🏆 Badges', route: '/(kids-tabs)/achievements', icon: 'star.circle.fill' },
-    { name: '� My Requests', route: '/(kids-tabs)/requests', icon: 'checkmark.circle.fill' },
-    { name: '�📊 My Points Story', route: '/(kids-tabs)/transaction-history', icon: 'chart.bar.fill' },
+    { name: '📝 My Requests', route: '/(kids-tabs)/requests', icon: 'checkmark.circle.fill' },
+    { name: '📊 My Points Story', route: '/(kids-tabs)/transaction-history', icon: 'chart.bar.fill' },
     { name: '👶 Kids Guide', route: '/(kids-tabs)/kids-guide', icon: 'person.fill' },
     { name: '⚙️ Settings', route: '/(kids-tabs)/settings', icon: 'gear' },
   ];
@@ -122,7 +122,7 @@ function KidsTabLayoutInner() {
     const checkAuth = async () => {
       try {
         console.log('[KIDS LAYOUT] Starting auth check...');
-        const { getAuthToken, getUserData, clearAllAuthData } = await import('@/utils/secureStorage');
+        const { getAuthToken, getUser, clearAllAuthData } = await import('@/utils/secureStorage');
 
         // Check if auth token exists
         const token = await getAuthToken();
@@ -131,7 +131,7 @@ function KidsTabLayoutInner() {
         // Check if user data exists with extra error handling
         let user = null;
         try {
-          user = await getUserData();
+          user = await getUser();
           console.log(`[KIDS LAYOUT] User data retrieved: ${user ? 'present' : 'null'}, type: ${typeof user}`);
 
           // Additional validation - ensure user is a valid object
@@ -316,7 +316,9 @@ function KidsTabLayoutInner() {
                   // Clear all persistent and secure user/session data and redirect to login
                   dataCache.resetDataCache();
                   const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+                  const { clearRequestCache } = await import('@/utils/api');
                   await clearSensitiveAppData();
+                  clearRequestCache();
                   // Use expo-router navigation
                   router.replace('/login');
                 }}

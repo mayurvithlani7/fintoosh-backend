@@ -5,7 +5,7 @@ import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { handleApiError } from '@/utils/errorHandler';
 import NotificationService from '@/utils/notificationService';
-import { getAuthToken, getUserData } from '@/utils/secureStorage';
+import { getAuthToken, getUser } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,7 +15,6 @@ import {
   Alert,
   FlatList,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -88,6 +87,7 @@ export default function GoalsScreen() {
   const styles = createStyles(themeColors);
   const router = useRouter();
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   return (
     <View style={styles.container}>
@@ -137,7 +137,7 @@ export default function GoalsScreen() {
         </View>
       </View>
 
-      <KidGoalsRewardsSection />
+      <KidGoalsRewardsSection refreshTrigger={refreshTrigger} onRefresh={() => setRefreshTrigger(prev => prev + 1)} />
 
       {/* Help Modal */}
       <HelpModal
@@ -243,33 +243,38 @@ export default function GoalsScreen() {
 // --- KidGoalsRewardsSection (loads from database, allows claiming) ---
 import { useStaleDataWarning } from "@/utils/useStaleDataWarning";
 
-function KidGoalsRewardsSection() {
+function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?: number; onRefresh?: () => void }) {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const { formatAmount } = useCurrency();
   const [goals, setGoals] = useState<any[]>([]);
-  const [rewards, setRewards] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [userData, setUserData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
-  // Tabs/filter for rewards
-  const [rewardsTab, setRewardsTab] = useState<'Available' | 'Claimed'>('Available');
-  const [showRewardsArchive, setShowRewardsArchive] = useState(false);
   // Tabs for goal filtering
   const [tab, setTab] = useState<'Active' | 'Completed'>('Active');
   // Show archived completed
   const [showArchive, setShowArchive] = useState(false);
   // Goal templates modal
   const [showTemplates, setShowTemplates] = useState(false);
+  // Collapsible section states
+  const [goalsExpanded, setGoalsExpanded] = useState(true);
   const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
+
+  // Watch for refresh trigger changes from parent
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadGoalsAndRewards();
+    }
+  }, [refreshTrigger]);
 
   // Handle template selection
   const handleTemplateSelect = async (template: any) => {
     try {
       const token = await getAuthToken();
-      const user = await getUserData();
+      const user = await getUser();
 
       if (!token || !user) {
         Alert.alert('Error', 'Not authenticated.');
@@ -368,7 +373,7 @@ function KidGoalsRewardsSection() {
     console.log('🔄 Goals: Starting loadGoalsAndRewards...');
     try {
       const token = await getAuthToken();
-      const user = await getUserData();
+      const user = await getUser();
 
       console.log('🔄 Goals: Token exists:', !!token, 'User exists:', !!user);
 
@@ -379,7 +384,7 @@ function KidGoalsRewardsSection() {
       }
       // Always fetch freshest user data from backend (not AsyncStorage!)
       const userId = user.id;
-      const userRes = await fetch(`${API_URL}/users/${user.id || user._id}`, {
+      const userRes = await fetch(`${API_URL}/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!userRes.ok) {
@@ -499,18 +504,10 @@ function KidGoalsRewardsSection() {
         setGoals(goalsArray);
       }
 
-      // Load available rewards
-      const rewardsResponse = await fetch(`${API_URL}/rewards/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
 
-      if (rewardsResponse.ok) {
-        const rewardsData = await rewardsResponse.json();
-        setRewards(rewardsData);
-      }
     } catch (error) {
-      console.error('Error loading goals and rewards:', error);
-      Alert.alert('Error', 'Failed to load goals and rewards.');
+      console.error('Error loading goals:', error);
+      Alert.alert('Error', 'Failed to load goals.');
     } finally {
       setLoading(false);
     }
@@ -604,7 +601,7 @@ function KidGoalsRewardsSection() {
       setClaiming(goalId);
 
       const token = await getAuthToken();
-      const user = await getUserData();
+      const user = await getUser();
 
       if (!token || !user) {
         Alert.alert('Error', 'Not authenticated.');
@@ -662,73 +659,7 @@ function KidGoalsRewardsSection() {
     }
   };
 
-  const handleClaimReward = async (rewardId: string) => {
-    try {
-      setClaiming(rewardId);
 
-      const token = await getAuthToken();
-      const user = await getUserData();
-      if (!token || !user) {
-        Alert.alert('Error', 'Not authenticated.');
-        return;
-      }
-      const reward = rewards.find(r => r._id === rewardId);
-      if (!reward) {
-        Alert.alert('Error', 'Reward not found.');
-        return;
-      }
-      // For rewards, claiming means PATCHing reward to mark as claim requested (purchased: true),
-      // backend sets available: false, purchased: false (pending), and creates ApprovalRequest
-      const response = await fetch(`${API_URL}/rewards/${rewardId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ purchased: true }),
-      });
-
-      if (!response.ok) {
-        // Handle non-JSON responses (like plain text for rate limiting)
-        let errorMessage = 'Failed to claim reward.';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          // If JSON parsing fails, use default message
-        }
-        Alert.alert('Error', errorMessage);
-        return;
-      }
-
-      // Fetch updated requests and rewards immediately for pending status
-      try {
-        const token2 = await getAuthToken();
-        const user2 = await getUserData();
-        if (user2) {
-          // Requests
-          const reqRes = await fetch(`${API_URL}/requests/${user2.id}`);
-          if (reqRes.ok) setRequests(await reqRes.json());
-          // Rewards
-          const rewardsResponse = await fetch(`${API_URL}/rewards/${user2.id}`, {
-            headers: { 'Authorization': `Bearer ${token2}` },
-          });
-          if (rewardsResponse.ok) {
-            const rewardsData = await rewardsResponse.json();
-            setRewards(rewardsData);
-          }
-        }
-      } catch {}
-      setMsg("Reward claim submitted for parent approval.");
-      setTimeout(() => setMsg(""), 5000);
-
-    } catch (error) {
-      console.error('Error claiming reward:', error);
-      Alert.alert('Error', 'Failed to claim reward.');
-    } finally {
-      setClaiming(null);
-    }
-  };
 
   const handleDeleteGoal = async (goalId: string, goalName: string) => {
     if (Platform.OS === 'web') {
@@ -736,7 +667,7 @@ function KidGoalsRewardsSection() {
       if (!confirmed) return;
       try {
         const token = await getAuthToken();
-        const user = await getUserData();
+        const user = await getUser();
         if (!token || !user) {
           Alert.alert('Error', 'Not authenticated.');
           return;
@@ -781,7 +712,7 @@ function KidGoalsRewardsSection() {
             onPress: async () => {
               try {
                 const token = await getAuthToken();
-                const user = await getUserData();
+                const user = await getUser();
                 if (!token || !user) {
                   Alert.alert('Error', 'Not authenticated.');
                   return;
@@ -824,185 +755,338 @@ function KidGoalsRewardsSection() {
   if (loading) {
     return (
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Goals & Gifts</Text>
-        <Text style={styles.placeholder}>Loading goals and rewards...</Text>
+        <Text style={styles.sectionTitle}>🎯 My Goals</Text>
+        <Text style={styles.placeholder}>Loading goals...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: themeColors.card, borderRadius: 14, marginBottom: 16, alignSelf: 'center', maxWidth: 520, width: "97%", shadowColor: themeColors.border, elevation: 2 }}
-      contentContainerStyle={{ padding: 18, paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>My Goals</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Choose goal template"
-            accessibilityHint="Browse and select from available goal templates"
-            style={[styles.refreshBtn, { backgroundColor: themeColors.secondary, paddingHorizontal: 12, paddingVertical: 6 }]}
-            onPress={() => setShowTemplates(true)}
-          >
-            <Text style={[styles.refreshBtnText, { color: themeColors.card, fontSize: 12 }]}>
-              🎯 Template
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.refreshBtn, { backgroundColor: loading ? themeColors.surface : themeColors.primary }]}
-            onPress={() => loadGoalsAndRewards()}
-            disabled={loading}
-            accessibilityRole="button"
-            accessibilityLabel={loading ? "Refreshing goals and rewards" : "Refresh goals and rewards"}
-            accessibilityHint="Double tap to reload your goals and available rewards"
-            accessibilityState={{ disabled: loading }}
-          >
-            <Text style={[styles.refreshBtnText, { color: loading ? themeColors.textSecondary : themeColors.card }]}>
-              {loading ? 'Refreshing...' : '🔄 Refresh'}
-            </Text>
-          </TouchableOpacity>
+    <View style={{ flex: 1 }}>
+      {/* Quick Actions Header */}
+      <View style={{
+        backgroundColor: themeColors.surface,
+        borderRadius: 16,
+        marginBottom: 16,
+        padding: 16,
+        width: '97%',
+        maxWidth: 520,
+        alignSelf: 'center',
+        elevation: 3,
+        shadowColor: themeColors.border,
+        borderWidth: 1,
+        borderColor: themeColors.border + '30',
+      }}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Choose goal template"
+          accessibilityHint="Browse and select from available goal templates"
+          style={{
+            backgroundColor: themeColors.primary,
+            paddingVertical: 14,
+            paddingHorizontal: 20,
+            borderRadius: 12,
+            alignItems: 'center',
+            marginBottom: 12,
+            elevation: 2,
+            shadowColor: themeColors.primary,
+          }}
+          onPress={() => setShowTemplates(true)}
+        >
+          <Text style={{
+            color: 'white',
+            fontSize: 16,
+            fontWeight: 'bold'
+          }}>
+            🎯 Create New Goal
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            backgroundColor: themeColors.secondary,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 10,
+            alignItems: 'center',
+            elevation: 1,
+          }}
+          onPress={onRefresh}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh goals"
+          accessibilityHint="Double tap to reload your goals"
+        >
+          <Text style={{
+            color: themeColors.card,
+            fontSize: 14,
+            fontWeight: '600'
+          }}>
+            🔄 Refresh Goals
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Goals Section - Always Visible */}
+      <View
+        style={{
+          backgroundColor: themeColors.card,
+          borderRadius: 14,
+          marginBottom: 16,
+          width: '97%',
+          maxWidth: 520,
+          alignSelf: 'center',
+          elevation: 2,
+          shadowColor: themeColors.border,
+        }}
+      >
+        <View style={{
+          padding: 18,
+          paddingBottom: 8,
+          borderBottomWidth: 1,
+          borderBottomColor: themeColors.border + '30'
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>🎯 My Goals</Text>
+              <View style={{
+                backgroundColor: themeColors.primary,
+                borderRadius: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                marginLeft: 8
+              }}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                  {goals.length}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
+
       </View>
-      {/* Tabs for results (ALWAYS always rendered) */}
-      <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 10 }}>
-        {["Active", "Completed"].map(t => (
-          <TouchableOpacity
-            key={t}
-            style={{
-              backgroundColor: tab === t ? themeColors.secondary : themeColors.surface,
-              paddingHorizontal: 15,
-              paddingVertical: 6,
-              borderRadius: 18,
-              marginHorizontal: 6,
-            }}
-            onPress={() => { setTab(t as "Active" | "Completed"); setShowArchive(false); }}
-            accessibilityRole="tab"
-            accessibilityLabel={`${t} goals`}
-            accessibilityHint={`Show ${t.toLowerCase()} goals`}
-            accessibilityState={{ selected: tab === t }}
-          >
-            <Text style={{ color: tab === t ? themeColors.card : themeColors.text, fontWeight: tab === t ? "bold" : "600", fontSize: 15 }}>{t}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      {/* Show per tab, empty state, or results as appropriate */}
-      {(() => {
-        // 1. Identify status for each goal
-        function getGoalStatus(g: any) {
-          if (g.status === "completed" || g.completed === true) return "completed";
-          if (g.status === "pending") return "pending";
-          if (g.status === "expired") return "expired";
-          return "active";
-        }
 
-        // 2. Best available completion/comparison date
-        function getGoalCompletionDate(g: any): Date {
-          if (g.completedAt && typeof g.completedAt === "string") return new Date(g.completedAt);
-          // fallback: backend may only give createdAt
-          return getGoalCreatedDate(g);
-        }
+      {/* Full-Width Goals Content */}
+      <View style={{
+        backgroundColor: themeColors.background,
+        paddingHorizontal: 16,
+        paddingTop: 20,
+        paddingBottom: 40,
+      }}>
+        {/* Enhanced Tabs */}
+        <View style={{
+          flexDirection: 'row',
+          backgroundColor: themeColors.surface,
+          borderRadius: 16,
+          padding: 4,
+          marginBottom: 20,
+          elevation: 2,
+          shadowColor: themeColors.border,
+        }}>
+          {["Active", "Completed"].map(t => (
+            <TouchableOpacity
+              key={t}
+              style={{
+                flex: 1,
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                backgroundColor: tab === t ? themeColors.primary : 'transparent',
+                alignItems: 'center',
+                minHeight: 48,
+              }}
+              onPress={() => { setTab(t as "Active" | "Completed"); setShowArchive(false); }}
+              accessibilityRole="tab"
+              accessibilityLabel={`${t} goals`}
+              accessibilityHint={`Show ${t.toLowerCase()} goals`}
+              accessibilityState={{ selected: tab === t }}
+            >
+              <Text style={{
+                color: tab === t ? 'white' : themeColors.text,
+                fontWeight: tab === t ? "bold" : "600",
+                fontSize: 16
+              }}>
+                {t === "Active" ? "⚡ Active Goals" : "🏆 Completed"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        // 3. Split into active/completed as per status, then slice by date for completed archive
-        let activeGoals = goals.filter(g =>
-          getGoalStatus(g) !== "completed" && getGoalStatus(g) !== "expired"
-        ).sort((a, b) => getGoalCreatedDate(b).getTime() - getGoalCreatedDate(a).getTime());
-        let completedGoalsAll = goals.filter(g => getGoalStatus(g) === "completed" || getGoalStatus(g) === "expired");
+        {/* Goals content */}
+        {(() => {
+          // 1. Identify status for each goal
+          function getGoalStatus(g: any) {
+            if (g.status === "completed" || g.completed === true) return "completed";
+            if (g.status === "pending") return "pending";
+            if (g.status === "expired") return "expired";
+            return "active";
+          }
 
-        if (tab === "Active") {
-          return (
-            <FlatList
-              ListHeaderComponent={
-                <>
-                  {activeGoals.length === 0 ? (
-                    <Text style={styles.placeholder}>No active goals.</Text>
-                  ) : null}
-                </>
-              }
-              data={activeGoals}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item }) => renderGoal(item)}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 10 }}
-              style={{ flex: 1 }}
-              scrollEnabled={false }
-            />
-          );
-        }
+          // 2. Best available completion/comparison date
+          function getGoalCompletionDate(g: any): Date {
+            if (g.completedAt && typeof g.completedAt === "string") return new Date(g.completedAt);
+            // fallback: backend may only give createdAt
+            return getGoalCreatedDate(g);
+          }
 
-        // "Completed": last 90d, with archive logic
-        const now = new Date();
-        const ninetyDaysAgo = new Date(now);
-        ninetyDaysAgo.setDate(now.getDate() - 90);
-        const completedRecent = completedGoalsAll.filter(g => getGoalCompletionDate(g) >= ninetyDaysAgo);
-        const completedArchived = completedGoalsAll.filter(g => getGoalCompletionDate(g) < ninetyDaysAgo);
-        let completedGoals = completedRecent.sort((a, b) =>
-          getGoalCompletionDate(b).getTime() - getGoalCompletionDate(a).getTime()
-        );
-        if (showArchive) {
-          completedGoals = [...completedRecent, ...completedArchived].sort((a, b) =>
+          // 3. Split into active/completed as per status, then slice by date for completed archive
+          let activeGoals = goals.filter(g =>
+            getGoalStatus(g) !== "completed" && getGoalStatus(g) !== "expired"
+          ).sort((a, b) => getGoalCreatedDate(b).getTime() - getGoalCreatedDate(a).getTime());
+          let completedGoalsAll = goals.filter(g => getGoalStatus(g) === "completed" || getGoalStatus(g) === "expired");
+
+          if (tab === "Active") {
+            return (
+              <FlatList
+                ListHeaderComponent={
+                  <>
+                    {activeGoals.length === 0 ? (
+                      <View style={{
+                        alignItems: 'center',
+                        paddingVertical: 60,
+                        paddingHorizontal: 20,
+                      }}>
+                        <Text style={{ fontSize: 72, marginBottom: 20 }}>🎯</Text>
+                        <Text style={{
+                          fontSize: 22,
+                          fontWeight: 'bold',
+                          color: themeColors.text,
+                          marginBottom: 12,
+                          textAlign: 'center'
+                        }}>
+                          Ready to Start Saving?
+                        </Text>
+                        <Text style={{
+                          fontSize: 16,
+                          color: themeColors.textSecondary,
+                          textAlign: 'center',
+                          marginBottom: 32,
+                          lineHeight: 24
+                        }}>
+                          Create your first savings goal and watch your money grow! 💰
+                        </Text>
+                        <TouchableOpacity style={{
+                          backgroundColor: themeColors.primary,
+                          paddingVertical: 16,
+                          paddingHorizontal: 32,
+                          borderRadius: 16,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          elevation: 4,
+                        }}>
+                          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginRight: 8 }}>
+                            🎯 Let's Create One!
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
+                  </>
+                }
+                data={activeGoals}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => renderGoal(item)}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 10 }}
+                style={{ flex: 1 }}
+                scrollEnabled={false}
+              />
+            );
+          }
+
+          // "Completed": last 90d, with archive logic
+          const now = new Date();
+          const ninetyDaysAgo = new Date(now);
+          ninetyDaysAgo.setDate(now.getDate() - 90);
+          const completedRecent = completedGoalsAll.filter(g => getGoalCompletionDate(g) >= ninetyDaysAgo);
+          const completedArchived = completedGoalsAll.filter(g => getGoalCompletionDate(g) < ninetyDaysAgo);
+          let completedGoals = completedRecent.sort((a, b) =>
             getGoalCompletionDate(b).getTime() - getGoalCompletionDate(a).getTime()
           );
-        }
-        if (completedGoals.length === 0)
-          return <Text style={styles.placeholder}>No completed goals in the past 90 days.</Text>;
-        return (
-          <>
-            <FlatList
-              data={completedGoals}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item }) => renderGoal(item)}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 10 }}
-              style={{ flex: 1 }}
-              scrollEnabled={false }
-            />
-            {completedArchived.length > 0 && !showArchive && (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Show all completed goals from any time"
-                accessibilityHint="Display goals completed more than 90 days ago"
-                style={{
-                  marginTop: 12,
-                  alignSelf: "center",
-                  backgroundColor: themeColors.accent + "22",
-                  paddingHorizontal: 20,
-                  paddingVertical: 8,
-                  borderRadius: 16
-                }}
-                onPress={() => setShowArchive(true)}
-              >
-                <Text style={{ color: themeColors.primary, fontWeight: "600" }}>Show All Completed Goals</Text>
-              </TouchableOpacity>
-            )}
-            {completedArchived.length > 0 && showArchive && (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Show only recently completed goals"
-                accessibilityHint="Hide goals completed more than 90 days ago"
-                style={{
-                  marginTop: 10,
-                  alignSelf: "center",
-                  backgroundColor: themeColors.surface,
-                  paddingHorizontal: 14,
-                  paddingVertical: 7,
-                  borderRadius: 16
-                }}
-                onPress={() => setShowArchive(false)}
-              >
-                <Text style={{ color: themeColors.primary, fontWeight: "500" }}>Show Only Last 90 Days</Text>
-              </TouchableOpacity>
-            )}
-          </>
-        );
-      })()}
-
-      {/* Individual goal card rendering */}
-      {/** Renders are moved into renderGoal function for code clarity **/}
-
-
-
+          if (showArchive) {
+            completedGoals = [...completedRecent, ...completedArchived].sort((a, b) =>
+              getGoalCompletionDate(b).getTime() - getGoalCompletionDate(a).getTime()
+            );
+          }
+          if (completedGoals.length === 0)
+            return (
+              <View style={{
+                alignItems: 'center',
+                paddingVertical: 60,
+                paddingHorizontal: 20,
+              }}>
+                <Text style={{ fontSize: 72, marginBottom: 20 }}>🏆</Text>
+                <Text style={{
+                  fontSize: 22,
+                  fontWeight: 'bold',
+                  color: themeColors.text,
+                  marginBottom: 12,
+                  textAlign: 'center'
+                }}>
+                  No Completed Goals Yet
+                </Text>
+                <Text style={{
+                  fontSize: 16,
+                  color: themeColors.textSecondary,
+                  textAlign: 'center',
+                  marginBottom: 32,
+                  lineHeight: 24
+                }}>
+                  Complete your first goal to see your achievements here! 🌟
+                </Text>
+              </View>
+            );
+          return (
+            <>
+              <FlatList
+                data={completedGoals}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => renderGoal(item)}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 10 }}
+                style={{ flex: 1 }}
+                scrollEnabled={false}
+              />
+              {completedArchived.length > 0 && !showArchive && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Show all completed goals from any time"
+                  accessibilityHint="Display goals completed more than 90 days ago"
+                  style={{
+                    marginTop: 20,
+                    alignSelf: "center",
+                    backgroundColor: themeColors.accent + "22",
+                    paddingHorizontal: 24,
+                    paddingVertical: 12,
+                    borderRadius: 20,
+                    minHeight: 48,
+                  }}
+                  onPress={() => setShowArchive(true)}
+                >
+                  <Text style={{ color: themeColors.primary, fontWeight: "600", fontSize: 16 }}>Show All Completed Goals</Text>
+                </TouchableOpacity>
+              )}
+              {completedArchived.length > 0 && showArchive && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Show only recently completed goals"
+                  accessibilityHint="Hide goals completed more than 90 days ago"
+                  style={{
+                    marginTop: 16,
+                    alignSelf: "center",
+                    backgroundColor: themeColors.surface,
+                    paddingHorizontal: 18,
+                    paddingVertical: 10,
+                    borderRadius: 18,
+                    minHeight: 48,
+                  }}
+                  onPress={() => setShowArchive(false)}
+                >
+                  <Text style={{ color: themeColors.primary, fontWeight: "500", fontSize: 16 }}>Show Only Last 90 Days</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          );
+        })()}
+      </View>
 
       {msg ? <Text style={styles.statusMessage}>{msg}</Text> : null}
 
@@ -1012,15 +1096,14 @@ function KidGoalsRewardsSection() {
         onSelect={handleTemplateSelect}
         onClose={() => setShowTemplates(false)}
       />
-    </ScrollView>
+    </View>
   );
 
 
-  // Individual goal renderer (uses parent logic for claim display, etc.)
+  // Individual goal renderer - Simplified and less confusing
   function renderGoal(g: any) {
     const jarPoints = userData ? userData[g.jar + "Points"] || 0 : 0;
-    const pendingJarPoints = userData ? userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"] || 0 : 0;
-    const availableJarPoints = jarPoints - pendingJarPoints;
+    const availableJarPoints = jarPoints - (userData ? userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"] || 0 : 0);
 
     // Check if there is a pending goal-completion request for this goal
     const hasPendingClaim = requests.some(
@@ -1032,346 +1115,178 @@ function KidGoalsRewardsSection() {
     const isExpired = g.status === "expired";
     const canClaim = availableJarPoints >= g.targetAmount && g.status === "active" && !isCompleted && !isExpired && !hasPendingClaim;
 
-    let buttonText = "Claim";
-    let buttonColor = "#bbfbc1";
+    // Determine status and colors
+    let statusText = '';
+    let statusColor = themeColors.secondary;
+    let bgColor = themeColors.surface;
 
     if (isCompleted) {
-      buttonText = "Completed!";
-      buttonColor = "#ddd";
+      statusText = '🏆 Completed';
+      statusColor = themeColors.success;
+      bgColor = themeColors.success + '10';
     } else if (isPending) {
-      buttonText = "Pending...";
-      buttonColor = "#ffe58b";
+      statusText = '⏳ Pending';
+      statusColor = themeColors.warning;
+      bgColor = themeColors.warning + '15';
+    } else if (isExpired) {
+      statusText = '❌ Expired';
+      statusColor = themeColors.error;
+      bgColor = themeColors.error + '10';
     } else if (canClaim) {
-      buttonText = claiming === g._id ? "Claiming..." : "Claim";
-      buttonColor = "#bbfbc1";
+      statusText = '✅ Ready to Claim';
+      statusColor = themeColors.primary;
     } else {
-      buttonText = "Need More Points";
-      buttonColor = "#ccc";
+      statusText = '💪 In Progress';
+      statusColor = themeColors.secondary;
     }
 
     return (
       <View
         key={g._id}
         style={{
-          backgroundColor: isCompleted ? themeColors.success + "15" : isPending ? themeColors.warning + "33" : isExpired ? themeColors.error + "15" : themeColors.surface,
-          marginBottom: 7,
-          borderRadius: 6,
-          padding: 12,
-          borderWidth: 1,
-          borderColor: isCompleted ? themeColors.success : isPending ? themeColors.warning : isExpired ? themeColors.error : themeColors.border,
+          backgroundColor: bgColor,
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 16,
+          borderWidth: 2,
+          borderColor: statusColor + '30',
+          elevation: 3,
+          shadowColor: statusColor,
         }}
-        accessibilityLabel={`Goal: ${g.name}. ${isCompleted ? 'Completed' : isPending ? 'Pending approval' : isExpired ? 'Expired' : 'Active'}. Progress: ${formatAmount(jarPoints)} out of ${formatAmount(g.targetAmount)} points.`}
+        accessibilityLabel={`Goal: ${g.name}. ${statusText}. Progress: ${formatAmount(jarPoints)} out of ${formatAmount(g.targetAmount)} points.`}
         accessibilityHint={canClaim ? 'Double tap to claim this goal' : isCompleted ? 'This goal has been completed' : isPending ? 'Waiting for parent approval' : isExpired ? 'This goal has expired' : 'You need more points to claim this goal'}
       >
-        <View style={{ marginBottom: 8 }}>
-          <Text style={{ fontWeight: "bold", color: themeColors.text, fontSize: 16 }} numberOfLines={1} ellipsizeMode="tail">{g.name}</Text>
-          {g.description && (
-            <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginTop: 4 }} numberOfLines={2} ellipsizeMode="tail">
-              {g.description}
-            </Text>
-          )}
-        </View>
-
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View style={{ flex: 2 }}>
-            <Text style={{ fontSize: 14, color: themeColors.textSecondary }}>
-              Save in: {getJarDisplayName(g.jar)}
-            </Text>
-            {g.deadline && (
-              <Text style={{ fontSize: 12, color: themeColors.textSecondary, marginTop: 2 }}>
-                Deadline: {new Date(g.deadline).toLocaleDateString()}
-              </Text>
-            )}
-            {hasPendingClaim && (
-              <Text style={{ fontSize: 11, color: themeColors.warning, fontStyle: "italic", marginTop: 2 }}>
-                ⏳ Claim request pending - waiting for parent approval
-              </Text>
-            )}
-            {!hasPendingClaim && isPending && (
-              <Text style={{ fontSize: 11, color: themeColors.warning, fontStyle: "italic", marginTop: 2 }}>
-                Awaiting parent approval
-              </Text>
-            )}
-            {isExpired && (
-              <Text style={{ fontSize: 11, color: themeColors.error, fontStyle: "italic", marginTop: 2 }}>
-                Goal expired ⏰
-              </Text>
-            )}
-            {isCompleted && (
-              <Text style={{ fontSize: 11, color: themeColors.success, fontStyle: "italic", marginTop: 2 }}>
-                Goal achieved! 🎉
-              </Text>
-            )}
-          </View>
-
-          <View style={{ alignItems: "flex-end" }}>
-            {g.status === "active" && !isCompleted && !isExpired ? (
-              <View style={{ alignItems: "center", marginBottom: 4 }}>
-                <AnimatedCircularProgress
-                  size={50}
-                  width={6}
-                  fill={Math.min((jarPoints / g.targetAmount) * 100, 100)}
-                  tintColor={canClaim ? themeColors.primary : themeColors.textSecondary}
-                  backgroundColor={themeColors.border}
-                  duration={1500}
-                />
-                <Text style={{ color: themeColors.primary, fontSize: 12, marginTop: 2 }}>
-                  {formatAmount(jarPoints)}{pendingJarPoints > 0 ? ` (${pendingJarPoints} pending)` : ''}/{formatAmount(g.targetAmount)}
-                </Text>
-                {pendingJarPoints > 0 && (
-                  <Text style={{ color: themeColors.textSecondary, fontSize: 10, marginTop: 1 }}>
-                    Available: {formatAmount(availableJarPoints)}
-                  </Text>
-                )}
-              </View>
-            ) : (
-              <View style={{ alignItems: "center", marginBottom: 4, minHeight: 50 }}>
-                {isExpired ? (
-                  <Text style={{ color: themeColors.primary, fontSize: 14, fontWeight: "bold", marginTop: 8 }}>
-                    {formatAmount(jarPoints)}/{formatAmount(g.targetAmount)}
-                  </Text>
-                ) : isCompleted ? (
-                  <Text style={{ color: themeColors.primary, fontSize: 14, fontWeight: "bold", marginTop: 8 }}>
-                    {formatAmount(g.targetAmount)}
-                  </Text>
-                ) : null}
-              </View>
-            )}
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              {canClaim && (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: themeColors.success,
-                    paddingVertical: 5,
-                    paddingHorizontal: 13,
-                    borderRadius: 8,
-                  }}
-                  onPress={() => handleClaimGoal(g._id, g.name, g.jar, g.targetAmount)}
-                  disabled={claiming === g._id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Claim goal: ${g.name}`}
-                  accessibilityHint="Double tap to submit goal completion request to parent"
-                  accessibilityState={{ disabled: claiming === g._id }}
-                >
-                  <Text style={{
-                    color: themeColors.card,
-                    fontWeight: "bold",
-                    fontSize: 12
-                  }}>
-                    {claiming === g._id ? "Claiming..." : "Claim"}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {g.status === 'active' && g.createdByType === 'child' && (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: themeColors.error,
-                    paddingVertical: 5,
-                    paddingHorizontal: 10,
-                    borderRadius: 8,
-                  }}
-                  onPress={() => handleDeleteGoal(g._id, g.name)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete goal: ${g.name}`}
-                  accessibilityHint="Double tap to delete this goal"
-                >
-                  <Text style={{
-                    color: themeColors.card,
-                    fontWeight: "bold",
-                    fontSize: 12
-                  }}>
-                    🗑️ Delete
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // Individual reward renderer - visually engaging for kids
-  function renderReward(r: any) {
-    // Pending if there is a pending approval request for this reward
-    const hasPending = requests.some(
-      (req: any) => req.type === "reward" && req.rewardId === r._id && req.status === "Pending"
-    );
-    // "Can claim" if available, not purchased, not pending, and enough available points
-    const availablePoints = userData ? (userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0) : 0;
-    const canClaim = r.available && !r.purchased && userData && availablePoints >= r.cost && !hasPending;
-
-    const getStatusText = () => {
-      if (r.purchased) return 'Claimed';
-      if (hasPending) return 'Pending approval';
-      if (canClaim) return 'Available to claim';
-      return 'Not enough points';
-    };
-
-    // Fun status icons and colors for kids
-    const getStatusConfig = () => {
-      if (r.purchased) return { icon: '🏆', color: themeColors.success, bgColor: themeColors.success + '20', text: 'Won!' };
-      if (hasPending) return { icon: '⏳', color: themeColors.warning, bgColor: themeColors.warning + '25', text: 'Waiting...' };
-      if (canClaim) return { icon: '🎯', color: themeColors.primary, bgColor: themeColors.primary + '20', text: 'Claim Now!' };
-      return { icon: '💪', color: themeColors.textSecondary, bgColor: themeColors.surface, text: 'Keep Saving!' };
-    };
-
-    const statusConfig = getStatusConfig();
-
-    return (
-      <View
-        key={r._id}
-        style={{
-          backgroundColor: statusConfig.bgColor,
-          marginBottom: 12,
-          borderRadius: 16,
-          padding: 16,
-          borderWidth: 2,
-          borderColor: r.purchased ? themeColors.success : hasPending ? themeColors.warning : canClaim ? themeColors.primary : themeColors.border,
-          shadowColor: statusConfig.color,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
-        }}
-        accessibilityLabel={`Reward: ${r.name}. Cost: ${formatAmount(r.cost)} points. Status: ${getStatusText()}.`}
-        accessibilityHint={canClaim ? 'Double tap to claim this reward' : r.purchased ? 'This reward has been claimed' : hasPending ? 'Waiting for parent approval' : 'You need more points to claim this reward'}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <Text style={{ fontSize: 24, marginRight: 12 }}>{statusConfig.icon}</Text>
+        {/* Goal Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <View style={{ flex: 1 }}>
             <Text style={{
               fontSize: 18,
-              fontWeight: "bold",
+              fontWeight: 'bold',
               color: themeColors.text,
               marginBottom: 4
-            }} numberOfLines={1} ellipsizeMode="tail">
-              {r.name}
+            }} numberOfLines={2} ellipsizeMode="tail">
+              {g.name}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: themeColors.primary,
-                marginRight: 8
-              }}>
-                💰 {formatAmount(r.cost)} points
-              </Text>
-              {userData && (
-                <Text style={{
-                  fontSize: 14,
-                  color: themeColors.textSecondary
-                }}>
-                  (Total: {formatAmount(userData.currentPoints || 0)}{(userData.pendingCurrentPoints || 0) > 0 ? `, ${userData.pendingCurrentPoints} pending` : ''})
-                </Text>
-              )}
-              {userData && (userData.pendingCurrentPoints || 0) > 0 && (
-                <Text style={{
-                  fontSize: 12,
-                  color: themeColors.textSecondary,
-                  marginTop: 2
-                }}>
-                  Available: {formatAmount((userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0))}
-                </Text>
-              )}
-            </View>
+            <Text style={{
+              fontSize: 14,
+              color: statusColor,
+              fontWeight: '600'
+            }}>
+              {statusText}
+            </Text>
           </View>
+
+          {/* Progress Circle */}
+          {g.status === "active" && !isCompleted && !isExpired && (
+            <View style={{ alignItems: 'center' }}>
+              <AnimatedCircularProgress
+                size={60}
+                width={6}
+                fill={Math.min((jarPoints / g.targetAmount) * 100, 100)}
+                tintColor={canClaim ? themeColors.primary : themeColors.textSecondary}
+                backgroundColor={themeColors.border}
+                duration={1500}
+              />
+              <Text style={{
+                fontSize: 12,
+                color: themeColors.primary,
+                fontWeight: 'bold',
+                marginTop: 4
+              }}>
+                {Math.round((jarPoints / g.targetAmount) * 100)}%
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Status button - more engaging for kids */}
-        {r.purchased ? (
-          <View style={{
-            backgroundColor: themeColors.success,
-            borderRadius: 12,
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center'
+        {/* Progress Text */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{
+            fontSize: 16,
+            color: themeColors.text,
+            fontWeight: '600',
+            textAlign: 'center'
           }}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>🎉</Text>
-            <Text style={{
-              color: 'white',
-              fontWeight: "bold",
-              fontSize: 16
-            }}>
-              {statusConfig.text}
-            </Text>
-          </View>
-        ) : hasPending ? (
-          <View style={{
-            backgroundColor: themeColors.warning,
-            borderRadius: 12,
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center'
+            {formatAmount(jarPoints)} / {formatAmount(g.targetAmount)} points
+          </Text>
+          <Text style={{
+            fontSize: 14,
+            color: themeColors.textSecondary,
+            textAlign: 'center',
+            marginTop: 2
           }}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>⏳</Text>
+            Save in: {getJarDisplayName(g.jar)}
+          </Text>
+        </View>
+
+        {/* Action Button */}
+        <View style={{ alignItems: 'center' }}>
+          {canClaim && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: themeColors.success,
+                paddingVertical: 12,
+                paddingHorizontal: 24,
+                borderRadius: 12,
+                minWidth: 120,
+                elevation: 2,
+              }}
+              onPress={() => handleClaimGoal(g._id, g.name, g.jar, g.targetAmount)}
+              disabled={claiming === g._id}
+              accessibilityRole="button"
+              accessibilityLabel={`Claim goal: ${g.name}`}
+              accessibilityHint="Double tap to submit goal completion request to parent"
+              accessibilityState={{ disabled: claiming === g._id }}
+            >
+              <Text style={{
+                color: 'white',
+                fontSize: 16,
+                fontWeight: 'bold',
+                textAlign: 'center'
+              }}>
+                {claiming === g._id ? '🎯 Claiming...' : '🎯 Claim Goal'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {g.status === 'active' && g.createdByType === 'child' && !canClaim && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: themeColors.error,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: 10,
+                marginTop: 8,
+              }}
+              onPress={() => handleDeleteGoal(g._id, g.name)}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete goal: ${g.name}`}
+              accessibilityHint="Double tap to delete this goal"
+            >
+              <Text style={{
+                color: 'white',
+                fontSize: 14,
+                fontWeight: 'bold'
+              }}>
+                🗑️ Delete
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {!canClaim && !isCompleted && !isPending && !isExpired && (
             <Text style={{
-              color: 'white',
-              fontWeight: "bold",
-              fontSize: 16
-            }}>
-              {statusConfig.text}
-            </Text>
-          </View>
-        ) : canClaim ? (
-          <TouchableOpacity
-            style={{
-              backgroundColor: themeColors.primary,
-              borderRadius: 12,
-              paddingVertical: 12,
-              paddingHorizontal: 20,
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              shadowColor: themeColors.primary,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 4,
-              elevation: 4,
-            }}
-            onPress={() => handleClaimReward(r._id)}
-            disabled={claiming === r._id}
-            accessibilityRole="button"
-            accessibilityLabel={`Claim reward: ${r.name}`}
-            accessibilityHint="Double tap to submit reward claim request to parent"
-            accessibilityState={{ disabled: claiming === r._id }}
-          >
-            <Text style={{ fontSize: 18, marginRight: 8 }}>🎁</Text>
-            <Text style={{
-              color: 'white',
-              fontWeight: "bold",
-              fontSize: 16
-            }}>
-              {claiming === r._id ? "Claiming..." : statusConfig.text}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={{
-            backgroundColor: themeColors.surface,
-            borderRadius: 12,
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: themeColors.border
-          }}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>💪</Text>
-            <Text style={{
+              fontSize: 14,
               color: themeColors.textSecondary,
-              fontWeight: "bold",
-              fontSize: 16
+              textAlign: 'center',
+              marginTop: 8
             }}>
-              {statusConfig.text}
+              Keep saving! 💪
             </Text>
-          </View>
-        )}
+          )}
+        </View>
       </View>
     );
   }
+
+
 }

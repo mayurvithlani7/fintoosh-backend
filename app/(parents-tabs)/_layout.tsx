@@ -332,7 +332,9 @@ function ParentsTabLayoutInner() {
                   // Logout: clear all tokens, user data, and user-specific persistent state, then redirect
                   dataCache.resetDataCache();
                   const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+                  const { clearRequestCache } = await import('@/utils/api');
                   await clearSensitiveAppData();
+                  clearRequestCache();
                   router.replace('/login');
                 }}
                 accessibilityRole="button"

@@ -195,6 +195,7 @@ router.get('/users/:id', async (req, res) => {
       .populate('chores')
       .populate({ path: 'rewards', model: 'Reward' })
       .populate('transactions')
+      .populate('caregivers')  // Include caregivers for multi-parent support
       .select('-password');
 
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -1714,15 +1715,20 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
 
     await approvalRequest.save();
 
-    // Notify parent on approval request submission
-    await Notification.create({
-      familyId: childUser.familyId,
-      userId: parentId,
-      type: 'request_submitted',
-      message: `New request submitted by ${childUser.name || userId}.`,
-      referenceId: approvalRequest._id,
-      isRead: false
-    });
+    // Notify ALL caregivers in the family on approval request submission
+    if (childUser.caregivers && childUser.caregivers.length > 0) {
+      const notificationPromises = childUser.caregivers.map(caregiver =>
+        Notification.create({
+          familyId: childUser.familyId,
+          userId: caregiver.userId,
+          type: 'request_submitted',
+          message: `New request submitted by ${childUser.name || userId}.`,
+          referenceId: approvalRequest._id,
+          isRead: false
+        })
+      );
+      await Promise.all(notificationPromises);
+    }
 
     res.status(201).json(approvalRequest);
   } catch (error) {

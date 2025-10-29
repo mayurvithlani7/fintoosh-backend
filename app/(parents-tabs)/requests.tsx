@@ -55,6 +55,11 @@ export default function ParentsRequestsScreen() {
     filter: 'pending',
     searchQuery: '',
   });
+  const [requestCounts, setRequestCounts] = useState({
+    pending: 0,
+    approved: 0,
+    denied: 0,
+  });
   const [paginationMeta, setPaginationMeta] = useState<any | null>(null);
   const [feedback, setFeedback] = useState('');
   const [approvalModal, setApprovalModal] = useState({
@@ -231,6 +236,16 @@ export default function ParentsRequestsScreen() {
     return now;
   })();
 
+  // Calculate request counts for filter chips
+  React.useEffect(() => {
+    const counts = {
+      pending: requests.filter(r => r.status === 'Pending').length,
+      approved: requests.filter(r => r.status === 'Approved' && new Date(r.createdAt) >= archiveThreshold).length,
+      denied: requests.filter(r => r.status === 'Denied' && new Date(r.createdAt) >= archiveThreshold).length,
+    };
+    setRequestCounts(counts);
+  }, [requests, archiveThreshold]);
+
   // Filter for recent approved/denied
   let displayedRequests: any[] = [];
   if (pagination.filter === 'approved' || pagination.filter === 'denied') {
@@ -244,7 +259,6 @@ export default function ParentsRequestsScreen() {
   if (pagination.searchQuery) {
     displayedRequests = displayedRequests.filter(
       (req) =>
-        req.childName?.toLowerCase().includes(pagination.searchQuery.toLowerCase()) ||
         req.name?.toLowerCase().includes(pagination.searchQuery.toLowerCase()) ||
         req.type?.toLowerCase().includes(pagination.searchQuery.toLowerCase())
     );
@@ -534,40 +548,58 @@ export default function ParentsRequestsScreen() {
       ) : null}
 
       {request.status === 'Pending' ? (
-        <View style={styles.buttonRow}>
+        <View style={styles.quickActionsContainer}>
+          <View style={styles.quickActionRow}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`Quick approve: ${request.name}`}
+              accessibilityHint="Approve this request instantly"
+              style={[styles.quickActionBtn, { backgroundColor: themeColors.success }]}
+              onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
+            >
+              <Text style={styles.quickActionEmoji}>✅</Text>
+              <Text style={styles.quickActionText}>Approve</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`Quick deny: ${request.name}`}
+              accessibilityHint="Deny this request"
+              style={[styles.quickActionBtn, { backgroundColor: themeColors.error }]}
+              onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
+            >
+              <Text style={styles.quickActionEmoji}>❌</Text>
+              <Text style={styles.quickActionText}>Deny</Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel={`Approve request: ${request.name}`}
-            accessibilityHint="Open approval modal to confirm request approval"
-            style={[styles.actionBtn, { backgroundColor: themeColors.success }]}
-            onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
+            accessibilityLabel={`Message about: ${request.name}`}
+            accessibilityHint="Send a message to your child about this request"
+            style={[styles.messageActionBtn, { borderColor: themeColors.primary }]}
+            onPress={() => {
+              // Focus on message input
+              setApprovalModal(prev => ({ ...prev, comment: prev.comment || '' }));
+            }}
           >
-            <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 16 }}>Approve</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={`Deny request: ${request.name}`}
-            accessibilityHint="Open denial modal to decline request"
-            style={[styles.actionBtn, { backgroundColor: themeColors.error }]}
-            onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
-          >
-            <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 16 }}>Deny</Text>
+            <Text style={[styles.messageActionText, { color: themeColors.primary }]}>💬 Message</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <Text
-          style={{
-            marginTop: 10,
-            fontWeight: 'bold',
+        <View style={styles.statusContainer}>
+          <Text style={[styles.statusBadge, {
+            backgroundColor:
+              request.status === 'Approved' ? themeColors.success + '20' :
+                request.status === 'Denied' ? themeColors.error + '20' : themeColors.surface,
             color:
               request.status === 'Approved' ? themeColors.success :
                 request.status === 'Denied' ? themeColors.error : themeColors.textSecondary,
-            fontSize: 15,
-            textAlign: 'right'
-          }}
-        >
-          Status: {request.status}
-        </Text>
+          }]}>
+            {request.status === 'Approved' ? '✅' : request.status === 'Denied' ? '❌' : '⏳'} {request.status}
+          </Text>
+          <Text style={[styles.timestampText, { color: themeColors.textSecondary }]}>
+            {formatDateTime(request.updatedAt || request.createdAt)}
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -576,21 +608,47 @@ export default function ParentsRequestsScreen() {
     <View style={{ flex: 1, backgroundColor: themeColors.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6, alignSelf: 'center' }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Help and information"
-          accessibilityHint="Open help guide for managing child requests"
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            elevation: 2,
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Refresh requests list"
+            accessibilityHint="Reload latest requests and update status"
+            accessibilityState={{ disabled: pagination.refreshing }}
+            style={{
+              backgroundColor: themeColors.secondary,
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+              elevation: 1,
+              marginRight: 8,
+            }}
+            onPress={onRefresh}
+            disabled={pagination.refreshing}
+          >
+            <Text style={{ fontSize: 16, color: themeColors.card }}>
+              {pagination.refreshing ? '⏳' : '↻'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Help and information"
+            accessibilityHint="Open help guide for managing child requests"
+            style={{
+              backgroundColor: themeColors.accent,
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+              elevation: 1,
+            }}
+            onPress={() => setHelpModalVisible(true)}
+          >
+            <Text style={{ color: themeColors.card, fontSize: 16 }}>❓</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       {showStaleWarning && (
         <Text style={{ color: themeColors.warning, fontWeight: 'bold', fontSize: 15, backgroundColor: '#fffbe5', borderLeftWidth: 4, borderLeftColor: themeColors.warning, padding: 9, borderRadius: 6, marginBottom: 8, textAlign: 'center' }}>
@@ -604,9 +662,9 @@ export default function ParentsRequestsScreen() {
         <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Find Requests</Text>
         <TextInput
           accessibilityLabel="Search requests"
-          accessibilityHint="Search by child name, request type, or content"
+          accessibilityHint="Search by request type or content"
           style={[styles.searchInput, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
-          placeholder="Search by child name, request type..."
+          placeholder="Search by request type or content..."
           placeholderTextColor={themeColors.textSecondary}
           value={pagination.searchQuery}
           onChangeText={(text) => {
@@ -626,7 +684,7 @@ export default function ParentsRequestsScreen() {
             onPress={() => handleFilterChange('pending')}
           >
             <Text style={[styles.chipText, { color: pagination.filter === 'pending' ? themeColors.card : themeColors.text }]}>
-              🕐 Pending
+              🕐 Pending ({requestCounts.pending})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -638,7 +696,7 @@ export default function ParentsRequestsScreen() {
             onPress={() => handleFilterChange('approved')}
           >
             <Text style={[styles.chipText, { color: pagination.filter === 'approved' ? themeColors.card : themeColors.text }]}>
-              ✅ Approved
+              ✅ Approved ({requestCounts.approved})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -650,7 +708,7 @@ export default function ParentsRequestsScreen() {
             onPress={() => handleFilterChange('denied')}
           >
             <Text style={[styles.chipText, { color: pagination.filter === 'denied' ? themeColors.card : themeColors.text }]}>
-              ❌ Denied
+              ❌ Denied ({requestCounts.denied})
             </Text>
           </TouchableOpacity>
         </View>
@@ -1072,5 +1130,63 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  // Quick actions for pending requests
+  quickActionsContainer: {
+    marginTop: 12,
+  },
+  quickActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  quickActionBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    alignItems: 'center',
+    elevation: 2,
+  },
+  quickActionEmoji: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  messageActionBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    alignSelf: 'center',
+    elevation: 1,
+  },
+  messageActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Status display for approved/denied requests
+  statusContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  timestampText: {
+    fontSize: 12,
+    color: themeColors.textSecondary,
   },
 });

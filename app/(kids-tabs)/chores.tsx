@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -61,7 +62,7 @@ export default function TasksScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
-    <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
@@ -226,7 +227,7 @@ export default function TasksScreen() {
           }
         ]}
       />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -257,36 +258,56 @@ function ChoresSection() {
     return new Date();
   }
 
-  // Smart category detection based on task content
+  // Smart category detection based on task content - Theme Compatible
   function detectCategory(taskName: string, description: string = '') {
     const text = (taskName + ' ' + description).toLowerCase();
 
     if (text.includes('clean') || text.includes('wash') || text.includes('vacuum') || text.includes('tidy') || text.includes('room')) {
-      return { category: 'Cleaning', emoji: '🧹', color: '#4CAF50', bgColor: '#E8F5E8' };
+      return {
+        category: 'Cleaning',
+        emoji: '🧹',
+        color: themeColors.success,
+        bgColor: themeColors.success + '15'
+      };
     }
 
     if (text.includes('read') || text.includes('learn') || text.includes('study') || text.includes('book') || text.includes('homework')) {
-      return { category: 'Learning', emoji: '📚', color: '#2196F3', bgColor: '#E3F2FD' };
+      return {
+        category: 'Learning',
+        emoji: '📚',
+        color: themeColors.primary,
+        bgColor: themeColors.primary + '15'
+      };
     }
 
     if (text.includes('help') || text.includes('family') || text.includes('together') || text.includes('assist') || text.includes('parent')) {
-      return { category: 'Helping', emoji: '🤝', color: '#FF9800', bgColor: '#FFF3E0' };
+      return {
+        category: 'Helping',
+        emoji: '🤝',
+        color: themeColors.warning,
+        bgColor: themeColors.warning + '15'
+      };
     }
 
-    return { category: 'Other', emoji: '⭐', color: '#9C27B0', bgColor: '#F3E5F5' };
+    return {
+      category: 'Other',
+      emoji: '⭐',
+      color: themeColors.accent,
+      bgColor: themeColors.accent + '15'
+    };
   }
 
-  // Frequency-based priority styling
+  // Frequency-based priority styling - Theme Compatible
   function getFrequencyStyle(frequency: string) {
     switch (frequency) {
       case 'daily':
-        return { priority: 'high', accentColor: '#F44336', borderColor: '#F44336' }; // Red for daily
+        return { priority: 'high', accentColor: themeColors.error, borderColor: themeColors.error }; // Error color for daily (high priority)
       case 'weekly':
-        return { priority: 'medium', accentColor: '#FF9800', borderColor: '#FF9800' }; // Orange for weekly
+        return { priority: 'medium', accentColor: themeColors.warning, borderColor: themeColors.warning }; // Warning color for weekly
       case 'monthly':
-        return { priority: 'low', accentColor: '#4CAF50', borderColor: '#4CAF50' }; // Green for monthly
+        return { priority: 'low', accentColor: themeColors.success, borderColor: themeColors.success }; // Success color for monthly
       default:
-        return { priority: 'normal', accentColor: '#2196F3', borderColor: '#2196F3' }; // Blue for one-time
+        return { priority: 'normal', accentColor: themeColors.primary, borderColor: themeColors.primary }; // Primary color for one-time
     }
   }
 
@@ -459,13 +480,41 @@ function ChoresSection() {
         return;
       }
 
-      // Get parent ID from caregivers array
-      const parentId = (user as any).caregivers && (user as any).caregivers.length > 0
-        ? (user as any).caregivers[0].userId // Use first caregiver as parent
-        : null;
+      // DEBUG: Log user data to understand the structure
+      console.log('DEBUG handleClaimChore - User data:', {
+        userId: user.id,
+        hasCaregivers: !!(user as any).caregivers,
+        caregiversType: typeof (user as any).caregivers,
+        caregiversLength: (user as any).caregivers?.length,
+        caregiversContent: (user as any).caregivers,
+        parentId: (user as any).parentId
+      });
+
+      // Get parent ID from caregivers array - find first valid caregiver
+      let parentId = null;
+      if ((user as any).caregivers && Array.isArray((user as any).caregivers)) {
+        console.log('DEBUG: Checking caregivers array');
+        // Find the first caregiver with a valid userId
+        const validCaregiver = (user as any).caregivers.find((caregiver: any) =>
+          caregiver && caregiver.userId
+        );
+        console.log('DEBUG: Valid caregiver found:', validCaregiver);
+        parentId = validCaregiver ? validCaregiver.userId : null;
+      }
+
+      // Fallback to legacy parentId field for backward compatibility
+      if (!parentId) {
+        console.log('DEBUG: No valid caregiver found, checking parentId fallback');
+        parentId = (user as any).parentId;
+        console.log('DEBUG: ParentId fallback:', parentId);
+      }
+
+      console.log('DEBUG: Final parentId:', parentId);
 
       if (!parentId) {
-        showError("Parent information not found. Please contact support.");
+        console.error('ERROR: No parent or caregiver found despite parents being present');
+        console.log('Full user object:', user);
+        showError("No parent or caregiver found for your account. Please ask a grown-up to check your family settings.");
         return;
       }
 
@@ -522,139 +571,296 @@ function ChoresSection() {
   }
 
   return (
-    <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-      {showStaleWarning && (
-        <Text style={{ color: themeColors.warning, fontWeight: 'bold', fontSize: 15, backgroundColor: '#fffbe5', borderLeftWidth: 4, borderLeftColor: themeColors.warning, padding: 9, borderRadius: 6, marginBottom: 8, textAlign: 'center' }}>
-          Your task list may be out of date. Tap Refresh for the latest status.
-        </Text>
-      )}
-      <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Tasks</Text>
-      {/* Refresh Button */}
-      <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 8 }}>
+    <View style={{ flex: 1 }}>
+      {/* Quick Actions Header */}
+      <View style={{
+        backgroundColor: themeColors.surface,
+        borderRadius: 16,
+        marginBottom: 16,
+        padding: 16,
+        width: '97%',
+        maxWidth: 520,
+        alignSelf: 'center',
+        elevation: 3,
+        shadowColor: themeColors.border,
+        borderWidth: 1,
+        borderColor: themeColors.border + '30',
+      }}>
         <TouchableOpacity
+          style={{
+            backgroundColor: themeColors.secondary,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 10,
+            alignItems: 'center',
+            elevation: 1,
+          }}
+          onPress={() => loadChoresUserAndRequests()}
+          disabled={loading}
           accessibilityRole="button"
           accessibilityLabel={loading ? "Refreshing task data" : "Refresh task data"}
           accessibilityHint="Reload latest information about your tasks"
           accessibilityState={{ disabled: loading }}
-          style={[
-            {
-              backgroundColor: loading ? "#ccc" : themeColors.secondary,
-              paddingVertical: 8,
-              paddingHorizontal: 12,
-              borderRadius: 8,
-              alignItems: "center"
-            },
-            loading && { opacity: 0.6 }
-          ]}
-          onPress={loadChoresUserAndRequests}
-          disabled={loading}
         >
           <Text style={{
-            color: loading ? "#666" : themeColors.card,
-            fontWeight: "bold",
-            fontSize: 12
+            color: themeColors.card,
+            fontSize: 14,
+            fontWeight: '600'
           }}>
-            {loading ? "Refreshing..." : "🔄 Refresh Tasks"}
+            {loading ? '🔄 Refreshing...' : '🔄 Refresh Tasks'}
           </Text>
         </TouchableOpacity>
       </View>
-      {/* Chores Tabs */}
-      <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: 10 }}>
-        {["Active", "Completed"].map(t => (
-          <TouchableOpacity
-            key={t}
-            accessibilityRole="tab"
-            accessibilityLabel={`${t} tasks`}
-            accessibilityHint={`Show ${t.toLowerCase()} tasks`}
-            accessibilityState={{ selected: choresTab === t }}
-            style={{
-              backgroundColor: choresTab === t ? themeColors.secondary : themeColors.surface,
-              paddingHorizontal: 15,
-              paddingVertical: 6,
-              borderRadius: 18,
-              marginHorizontal: 6,
-            }}
-            onPress={() => { setChoresTab(t as "Active" | "Completed"); setShowArchive(false); }}
-          >
-            <Text style={{ color: choresTab === t ? themeColors.card : themeColors.text, fontWeight: choresTab === t ? "bold" : "600", fontSize: 15 }}>{t}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      {(() => {
-        // Partition chores
-        let activeChores = chores.filter(
-          c => !(c.completed || c.approved)
-        ).sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
-        let completedChoresAll = chores.filter(
-          c => c.completed || c.approved
-        );
-        if (choresTab === "Active") {
-          if (activeChores.length === 0)
-            return <Text style={styles.placeholder}>No active tasks.</Text>;
-          return (
-            <View>
-              {activeChores.map((c) => renderChore(c))}
+
+      {/* Tasks Section - Always Visible */}
+      <View
+        style={{
+          backgroundColor: themeColors.card,
+          borderRadius: 14,
+          marginBottom: 16,
+          width: '97%',
+          maxWidth: 520,
+          alignSelf: 'center',
+          elevation: 2,
+          shadowColor: themeColors.border,
+        }}
+      >
+        <View style={{
+          padding: 18,
+          paddingBottom: 8,
+          borderBottomWidth: 1,
+          borderBottomColor: themeColors.border + '30'
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>🧹 My Tasks</Text>
+              <View style={{
+                backgroundColor: themeColors.primary,
+                borderRadius: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                marginLeft: 8
+              }}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                  {chores.length}
+                </Text>
+              </View>
             </View>
-          );
-        }
-        // Completed: filter last 90 days by best-available date, rest archived
-        const now = new Date();
-        const ninetyDaysAgo = new Date(now);
-        ninetyDaysAgo.setDate(now.getDate() - 90);
-        const recent = completedChoresAll.filter(c => getChoreCompletedDate(c) >= ninetyDaysAgo);
-        const archived = completedChoresAll.filter(c => getChoreCompletedDate(c) < ninetyDaysAgo);
-        let choresToShow = recent.sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
-        if (showArchive)
-          choresToShow = [...recent, ...archived].sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
-        if (choresToShow.length === 0)
-          return <Text style={styles.placeholder}>No completed tasks in last 90 days.</Text>;
-        return (
-          <View>
-            {choresToShow.map((c) => renderChore(c))}
-            {/* Archive toggle for completed chores */}
-            {archived.length > 0 && !showArchive && (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Show all completed tasks from any time"
-                accessibilityHint="Display tasks completed more than 90 days ago"
-                style={{
-                  marginTop: 12,
-                  alignSelf: "center",
-                  backgroundColor: themeColors.surface,
-                  borderColor: themeColors.border,
-                  borderWidth: 1,
-                  paddingHorizontal: 20,
-                  paddingVertical: 8,
-                  borderRadius: 16
-                }}
-                onPress={() => setShowArchive(true)}
-              >
-                <Text style={{ color: themeColors.primary, fontWeight: "600" }}>Show All Completed Tasks</Text>
-              </TouchableOpacity>
-            )}
-            {archived.length > 0 && showArchive && (
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Show only recently completed tasks"
-                accessibilityHint="Hide tasks completed more than 90 days ago"
-                style={{
-                  marginTop: 10,
-                  alignSelf: "center",
-                  backgroundColor: themeColors.surface,
-                  borderColor: themeColors.border,
-                  borderWidth: 1,
-                  paddingHorizontal: 14,
-                  paddingVertical: 7,
-                  borderRadius: 16
-                }}
-                onPress={() => setShowArchive(false)}
-              >
-                <Text style={{ color: themeColors.primary, fontWeight: "500" }}>Show Only Last 90 Days</Text>
-              </TouchableOpacity>
-            )}
           </View>
-        );
-      })()}
+        </View>
+      </View>
+
+      {/* Full-Width Tasks Content */}
+      <View style={{
+        backgroundColor: themeColors.background,
+        paddingHorizontal: 16,
+        paddingTop: 20,
+        paddingBottom: 40,
+      }}>
+        <ScrollView
+          style={{ backgroundColor: themeColors.background }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Enhanced Tabs */}
+          <View style={{
+            flexDirection: 'row',
+            backgroundColor: themeColors.surface,
+            borderRadius: 16,
+            padding: 4,
+            marginBottom: 20,
+            elevation: 2,
+            shadowColor: themeColors.border,
+          }}>
+            {["Active", "Completed"].map(t => (
+              <TouchableOpacity
+                key={t}
+                style={{
+                  flex: 1,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderRadius: 12,
+                  backgroundColor: choresTab === t ? themeColors.primary : 'transparent',
+                  alignItems: 'center',
+                  minHeight: 48,
+                }}
+                onPress={() => { setChoresTab(t as "Active" | "Completed"); setShowArchive(false); }}
+                accessibilityRole="tab"
+                accessibilityLabel={`${t} tasks`}
+                accessibilityHint={`Show ${t.toLowerCase()} tasks`}
+                accessibilityState={{ selected: choresTab === t }}
+              >
+                <Text style={{
+                  color: choresTab === t ? 'white' : themeColors.text,
+                  fontWeight: choresTab === t ? "bold" : "600",
+                  fontSize: 16
+                }}>
+                  {t === "Active" ? "⚡ Active Missions" : "🏆 Completed Tasks"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Tasks content */}
+          {(() => {
+            // Partition chores
+            let activeChores = chores.filter(
+              c => !(c.completed || c.approved)
+            ).sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
+            let completedChoresAll = chores.filter(
+              c => c.completed || c.approved
+            );
+            if (choresTab === "Active") {
+              if (activeChores.length === 0) {
+                return (
+                  <View style={{
+                    alignItems: 'center',
+                    paddingVertical: 60,
+                    paddingHorizontal: 20,
+                  }}>
+                    <Text style={{ fontSize: 72, marginBottom: 20 }}>🧹</Text>
+                    <Text style={{
+                      fontSize: 22,
+                      fontWeight: 'bold',
+                      color: themeColors.text,
+                      marginBottom: 12,
+                      textAlign: 'center'
+                    }}>
+                      No Active Tasks Yet
+                    </Text>
+                    <Text style={{
+                      fontSize: 16,
+                      color: themeColors.textSecondary,
+                      textAlign: 'center',
+                      marginBottom: 32,
+                      lineHeight: 24
+                    }}>
+                      Complete tasks to earn points and watch your money grow! 🌱
+                    </Text>
+                  </View>
+                );
+              }
+              return (
+                <FlatList
+                  data={activeChores}
+                  keyExtractor={(item) => item._id}
+                  renderItem={({ item }) => renderChore(item)}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 10 }}
+                  style={{ flex: 1 }}
+                  scrollEnabled={false}
+                />
+              );
+            }
+            // Completed: filter last 90 days by best-available date, rest archived
+            const now = new Date();
+            const ninetyDaysAgo = new Date(now);
+            ninetyDaysAgo.setDate(now.getDate() - 90);
+            const recent = completedChoresAll.filter(c => getChoreCompletedDate(c) >= ninetyDaysAgo);
+            const archived = completedChoresAll.filter(c => getChoreCompletedDate(c) < ninetyDaysAgo);
+            let choresToShow = recent.sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
+            if (showArchive)
+              choresToShow = [...recent, ...archived].sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
+            if (choresToShow.length === 0) {
+              return (
+                <View style={{
+                  alignItems: 'center',
+                  paddingVertical: 60,
+                  paddingHorizontal: 20,
+                }}>
+                  <Text style={{ fontSize: 72, marginBottom: 20 }}>🏆</Text>
+                  <Text style={{
+                    fontSize: 22,
+                    fontWeight: 'bold',
+                    color: themeColors.text,
+                    marginBottom: 12,
+                    textAlign: 'center'
+                  }}>
+                    No Completed Tasks Yet
+                  </Text>
+                  <Text style={{
+                    fontSize: 16,
+                    color: themeColors.textSecondary,
+                    textAlign: 'center',
+                    marginBottom: 32,
+                    lineHeight: 24
+                  }}>
+                    Complete your first task to see your achievements here! ✨
+                  </Text>
+                </View>
+              );
+            }
+            return (
+              <>
+                <FlatList
+                  data={choresToShow}
+                  keyExtractor={(item) => item._id}
+                  renderItem={({ item }) => renderChore(item)}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 10 }}
+                  style={{ flex: 1 }}
+                  scrollEnabled={false}
+                />
+                {archived.length > 0 && !showArchive && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Show all completed tasks from any time"
+                    accessibilityHint="Display tasks completed more than 90 days ago"
+                    style={{
+                      marginTop: 20,
+                      alignSelf: "center",
+                      backgroundColor: themeColors.accent + "22",
+                      paddingHorizontal: 24,
+                      paddingVertical: 12,
+                      borderRadius: 20,
+                      minHeight: 48,
+                    }}
+                    onPress={() => setShowArchive(true)}
+                  >
+                    <Text style={{ color: themeColors.primary, fontWeight: "600", fontSize: 16 }}>Show All Completed Tasks</Text>
+                  </TouchableOpacity>
+                )}
+                {archived.length > 0 && showArchive && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Show only recently completed tasks"
+                    accessibilityHint="Hide tasks completed more than 90 days ago"
+                    style={{
+                      marginTop: 16,
+                      alignSelf: "center",
+                      backgroundColor: themeColors.surface,
+                      paddingHorizontal: 18,
+                      paddingVertical: 10,
+                      borderRadius: 18,
+                      minHeight: 48,
+                    }}
+                    onPress={() => setShowArchive(false)}
+                  >
+                    <Text style={{ color: themeColors.primary, fontWeight: "500", fontSize: 16 }}>Show Only Last 90 Days</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            );
+          })()}
+
+          {showStaleWarning && (
+            <Text style={{
+              color: themeColors.warning,
+              fontWeight: 'bold',
+              fontSize: 15,
+              backgroundColor: '#fffbe5',
+              borderLeftWidth: 4,
+              borderLeftColor: themeColors.warning,
+              padding: 12,
+              borderRadius: 8,
+              marginTop: 16,
+              textAlign: 'center'
+            }}>
+              Your task list may be out of date. Tap Refresh for the latest status.
+            </Text>
+          )}
+        </ScrollView>
+      </View>
     </View>
   );
 

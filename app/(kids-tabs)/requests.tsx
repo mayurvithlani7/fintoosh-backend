@@ -94,29 +94,31 @@ const StatusIndicator = ({ status, createdAt, themeColors }: {
           alignItems: 'center',
           backgroundColor: config.bgColor,
           borderRadius: isMobile ? 8 : 12,
-          paddingHorizontal: isMobile ? 6 : 10,
-          paddingVertical: isMobile ? 4 : 6,
+          paddingHorizontal: isMobile ? 8 : 12,
+          paddingVertical: isMobile ? 6 : 8,
           gap: isMobile ? 4 : 6,
           borderWidth: 1,
           borderColor: config.color + '25',
           transform: [{ scale: status === 'Approved' ? bounceAnim : 1 }],
-          maxWidth: isMobile ? 120 : 160,
+          width: isMobile ? 140 : 180,
+          justifyContent: 'center',
         }}
       >
         <Text style={{ fontSize: isMobile ? 14 : 16 }}>{config.icon}</Text>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={{
             color: config.color,
             fontWeight: '600',
-            fontSize: isMobile ? 10 : 12,
-            textAlign: 'center'
+            fontSize: isMobile ? 11 : 13,
+            textAlign: 'center',
+            flexWrap: 'wrap'
           }}>
             {config.text}
           </Text>
           {config.subtext && !isMobile && (
             <Text style={{
               color: config.color,
-              fontSize: 9,
+              fontSize: 10,
               textAlign: 'center',
               opacity: 0.7
             }}>
@@ -504,6 +506,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
 export default function KidsRequestsScreen() {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
+  const screenWidth = Dimensions.get('window').width;
+  const isMobile = screenWidth < 400;
   const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -687,13 +691,7 @@ export default function KidsRequestsScreen() {
   const filteredRequests = searchedRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
+    <View style={styles.container}>
       <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity
@@ -736,71 +734,226 @@ export default function KidsRequestsScreen() {
         </View>
       </View>
 
-      {/* Search & Filter */}
-      <View style={styles.sectionCard}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by request type or name..."
-          placeholderTextColor={themeColors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <View style={styles.filterChips}>
-          {[
-            { key: 'pending', label: 'Pending', count: requests.filter(r => r.status === 'Pending').length },
-            { key: 'approved', label: 'Approved', count: requests.filter(r => r.status === 'Approved').length },
-            { key: 'denied', label: 'Denied', count: requests.filter(r => r.status === 'Denied').length },
-            { key: 'all', label: 'All', count: requests.length }
-          ].map(({ key, label, count }) => (
-            <TouchableOpacity
-              key={key}
-              style={[
-                styles.chip,
-                { backgroundColor: filter === key ? themeColors.accent : themeColors.surface }
-              ]}
-              onPress={() => { setFilter(key as any); setShowArchive(false); }}
-            >
-              <Text style={{
-                color: filter === key ? themeColors.card : themeColors.text,
-                fontWeight: filter === key ? 'bold' : '600',
-                fontSize: 15,
-              }}>
-                {label} ({count})
-              </Text>
-            </TouchableOpacity>
-          ))}
-          {(filter === "approved" || filter === "denied") && showArchiveButton && (
-            <TouchableOpacity
-              style={[
-                styles.chip,
-                { backgroundColor: showArchive ? themeColors.accent : themeColors.surface }
-              ]}
-              onPress={() => setShowArchive(!showArchive)}
-            >
-              <Text style={{
-                color: showArchive ? themeColors.card : themeColors.text,
-                fontWeight: showArchive ? 'bold' : '600',
-                fontSize: 15,
-              }}>
-                📁 {showArchive ? 'Show Recent' : 'Show Archive'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Refresh Button */}
-      <View style={styles.sectionCard}>
+      {/* Quick Actions Header */}
+      <View style={{
+        backgroundColor: themeColors.surface,
+        borderRadius: 16,
+        marginBottom: 16,
+        padding: 16,
+        width: '97%',
+        maxWidth: 520,
+        alignSelf: 'center',
+        elevation: 3,
+        shadowColor: themeColors.border,
+        borderWidth: 1,
+        borderColor: themeColors.border + '30',
+      }}>
         <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: themeColors.primary, alignSelf: 'center', minWidth: 200 }]}
+          style={{
+            backgroundColor: themeColors.secondary,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 10,
+            alignItems: 'center',
+            elevation: 1,
+          }}
           onPress={onRefresh}
           disabled={refreshing}
+          accessibilityRole="button"
+          accessibilityLabel={refreshing ? "Refreshing requests data" : "Refresh requests data"}
+          accessibilityHint="Reload latest information about your requests"
+          accessibilityState={{ disabled: refreshing }}
         >
-          <Text style={[styles.actionBtnText, { color: themeColors.card }]}>
-            {refreshing ? 'Refreshing...' : '🔄 Refresh Requests'}
+          <Text style={{
+            color: themeColors.card,
+            fontSize: 14,
+            fontWeight: '600'
+          }}>
+            {refreshing ? '🔄 Refreshing...' : '🔄 Refresh Requests'}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Requests Section - Always Visible */}
+      <View
+        style={{
+          backgroundColor: themeColors.card,
+          borderRadius: 14,
+          marginBottom: 16,
+          width: '97%',
+          maxWidth: 520,
+          alignSelf: 'center',
+          elevation: 2,
+          shadowColor: themeColors.border,
+        }}
+      >
+        <View style={{
+          padding: 18,
+          paddingBottom: 8,
+          borderBottomWidth: 1,
+          borderBottomColor: themeColors.border + '30'
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>📋 My Requests</Text>
+              <View style={{
+                backgroundColor: themeColors.primary,
+                borderRadius: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                marginLeft: 8
+              }}>
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                  {requests.length}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Full-Width Requests Content */}
+      <View style={{
+        backgroundColor: themeColors.background,
+        paddingHorizontal: 16,
+        paddingTop: 20,
+        paddingBottom: 40,
+      }}>
+        <ScrollView
+          style={{
+            backgroundColor: themeColors.background,
+            flex: 1,
+            minHeight: Dimensions.get('window').height * 0.5, // Minimum height for consistent sizing
+          }}
+          contentContainerStyle={{
+            paddingBottom: 40,
+            flexGrow: 1, // Allow content to grow within the container
+          }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {/* Enhanced Tabs */}
+          <View style={{
+            flexDirection: 'row',
+            backgroundColor: themeColors.surface,
+            borderRadius: 16,
+            padding: 4,
+            marginBottom: 20,
+            elevation: 2,
+            shadowColor: themeColors.border,
+          }}>
+            {[
+              { key: 'pending', label: '⏳ Pending', count: requests.filter(r => r.status === 'Pending').length },
+              { key: 'approved', label: '✅ Approved', count: requests.filter(r => r.status === 'Approved').length },
+              { key: 'denied', label: '❌ Denied', count: requests.filter(r => r.status === 'Denied').length },
+              { key: 'all', label: '📋 All', count: requests.length }
+            ].map(({ key, label, count }) => (
+              <TouchableOpacity
+                key={key}
+                style={{
+                  flex: 1, // Use flex: 1 for equal distribution (25% each)
+                  paddingVertical: 12,
+                  paddingHorizontal: 8,
+                  borderRadius: 12,
+                  backgroundColor: filter === key ? themeColors.primary : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: 60,
+                  marginHorizontal: 1, // Small gap between tabs
+                }}
+                onPress={() => { setFilter(key as any); setShowArchive(false); }}
+                accessibilityRole="tab"
+                accessibilityLabel={`${key} requests`}
+                accessibilityHint={`Show ${key.toLowerCase()} requests`}
+                accessibilityState={{ selected: filter === key }}
+              >
+                <View style={{ alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <Text style={{
+                    color: filter === key ? 'white' : themeColors.text,
+                    fontWeight: filter === key ? "bold" : "600",
+                    fontSize: isMobile ? 12 : 14,
+                    textAlign: 'center',
+                    lineHeight: isMobile ? 16 : 18,
+                  }}>
+                    {label.split(' ')[0]}
+                  </Text>
+                  <Text style={{
+                    color: filter === key ? 'white' : themeColors.text,
+                    fontWeight: filter === key ? "bold" : "600",
+                    fontSize: isMobile ? 10 : 12,
+                    textAlign: 'center',
+                    opacity: 0.9,
+                    lineHeight: isMobile ? 14 : 16,
+                  }}>
+                    {label.split(' ')[1]}
+                  </Text>
+                  <Text style={{
+                    color: filter === key ? 'white' : themeColors.text,
+                    fontSize: isMobile ? 9 : 11,
+                    opacity: 0.8,
+                    textAlign: 'center',
+                    marginTop: 2,
+                  }}>
+                    ({count})
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Search */}
+          <View style={{
+            backgroundColor: themeColors.surface,
+            borderRadius: 12,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            marginBottom: 16,
+            elevation: 1,
+            shadowColor: themeColors.border,
+          }}>
+            <TextInput
+              style={{
+                fontSize: 16,
+                color: themeColors.text,
+                backgroundColor: 'transparent',
+              }}
+              placeholder="🔍 Search by request type or name..."
+              placeholderTextColor={themeColors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+
+          {/* Archive toggle for approved/denied */}
+          {(filter === "approved" || filter === "denied") && showArchiveButton && (
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              marginBottom: 16,
+            }}>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: showArchive ? themeColors.accent : themeColors.surface,
+                  borderRadius: 20,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  elevation: 1,
+                  shadowColor: themeColors.border,
+                }}
+                onPress={() => setShowArchive(!showArchive)}
+              >
+                <Text style={{
+                  color: showArchive ? themeColors.card : themeColors.primary,
+                  fontWeight: '600',
+                  fontSize: 14,
+                }}>
+                  📁 {showArchive ? 'Show Recent' : 'Show Archive'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
       {loading ? (
         <View style={styles.sectionCard}>
@@ -1071,6 +1224,8 @@ export default function KidsRequestsScreen() {
           }
         ]}
       />
-    </ScrollView>
+        </ScrollView>
+      </View>
+    </View>
   );
 }

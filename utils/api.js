@@ -233,6 +233,12 @@ export function getPerformanceMetrics() {
   };
 }
 
+// Clear request cache and pending requests
+export function clearRequestCache() {
+  requestCache.clear();
+  pendingRequests.clear();
+}
+
 // Clear performance metrics (for testing)
 export function resetPerformanceMetrics() {
   REQUEST_METRICS.totalRequests = 0;
@@ -240,8 +246,7 @@ export function resetPerformanceMetrics() {
   REQUEST_METRICS.averageResponseTime = 0;
   REQUEST_METRICS.slowRequests = 0;
   REQUEST_METRICS.cancelledRequests = 0;
-  requestCache.clear();
-  pendingRequests.clear();
+  clearRequestCache();
   loadingStates.clear();
 }
 

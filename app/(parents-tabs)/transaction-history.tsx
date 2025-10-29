@@ -10,6 +10,7 @@ import {
   FlatList,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -171,6 +172,73 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   childButtonSelected: { backgroundColor: themeColors.primary },
   childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
   childButtonTextSelected: { color: themeColors.card },
+  // Child selector styles for enhanced design
+  countBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: {
+    color: themeColors.card,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  childrenScroll: {
+    marginTop: 8,
+  },
+  childrenScrollContent: {
+    paddingHorizontal: 4,
+  },
+  childCard: {
+    width: 90,
+    height: 90,
+    borderRadius: 16,
+    marginHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    elevation: 2,
+    shadowColor: themeColors.shadow || '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  childAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: themeColors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  childAvatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  childName: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: themeColors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedCheckmark: {
+    color: themeColors.card,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
 
 const typeLabels: { [key: string]: string } = {
@@ -759,43 +827,103 @@ export default function ParentTransactionHistoryScreen() {
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Family Points Story</Text>
 
-      {/* Child Selection */}
+      {/* Enhanced Child Selector */}
       {children.length >= 1 && (
-        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
-          <View style={styles.childSelector}>
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.card,
+          shadowColor: themeColors.border,
+          borderWidth: 3,
+          borderColor: themeColors.primary,
+          borderRadius: 16,
+          marginBottom: 12
+        }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+              👨‍👩‍👦 Select Child to View Transactions
+            </Text>
+            <View style={[styles.countBadge, {
+              position: 'relative',
+              marginLeft: 8,
+              backgroundColor: themeColors.success
+            }]}>
+              <Text style={styles.countText}>{children.length + 1}</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.childrenScroll}
+            contentContainerStyle={styles.childrenScrollContent}
+          >
             <TouchableOpacity
               style={[
-                styles.childButton,
-                selectedChildId === 'all' && styles.childButtonSelected
+                styles.childCard,
+                {
+                  backgroundColor: selectedChildId === 'all' ? themeColors.primary : themeColors.card,
+                  borderColor: selectedChildId === 'all' ? themeColors.primary : themeColors.border,
+                }
               ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Select All Children - ${selectedChildId === 'all' ? 'currently selected' : 'tap to select'}`}
+              accessibilityHint="View transactions for all family members"
               onPress={() => setSelectedChildId('all')}
             >
-              <Text style={[
-                styles.childButtonText,
-                selectedChildId === 'all' && styles.childButtonTextSelected
-              ]}>
-                All Children
+              <View style={styles.childAvatar}>
+                <Text style={[styles.childAvatarText, {
+                  color: selectedChildId === 'all' ? themeColors.card : themeColors.primary
+                }]}>
+                  👨‍👩‍👦
+                </Text>
+              </View>
+              <Text style={[styles.childName, {
+                color: selectedChildId === 'all' ? themeColors.card : themeColors.text
+              }]}>
+                All
               </Text>
+              {selectedChildId === 'all' && (
+                <View style={styles.selectedIndicator}>
+                  <Text style={styles.selectedCheckmark}>👑</Text>
+                </View>
+              )}
             </TouchableOpacity>
             {children.map((child) => (
               <TouchableOpacity
                 key={child.id}
                 style={[
-                  styles.childButton,
-                  selectedChildId === child.id && styles.childButtonSelected
+                  styles.childCard,
+                  {
+                    backgroundColor: selectedChildId === child.id ? themeColors.primary : themeColors.card,
+                    borderColor: selectedChildId === child.id ? themeColors.primary : themeColors.border,
+                  }
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${child.name} - ${selectedChildId === child.id ? 'currently selected' : 'tap to select'}`}
+                accessibilityHint="Switch to view this child's transactions and activity"
                 onPress={() => setSelectedChildId(child.id)}
               >
-                <Text style={[
-                  styles.childButtonText,
-                  selectedChildId === child.id && styles.childButtonTextSelected
-                ]}>
+                <View style={styles.childAvatar}>
+                  <Text style={[styles.childAvatarText, {
+                    color: selectedChildId === child.id ? themeColors.card : themeColors.primary
+                  }]}>
+                    {child.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={[styles.childName, {
+                  color: selectedChildId === child.id ? themeColors.card : themeColors.text
+                }]}>
                   {child.name}
                 </Text>
+                {selectedChildId === child.id && (
+                  <View style={styles.selectedIndicator}>
+                    <Text style={styles.selectedCheckmark}>👑</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
+          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+            Tap any child to view their individual transactions and activity
+          </Text>
         </View>
       )}
 
@@ -817,8 +945,8 @@ export default function ParentTransactionHistoryScreen() {
             <Text style={styles.label}>Filter by Type</Text>
             <TypeSelect value={type} onChange={setType} themeColors={themeColors} />
           </View>
-          <TouchableOpacity style={styles.refreshBtn} onPress={() => loadTransactions()} accessibilityLabel="Refresh transaction list">
-            <Text style={{ color: themeColors.card, fontWeight: "bold" }}>🔄 Refresh</Text>
+          <TouchableOpacity style={[styles.refreshBtn, { minWidth: 32, alignItems: 'center' }]} onPress={() => loadTransactions()} accessibilityLabel="Refresh transaction list">
+            <Text style={{ color: themeColors.card, fontWeight: "bold", fontSize: 14 }}>↻</Text>
           </TouchableOpacity>
         </View>
         {/* Date Range Filter */}

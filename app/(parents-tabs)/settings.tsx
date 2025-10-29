@@ -1064,7 +1064,7 @@ export default function ParentSettingsScreen() {
             setCaregiverModalVisible(true);
           }}
         >
-          <Text style={styles.saveButtonText}>👨‍👩‍👧‍👦 Manage Caregiver Relationships</Text>
+          <Text style={[styles.saveButtonText, { color: themeColors.background }]}>👨‍👩‍👧‍👦 Manage Caregiver Relationships</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -1549,22 +1549,45 @@ export default function ParentSettingsScreen() {
           backgroundColor: 'rgba(0,0,0,0.5)'
         }}>
           <View style={{
-            backgroundColor: '#fff',
+            backgroundColor: themeColors.card,
             borderRadius: 14,
             padding: 20,
             width: '90%',
             maxWidth: 400,
-            maxHeight: '80%'
+            maxHeight: '80%',
+            position: 'relative'
           }}>
-            <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>🔑 Reset Child PIN</Text>
+            {/* Close Button */}
+            <TouchableOpacity
+              onPress={() => setChildManagementModalVisible(false)}
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                zIndex: 10,
+                backgroundColor: themeColors.background,
+                borderRadius: 18,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                elevation: 2,
+                borderWidth: 1,
+                borderColor: themeColors.border,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
+              <Text style={{ fontSize: 20, color: themeColors.text }}>×</Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.sectionTitle, { marginBottom: 16, color: themeColors.text }]}>🔑 Reset Child PIN</Text>
 
             {loadingChildren ? (
-              <Text style={{ textAlign: 'center', marginVertical: 20 }}>Loading children...</Text>
+              <Text style={{ textAlign: 'center', marginVertical: 20, color: themeColors.text }}>Loading children...</Text>
             ) : children.length === 0 ? (
-              <Text style={{ textAlign: 'center', marginVertical: 20 }}>No children found.</Text>
+              <Text style={{ textAlign: 'center', marginVertical: 20, color: themeColors.text }}>No children found.</Text>
             ) : (
               <>
-                <Text style={styles.inputLabel}>Select Child:</Text>
+                <Text style={[styles.inputLabel, { color: themeColors.text }]}>Select Child:</Text>
                 <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={selectedChild?._id || ''}
@@ -1970,16 +1993,44 @@ export default function ParentSettingsScreen() {
           backgroundColor: 'rgba(0,0,0,0.5)'
         }}>
           <View style={{
-            backgroundColor: '#fff',
+            backgroundColor: themeColors.card,
             borderRadius: 14,
             padding: 20,
             width: '90%',
             maxWidth: 400,
-            maxHeight: '80%'
+            maxHeight: '80%',
+            position: "relative"
           }}>
-            <Text style={[styles.sectionTitle, { marginBottom: 16 }]}>👨‍👩‍👧‍👦 Manage Caregiver Relationships</Text>
+            {/* Close Button */}
+            <TouchableOpacity
+              onPress={() => {
+                setCaregiverModalVisible(false);
+                setSelectedCaregiver(null);
+                setSelectedRelationship('');
+                setCaregiverMessage('');
+              }}
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                zIndex: 10,
+                backgroundColor: themeColors.background,
+                borderRadius: 18,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                elevation: 2,
+                borderWidth: 1,
+                borderColor: themeColors.border,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
+              <Text style={{ fontSize: 20, color: themeColors.text }}>×</Text>
+            </TouchableOpacity>
 
-            <Text style={styles.inputLabel}>Select Caregiver:</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 16, color: themeColors.text }]}>👨‍👩‍👧‍👦 Manage Caregiver Relationships</Text>
+
+            <Text style={[styles.inputLabel, { color: themeColors.text }]}>Select Caregiver:</Text>
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={selectedCaregiver?._id || ''}
@@ -2063,7 +2114,7 @@ export default function ParentSettingsScreen() {
             )}
 
             {!selectedCaregiver && (
-              <Text style={{ textAlign: 'center', color: themeColors.textSecondary, marginTop: 20 }}>
+              <Text style={{ textAlign: 'center', color: themeColors.text, marginTop: 20 }}>
                 Select a caregiver to set their relationship to the child.
               </Text>
             )}

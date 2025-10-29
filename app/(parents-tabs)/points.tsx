@@ -7,10 +7,12 @@ import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 /* @ts-ignore */
 import BackButton from '@/components/BackButton';
 
 export default function ParentsPointsScreen() {
+  const router = useRouter();
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const { showError, showFeedback } = useGlobalFeedback();
@@ -198,7 +200,11 @@ export default function ParentsPointsScreen() {
       }
 
       // Find the selected child
-      const child = children.find((c: any) => c.id === selectedChildId);
+      const child = children.find((c: any) => c.id === selectedChildId) || children[0];
+      if (!child) {
+        showError('Selected child not found.');
+        return;
+      }
       if (!child) {
         showError('Selected child not found.');
         return;
@@ -225,11 +231,11 @@ export default function ParentsPointsScreen() {
       const updateData = { [pointsField]: newValue };
       console.log('Calling patchUserPoints with:', updateData);
       // @ts-ignore
-      await patchUserPoints(child.id, updateData, token);
+      await patchUserPoints(child.id || '', updateData, token);
 
       // Create transaction record
       const transactionData = {
-        userId: child.id,
+        userId: child.id || '',
         type: 'parent-points-adjustment',
         description: `Parent ${isAdd ? 'added' : 'subtracted'} ${changeAmount} points ${isAdd ? 'to' : 'from'} ${toJar} jar`,
         amount: isAdd ? changeAmount : -changeAmount,
@@ -290,82 +296,191 @@ export default function ParentsPointsScreen() {
 
       <Text style={[styles.title, { color: themeColors.primary }]}>Manage Your Child's Points</Text>
 
-      {/* Child Selector */}
+      {/* Child Selector with Enhanced Visual Design */}
       {children.length > 1 && (
-        <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Select Child</Text>
-          <View style={styles.childSelector}>
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.card,
+          shadowColor: themeColors.border,
+          borderWidth: 3,
+          borderColor: themeColors.primary,
+          borderRadius: 16,
+          marginBottom: 12
+        }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+              👨‍👩‍👦 Select Child to View
+            </Text>
+            <View style={[styles.countBadge, {
+              position: 'relative',
+              marginLeft: 8,
+              backgroundColor: themeColors.success
+            }]}>
+              <Text style={styles.countText}>{children.length}</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.childrenScroll}
+            contentContainerStyle={styles.childrenScrollContent}
+          >
             {children.map((child) => (
               <TouchableOpacity
                 key={child.id}
                 style={[
-                  styles.childButton,
-                  selectedChildId === child.id && styles.childButtonSelected
+                  styles.childCard,
+                  {
+                    backgroundColor: selectedChildId === child.id ? themeColors.primary : themeColors.card,
+                    borderColor: selectedChildId === child.id ? themeColors.primary : themeColors.border,
+                  }
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${child.name} - ${selectedChildId === child.id ? 'currently selected' : 'tap to select'}`}
+                accessibilityHint="Switch to view this child's financial progress and manage their account"
                 onPress={() => setSelectedChildId(child.id)}
               >
-                <Text style={[
-                  styles.childButtonText,
-                  selectedChildId === child.id && styles.childButtonTextSelected
-                ]}>
+                <View style={styles.childAvatar}>
+                  <Text style={[styles.childAvatarText, {
+                    color: selectedChildId === child.id ? themeColors.card : themeColors.primary
+                  }]}>
+                    {child.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={[styles.childName, {
+                  color: selectedChildId === child.id ? themeColors.card : themeColors.text
+                }]}>
                   {child.name}
                 </Text>
+                {selectedChildId === child.id && (
+                  <View style={styles.selectedIndicator}>
+                    <Text style={styles.selectedCheckmark}>👑</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
+          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+            Tap any child to view their individual progress and manage their account
+          </Text>
         </View>
       )}
 
       {/* Child Name Display - Single Child per Parent */}
       {children.length === 1 && (
         <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          marginBottom: 14,
-          marginTop: 6,
-          width: '100%',
+          backgroundColor: themeColors.surface,
+          borderRadius: 12,
+          padding: 8,
+          marginBottom: 8,
+          marginTop: 8,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          alignSelf: 'center',
+          minWidth: 200,
+          alignItems: 'center'
         }}>
-          <Text style={{ fontSize: 15, color: themeColors.primary, fontWeight: '600', marginRight: 4 }}>Child:</Text>
-          <Text
-            style={{
-              backgroundColor: themeColors.primary,
-              color: themeColors.card,
-              borderRadius: 18,
-              paddingHorizontal: 14,
-              paddingVertical: 6,
-              fontWeight: '700',
-              maxWidth: 140,
-              fontSize: 15,
-              overflow: 'hidden',
-              textAlign: 'center',
-            }}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            allowFontScaling
-          >
-            {children[0].name}
+          <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
+            👶 Viewing: {children[0].name}
           </Text>
         </View>
       )}
 
-      {/* Refresh Button */}
-      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={refreshing ? "Refreshing child's data" : "Refresh child's data"}
-          accessibilityHint="Reload latest information about your child's points"
-          accessibilityState={{ disabled: refreshing }}
-          style={[styles.actionBtn, { backgroundColor: themeColors.secondary, alignSelf: 'center', minWidth: 200 }]}
-          onPress={onRefresh}
-          disabled={refreshing}
-        >
-          <Text style={[styles.actionBtnText, { color: themeColors.card }]}>
-            {refreshing ? 'Refreshing...' : '🔄 Refresh Your Child\'s Data'}
+      {/* No Children Empty State */}
+      {children.length === 0 && (
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.surface,
+          shadowColor: themeColors.border,
+          borderWidth: 3,
+          borderColor: themeColors.warning,
+          borderRadius: 16,
+          marginBottom: 12,
+          alignItems: 'center',
+          paddingVertical: 24
+        }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 12 }]}>
+            👶 No Children Linked Yet
           </Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={[styles.placeholder, { color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20 }]}>
+            You need to add a child to your family account before you can manage points and money pots.
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Add your first child"
+            accessibilityHint="Navigate to add child screen to create a family account"
+            style={{
+              backgroundColor: themeColors.success,
+              borderRadius: 12,
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              elevation: 2,
+            }}
+            onPress={() => router.push('/addChild')}
+          >
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 16 }}>
+              Add Your First Child
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Points Summary Dashboard */}
+      {childData && (
+        <View style={[styles.sectionCard, {
+          backgroundColor: themeColors.surface,
+          shadowColor: themeColors.border,
+          borderWidth: 3,
+          borderColor: themeColors.success,
+          borderRadius: 16,
+          marginBottom: 12
+        }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+              💰 {childData.name}'s Points Summary
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={refreshing ? "Refreshing data" : "Refresh data"}
+              accessibilityHint="Reload latest points information"
+              accessibilityState={{ disabled: refreshing }}
+              style={[styles.refreshBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={onRefresh}
+              disabled={refreshing}
+            >
+              <Text style={{ fontSize: 14, color: themeColors.card }}>
+                {refreshing ? '⏳' : '↻'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.summaryGrid}>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🤑 Pocket</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary }]}>{childData.currentPoints}</Text>
+            </View>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🐷 Savings</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.accent }]}>{childData.savePoints}</Text>
+            </View>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🛍️ Spending</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.secondary }]}>{childData.spendPoints}</Text>
+            </View>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>❤️ Help Others</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.warning }]}>{childData.donatePoints}</Text>
+            </View>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>📈 Grow Money</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.success }]}>{childData.investPoints}</Text>
+            </View>
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text, fontWeight: 'bold' }]}>🏆 Total</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary, fontWeight: 'bold' }]}>
+                {childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Give or Take Points</Text>
@@ -518,42 +633,7 @@ export default function ParentsPointsScreen() {
 
       </View>
 
-      {/* Child Points Overview */}
-      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
-        <Text style={[styles.sectionTitle, { color: themeColors.text }]}>
-{childData ? `${childData.name}'s Points` : "Your Child's Points"}
-        </Text>
-        {loading ? (
-          <Text style={styles.placeholder}>Loading child data...</Text>
-        ) : childData ? (
-          <View style={styles.jarsContainer}>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors.current, borderColor: themeColors.success }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.success }]}>Pocket Money</Text>
-              <Text style={[styles.jarValue, { color: themeColors.success }]}>{childData.currentPoints}</Text>
-            </View>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors.save, borderColor: themeColors.primary }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.primary }]}>Savings Pot</Text>
-              <Text style={[styles.jarValue, { color: themeColors.primary }]}>{childData.savePoints}</Text>
-            </View>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors.spend, borderColor: themeColors.accent }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.accent }]}>Spending Pot</Text>
-              <Text style={[styles.jarValue, { color: themeColors.accent }]}>{childData.spendPoints}</Text>
-            </View>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors.donate, borderColor: themeColors.warning }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.text }]}>Help Others Pot</Text>
-              <Text style={[styles.jarValue, { color: themeColors.text }]}>{childData.donatePoints}</Text>
-            </View>
-            <View style={[styles.jar, { backgroundColor: themeColors.jarColors.invest, borderColor: themeColors.secondary }]}>
-              <Text style={[styles.jarLabel, { color: themeColors.secondary }]}>Grow Money Pot</Text>
-              <Text style={[styles.jarValue, { color: themeColors.secondary }]}>{childData.investPoints}</Text>
-            </View>
-          </View>
-        ) : (
-          <Text style={styles.placeholder}>
-            No child is linked to your account. Add a child to manage their pots.
-          </Text>
-        )}
-      </View>
+
 
       {/* Recent Activity Section */}
       {recentTransactions.length > 0 && (
@@ -798,4 +878,110 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   childButtonSelected: { backgroundColor: themeColors.primary },
   childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
   childButtonTextSelected: { color: themeColors.card },
+  // Child selector styles for enhanced design
+  countBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: {
+    color: themeColors.card,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  childrenScroll: {
+    marginTop: 8,
+  },
+  childrenScrollContent: {
+    paddingHorizontal: 4,
+  },
+  childCard: {
+    width: 90,
+    height: 90,
+    borderRadius: 16,
+    marginHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    elevation: 2,
+    shadowColor: themeColors.shadow || '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  childAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: themeColors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  childAvatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  childName: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: themeColors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedCheckmark: {
+    color: themeColors.card,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  // Points summary dashboard
+  refreshBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 1,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  summaryItem: {
+    flex: 1,
+    minWidth: 140,
+    maxWidth: 160,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 1,
+    shadowColor: themeColors.shadow || '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
 });

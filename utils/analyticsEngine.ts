@@ -310,49 +310,58 @@ export function processFamilyJarDistribution(familyMembers: any[], transactions:
   });
 }
 
-// Process goal progress metrics
 export function processGoalProgress(goals: any[]): GoalMetrics[] {
   const now = new Date();
 
   return goals.map(goal => {
-    console.log('[GOAL PROCESS DEBUG] or', {
-      name: goal.name,
-      status: goal.status,
-      completed: goal.completed,
-      achieved: goal.achieved,
-      currentAmount: goal.currentAmount,
-      targetAmount: goal.targetAmount
+    // Handle both plain objects and Mongoose documents
+    const goalData = goal._doc || goal;
+
+    console.log('[GOAL PROCESS DEBUG] Processing goal:', {
+      name: goalData.name,
+      status: goalData.status,
+      completed: goalData.completed,
+      achieved: goalData.achieved,
+      currentAmount: goalData.currentAmount,
+      targetAmount: goalData.targetAmount
     });
 
     // Check if goal is completed (multiple ways to detect completion)
-    const isCompleted = goal.status === 'completed' ||
-                       goal.completed === true ||
-                       goal.achieved === true ||
-                       (goal.currentAmount && goal.targetAmount && goal.currentAmount >= goal.targetAmount);
+    const statusCheck = goalData.status === 'completed';
+    const completedCheck = goalData.completed === true;
+    const achievedCheck = goalData.achieved === true;
+    const amountCheck = (goalData.currentAmount && goalData.targetAmount && goalData.currentAmount >= goalData.targetAmount);
+    const isCompleted = statusCheck || completedCheck || achievedCheck || amountCheck;
 
     console.log('[GOAL PROCESS DEBUG] Goal completion check:', {
-      statusCheck: goal.status === 'completed',
-      completedCheck: goal.completed === true,
-      achievedCheck: goal.achieved === true,
-      amountCheck: (goal.currentAmount && goal.targetAmount && goal.currentAmount >= goal.targetAmount),
+      goalStatus: goalData.status,
+      goalStatusType: typeof goalData.status,
+      goalCompleted: goalData.completed,
+      goalAchieved: goalData.achieved,
+      goalCurrentAmount: goalData.currentAmount,
+      goalTargetAmount: goalData.targetAmount,
+      statusCheck,
+      completedCheck,
+      achievedCheck,
+      amountCheck,
       isCompleted
     });
 
     // If completed, set progress to 100%
     const progressPercent = isCompleted ? 100 :
-                           (goal.targetAmount > 0 ? (goal.currentAmount || 0) / goal.targetAmount * 100 : 0);
+                           (goalData.targetAmount > 0 ? (goalData.currentAmount || 0) / goalData.targetAmount * 100 : 0);
 
     let daysRemaining = 0;
     let projectedCompletion = isCompleted ? 'Completed' : 'On Track';
 
-    if (goal.deadline && !isCompleted) {
-      const deadline = new Date(goal.deadline);
+    if (goalData.deadline && !isCompleted) {
+      const deadline = new Date(goalData.deadline);
       daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
       if (daysRemaining > 0) {
-        const currentAmount = goal.currentAmount || 0;
-        const dailyNeeded = (goal.targetAmount - currentAmount) / daysRemaining;
-        const currentDaily = currentAmount / Math.max(1, Math.ceil((now.getTime() - new Date(goal.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
+        const currentAmount = goalData.currentAmount || 0;
+        const dailyNeeded = (goalData.targetAmount - currentAmount) / daysRemaining;
+        const currentDaily = currentAmount / Math.max(1, Math.ceil((now.getTime() - new Date(goalData.createdAt).getTime()) / (1000 * 60 * 60 * 24)));
 
         if (dailyNeeded > currentDaily * 1.5) {
           projectedCompletion = 'Behind Schedule';
@@ -365,9 +374,9 @@ export function processGoalProgress(goals: any[]): GoalMetrics[] {
     }
 
     return {
-      goalName: goal.name,
+      goalName: goalData.name,
       progress: Math.round(progressPercent),
-      targetAmount: goal.targetAmount,
+      targetAmount: goalData.targetAmount,
       daysRemaining: Math.max(0, daysRemaining),
       projectedCompletion
     };
