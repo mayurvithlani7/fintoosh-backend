@@ -46,9 +46,9 @@ class OTPService {
         return true; // Return true for development if no API key
       }
 
-      // Remove country code (+91) for Msg91 API
-      const mobileNumber = phoneNumber.replace(/^\+91/, '');
-      console.log(`📱 Cleaned mobile number: ${mobileNumber}`);
+      // Keep full number with country code for Msg91 API (remove + but keep 91)
+      const mobileNumber = phoneNumber.replace(/^\+/, '');
+      console.log(`📱 Formatted mobile number: ${mobileNumber}`);
 
       const payload = {
         mobile: mobileNumber,
