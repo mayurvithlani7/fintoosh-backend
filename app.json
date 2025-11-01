@@ -4,7 +4,7 @@
     "slug": "fintoosh",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon_enhanced.png",
     "scheme": "fintoosh",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#FFFFFF",
