@@ -357,6 +357,7 @@ router.post('/send-otp', async (req, res) => {
     const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000);
 
     if (user.otpExpiresAt && user.otpExpiresAt > thirtySecondsAgo) {
+      res.set('Retry-After', '30');
       return res.status(429).json({ message: 'Please wait 30 seconds before requesting another OTP' });
     }
 
