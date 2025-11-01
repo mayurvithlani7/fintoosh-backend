@@ -904,7 +904,7 @@ cd mobile && npx expo start
 # 🎯 **NEW: Child-Specific Onboarding & Engagement - Testing Instructions**
 
 ## **Overview**
-This feature set creates a delightful first-time user experience for children, guiding them through the app with interactive walkthroughs, gamified progress tracking, and an immediate win with a welcome task.
+This feature set creates a delightful first-time user experience for children, guiding them through the app with interactive walkthroughs, gamified progress tracking, and an immediate win with their first chore completion.
 
 ## **Prerequisites**
 - ✅ Backend server running on port 5001
@@ -923,7 +923,7 @@ This feature set creates a delightful first-time user experience for children, g
 #### **Expected First-Time User Experience:**
 - ✅ **Guided Tour Auto-Triggers**: Overlay appears after 1 second showing welcome message
 - ✅ **Progress Bar Visible**: "Getting Started Progress" section at top
-- ✅ **Welcome Task Available**: "🎉 Customize Your Avatar!" appears in Chores
+- ✅ **First Chore Available**: Initial task appears for immediate engagement
 
 ### **Step 2: Complete Guided Tour**
 1. **Follow the tour steps**:

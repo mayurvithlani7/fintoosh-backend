@@ -914,37 +914,7 @@ router.get('/chores/:childId', auth, async (req, res) => {
       ]
     });
 
-    // Add welcome task for first-time users
-    let choresWithWelcome = [...chores];
-    if (user.isFirstTimeUser && user.role === 'child') {
-      // Check if welcome task already exists and is not completed
-      const existingWelcomeTask = chores.find(c =>
-        c.name === '🎉 Customize Your Avatar!' &&
-        !c.completed &&
-        !c.approved
-      );
-
-      if (!existingWelcomeTask) {
-        // Create welcome task as a virtual chore (not saved to DB)
-        const welcomeTask = {
-          _id: 'welcome-task-' + user.id, // Virtual ID
-          name: '🎉 Customize Your Avatar!',
-          points: 25,
-          description: 'Welcome to Money Pots! Start by customizing your avatar to make the app your own.',
-          completed: false,
-          approved: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          user: user._id,
-          isWelcomeTask: true, // Flag to identify this as a welcome task
-          useDefaultSplit: true, // Use default family split
-          customSplit: null
-        };
-        choresWithWelcome.unshift(welcomeTask); // Add to beginning of list
-      }
-    }
-
-    res.json(choresWithWelcome);
+    res.json(chores);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -2683,36 +2653,7 @@ router.post('/batch', auth, async (req, res) => {
               ]
             });
 
-            // Add welcome task for first-time users
-            let choresWithWelcome = [...chores];
-            if (user.isFirstTimeUser && user.role === 'child') {
-              // Check if welcome task already exists
-              const existingWelcomeTask = chores.find(c =>
-                c.name === '🎉 Customize Your Avatar!' &&
-                !c.completed &&
-                !c.approved
-              );
-
-              if (!existingWelcomeTask) {
-                // Create welcome task as a virtual chore (not saved to DB)
-                const welcomeTask = {
-                  _id: 'welcome-task-' + user.id,
-                  name: '🎉 Customize Your Avatar!',
-                  points: 25,
-                  description: 'Welcome to Money Pots! Start by customizing your avatar to make the app your own.',
-                  completed: false,
-                  approved: false,
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                  user: user._id,
-                  isWelcomeTask: true,
-                  useDefaultSplit: true,
-                  customSplit: null
-                };
-                choresWithWelcome.unshift(welcomeTask);
-              }
-            }
-            results.chores = choresWithWelcome;
+            results.chores = chores;
             break;
 
           case 'goals':

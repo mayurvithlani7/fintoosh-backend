@@ -2,9 +2,11 @@ import AnimatedCircularProgress from '@/components/animations/AnimatedCircularPr
 import AnimatedCounter from '@/components/animations/AnimatedCounter';
 import HelpModal from '@/components/HelpModal';
 import { RupeeDenominations } from '@/components/RupeeDenominations';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { InterestRuleType, useCurrency } from '@/utils/currencyContext';
 import { handleApiError } from '@/utils/errorHandler';
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
@@ -604,33 +606,29 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 4,
+    paddingVertical: MOBILE_LAYOUT.sectionSpacing,
+    paddingHorizontal: MOBILE_LAYOUT.containerPadding,
     backgroundColor: themeColors.background,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 22,
-    marginTop: 6,
+    ...MOBILE_STYLES.title,
     color: themeColors.primary,
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+    marginTop: MOBILE_LAYOUT.itemSpacing,
   },
   sectionCard: {
+    ...MOBILE_STYLES.card,
     backgroundColor: themeColors.card,
-    borderRadius: 14,
-    marginBottom: 16,
-    padding: 18,
-    minWidth: 300,
-    width: "97%",
-    maxWidth: 520,
-    elevation: 2,
-    shadowColor: themeColors.border,
+    borderColor: themeColors.border,
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+    width: MOBILE_LAYOUT.containerWidth,
   },
   sectionTitle: {
-    fontSize: 20,
+    ...MOBILE_STYLES.body,
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.text,
   },
   jarBox: {
@@ -813,6 +811,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
 
 export default function MoneyJarsScreen() {
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const styles = createStyles(themeColors);
   const { formatAmount, showDenominations, convertToINR, interestRule } = useCurrency();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -832,8 +831,9 @@ export default function MoneyJarsScreen() {
   const router = useRouter();
 
   const scrollToMovePoints = () => {
-    // Scroll to the very end of the content to show the complete Move Points section
-    scrollViewRef.current?.scrollToEnd({ animated: true });
+    // Scroll to the Move Points section (approximately 850 pixels from top)
+    // This positions the Move Points form in view instead of scrolling to the end
+    scrollViewRef.current?.scrollTo({ y: 850, animated: true });
   };
 
   const loadUserData = async (showErrors = true) => {
@@ -847,7 +847,7 @@ export default function MoneyJarsScreen() {
       if (!token || !user) {
         console.log('🔄 Money Jars: Missing token or user data');
         if (showErrors) {
-          Alert.alert('Error', 'Not authenticated. Please login again.');
+          showMessage('Not authenticated. Please login again.', 'error');
         }
         return;
       }
@@ -906,7 +906,7 @@ export default function MoneyJarsScreen() {
     } catch (error) {
       console.error('Error loading user data:', error);
       if (showErrors) {
-        Alert.alert('Error', 'Failed to load user data. Please try again.');
+        showMessage('Failed to load user data. Please try again.', 'error');
       }
     } finally {
       setLoading(false);
@@ -980,24 +980,24 @@ export default function MoneyJarsScreen() {
   return (
     <ScrollView
       ref={scrollViewRef}
-      contentContainerStyle={styles.container}
-      style={{ backgroundColor: themeColors.background }}
+      style={{ flex: 1, backgroundColor: themeColors.background }}
+      contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 2 }}>
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
         {/* Header Row with Back and Action Buttons */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.surface,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
@@ -1006,20 +1006,20 @@ export default function MoneyJarsScreen() {
             accessibilityLabel="Go back to home screen"
             accessibilityHint="Double tap to return to the main dashboard"
           >
-            <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text, fontWeight: 'bold' }}>⬅️ Back</Text>
           </TouchableOpacity>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={MOBILE_STYLES.row}>
             <TouchableOpacity
               style={{
                 backgroundColor: themeColors.secondary,
-                borderRadius: 20,
-                width: 40,
-                height: 40,
+                borderRadius: MOBILE_LAYOUT.borderRadius * 1.5,
+                width: MOBILE_LAYOUT.minTouchTarget,
+                height: MOBILE_LAYOUT.minTouchTarget,
                 justifyContent: 'center',
                 alignItems: 'center',
-                elevation: 1,
-                marginRight: 8,
+                elevation: MOBILE_LAYOUT.buttonElevation,
+                marginRight: MOBILE_LAYOUT.itemSpacing,
                 opacity: refreshing ? 0.7 : 1,
                 transform: [{ scale: refreshing ? 0.98 : 1 }],
               }}
@@ -1030,30 +1030,30 @@ export default function MoneyJarsScreen() {
               accessibilityHint="Double tap to reload your current point balances"
               accessibilityState={{ disabled: refreshing }}
             >
-              <Text style={{ fontSize: 16, color: themeColors.card }}>{refreshing ? '⏳' : '↻'}</Text>
+              <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card }}>{refreshing ? '⏳' : '↻'}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
                 backgroundColor: themeColors.accent,
-                borderRadius: 20,
-                width: 40,
-                height: 40,
+                borderRadius: MOBILE_LAYOUT.borderRadius * 1.5,
+                width: MOBILE_LAYOUT.minTouchTarget,
+                height: MOBILE_LAYOUT.minTouchTarget,
                 justifyContent: 'center',
                 alignItems: 'center',
-                elevation: 1,
+                elevation: MOBILE_LAYOUT.buttonElevation,
               }}
               onPress={() => setHelpModalVisible(true)}
               accessibilityRole="button"
               accessibilityLabel="Help and information"
               accessibilityHint="Double tap to open help guide for money pots"
             >
-              <Text style={{ color: themeColors.card, fontSize: 16 }}>❓</Text>
+              <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card }}>❓</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Title Below Header */}
-        <View style={{ alignItems: 'center', marginBottom: 12 }}>
+        <View style={{ alignItems: 'center', marginBottom: MOBILE_LAYOUT.itemSpacing * 3 }}>
           <Text style={styles.title}>🏺 My Money Pots</Text>
         </View>
       </View>

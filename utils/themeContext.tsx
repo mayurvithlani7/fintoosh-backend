@@ -61,9 +61,9 @@ export const themes = {
     textSecondary: '#64748b',  // Medium gray
     border: '#BDBDBD',         // Light gray borders
     success: '#388E3C',        // Green with good contrast
-    warning: '#F57C00',        // Orange with good contrast
+    warning: '#E65100',        // Darker orange for better contrast (WCAG AA compliant)
     error: '#D32F2F',          // Red with good contrast
-    accent: '#E91E63',         // Pink with good contrast
+    accent: '#C2185B',         // Darker pink for better contrast (WCAG AA compliant)
     jarColors: {
       current: '#E8F5E8',      // Light green
       save: '#E3F2FD',         // Light blue

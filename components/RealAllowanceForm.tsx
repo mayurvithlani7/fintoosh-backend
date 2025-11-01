@@ -18,6 +18,7 @@ interface RealAllowanceFormProps {
   onSubmit: (data: RealAllowanceData) => Promise<void>;
   children: Array<{ id: string; name: string }>;
   loading?: boolean;
+  selectedChildId?: string | null;
 }
 
 export interface RealAllowanceData {
@@ -35,12 +36,15 @@ const RealAllowanceForm: React.FC<RealAllowanceFormProps> = ({
   onClose,
   onSubmit,
   children,
-  loading = false
+  loading = false,
+  selectedChildId,
 }) => {
   const { themeColors } = useTheme();
 
+  const initialChildId = selectedChildId && children.some(c => c.id === selectedChildId) ? selectedChildId : (children[0]?.id || "");
+
   const [formData, setFormData] = useState<RealAllowanceData>({
-    childId: '',
+    childId: initialChildId,
     amount: '',
     currency: 'INR',
     date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
@@ -214,13 +218,11 @@ const RealAllowanceForm: React.FC<RealAllowanceFormProps> = ({
             {/* Date */}
             <View style={styles.field}>
               <Text style={styles.label}>Date *</Text>
-              <TextInput
-                style={[styles.input, errors.date && styles.errorBorder]}
+              <DateInput
                 value={formData.date}
-                onChangeText={(value) => updateFormData('date', value)}
+                onChange={(value) => updateFormData('date', value)}
+                themeColors={themeColors}
                 placeholder="YYYY-MM-DD"
-                keyboardType="numbers-and-punctuation"
-                maxLength={10}
               />
               {errors.date && <Text style={styles.errorText}>{errors.date}</Text>}
             </View>
@@ -451,5 +453,101 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     color: themeColors.textSecondary,
   },
 });
+
+/** DateInput: mobile-friendly date field using @react-native-community/datetimepicker (copied from app/(kids-tabs)/transaction-history.tsx) */
+import { Platform } from "react-native";
+let DateTimePicker: any = null;
+if (Platform.OS !== "web") {
+  try {
+    DateTimePicker = require("@react-native-community/datetimepicker").default;
+  } catch (e) {}
+}
+type DateInputProps = {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  themeColors: any;
+};
+function DateInput({ value, onChange, placeholder, themeColors }: DateInputProps) {
+  const [show, setShow] = useState(false);
+
+  if (Platform.OS === "web") {
+    return (
+      <input
+        type="date"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          backgroundColor: themeColors.surface,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          fontSize: 16,
+          padding: 12,
+          minHeight: 40,
+          width: "100%",
+          color: themeColors.text,
+        }}
+        placeholder={placeholder}
+      />
+    );
+  }
+  // Native/mobile: use button+modal for readability/tap, plus DateTimePicker popup
+  return (
+    <View style={{ width: "100%" }}>
+      <TouchableOpacity
+        style={{
+          backgroundColor: themeColors.surface,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: themeColors.border,
+          justifyContent: "space-between",
+          alignItems: "center",
+          height: 48,
+          paddingHorizontal: 14,
+          marginBottom: 4,
+          marginTop: 2,
+          flexDirection: "row"
+        }}
+        onPress={() => setShow(true)}
+        activeOpacity={0.75}
+      >
+        <Text
+          style={{
+            fontSize: 16,
+            color: value ? themeColors.text : themeColors.textSecondary,
+            flex: 1
+          }}
+        >
+          {value ? value : (placeholder || "Select Date")}
+        </Text>
+        <Text style={{
+          fontSize: 18,
+          color: themeColors.primary,
+          fontWeight: 'bold'
+        }}>
+          📅
+        </Text>
+      </TouchableOpacity>
+      {show && DateTimePicker && (
+        <DateTimePicker
+          value={value ? new Date(value) : new Date()}
+          mode="date"
+          display="default"
+          onChange={(_event: any, d?: Date) => {
+            setShow(false);
+            if (d) {
+              // Format as YYYY-MM-DD
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, "0");
+              const day = String(d.getDate()).padStart(2, "0");
+              onChange(`${year}-${month}-${day}`);
+            }
+          }}
+        />
+      )}
+    </View>
+  );
+}
 
 export default RealAllowanceForm;

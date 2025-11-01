@@ -1,5 +1,6 @@
 import HelpModal from '@/components/HelpModal';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { useTheme } from "@/utils/themeContext";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -43,42 +44,42 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}>
-      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
+        <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.surface,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
             onPress={() => router.push('./')}
           >
-            <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text, fontWeight: 'bold' }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.accent,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
             onPress={() => setHelpModalVisible(true)}
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
           </TouchableOpacity>
         </View>
-        <View style={{ alignItems: 'center' }}>
+        <View style={MOBILE_STYLES.center}>
           <Text style={[styles.header, { color: themeColors.primary }]} accessibilityRole="header">⚙️ Settings</Text>
         </View>
       </View>

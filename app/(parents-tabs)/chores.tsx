@@ -257,6 +257,7 @@ export default function ParentsChoresScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [editingChore, setEditingChore] = useState<any>(null);
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const formSectionRef = React.useRef<View>(null);
 
   // Helper function to check if a chore is done
   const isChoreDone = (c: any) =>
@@ -738,7 +739,7 @@ export default function ParentsChoresScreen() {
       )}
 
       {/* Add/Edit Chore Form */}
-      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
+      <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]} ref={formSectionRef}>
         <Text style={[styles.sectionTitle, { color: themeColors.text }]}>{editingChore ? 'Edit Task' : 'Add New Task'}</Text>
 
         <View style={styles.formRow}>
@@ -1248,8 +1249,8 @@ export default function ParentsChoresScreen() {
                             setDeadline(c.deadline ? c.deadline.split('T')[0] : '');
                             setError('');
                             setFeedback('');
-                            // Scroll to top to show the form
-                            scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+                            // Scroll to the form section (approximately where the form is located)
+                            scrollViewRef.current?.scrollTo({ x: 0, y: 400, animated: true });
                           }}
                         >
                           <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>

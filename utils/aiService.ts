@@ -366,7 +366,7 @@ export class AIService {
         }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 4096,
           topP: 0.8,
           topK: 10
         }
@@ -408,10 +408,14 @@ export class AIService {
 
       // Handle different Gemini API response structures
       let aiResponse = '';
+      let finishReason = data.candidates?.[0]?.finishReason || 'UNKNOWN';
 
       if (data.candidates && data.candidates[0]) {
-        // Standard Gemini 1.5/2.0 response structure
-        if (data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+        // Check finish reason first
+        if (finishReason === 'MAX_TOKENS') {
+          console.warn('MoneyBuddy AI: Response was truncated due to MAX_TOKENS limit');
+          aiResponse = 'I\'m sorry, but my response got a bit too long! Let me give you a shorter answer: Money is a tool that helps us make choices about what we need and want. The most important thing is to talk to your parents about money - they\'re the best teachers! What specific question do you have?';
+        } else if (data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
           aiResponse = data.candidates[0].content.parts[0].text;
         }
       } else if (data.response && data.response.text) {
@@ -423,8 +427,11 @@ export class AIService {
       }
 
       if (!aiResponse) {
-        console.error('MoneyBuddy AI: Could not extract response text from:', data);
-        throw new Error('Invalid response structure from Gemini API - no text found');
+        console.error('MoneyBuddy AI: Could not extract response text from:', JSON.stringify(data, null, 2));
+        // Provide fallback response instead of throwing error
+        aiResponse = context.role === 'child'
+          ? "I'm having trouble responding right now, but I'm here to help you learn about money! 💭 Try asking me about saving, spending, or talking to your parents about money choices."
+          : "I'm having trouble generating a response right now. Please try rephrasing your question about teaching your child financial concepts.";
       }
 
       console.log('MoneyBuddy AI: Generated response length:', aiResponse.length);
@@ -449,13 +456,23 @@ export class AIService {
         // Don't fail the response if logging fails
       }
 
+      // Calculate confidence based on finish reason
+      let confidence = 0.7; // Default
+      if (finishReason === 'STOP') {
+        confidence = 0.9; // Complete response
+      } else if (finishReason === 'MAX_TOKENS') {
+        confidence = 0.6; // Truncated response
+      } else if (finishReason === 'SAFETY') {
+        confidence = 0.8; // Safety filtered but complete
+      }
+
       return {
         response: aiResponse,
-        confidence: data.candidates[0].finishReason === 'STOP' ? 0.9 : 0.7,
+        confidence,
         metadata: {
           model: 'gemini-2.5-flash',
           tokens: data.usageMetadata,
-          finishReason: data.candidates[0].finishReason
+          finishReason
         }
       };
     } catch (error) {

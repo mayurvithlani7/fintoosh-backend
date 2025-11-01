@@ -1,6 +1,7 @@
 import GoalTemplates from '@/components/GoalTemplates';
 import HelpModal from '@/components/HelpModal';
 import AnimatedCircularProgress from '@/components/animations/AnimatedCircularProgress';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { handleApiError } from '@/utils/errorHandler';
@@ -15,11 +16,14 @@ import {
   Alert,
   FlatList,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
+
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
@@ -30,54 +34,52 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 22,
-    marginTop: 6,
+    ...MOBILE_STYLES.title,
     color: themeColors.primary,
   },
   sectionCard: {
-    flex: 1,
+    ...MOBILE_STYLES.card,
     backgroundColor: themeColors.card,
-    borderRadius: 14,
-    marginBottom: 16,
-    padding: 18,
-    minWidth: 300,
-    width: "97%",
-    maxWidth: 520,
-    alignSelf: 'center',
-    elevation: 2,
-    shadowColor: themeColors.border,
+    borderColor: themeColors.border,
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+    width: MOBILE_LAYOUT.containerWidth,
   },
   sectionTitle: {
-    fontSize: 20,
+    ...MOBILE_STYLES.body,
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.text,
   },
   placeholder: {
-    color: themeColors.textSecondary, fontStyle: "italic", fontSize: 15,
-    marginBottom: 2, marginTop: 2, minHeight: 26
+    ...MOBILE_STYLES.body,
+    color: themeColors.textSecondary,
+    fontStyle: "italic",
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
+    marginTop: MOBILE_LAYOUT.itemSpacing,
+    minHeight: 26
   },
   statusMessage: {
-    fontSize: 15, fontWeight: "600", marginTop: 3, color: themeColors.success
+    ...MOBILE_STYLES.body,
+    fontWeight: "600",
+    marginTop: MOBILE_LAYOUT.itemSpacing,
+    color: themeColors.success
   },
   refreshBtn: {
+    ...MOBILE_STYLES.primaryButton,
     backgroundColor: themeColors.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: "center",
   },
   refreshBtnDisabled: {
     backgroundColor: themeColors.surface,
   },
   refreshBtnText: {
+    ...MOBILE_STYLES.caption,
     color: themeColors.card,
     fontWeight: "bold",
-    fontSize: 12,
   },
   refreshBtnTextDisabled: {
+    ...MOBILE_STYLES.caption,
     color: themeColors.textSecondary,
   },
 });
@@ -90,37 +92,40 @@ export default function GoalsScreen() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   return (
-    <View style={styles.container}>
-      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: themeColors.background }}
+      contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
+    >
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
+        <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Go back to home screen"
             accessibilityHint="Navigate back to the main dashboard"
             style={{
               backgroundColor: themeColors.surface,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.borderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
             onPress={() => router.push('./')}
           >
-            <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
+            <Text style={{ color: themeColors.text, fontWeight: 'bold', ...MOBILE_STYLES.caption }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.accent,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.borderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
@@ -129,10 +134,10 @@ export default function GoalsScreen() {
             accessibilityLabel="Help and information"
             accessibilityHint="Double tap to open help guide for goals and rewards"
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', ...MOBILE_STYLES.caption }}>❓ Help</Text>
           </TouchableOpacity>
         </View>
-        <View style={{ alignItems: 'center' }}>
+        <View style={MOBILE_STYLES.center}>
           <Text style={[styles.title, { color: themeColors.primary }]}>🎯 My Goals</Text>
         </View>
       </View>
@@ -236,7 +241,7 @@ export default function GoalsScreen() {
           }
         ]}
       />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -252,7 +257,6 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [claiming, setClaiming] = useState<string | null>(null);
-  const [msg, setMsg] = useState("");
   // Tabs for goal filtering
   const [tab, setTab] = useState<'Active' | 'Completed'>('Active');
   // Show archived completed
@@ -262,6 +266,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
   // Collapsible section states
   const [goalsExpanded, setGoalsExpanded] = useState(true);
   const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
+  const { showMessage } = useCenteredMessage();
 
   // Watch for refresh trigger changes from parent
   useEffect(() => {
@@ -277,7 +282,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
       const user = await getUser();
 
       if (!token || !user) {
-        Alert.alert('Error', 'Not authenticated.');
+        showMessage('Not authenticated.', 'error');
         return;
       }
 
@@ -327,7 +332,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
             console.error('[GOALS FRONTEND] Could not read error response');
           }
         }
-        Alert.alert('Error', `${response.status} ${response.statusText}: ${errorMessage}`);
+        showMessage(`${response.status} ${response.statusText}: ${errorMessage}`, 'error');
         return;
       }
 
@@ -337,12 +342,11 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
       setGoals(prevGoals => [newGoal, ...prevGoals]);
 
       setShowTemplates(false);
-      setMsg(`Goal "${template.name}" created successfully!`);
-      setTimeout(() => setMsg(""), 5000);
+      showMessage(`Goal "${template.name}" created successfully!`, 'success');
 
     } catch (error) {
       console.error('Error creating goal from template:', error);
-      Alert.alert('Error', 'Failed to create goal from template.');
+      showMessage('Failed to create goal from template.', 'error');
     }
   };
 
@@ -388,7 +392,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!userRes.ok) {
-        await handleApiError(userRes, { showError: (msg) => Alert.alert('Error', msg), feature: 'Goals - User Data' });
+        await handleApiError(userRes, { showError: (msg) => showMessage(msg, 'error'), feature: 'Goals - User Data' });
         setLoading(false);
         return;
       }
@@ -507,7 +511,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
 
     } catch (error) {
       console.error('Error loading goals:', error);
-      Alert.alert('Error', 'Failed to load goals.');
+      showMessage('Failed to load goals.', 'error');
     } finally {
       setLoading(false);
     }
@@ -604,7 +608,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
       const user = await getUser();
 
       if (!token || !user) {
-        Alert.alert('Error', 'Not authenticated.');
+        showMessage('Not authenticated.', 'error');
         return;
       }
 
@@ -636,7 +640,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
         } catch {
           // If JSON parsing fails, use default message
         }
-        Alert.alert('Error', errorMessage);
+        showMessage(errorMessage, 'error');
         return;
       }
 
@@ -648,12 +652,11 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
       // Immediately refresh user data to show updated pending points
       await loadGoalsAndRewards();
 
-      setMsg("Goal completion request submitted to parent!");
-      setTimeout(() => setMsg(""), 5000);
+      showMessage("Goal completion request submitted to parent!", 'success');
 
     } catch (error) {
       console.error('Error submitting goal completion request:', error);
-      Alert.alert('Error', 'Failed to submit request.');
+      showMessage('Failed to submit request.', 'error');
     } finally {
       setClaiming(null);
     }
@@ -693,8 +696,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
         }
 
         setGoals(goals.filter(g => g._id !== goalId));
-        setMsg(`Goal "${goalName}" deleted successfully.`);
-        setTimeout(() => setMsg(""), 5000);
+        showMessage(`Goal "${goalName}" deleted successfully.`, 'success');
 
       } catch (error) {
         console.error('Error deleting goal:', error);
@@ -738,8 +740,6 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                 }
 
                 setGoals(goals.filter(g => g._id !== goalId));
-                setMsg(`Goal "${goalName}" deleted successfully.`);
-                setTimeout(() => setMsg(""), 5000);
 
               } catch (error) {
                 console.error('Error deleting goal:', error);
@@ -765,16 +765,10 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
     <View style={{ flex: 1 }}>
       {/* Quick Actions Header */}
       <View style={{
+        ...MOBILE_STYLES.card,
         backgroundColor: themeColors.surface,
-        borderRadius: 16,
-        marginBottom: 16,
-        padding: 16,
-        width: '97%',
-        maxWidth: 520,
-        alignSelf: 'center',
-        elevation: 3,
-        shadowColor: themeColors.border,
-        borderWidth: 1,
+        marginBottom: MOBILE_LAYOUT.sectionSpacing,
+        width: MOBILE_LAYOUT.containerWidth,
         borderColor: themeColors.border + '30',
       }}>
         <TouchableOpacity
@@ -782,20 +776,15 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
           accessibilityLabel="Choose goal template"
           accessibilityHint="Browse and select from available goal templates"
           style={{
+            ...MOBILE_STYLES.primaryButton,
             backgroundColor: themeColors.primary,
-            paddingVertical: 14,
-            paddingHorizontal: 20,
-            borderRadius: 12,
-            alignItems: 'center',
-            marginBottom: 12,
-            elevation: 2,
-            shadowColor: themeColors.primary,
+            marginBottom: MOBILE_LAYOUT.itemSpacing,
           }}
           onPress={() => setShowTemplates(true)}
         >
           <Text style={{
+            ...MOBILE_STYLES.body,
             color: 'white',
-            fontSize: 16,
             fontWeight: 'bold'
           }}>
             🎯 Create New Goal
@@ -804,12 +793,8 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
 
         <TouchableOpacity
           style={{
+            ...MOBILE_STYLES.primaryButton,
             backgroundColor: themeColors.secondary,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 10,
-            alignItems: 'center',
-            elevation: 1,
           }}
           onPress={onRefresh}
           accessibilityRole="button"
@@ -817,8 +802,8 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
           accessibilityHint="Double tap to reload your goals"
         >
           <Text style={{
+            ...MOBILE_STYLES.body,
             color: themeColors.card,
-            fontSize: 14,
             fontWeight: '600'
           }}>
             🔄 Refresh Goals
@@ -829,33 +814,30 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
       {/* Goals Section - Always Visible */}
       <View
         style={{
+          ...MOBILE_STYLES.card,
           backgroundColor: themeColors.card,
-          borderRadius: 14,
-          marginBottom: 16,
-          width: '97%',
-          maxWidth: 520,
-          alignSelf: 'center',
-          elevation: 2,
-          shadowColor: themeColors.border,
+          marginBottom: MOBILE_LAYOUT.sectionSpacing,
+          width: MOBILE_LAYOUT.containerWidth,
+          borderColor: themeColors.border + '30',
         }}
       >
         <View style={{
-          padding: 18,
-          paddingBottom: 8,
+          padding: MOBILE_LAYOUT.cardPadding,
+          paddingBottom: MOBILE_LAYOUT.itemSpacing,
           borderBottomWidth: 1,
           borderBottomColor: themeColors.border + '30'
         }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between' }}>
+            <View style={MOBILE_STYLES.row}>
               <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>🎯 My Goals</Text>
               <View style={{
                 backgroundColor: themeColors.primary,
-                borderRadius: 10,
-                paddingHorizontal: 8,
+                borderRadius: MOBILE_LAYOUT.borderRadius,
+                paddingHorizontal: MOBILE_LAYOUT.itemSpacing,
                 paddingVertical: 2,
-                marginLeft: 8
+                marginLeft: MOBILE_LAYOUT.itemSpacing
               }}>
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                <Text style={{ color: 'white', ...MOBILE_STYLES.caption, fontWeight: 'bold' }}>
                   {goals.length}
                 </Text>
               </View>
@@ -866,33 +848,19 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
       </View>
 
       {/* Full-Width Goals Content */}
-      <View style={{
-        backgroundColor: themeColors.background,
-        paddingHorizontal: 16,
-        paddingTop: 20,
-        paddingBottom: 40,
-      }}>
+      <View style={MOBILE_STYLES.scrollContent}>
         {/* Enhanced Tabs */}
         <View style={{
-          flexDirection: 'row',
+          ...MOBILE_STYLES.tabContainer,
           backgroundColor: themeColors.surface,
-          borderRadius: 16,
-          padding: 4,
-          marginBottom: 20,
-          elevation: 2,
-          shadowColor: themeColors.border,
+          marginBottom: MOBILE_LAYOUT.sectionSpacing,
         }}>
           {["Active", "Completed"].map(t => (
             <TouchableOpacity
               key={t}
               style={{
-                flex: 1,
-                paddingVertical: 14,
-                paddingHorizontal: 16,
-                borderRadius: 12,
+                ...MOBILE_STYLES.tabButton,
                 backgroundColor: tab === t ? themeColors.primary : 'transparent',
-                alignItems: 'center',
-                minHeight: 48,
               }}
               onPress={() => { setTab(t as "Active" | "Completed"); setShowArchive(false); }}
               accessibilityRole="tab"
@@ -901,9 +869,9 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
               accessibilityState={{ selected: tab === t }}
             >
               <Text style={{
+                ...MOBILE_STYLES.body,
                 color: tab === t ? 'white' : themeColors.text,
                 fontWeight: tab === t ? "bold" : "600",
-                fontSize: 16
               }}>
                 {t === "Active" ? "⚡ Active Goals" : "🏆 Completed"}
               </Text>
@@ -1088,8 +1056,6 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
         })()}
       </View>
 
-      {msg ? <Text style={styles.statusMessage}>{msg}</Text> : null}
-
       {/* Goal Templates Modal */}
       <GoalTemplates
         visible={showTemplates}
@@ -1201,22 +1167,45 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
 
         {/* Progress Text */}
         <View style={{ marginBottom: 16 }}>
-          <Text style={{
-            fontSize: 16,
-            color: themeColors.text,
-            fontWeight: '600',
-            textAlign: 'center'
-          }}>
-            {formatAmount(jarPoints)} / {formatAmount(g.targetAmount)} points
-          </Text>
-          <Text style={{
-            fontSize: 14,
-            color: themeColors.textSecondary,
-            textAlign: 'center',
-            marginTop: 2
-          }}>
-            Save in: {getJarDisplayName(g.jar)}
-          </Text>
+          {isCompleted ? (
+            <Text style={{
+              fontSize: 16,
+              color: themeColors.success,
+              fontWeight: '600',
+              textAlign: 'center'
+            }}>
+              🎉 Target Reached!
+            </Text>
+          ) : (
+            <Text style={{
+              fontSize: 16,
+              color: themeColors.text,
+              fontWeight: '600',
+              textAlign: 'center'
+            }}>
+              {formatAmount(jarPoints)} / {formatAmount(g.targetAmount)} points
+            </Text>
+          )}
+          {isCompleted ? (
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.success,
+              textAlign: 'center',
+              marginTop: 2,
+              fontWeight: '600'
+            }}>
+              Target: {formatAmount(g.targetAmount)} points achieved! 🎉
+            </Text>
+          ) : (
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.textSecondary,
+              textAlign: 'center',
+              marginTop: 2
+            }}>
+              Save in: {getJarDisplayName(g.jar)}
+            </Text>
+          )}
         </View>
 
         {/* Action Button */}

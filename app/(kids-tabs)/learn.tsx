@@ -15,6 +15,7 @@ import {
 import { SuccessAnimation } from '@/components/animations/SuccessAnimation';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import HelpModal from '@/components/HelpModal';
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { useTheme } from '@/utils/themeContext';
 
 import { CulturalBorder, RangoliPattern } from "@/components/cultural";
@@ -175,17 +176,17 @@ export default function LearnScreen() {
   return (
     <ScrollView style={{ backgroundColor: themeColors.background }} contentContainerStyle={styles.container}>
       <RangoliPattern color="#FF9933" opacity={0.03} />
-      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
+        <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.surface,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
@@ -194,17 +195,17 @@ export default function LearnScreen() {
             accessibilityLabel="Go back to home screen"
             accessibilityHint="Return to the main kids dashboard"
           >
-            <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text, fontWeight: 'bold' }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.accent,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
@@ -213,10 +214,10 @@ export default function LearnScreen() {
             accessibilityLabel="Help and information"
             accessibilityHint="Open help guide for learning about money"
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
           </TouchableOpacity>
         </View>
-        <View style={{ alignItems: 'center' }}>
+        <View style={MOBILE_STYLES.center}>
           <Text style={[styles.title, { color: themeColors.primary }]} accessibilityRole="header" accessibilityLabel="Learn About Money Education Section">📚 Learn About Money</Text>
         </View>
       </View>

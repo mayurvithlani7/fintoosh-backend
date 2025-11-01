@@ -4,11 +4,10 @@ import React, { useState } from 'react';
 import {
   FlatList,
   Modal,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 interface GoalTemplatesProps {
@@ -60,6 +59,9 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
     flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    minHeight: 60,
+    paddingVertical: 4,
   },
   categoryTab: {
     backgroundColor: 'transparent',
@@ -326,7 +328,7 @@ const GoalTemplates: React.FC<GoalTemplatesProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryTabs}>
+          <View style={styles.categoryTabs}>
             {categories.map((category) => (
               <TouchableOpacity
                 key={category}
@@ -344,7 +346,7 @@ const GoalTemplates: React.FC<GoalTemplatesProps> = ({
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
 
           <FlatList
             data={getFilteredTemplates()}

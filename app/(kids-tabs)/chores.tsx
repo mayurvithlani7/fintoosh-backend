@@ -2,7 +2,7 @@ import HelpModal from '@/components/HelpModal';
 import AnimatedCircularProgress from '@/components/animations/AnimatedCircularProgress';
 import { API_URL } from '@/utils/config';
 import { handleApiError } from '@/utils/errorHandler';
-import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,38 +20,66 @@ import { patchChore } from '../../utils/api';
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 4,
+    paddingVertical: MOBILE_LAYOUT.sectionSpacing,
+    paddingHorizontal: MOBILE_LAYOUT.containerPadding,
+    backgroundColor: themeColors.background,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 22,
-    marginTop: 6,
+    ...MOBILE_STYLES.title,
     color: themeColors.primary,
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+    marginTop: MOBILE_LAYOUT.itemSpacing,
   },
   sectionCard: {
+    ...MOBILE_STYLES.card,
     backgroundColor: themeColors.card,
-    borderRadius: 14,
-    marginBottom: 16,
-    padding: 18,
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-    elevation: 2,
-    shadowColor: themeColors.border,
+    borderColor: themeColors.border,
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+    width: MOBILE_LAYOUT.containerWidth,
   },
   sectionTitle: {
-    fontSize: 20,
+    ...MOBILE_STYLES.body,
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.text,
   },
   placeholder: {
+    ...MOBILE_STYLES.body,
     color: themeColors.textSecondary,
-    fontStyle: "italic", fontSize: 15,
-    marginBottom: 2, marginTop: 2, minHeight: 26
+    fontStyle: "italic",
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
+    marginTop: MOBILE_LAYOUT.itemSpacing,
+    minHeight: 26
+  },
+  statusMessage: {
+    ...MOBILE_STYLES.body,
+    fontWeight: "600",
+    marginTop: MOBILE_LAYOUT.itemSpacing,
+    color: themeColors.success
+  },
+  refreshBtn: {
+    ...MOBILE_STYLES.primaryButton,
+    backgroundColor: themeColors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  refreshBtnDisabled: {
+    backgroundColor: themeColors.surface,
+  },
+  refreshBtnText: {
+    ...MOBILE_STYLES.caption,
+    color: themeColors.card,
+    fontWeight: "bold",
+  },
+  refreshBtnTextDisabled: {
+    ...MOBILE_STYLES.caption,
+    color: themeColors.textSecondary,
+  },
+  scrollContent: {
+    ...MOBILE_STYLES.scrollContent,
+    backgroundColor: themeColors.background,
   },
 });
 
@@ -62,27 +90,31 @@ export default function TasksScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
-    <View style={styles.container}>
-      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: themeColors.background }}
+      contentContainerStyle={[styles.container, styles.scrollContent, { flexGrow: 1 }]}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
+        <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Go back to home screen"
             accessibilityHint="Navigate back to the main dashboard"
             style={{
               backgroundColor: themeColors.surface,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.borderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
             onPress={() => router.push('./')}
           >
-            <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
+            <Text style={{ color: themeColors.text, fontWeight: 'bold', ...MOBILE_STYLES.caption }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
             accessibilityRole="button"
@@ -90,21 +122,21 @@ export default function TasksScreen() {
             accessibilityHint="Open help guide for tasks and chores"
             style={{
               backgroundColor: themeColors.accent,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.borderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
             onPress={() => setHelpModalVisible(true)}
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', ...MOBILE_STYLES.caption }}>❓ Help</Text>
           </TouchableOpacity>
         </View>
-        <View style={{ alignItems: 'center' }}>
+        <View style={MOBILE_STYLES.center}>
           <Text style={[styles.title, { color: themeColors.primary }]}>🧹 My Tasks</Text>
         </View>
       </View>
@@ -149,20 +181,20 @@ export default function TasksScreen() {
             content: [
               {
                 type: "text",
-                text: "These are your super tasks waiting to be completed:",
+                text: "These are your super tasks waiting to be completed:\n\n",
                 icon: "📋"
               },
               {
                 type: "bullet",
-                text: "Shows the task name and how many points you'll win! 🏆"
+                text: "Shows the task name and how many points you'll win! 🏆\n"
                 },
               {
                 type: "bullet",
-                text: "Press 'Claim' when you're done being awesome!"
+                text: "Press 'Claim' when you're done being awesome!\n"
               },
               {
                 type: "bullet",
-                text: "It says 'Pending...' while your parent checks your work"
+                text: "It says 'Pending...' while your parent checks your work\n"
               },
               {
                 type: "highlight",
@@ -176,20 +208,20 @@ export default function TasksScreen() {
             content: [
               {
                 type: "text",
-                text: "Look at all the awesome tasks you've finished:",
+                text: "Look at all the awesome tasks you've finished:\n\n",
                 icon: "✅"
               },
               {
                 type: "bullet",
-                text: "Green background = Your parent said 'Great job!' 🎉"
+                text: "Green background = Your parent said 'Great job!' 🎉\n"
               },
               {
                 type: "bullet",
-                text: "Yellow background = Still waiting for approval ⏳"
+                text: "Yellow background = Still waiting for approval ⏳\n"
               },
               {
                 type: "bullet",
-                text: "Shows your points earned and when you finished"
+                text: "Shows your points earned and when you finished\n"
               },
               {
                 type: "highlight",
@@ -227,11 +259,12 @@ export default function TasksScreen() {
           }
         ]}
       />
-    </View>
+    </ScrollView>
   );
 }
 
 // --- Chores Section (list) ---
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 
 function ChoresSection() {
@@ -241,11 +274,12 @@ function ChoresSection() {
   const [userData, setUserData] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { showError, showFeedback } = useGlobalFeedback();
+  const [refreshing, setRefreshing] = useState(false);
+  const { showMessage } = useCenteredMessage();
   // Tabs/archive for chores
   const [choresTab, setChoresTab] = useState<'Active' | 'Completed'>('Active');
   const [showArchive, setShowArchive] = useState(false);
-  const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
+  const [showStaleWarning, , markRefreshed] = useStaleDataWarning(300000); // 5 minutes
 
   // Helper: robust completion date
   function getChoreCompletedDate(c: any): Date {
@@ -319,9 +353,10 @@ function ChoresSection() {
   }
 
   // Fetch chores, user data, and approval requests from backend
-  const loadChoresUserAndRequests = async () => {
-    console.log('🔄 Chores: Starting loadChoresUserAndRequests...');
+  const loadChoresUserAndRequests = async (isRefresh = false) => {
+    console.log('🔄 Chores: Starting loadChoresUserAndRequests...', isRefresh ? '(refresh)' : '(initial)');
     try {
+      if (!isRefresh) setLoading(true);
       const token = await getAuthToken();
       const user = await getUserData();
 
@@ -329,7 +364,7 @@ function ChoresSection() {
 
       if (!token || !user) {
         console.log('🔄 Chores: Missing token or user data');
-        setLoading(false);
+        if (!isRefresh) setLoading(false);
         return;
       }
       const userId = user.id;
@@ -338,8 +373,8 @@ function ChoresSection() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!userRes.ok) {
-        await handleApiError(userRes, { showError, feature: 'Chores - User Data' });
-        setLoading(false);
+        await handleApiError(userRes, { showError: (msg) => showMessage(msg, 'error'), feature: 'Chores - User Data' });
+        if (!isRefresh) setLoading(false);
         return;
       }
       setUserData(await userRes.json());
@@ -348,8 +383,8 @@ function ChoresSection() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!choresRes.ok) {
-        await handleApiError(choresRes, { showError, feature: 'Chores - Task List' });
-        setLoading(false);
+        await handleApiError(choresRes, { showError: (msg) => showMessage(msg, 'error'), feature: 'Chores - Task List' });
+        if (!isRefresh) setLoading(false);
         return;
       }
       const choresData = await choresRes.json();
@@ -371,11 +406,18 @@ function ChoresSection() {
       if (reqRes.ok) setRequests(await reqRes.json());
       markRefreshed();
     } catch (err) {
-      showError("Could not load chores/user info.");
+      showMessage("Could not load chores/user info.", 'error');
     } finally {
       setLoading(false);
+      if (isRefresh) setRefreshing(false);
     }
   };
+
+  const onRefresh = React.useCallback(() => {
+    console.log('[CHORES] Manual refresh triggered');
+    setRefreshing(true);
+    loadChoresUserAndRequests(true);
+  }, []);
 
   useEffect(() => {
     loadChoresUserAndRequests();
@@ -409,7 +451,7 @@ function ChoresSection() {
       // Will pick up update on next poll (or can reload immediately if more instant feel desired)
     } catch (error) {
       console.error('Error marking chore as done:', error);
-      showError('Failed to mark as done');
+      showMessage('Failed to mark as done', 'error');
     }
   };
 
@@ -419,13 +461,13 @@ function ChoresSection() {
       const token = await getAuthToken();
       const user = await getUserData();
       if (!token || !user) {
-        showError("Not authenticated");
+        showMessage("Not authenticated", 'error');
         return;
       }
       const userId = user.id;
       const chore = chores.find(c => c._id === choreId);
       if (!chore) {
-        showError("Chore not found");
+        showMessage("Chore not found", 'error');
         return;
       }
 
@@ -460,7 +502,7 @@ function ChoresSection() {
           } catch {
             // If JSON parsing fails, use default message
           }
-          showError(errorMessage);
+          showMessage(errorMessage, 'error');
           return;
         }
 
@@ -476,7 +518,7 @@ function ChoresSection() {
 
         // Reload data immediately to show completion
         await loadChoresUserAndRequests();
-        showFeedback("Welcome task completed! You earned 25 points! 🎉");
+        showMessage("Welcome task completed! You earned 25 points! 🎉", 'success');
         return;
       }
 
@@ -514,7 +556,7 @@ function ChoresSection() {
       if (!parentId) {
         console.error('ERROR: No parent or caregiver found despite parents being present');
         console.log('Full user object:', user);
-        showError("No parent or caregiver found for your account. Please ask a grown-up to check your family settings.");
+        showMessage("No parent or caregiver found for your account. Please ask a grown-up to check your family settings.", 'error');
         return;
       }
 
@@ -545,19 +587,19 @@ function ChoresSection() {
         } catch {
           // If JSON parsing fails, use default message
         }
-        showError(errorMessage);
+        showMessage(errorMessage, 'error');
         return;
       }
       // Check for auto-approval in backend response
       const data = await response.json().catch(() => ({}));
       await loadChoresUserAndRequests();
       if (data.autoApproved) {
-        showFeedback("Points added! (Auto-Approved)");
+        showMessage("Points added! (Auto-Approved)", 'success');
       } else {
-        showFeedback("Chore claimed! Awaiting parent approval...");
+        showMessage("Chore claimed! Awaiting parent approval...", 'success');
       }
     } catch (err) {
-      showError("Network error. Try again.");
+      showMessage("Network error. Try again.", 'error');
     }
   };
 
@@ -572,91 +614,56 @@ function ChoresSection() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Quick Actions Header */}
-      <View style={{
-        backgroundColor: themeColors.surface,
-        borderRadius: 16,
-        marginBottom: 16,
-        padding: 16,
-        width: '97%',
-        maxWidth: 520,
-        alignSelf: 'center',
-        elevation: 3,
-        shadowColor: themeColors.border,
-        borderWidth: 1,
-        borderColor: themeColors.border + '30',
-      }}>
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.secondary,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 10,
-            alignItems: 'center',
-            elevation: 1,
-          }}
-          onPress={() => loadChoresUserAndRequests()}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel={loading ? "Refreshing task data" : "Refresh task data"}
-          accessibilityHint="Reload latest information about your tasks"
-          accessibilityState={{ disabled: loading }}
-        >
-          <Text style={{
-            color: themeColors.card,
-            fontSize: 14,
-            fontWeight: '600'
-          }}>
-            {loading ? '🔄 Refreshing...' : '🔄 Refresh Tasks'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Tasks Section - Always Visible */}
       <View
         style={{
+          ...MOBILE_STYLES.card,
           backgroundColor: themeColors.card,
-          borderRadius: 14,
-          marginBottom: 16,
-          width: '97%',
-          maxWidth: 520,
-          alignSelf: 'center',
-          elevation: 2,
-          shadowColor: themeColors.border,
+          marginBottom: MOBILE_LAYOUT.sectionSpacing,
+          width: MOBILE_LAYOUT.containerWidth,
+          borderColor: themeColors.border + '30'
         }}
       >
         <View style={{
-          padding: 18,
-          paddingBottom: 8,
+          padding: MOBILE_LAYOUT.cardPadding,
+          paddingBottom: MOBILE_LAYOUT.itemSpacing,
           borderBottomWidth: 1,
           borderBottomColor: themeColors.border + '30'
         }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>🧹 My Tasks</Text>
+          <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between' }}>
+            <View style={MOBILE_STYLES.row}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0, fontSize: 20 }]}>🧹 My Tasks</Text>
               <View style={{
                 backgroundColor: themeColors.primary,
-                borderRadius: 10,
-                paddingHorizontal: 8,
+                borderRadius: MOBILE_LAYOUT.borderRadius,
+                paddingHorizontal: MOBILE_LAYOUT.itemSpacing,
                 paddingVertical: 2,
-                marginLeft: 8
+                marginLeft: MOBILE_LAYOUT.itemSpacing
               }}>
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                <Text style={{ color: 'white', ...MOBILE_STYLES.caption, fontWeight: 'bold' }}>
                   {chores.length}
                 </Text>
               </View>
             </View>
+            <TouchableOpacity
+              style={[styles.refreshBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={onRefresh}
+              disabled={refreshing}
+              accessibilityRole="button"
+              accessibilityLabel={refreshing ? "Refreshing task data" : "Refresh task data"}
+              accessibilityHint="Double tap to reload your available tasks"
+              accessibilityState={{ disabled: refreshing }}
+            >
+              <Text style={{ fontSize: 14, color: themeColors.card }}>
+                {refreshing ? '⏳' : '↻'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
 
       {/* Full-Width Tasks Content */}
-      <View style={{
-        backgroundColor: themeColors.background,
-        paddingHorizontal: 16,
-        paddingTop: 20,
-        paddingBottom: 40,
-      }}>
+      <View style={MOBILE_STYLES.scrollContent}>
         <ScrollView
           style={{ backgroundColor: themeColors.background }}
           contentContainerStyle={{ paddingBottom: 40 }}
@@ -664,25 +671,16 @@ function ChoresSection() {
         >
           {/* Enhanced Tabs */}
           <View style={{
-            flexDirection: 'row',
+            ...MOBILE_STYLES.tabContainer,
             backgroundColor: themeColors.surface,
-            borderRadius: 16,
-            padding: 4,
-            marginBottom: 20,
-            elevation: 2,
-            shadowColor: themeColors.border,
+            marginBottom: MOBILE_LAYOUT.sectionSpacing,
           }}>
             {["Active", "Completed"].map(t => (
               <TouchableOpacity
                 key={t}
                 style={{
-                  flex: 1,
-                  paddingVertical: 14,
-                  paddingHorizontal: 16,
-                  borderRadius: 12,
+                  ...MOBILE_STYLES.tabButton,
                   backgroundColor: choresTab === t ? themeColors.primary : 'transparent',
-                  alignItems: 'center',
-                  minHeight: 48,
                 }}
                 onPress={() => { setChoresTab(t as "Active" | "Completed"); setShowArchive(false); }}
                 accessibilityRole="tab"
@@ -691,9 +689,9 @@ function ChoresSection() {
                 accessibilityState={{ selected: choresTab === t }}
               >
                 <Text style={{
+                  ...MOBILE_STYLES.body,
                   color: choresTab === t ? 'white' : themeColors.text,
                   fontWeight: choresTab === t ? "bold" : "600",
-                  fontSize: 16
                 }}>
                   {t === "Active" ? "⚡ Active Missions" : "🏆 Completed Tasks"}
                 </Text>
@@ -715,25 +713,24 @@ function ChoresSection() {
                 return (
                   <View style={{
                     alignItems: 'center',
-                    paddingVertical: 60,
-                    paddingHorizontal: 20,
+                    paddingVertical: MOBILE_LAYOUT.sectionSpacing * 3,
+                    paddingHorizontal: MOBILE_LAYOUT.containerPadding,
                   }}>
-                    <Text style={{ fontSize: 72, marginBottom: 20 }}>🧹</Text>
+                    <Text style={{ fontSize: 72, marginBottom: MOBILE_LAYOUT.sectionSpacing }}>🧹</Text>
                     <Text style={{
-                      fontSize: 22,
-                      fontWeight: 'bold',
+                      ...MOBILE_STYLES.title,
                       color: themeColors.text,
-                      marginBottom: 12,
+                      marginBottom: MOBILE_LAYOUT.itemSpacing,
                       textAlign: 'center'
                     }}>
                       No Active Tasks Yet
                     </Text>
                     <Text style={{
-                      fontSize: 16,
+                      ...MOBILE_STYLES.body,
                       color: themeColors.textSecondary,
                       textAlign: 'center',
-                      marginBottom: 32,
-                      lineHeight: 24
+                      marginBottom: MOBILE_LAYOUT.sectionSpacing * 2,
+                      lineHeight: MOBILE_LAYOUT.bodySize * 1.5
                     }}>
                       Complete tasks to earn points and watch your money grow! 🌱
                     </Text>
@@ -765,25 +762,24 @@ function ChoresSection() {
               return (
                 <View style={{
                   alignItems: 'center',
-                  paddingVertical: 60,
-                  paddingHorizontal: 20,
+                  paddingVertical: MOBILE_LAYOUT.sectionSpacing * 3,
+                  paddingHorizontal: MOBILE_LAYOUT.containerPadding,
                 }}>
-                  <Text style={{ fontSize: 72, marginBottom: 20 }}>🏆</Text>
+                  <Text style={{ fontSize: 72, marginBottom: MOBILE_LAYOUT.sectionSpacing }}>🏆</Text>
                   <Text style={{
-                    fontSize: 22,
-                    fontWeight: 'bold',
+                    ...MOBILE_STYLES.title,
                     color: themeColors.text,
-                    marginBottom: 12,
+                    marginBottom: MOBILE_LAYOUT.itemSpacing,
                     textAlign: 'center'
                   }}>
                     No Completed Tasks Yet
                   </Text>
                   <Text style={{
-                    fontSize: 16,
+                    ...MOBILE_STYLES.body,
                     color: themeColors.textSecondary,
                     textAlign: 'center',
-                    marginBottom: 32,
-                    lineHeight: 24
+                    marginBottom: MOBILE_LAYOUT.sectionSpacing * 2,
+                    lineHeight: MOBILE_LAYOUT.bodySize * 1.5
                   }}>
                     Complete your first task to see your achievements here! ✨
                   </Text>
@@ -807,17 +803,17 @@ function ChoresSection() {
                     accessibilityLabel="Show all completed tasks from any time"
                     accessibilityHint="Display tasks completed more than 90 days ago"
                     style={{
-                      marginTop: 20,
+                      marginTop: MOBILE_LAYOUT.sectionSpacing,
                       alignSelf: "center",
                       backgroundColor: themeColors.accent + "22",
-                      paddingHorizontal: 24,
-                      paddingVertical: 12,
-                      borderRadius: 20,
-                      minHeight: 48,
+                      paddingHorizontal: MOBILE_LAYOUT.cardPadding * 2,
+                      paddingVertical: MOBILE_LAYOUT.itemSpacing,
+                      borderRadius: MOBILE_LAYOUT.borderRadius * 2,
+                      minHeight: MOBILE_LAYOUT.minTouchTarget,
                     }}
                     onPress={() => setShowArchive(true)}
                   >
-                    <Text style={{ color: themeColors.primary, fontWeight: "600", fontSize: 16 }}>Show All Completed Tasks</Text>
+                    <Text style={{ color: themeColors.primary, fontWeight: "600", ...MOBILE_STYLES.body }}>Show All Completed Tasks</Text>
                   </TouchableOpacity>
                 )}
                 {archived.length > 0 && showArchive && (
@@ -826,17 +822,17 @@ function ChoresSection() {
                     accessibilityLabel="Show only recently completed tasks"
                     accessibilityHint="Hide tasks completed more than 90 days ago"
                     style={{
-                      marginTop: 16,
+                      marginTop: MOBILE_LAYOUT.itemSpacing * 2,
                       alignSelf: "center",
                       backgroundColor: themeColors.surface,
-                      paddingHorizontal: 18,
-                      paddingVertical: 10,
-                      borderRadius: 18,
-                      minHeight: 48,
+                      paddingHorizontal: MOBILE_LAYOUT.cardPadding * 1.5,
+                      paddingVertical: MOBILE_LAYOUT.itemSpacing,
+                      borderRadius: MOBILE_LAYOUT.borderRadius * 1.5,
+                      minHeight: MOBILE_LAYOUT.minTouchTarget,
                     }}
                     onPress={() => setShowArchive(false)}
                   >
-                    <Text style={{ color: themeColors.primary, fontWeight: "500", fontSize: 16 }}>Show Only Last 90 Days</Text>
+                    <Text style={{ color: themeColors.primary, fontWeight: "500", ...MOBILE_STYLES.body }}>Show Only Last 90 Days</Text>
                   </TouchableOpacity>
                 )}
               </>
@@ -880,12 +876,12 @@ function ChoresSection() {
     return (
       <View key={c._id} style={{
         flexDirection: "column",
-        marginBottom: 12,
+        marginBottom: 20,
         backgroundColor: showCompleted ? themeColors.success + "15" :
                       showPending ? themeColors.warning + "20" :
                       category.bgColor || themeColors.surface,
         borderRadius: 12,
-        padding: 12,
+        padding: 20,
         borderWidth: 2,
         borderColor: showCompleted ? themeColors.success :
                   showPending ? themeColors.warning :

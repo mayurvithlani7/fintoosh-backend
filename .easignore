@@ -52,6 +52,13 @@ README.md
 CHANGELOG.md
 *.md
 TESTING_GUIDE.md
+BRAND_GUIDE.md
+BRAND_IMPLEMENTATION_GUIDE.md
+MARKET_ANALYSIS.md
+MARKETING_GUIDE.md
+QA_CHECKLIST.md
+USER_GUIDE.md
+New Text Document.txt
 *.txt
 *.doc
 *.docx
@@ -91,6 +98,11 @@ fix-username-index.js
 test-api.js
 test-login.js
 test-milestones.js
+test-color-contrast.js
+test-theme-accessibility.js
+test-updated-theme.js
+fix-corrupted-transactions.js
+savingsInterestJob-concept.md
 
 # Remove if you use these folders for app code
 # components/   # (Commented, KEEP THESE UNLESS unused)

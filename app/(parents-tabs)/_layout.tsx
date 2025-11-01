@@ -126,6 +126,7 @@ function ParentsTabLayoutInner() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationDrawerVisible, setNotificationDrawerVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Check authentication status
   useEffect(() => {
@@ -219,6 +220,52 @@ function ParentsTabLayoutInner() {
     } catch (err) {
       console.error('Failed to load notifications:', err);
       setNotifications([]);
+    }
+  };
+
+  // Enhanced logout function with proper error handling
+  const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple simultaneous logout attempts
+
+    setIsLoggingOut(true);
+    console.log('[PARENTS LOGOUT] Starting logout process...');
+
+    try {
+      // Step 1: Reset data cache
+      console.log('[PARENTS LOGOUT] Resetting data cache...');
+      dataCache.resetDataCache();
+
+      // Step 2: Clear sensitive app data (tokens, user data)
+      console.log('[PARENTS LOGOUT] Clearing sensitive app data...');
+      const { clearSensitiveAppData } = await import('@/utils/secureStorage');
+      await clearSensitiveAppData();
+
+      // Step 3: Clear request cache
+      console.log('[PARENTS LOGOUT] Clearing request cache...');
+      const { clearRequestCache } = await import('@/utils/api');
+      clearRequestCache();
+
+      console.log('[PARENTS LOGOUT] Logout successful, redirecting to login...');
+      // Step 4: Navigate to login screen
+      router.replace('/login');
+
+    } catch (error) {
+      console.error('[PARENTS LOGOUT] Error during logout:', error);
+
+      // Fallback: try to clear what we can and redirect anyway
+      try {
+        console.log('[PARENTS LOGOUT] Attempting fallback logout...');
+        dataCache.resetDataCache();
+        router.replace('/login');
+      } catch (fallbackError) {
+        console.error('[PARENTS LOGOUT] Fallback logout failed:', fallbackError);
+        // Last resort: force navigation
+        setTimeout(() => {
+          router.replace('/login');
+        }, 100);
+      }
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -323,24 +370,30 @@ function ParentsTabLayoutInner() {
               <TouchableOpacity
                 style={{
                   marginLeft: 14,
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  backgroundColor: themeColors.error,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  backgroundColor: isLoggingOut ? themeColors.textSecondary : themeColors.error,
                   borderRadius: 6,
+                  minWidth: 60,
+                  minHeight: 36,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  elevation: 2,
                 }}
-                onPress={async () => {
-                  // Logout: clear all tokens, user data, and user-specific persistent state, then redirect
-                  dataCache.resetDataCache();
-                  const { clearSensitiveAppData } = await import('@/utils/secureStorage');
-                  const { clearRequestCache } = await import('@/utils/api');
-                  await clearSensitiveAppData();
-                  clearRequestCache();
-                  router.replace('/login');
-                }}
+                onPress={handleLogout}
+                disabled={isLoggingOut}
                 accessibilityRole="button"
-                accessibilityLabel="Logout"
+                accessibilityLabel={isLoggingOut ? "Logging out..." : "Logout"}
+                accessibilityState={{ disabled: isLoggingOut }}
+                activeOpacity={0.7}
               >
-                <Text style={{ color: '#ffffff', fontWeight: "bold" }}>Logout</Text>
+                <Text style={{
+                  color: '#ffffff',
+                  fontWeight: "bold",
+                  fontSize: 14
+                }}>
+                  {isLoggingOut ? '⏳' : 'Logout'}
+                </Text>
               </TouchableOpacity>
             </View>
           ),

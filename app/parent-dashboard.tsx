@@ -1,14 +1,18 @@
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function ParentDashboardScreen() {
   const router = useRouter();
+  const { refresh } = useLocalSearchParams();
 
   useEffect(() => {
-    // Redirect to the new tabbed parents dashboard
-    router.replace('/(parents-tabs)');
-  }, [router]);
+    // Redirect to the new tabbed parents dashboard, passing through the refresh parameter
+    router.replace({
+      pathname: '/(parents-tabs)',
+      params: refresh ? { refresh } : {}
+    });
+  }, [router, refresh]);
 
   return (
     <View style={styles.container}>

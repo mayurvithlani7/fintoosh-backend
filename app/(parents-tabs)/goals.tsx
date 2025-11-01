@@ -1,3 +1,4 @@
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -14,6 +15,7 @@ import { useTheme } from '@/utils/themeContext';
 import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 
 import { goalSuggestions } from '@/constants/goalSuggestions';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 export default function ParentsGoalsScreen() {
   const router = useRouter();
@@ -63,6 +65,7 @@ export default function ParentsGoalsScreen() {
   const [editingGoal, setEditingGoal] = useState<any>(null);
   const [showTemplates, setShowTemplates] = useState(false);
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const formSectionRef = React.useRef<View>(null);
 
   const jarOptions = [
     { label: 'Pocket Money', value: 'current' },
@@ -215,6 +218,7 @@ export default function ParentsGoalsScreen() {
 
 
   const { showError, showFeedback } = useGlobalFeedback();
+  const { showMessage } = useCenteredMessage();
   const handleAddGoal = async () => {
     console.log('[PARENTS GOALS] handleAddGoal called', {
       goal: goal.trim(),
@@ -326,7 +330,7 @@ export default function ParentsGoalsScreen() {
       setDeadline('');
       setSelectedJar('current');
       setEditingGoal(null);
-      showFeedback(editingGoal ? 'Goal updated successfully!' : 'Goal added successfully!');
+      showMessage(editingGoal ? 'Goal updated successfully!' : 'Goal added successfully!', 'success');
 
       loadGoals();
     } catch (err: any) {
@@ -448,22 +452,26 @@ export default function ParentsGoalsScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
-        <BackButton label="Back to Home" to="/(parents-tabs)" />
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 16,
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            elevation: 2,
-            minWidth: 32,
-            alignItems: 'center',
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
-        </TouchableOpacity>
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
+        <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between' }}>
+          <BackButton label="Back to Home" to="/(parents-tabs)" />
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.accent,
+              borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => setHelpModalVisible(true)}
+          >
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Set Child Goals</Text>
 
@@ -659,7 +667,7 @@ export default function ParentsGoalsScreen() {
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
         shadowRadius: 8,
-      }]}>
+      }]} ref={formSectionRef}>
         {/* Simple Header */}
         <View style={styles.simpleHeader}>
           <Text style={[styles.headerTitle, { color: themeColors.primary }]}>
@@ -1095,7 +1103,8 @@ export default function ParentsGoalsScreen() {
                             setPointsNeeded(g.targetAmount.toString());
                             setSelectedJar(g.jar);
                             setDeadline(g.deadline ? g.deadline.split('T')[0] : '');
-                            scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+                            // Scroll to the form section (approximately where the form is located)
+                            scrollViewRef.current?.scrollTo({ x: 0, y: 400, animated: true });
                           }}
                         >
                           <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>

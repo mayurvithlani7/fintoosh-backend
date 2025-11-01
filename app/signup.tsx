@@ -1,4 +1,5 @@
 import { API_URL } from '@/utils/config';
+import { MOBILE_LAYOUT } from '@/utils/mobileLayout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from 'expo-router';
@@ -187,9 +188,14 @@ export default function SignupScreen() {
     >
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* --- HERO SECTION --- */}
           <View style={styles.heroSection}>
             <Image
@@ -427,8 +433,8 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#ffffffee',
-    borderRadius: 22,
-    padding: 20,
+    borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+    padding: MOBILE_LAYOUT.cardPadding,
     width: '94%',
     maxWidth: 390,
     alignItems: 'center',
@@ -436,7 +442,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 14,
-    elevation: 8,
+    elevation: MOBILE_LAYOUT.buttonElevation,
     marginVertical: 16
   },
   signupMainTitle: {

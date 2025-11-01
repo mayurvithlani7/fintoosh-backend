@@ -215,9 +215,10 @@ async function enhancedFetch(
 
 // Get performance metrics
 export function getPerformanceMetrics() {
+  const deduplicationStats = getDeduplicationStats();
   return {
     ...REQUEST_METRICS,
-    activeRequests: pendingRequests.size,
+    activeRequests: deduplicationStats.pendingRequests,
     cachedResponses: requestCache.size,
     loadingStates: Array.from(loadingStates.keys())
   };
@@ -226,7 +227,7 @@ export function getPerformanceMetrics() {
 // Clear request cache and pending requests
 export function clearRequestCache() {
   requestCache.clear();
-  pendingRequests.clear();
+  cancelAllPendingRequests(); // Use the exported function instead of accessing private variable
 }
 
 // Clear performance metrics (for testing)

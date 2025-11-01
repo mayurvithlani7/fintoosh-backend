@@ -1,5 +1,6 @@
 import HelpModal from '@/components/HelpModal';
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { useTheme } from '@/utils/themeContext';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -20,26 +21,29 @@ export default function MoreScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 18, marginTop: 6 }}>
-        <Text style={[styles.header, { color: themeColors.primary }]}>📱 More</Text>
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
+        <View style={MOBILE_STYLES.center}>
+          <Text style={[styles.header, { color: themeColors.primary }]}>📱 More</Text>
+        </View>
         <TouchableOpacity
           style={{
             backgroundColor: themeColors.accent,
-            borderRadius: 16,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            elevation: 2,
-            minWidth: 48,
-            minHeight: 48,
+            borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+            paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+            paddingVertical: MOBILE_LAYOUT.itemSpacing,
+            elevation: MOBILE_LAYOUT.buttonElevation,
+            minWidth: MOBILE_LAYOUT.minTouchTarget,
+            minHeight: MOBILE_LAYOUT.minTouchTarget,
             justifyContent: 'center',
             alignItems: 'center',
+            alignSelf: 'flex-end',
           }}
           onPress={() => setHelpModalVisible(true)}
           accessibilityRole="button"
           accessibilityLabel="Help and information"
           accessibilityHint="Open help guide for more options"
         >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
         </TouchableOpacity>
       </View>
       {TABS.map(tab => (

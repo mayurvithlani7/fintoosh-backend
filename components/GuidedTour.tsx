@@ -80,6 +80,9 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ visible, onComplete, onDismiss 
   const prevStep = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    } else {
+      // If we're on the first step and user presses "Skip", dismiss the tour
+      onDismiss();
     }
   };
 
@@ -112,14 +115,15 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ visible, onComplete, onDismiss 
     overlay: {
       flex: 1,
       backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
       padding: 20,
-      ...getModalPosition(),
     },
     modalContainer: {
       backgroundColor: themeColors.card,
       borderRadius: 16,
       width: '100%',
-      maxWidth: 350,
+      maxWidth: 450,
       elevation: 10,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
@@ -172,7 +176,7 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ visible, onComplete, onDismiss 
     content: {
       padding: 16,
       alignItems: 'center',
-      flex: 1,
+      minHeight: 60,
     },
     contentText: {
       fontSize: 14,
@@ -208,6 +212,11 @@ const GuidedTour: React.FC<GuidedTourProps> = ({ visible, onComplete, onDismiss 
       marginTop: 8,
       marginHorizontal: 16,
       marginBottom: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 20,
+      alignItems: 'center',
+      width: '100%',
     },
     buttonText: {
       color: themeColors.card,

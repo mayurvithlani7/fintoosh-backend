@@ -33,13 +33,26 @@ class OTPService {
    */
   static async sendOTP(phoneNumber, otp) {
     try {
+      console.log(`🔍 MSG91_AUTH_KEY present: ${!!MSG91_AUTH_KEY}`);
+      console.log(`📱 Attempting to send OTP ${otp} to ${phoneNumber}`);
+
       if (!MSG91_AUTH_KEY) {
-        console.log(`📱 DEV MODE: OTP ${otp} would be sent to ${phoneNumber}`);
+        console.log(`📱 DEV MODE: OTP ${otp} would be sent to ${phoneNumber} (no API key)`);
         return true; // Return true for development if no API key
       }
 
       // Remove country code (+91) for Msg91 API
       const mobileNumber = phoneNumber.replace(/^\+91/, '');
+      console.log(`📱 Cleaned mobile number: ${mobileNumber}`);
+
+      const payload = {
+        mobile: mobileNumber,
+        sender: MSG91_SENDER_ID,
+        message: `Your Fintoosh verification code is: ${otp}`,
+        otp: otp
+      };
+
+      console.log(`📤 Sending to Msg91 API:`, JSON.stringify(payload, null, 2));
 
       const response = await fetch('https://api.msg91.com/api/v5/otp', {
         method: 'POST',
@@ -47,25 +60,24 @@ class OTPService {
           'Content-Type': 'application/json',
           'authkey': MSG91_AUTH_KEY
         },
-        body: JSON.stringify({
-          mobile: mobileNumber,
-          sender: MSG91_SENDER_ID,
-          message: `Your Fintoosh verification code is: ${otp}`,
-          otp: otp
-        })
+        body: JSON.stringify(payload)
       });
 
+      console.log(`📡 Msg91 API Response Status: ${response.status}`);
+
       const result = await response.json();
+      console.log(`📡 Msg91 API Response:`, JSON.stringify(result, null, 2));
 
       if (result.type === 'success') {
         console.log(`✅ OTP sent successfully to ${phoneNumber} via Msg91`);
         return true;
       } else {
-        console.error('❌ Msg91 API Error:', result.message);
+        console.error('❌ Msg91 API Error:', result.message || result);
         return false;
       }
     } catch (error) {
-      console.error('❌ Msg91 API Error:', error.message);
+      console.error('❌ Msg91 API Network Error:', error.message);
+      console.error('❌ Full error:', error);
       return false;
     }
   }
@@ -78,7 +90,7 @@ class OTPService {
    */
   static async storeOTP(userId, otp) {
     try {
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes (increased from 5)
 
       await User.findByIdAndUpdate(userId, {
         otpCode: otp, // In production, encrypt this
@@ -86,6 +98,7 @@ class OTPService {
         otpVerified: false
       });
 
+      console.log(`💾 OTP stored for user ${userId}, expires at ${expiresAt}`);
       return true;
     } catch (error) {
       console.error('Error storing OTP:', error);
@@ -153,9 +166,9 @@ class OTPService {
         return true;
       }
 
-      // Rate limit: don't allow new OTP within 1 minute of last request
-      const timeSinceLastOTP = Date.now() - (user.otpExpiresAt.getTime() - 5 * 60 * 1000);
-      return timeSinceLastOTP > 60000; // 1 minute cooldown
+      // Rate limit: don't allow new OTP within 30 seconds of last request (reduced from 60)
+      const timeSinceLastOTP = Date.now() - (user.otpExpiresAt.getTime() - 10 * 60 * 1000);
+      return timeSinceLastOTP > 30000; // 30 second cooldown
     } catch (error) {
       console.error('Error checking OTP request eligibility:', error);
       return false;

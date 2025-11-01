@@ -1,3 +1,5 @@
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
+import { MOBILE_LAYOUT } from '@/utils/mobileLayout';
 import { clearAllAuthData, saveAuthToken, saveUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useRouter } from 'expo-router';
@@ -72,6 +74,7 @@ const features = [
 export default function LoginScreen() {
   console.log('[LOGIN] Component rendering started');
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const dataCache = require('@/utils/dataCacheContext').useDataCache();
   const [userType, setUserType] = useState<'parent' | 'child'>('parent');
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('email');
@@ -178,7 +181,7 @@ export default function LoginScreen() {
     }
 
     if (storageErrorMessage) {
-      alert(storageErrorMessage);
+      showMessage(storageErrorMessage, 'error');
       return;
     }
 
@@ -214,9 +217,14 @@ export default function LoginScreen() {
     >
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* --- HERO / APP STORY SECTION --- */}
           <View style={styles.heroSection}>
             <Image
@@ -287,9 +295,9 @@ export default function LoginScreen() {
                       </View>
 
                       {loginMethod === 'email' ? (
-                        <LoginForm onLoginSuccess={handleLoginSuccess} onBack={handleBack} />
+                        <LoginForm onLoginSuccess={handleLoginSuccess} onBack={handleBack} onReactivationRequired={() => setIsDeactivatedAccount(true)} />
                       ) : (
-                        <OTPLogin onLoginSuccess={handleLoginSuccess} onBack={handleBack} />
+                        <OTPLogin onLoginSuccess={handleLoginSuccess} onBack={handleBack} onReactivationRequired={() => setIsDeactivatedAccount(true)} />
                       )}
                     </>
                   )}
@@ -406,8 +414,8 @@ const styles = StyleSheet.create({
   // --- CARD & BRANDING ---
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 28,
+    borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+    padding: MOBILE_LAYOUT.cardPadding,
     width: '92%',
     maxWidth: 380,
     alignItems: 'center',
@@ -415,7 +423,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 18,
-    elevation: 10,
+    elevation: MOBILE_LAYOUT.buttonElevation,
     marginVertical: 18,
     borderWidth: 1,
     borderColor: '#D0D7E4'

@@ -177,9 +177,14 @@ export default function AddChildScreen() {
     >
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* --- HERO SECTION --- */}
           <View style={styles.heroSection}>
             <Image

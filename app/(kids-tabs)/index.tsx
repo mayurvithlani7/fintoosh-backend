@@ -1,9 +1,9 @@
 import AnimatedCounter from '@/components/animations/AnimatedCounter';
 import AnimatedProgressBar from '@/components/animations/AnimatedProgressBar';
 import BouncingCoin from '@/components/animations/BouncingCoin';
-import GuidedTour from '@/components/GuidedTour';
 import HelpModal from '@/components/HelpModal';
 import ActionCard from '@/components/ui/ActionCard';
+import WelcomeTour from '@/components/WelcomeTour';
 import { fetchNotifications } from '@/utils/api';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
@@ -11,7 +11,7 @@ import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { memo, useCallback, useEffect, useReducer, useState } from "react";
+import React, { memo, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
   RefreshControl,
   SafeAreaView,
@@ -23,6 +23,7 @@ import {
 } from "react-native";
 
 import SwipeNavigator from '@/components/SwipeNavigator';
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 
 // Smart Empty States with Action Prompts
 const EmptyStateWithAction = ({
@@ -293,92 +294,92 @@ const getTransactionIcon = (type: string) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingVertical: MOBILE_LAYOUT.sectionSpacing,
+    paddingHorizontal: MOBILE_LAYOUT.containerPadding,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 24,
-    marginTop: 8,
+    ...MOBILE_STYLES.title,
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+    marginTop: MOBILE_LAYOUT.itemSpacing,
     // color moved to dynamicStyles
   },
   jarBox: {
     minWidth: 85,
     alignItems: "center",
     // backgroundColor moved to dynamicStyles
-    padding: 12,
-    borderRadius: 12,
-    margin: 6,
-    borderWidth: 1,
+    padding: MOBILE_LAYOUT.cardPadding,
+    borderRadius: MOBILE_LAYOUT.borderRadius,
+    margin: MOBILE_LAYOUT.itemSpacing,
+    borderWidth: MOBILE_LAYOUT.borderWidth,
     // borderColor moved to dynamicStyles
   },
   jarLabel: {
     fontWeight: "bold",
-    marginBottom: 4,
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
     // color moved to dynamicStyles
-    fontSize: 14,
+    ...MOBILE_STYLES.body,
   },
   jarPoints: {
-    fontWeight: "700",
-    fontSize: 18,
-    marginBottom: 2,
+    ...MOBILE_STYLES.title,
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
     // color moved to dynamicStyles
   },
   quickActionCard: {
     // backgroundColor moved to dynamicStyles
-    borderRadius: 16,
-    marginBottom: 20,
-    padding: 20,
+    borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+    padding: MOBILE_LAYOUT.cardPadding,
     width: "100%",
-    maxWidth: 520,
-    elevation: 1,
+    maxWidth: MOBILE_LAYOUT.containerWidth,
+    elevation: MOBILE_LAYOUT.cardElevation,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
   sectionTitle: {
-    fontSize: 22,
+    ...MOBILE_STYLES.subtitle,
     fontWeight: "700",
-    marginBottom: 12,
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
     // color moved to dynamicStyles
   },
   actionButton: {
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginVertical: 6,
+    borderRadius: MOBILE_LAYOUT.borderRadius,
+    paddingVertical: MOBILE_LAYOUT.itemSpacing,
+    paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+    marginVertical: MOBILE_LAYOUT.itemSpacing,
     alignItems: "center",
-    elevation: 1,
+    elevation: MOBILE_LAYOUT.buttonElevation,
+    minHeight: MOBILE_LAYOUT.minTouchTarget,
   },
   actionButtonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 16,
+    ...MOBILE_STYLES.body,
   },
   statCard: {
     // backgroundColor moved to dynamicStyles
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 4,
+    borderRadius: MOBILE_LAYOUT.borderRadius,
+    padding: MOBILE_LAYOUT.cardPadding,
+    marginVertical: MOBILE_LAYOUT.itemSpacing,
     alignItems: "center",
   },
   statValue: {
-    fontSize: 22,
+    ...MOBILE_STYLES.title,
     fontWeight: "bold",
     // color moved to dynamicStyles
   },
   statLabel: {
-    fontSize: 13,
+    ...MOBILE_STYLES.caption,
     // color moved to dynamicStyles
-    marginTop: 4,
+    marginTop: MOBILE_LAYOUT.itemSpacing,
   },
   sectionDivider: {
     height: 1,
     backgroundColor: '#E0E0E0',
-    marginVertical: 8,
+    marginVertical: MOBILE_LAYOUT.itemSpacing,
     width: '100%',
   },
   // Empty state styles - moved to dynamicStyles
@@ -398,6 +399,10 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   const { refreshIntervals, formatAmount } = useCurrency();
   // Theme validation test - toggle between themes to verify color changes
   const [testTheme, setTestTheme] = useState(false);
+
+  // Page dots for pots section
+  const potsScrollRef = useRef<ScrollView>(null);
+  const [potsScrollPosition, setPotsScrollPosition] = useState(0);
 
   // Simplified state management - removed complex request deduplication to avoid AbortController issues
   const [state, dispatch] = useReducer(appReducer, {
@@ -551,9 +556,29 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
       dispatch({ type: 'SET_USER_DATA', payload: { userData: userDataWithExtras, jars, activities } });
 
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      dispatch({ type: 'SET_ERROR', payload: 'Oops! 🔄 Having trouble loading your points right now. Please try again!' });
+    } catch (error: any) {
+      // Log error for debugging (not shown to users)
+      console.error('API Error:', error?.message || error);
+
+      // Show user-friendly, kid-appropriate error messages
+      let friendlyMessage = '🤖 Oops! My robot helpers are having trouble loading your points right now. Please try again!';
+
+      if (error?.message) {
+        const errorMsg = error.message.toLowerCase();
+        if (errorMsg.includes('429') || errorMsg.includes('rate limit')) {
+          friendlyMessage = '⏳ Too many requests! Please wait a moment and try again.';
+        } else if (errorMsg.includes('401') || errorMsg.includes('unauthorized')) {
+          friendlyMessage = '🔐 Please ask a grown-up to log you back in!';
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+          friendlyMessage = '📶 Check your internet connection and try again!';
+        } else if (errorMsg.includes('404')) {
+          friendlyMessage = '🔍 Having trouble finding your account. Please try again!';
+        } else if (errorMsg.includes('500') || errorMsg.includes('server')) {
+          friendlyMessage = '🏗️ Our servers are taking a break. Please try again soon!';
+        }
+      }
+
+      dispatch({ type: 'SET_ERROR', payload: friendlyMessage });
     } finally {
       dispatch({ type: 'SET_LOADING_PHASE', payload: 'complete' });
       dispatch({ type: 'SET_REFRESHING', payload: false });
@@ -729,36 +754,35 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   // Dynamic styles based on theme
   const dynamicStyles = {
     title: {
-      fontSize: 28,
-      fontWeight: "bold" as const,
-      marginBottom: 22,
-      marginTop: 6,
+      ...MOBILE_STYLES.title,
+      marginBottom: MOBILE_LAYOUT.sectionSpacing,
+      marginTop: MOBILE_LAYOUT.itemSpacing,
       color: themeColors.text,
     },
     quickActionCard: {
       backgroundColor: themeColors.card,
-      borderRadius: 14,
-      marginBottom: 16,
-      padding: 18,
+      borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+      marginBottom: MOBILE_LAYOUT.sectionSpacing,
+      padding: MOBILE_LAYOUT.cardPadding,
       width: '100%',
-      maxWidth: 520,
+      maxWidth: MOBILE_LAYOUT.containerWidth,
       alignSelf: 'center',
-      elevation: 3,
+      elevation: MOBILE_LAYOUT.cardElevation,
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
-      borderWidth: 2,
+      borderWidth: MOBILE_LAYOUT.borderWidth,
       borderColor: themeColors.border,
     } as any, // Cast to any to allow percentage width
     sectionTitle: {
-      fontSize: 20,
+      ...MOBILE_STYLES.body,
       fontWeight: "600" as const,
-      marginBottom: 8,
+      marginBottom: MOBILE_LAYOUT.itemSpacing,
       color: themeColors.text,
     },
     totalPointsText: {
-      fontSize: 36,
+      ...MOBILE_STYLES.title,
       fontWeight: 'bold' as const,
       color: themeColors.primary,
       textAlign: 'center' as const,
@@ -767,34 +791,34 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       color: themeColors.textSecondary,
       fontStyle: "italic" as const,
       textAlign: "center" as const,
-      marginVertical: 20,
+      marginVertical: MOBILE_LAYOUT.sectionSpacing,
     },
     // Empty state styles
     emptyState: {
       alignItems: 'center',
-      paddingVertical: 30,
-      paddingHorizontal: 20,
+      paddingVertical: MOBILE_LAYOUT.sectionSpacing * 2,
+      paddingHorizontal: MOBILE_LAYOUT.containerPadding,
     },
     emptyIcon: {
       fontSize: 48,
-      marginBottom: 16,
+      marginBottom: MOBILE_LAYOUT.itemSpacing * 2,
     },
     emptyTitle: {
-      fontSize: 20,
+      ...MOBILE_STYLES.subtitle,
       fontWeight: 'bold',
-      marginBottom: 8,
+      marginBottom: MOBILE_LAYOUT.itemSpacing,
       textAlign: 'center',
     },
     emptyMessage: {
-      fontSize: 16,
+      ...MOBILE_STYLES.body,
       textAlign: 'center',
-      marginBottom: 20,
+      marginBottom: MOBILE_LAYOUT.sectionSpacing,
     },
     emptyActionButton: {
-      paddingHorizontal: 24,
-      paddingVertical: 12,
-      borderRadius: 25,
-      elevation: 3,
+      paddingHorizontal: MOBILE_LAYOUT.cardPadding * 2,
+      paddingVertical: MOBILE_LAYOUT.itemSpacing,
+      borderRadius: MOBILE_LAYOUT.borderRadius * 2,
+      elevation: MOBILE_LAYOUT.cardElevation,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
@@ -802,29 +826,29 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     },
     emptyActionText: {
       color: '#FFFFFF',
-      fontSize: 16,
+      ...MOBILE_STYLES.body,
       fontWeight: 'bold',
     },
     // Time-based content styles
     timeContext: {
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 16,
-      borderWidth: 2,
+      borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+      padding: MOBILE_LAYOUT.cardPadding,
+      marginBottom: MOBILE_LAYOUT.sectionSpacing,
+      borderWidth: MOBILE_LAYOUT.borderWidth,
       borderColor: themeColors.border,
     },
     timeGreeting: {
-      fontSize: 18,
+      ...MOBILE_STYLES.subtitle,
       fontWeight: 'bold',
-      marginBottom: 8,
+      marginBottom: MOBILE_LAYOUT.itemSpacing,
     },
     timeTip: {
-      fontSize: 16,
-      marginBottom: 6,
+      ...MOBILE_STYLES.body,
+      marginBottom: MOBILE_LAYOUT.itemSpacing,
       fontWeight: '500',
     },
     timeSuggestion: {
-      fontSize: 14,
+      ...MOBILE_STYLES.caption,
       fontStyle: 'italic',
     },
   };
@@ -835,7 +859,12 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     return (
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
-          contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}
+contentContainerStyle={{
+  flexGrow: 1,
+  paddingVertical: MOBILE_LAYOUT.sectionSpacing,
+  paddingHorizontal: MOBILE_LAYOUT.containerPadding,
+  backgroundColor: themeColors.background,
+}}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -855,12 +884,13 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     const SkeletonJar = require('@/components/ui/SkeletonJar').default;
     return (
       <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+      <ScrollView
+        style={{ flex: 1, backgroundColor: themeColors.background }}
+        contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
           {/* Title Skeleton */}
           <SkeletonCard height={38} width={150} style={{ alignSelf: "center", marginBottom: 10, marginTop: 6 }} />
 
@@ -889,7 +919,8 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={[styles.container, { backgroundColor: themeColors.background }]}
+        style={{ flex: 1, backgroundColor: themeColors.background }}
+        contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -897,8 +928,8 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
 
 
-      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
+        <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
           <View style={{ alignItems: 'center', flex: 1 }}>
             <Text
               style={[dynamicStyles.title, { color: themeColors.primary }]}
@@ -908,7 +939,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               💰 My Money Adventure
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={MOBILE_STYLES.row}>
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel={refreshing ? "Refreshing points data" : "Refresh my points"}
@@ -916,18 +947,18 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               accessibilityState={{ disabled: refreshing }}
               style={{
                 backgroundColor: themeColors.secondary,
-                borderRadius: 20,
-                width: 40,
-                height: 40,
+                borderRadius: MOBILE_LAYOUT.borderRadius * 1.5,
+                width: MOBILE_LAYOUT.minTouchTarget,
+                height: MOBILE_LAYOUT.minTouchTarget,
                 justifyContent: 'center',
                 alignItems: 'center',
-                elevation: 1,
-                marginRight: 8,
+                elevation: MOBILE_LAYOUT.buttonElevation,
+                marginRight: MOBILE_LAYOUT.itemSpacing,
               }}
               onPress={onRefresh}
               disabled={refreshing}
             >
-              <Text style={{ fontSize: 16, color: themeColors.card }}>{refreshing ? '⏳' : '↻'}</Text>
+              <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card }}>{refreshing ? '⏳' : '↻'}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               accessibilityRole="button"
@@ -935,16 +966,16 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               accessibilityHint="Open help guide for money pots"
               style={{
                 backgroundColor: themeColors.accent,
-                borderRadius: 20,
-                width: 40,
-                height: 40,
+                borderRadius: MOBILE_LAYOUT.borderRadius * 1.5,
+                width: MOBILE_LAYOUT.minTouchTarget,
+                height: MOBILE_LAYOUT.minTouchTarget,
                 justifyContent: 'center',
                 alignItems: 'center',
-                elevation: 1,
+                elevation: MOBILE_LAYOUT.buttonElevation,
               }}
               onPress={() => setHelpModalVisible(true)}
             >
-              <Text style={{ color: themeColors.card, fontSize: 16 }}>❓</Text>
+              <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card }}>❓</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1162,11 +1193,94 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       {/* Enhanced Money Jars Overview */}
       <View style={dynamicStyles.quickActionCard}>
         <Text style={dynamicStyles.sectionTitle}>My Pots</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingVertical: 8 }}>
-          {jars.map(jar => (
+
+        {/* Total Points Display */}
+        <View style={{ alignItems: 'center', marginBottom: 20, paddingTop: 10 }}>
+          <Text style={{
+            fontSize: 16,
+            fontWeight: '600',
+            color: themeColors.primary,
+            marginBottom: 8,
+            textAlign: 'center'
+          }}>
+            💰 My Total Points
+          </Text>
+
+          <AnimatedCounter
+            value={totalPoints}
+            fontSize={36}
+            color={themeColors.primary}
+            suffix=""
+          />
+
+          <View style={{ alignItems: 'center', marginTop: 8 }}>
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.success,
+              fontWeight: '500'
+            }}>
+              📈 +{todaysEarnings} Today
+            </Text>
+
+            {/* Achievement Message */}
+            {totalPoints > 100 && (
+              <View style={{
+                marginTop: 12,
+                padding: 10,
+                backgroundColor: themeColors.success + '15',
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: themeColors.success + '30',
+                alignItems: 'center'
+              }}>
+                <Text style={{
+                  fontSize: 13,
+                  color: themeColors.success,
+                  fontWeight: '600',
+                  textAlign: 'center'
+                }}>
+                  🌟 Amazing! You're building great money habits!
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Horizontal ScrollView with natural layout */}
+        <ScrollView
+          ref={potsScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ paddingVertical: 8 }}
+          contentContainerStyle={{
+            paddingLeft: 6, // Even less left padding so first jar starts more from left
+            paddingRight: 80, // Moderate right padding to show scrollability
+            alignItems: 'center',
+          }}
+          onScroll={(event) => {
+            const scrollX = event.nativeEvent.contentOffset.x;
+            const itemWidth = 92; // width (80) + marginHorizontal (6*2) = 92
+            const activeIndex = Math.round(scrollX / itemWidth); // Use round instead of floor for better sensitivity
+
+            // Group jars into 2 sections: 0-1, 2-4
+            let groupIndex = 0;
+            if (activeIndex >= 1) { // More responsive - switch after first jar
+              groupIndex = 1;  // Jars 1-4: Savings, Spending, Help Others & Grow Money pots
+            }
+
+            setPotsScrollPosition(groupIndex);
+          }}
+          scrollEventThrottle={16}
+          decelerationRate="normal" // Remove fast snapping
+        >
+          {jars.map((jar, index) => (
             <TouchableOpacity
               key={jar.label}
-              style={{ marginHorizontal: 6, alignItems: 'center' }}
+              style={{
+                marginHorizontal: 6,
+                alignItems: 'center',
+                width: 80, // Fixed width for consistent snapping
+              }}
               accessibilityRole="button"
               accessibilityLabel={`${jar.label}: ${jar.value} points`}
               onPress={() => router.push('./money-jars')}
@@ -1195,233 +1309,30 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </View>
 
-      {/* Enhanced Hero Section with Total Points and Quick Stats */}
-      <View style={{
-        backgroundColor: `linear-gradient(135deg, ${themeColors.primary}15 0%, ${themeColors.primary}08 100%)`,
-        borderRadius: 20,
-        marginBottom: 20,
-        padding: 24,
-        width: '100%',
-        maxWidth: 520,
-        alignSelf: 'center',
-        elevation: 4,
-        shadowColor: themeColors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        borderWidth: 2,
-        borderColor: themeColors.primary + '30',
-      }}>
-        {/* Main Points Display */}
-        <View style={{ alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{
-            fontSize: 18,
-            fontWeight: '600',
-            color: themeColors.primary,
-            marginBottom: 8,
-            textAlign: 'center'
-          }}>
-            💰 My Total Points
-          </Text>
-
-          <AnimatedCounter
-            value={totalPoints}
-            fontSize={48}
-            color={themeColors.primary}
-            suffix=""
-          />
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-            <Text style={{
-              fontSize: 14,
-              color: themeColors.success,
-              fontWeight: '500',
-              marginRight: 12
-            }}>
-              📈 +{todaysEarnings} Today
-            </Text>
-            <Text style={{
-              fontSize: 14,
-              color: themeColors.accent,
-              fontWeight: '500'
-            }}>
-              🎯 {userData && userData.goals ? userData.goals.length : 0} Active Goals
-            </Text>
-          </View>
-        </View>
-
-        {/* Stats Grid - Responsive Layout */}
+        {/* Page Dots Indicator - Only 2 dots for grouped sections */}
         <View style={{
           flexDirection: 'row',
-          flexWrap: 'wrap',
-          justifyContent: 'space-around',
-          gap: 12,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingVertical: 8,
+          gap: 6,
         }}>
-          <TouchableOpacity
-            style={{
-              backgroundColor: themeColors.card,
-              borderRadius: 16,
-              padding: 16,
-              minWidth: 80,
-              alignItems: 'center',
-              elevation: 2,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              borderWidth: 1,
-              borderColor: themeColors.border,
-            }}
-            onPress={() => router.push('./gifts')}
-            accessibilityRole="button"
-            accessibilityLabel={`Rewards: ${userData && userData.rewards ? userData.rewards.length : 0} available rewards`}
-            accessibilityHint="Navigate to rewards and gifts page"
-          >
-            <Text style={{ fontSize: 24, marginBottom: 4 }}>🎁</Text>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: themeColors.accent,
-              marginBottom: 2
-            }}>
-              {userData && userData.rewards ? userData.rewards.length : 0}
-            </Text>
-            <Text style={{
-              fontSize: 12,
-              color: themeColors.textSecondary,
-              textAlign: 'center'
-            }}>
-              Rewards
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{
-              backgroundColor: themeColors.card,
-              borderRadius: 16,
-              padding: 16,
-              minWidth: 80,
-              alignItems: 'center',
-              elevation: 2,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              borderWidth: 1,
-              borderColor: themeColors.border,
-            }}
-            onPress={() => router.push('./goals')}
-            accessibilityRole="button"
-            accessibilityLabel={`Goals: ${userData && userData.goals ? userData.goals.length : 0} active goals`}
-            accessibilityHint="Navigate to goals and savings page"
-          >
-            <Text style={{ fontSize: 24, marginBottom: 4 }}>🎯</Text>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: themeColors.warning,
-              marginBottom: 2
-            }}>
-              {userData && userData.goals ? userData.goals.length : 0}
-            </Text>
-            <Text style={{
-              fontSize: 12,
-              color: themeColors.textSecondary,
-              textAlign: 'center'
-            }}>
-              Goals
-            </Text>
-          </TouchableOpacity>
-
-          <View style={{
-            backgroundColor: themeColors.card,
-            borderRadius: 16,
-            padding: 16,
-            minWidth: 80,
-            alignItems: 'center',
-            elevation: 2,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            borderWidth: 1,
-            borderColor: themeColors.border,
-          }}>
-            <Text style={{ fontSize: 24, marginBottom: 4 }}>📅</Text>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: themeColors.success,
-              marginBottom: 2
-            }}>
-              {todaysEarnings > 0 ? `+${todaysEarnings}` : todaysEarnings}
-            </Text>
-            <Text style={{
-              fontSize: 12,
-              color: themeColors.textSecondary,
-              textAlign: 'center'
-            }}>
-              Today
-            </Text>
-          </View>
-
-          <View style={{
-            backgroundColor: themeColors.card,
-            borderRadius: 16,
-            padding: 16,
-            minWidth: 80,
-            alignItems: 'center',
-            elevation: 2,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            borderWidth: 1,
-            borderColor: themeColors.border,
-          }}>
-            <Text style={{ fontSize: 24, marginBottom: 4 }}>📊</Text>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: themeColors.secondary,
-              marginBottom: 2
-            }}>
-              {userData && userData.transactions ? userData.transactions.length : 0}
-            </Text>
-            <Text style={{
-              fontSize: 12,
-              color: themeColors.textSecondary,
-              textAlign: 'center'
-            }}>
-              Activities
-            </Text>
-          </View>
+          {[0, 1].map((groupIndex) => (
+            <View
+              key={groupIndex}
+              style={{
+                width: potsScrollPosition === groupIndex ? 12 : 8,
+                height: potsScrollPosition === groupIndex ? 12 : 8,
+                borderRadius: potsScrollPosition === groupIndex ? 6 : 4,
+                backgroundColor: potsScrollPosition === groupIndex ? themeColors.primary : themeColors.border,
+              }}
+            />
+          ))}
         </View>
-
-        {/* Achievement Message */}
-        {totalPoints > 100 && (
-          <View style={{
-            marginTop: 16,
-            padding: 12,
-            backgroundColor: themeColors.success + '15',
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: themeColors.success + '30',
-            alignItems: 'center'
-          }}>
-            <Text style={{
-              fontSize: 14,
-              color: themeColors.success,
-              fontWeight: '600',
-              textAlign: 'center'
-            }}>
-              🌟 Amazing! You're building great money habits!
-            </Text>
-          </View>
-        )}
       </View>
+
+
 
       {/* Enhanced Quick Actions */}
       <View style={dynamicStyles.quickActionCard}>
@@ -1754,8 +1665,8 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
         ]}
       />
 
-      {/* Guided Tour for First-Time Users */}
-      <GuidedTour
+      {/* Welcome Tour for First-Time Users */}
+      <WelcomeTour
         visible={guidedTourVisible}
         onComplete={async () => {
           dispatch({ type: 'SET_GUIDED_TOUR_VISIBLE', payload: false });
@@ -1772,7 +1683,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
               await fetch(`${API_URL}/users/${user.id}`, {
                 method: 'PATCH',
                 headers,
-                body: JSON.stringify({ isFirstTimeUser: false }),
+                body: JSON.stringify({ isFirstTimeUser: false as any }),
               }).catch(err => console.log('Failed to update first-time status:', err));
               // Update local userData via reducer
               dispatch({ type: 'UPDATE_USER_FIRST_TIME_STATUS', payload: false });
@@ -1781,7 +1692,30 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
             console.error('Failed to update first-time user status:', error);
           }
         }}
-        onDismiss={() => dispatch({ type: 'SET_GUIDED_TOUR_VISIBLE', payload: false })}
+        onDismiss={async () => {
+          dispatch({ type: 'SET_GUIDED_TOUR_VISIBLE', payload: false });
+          // Also mark user as not first-time when they skip, to hide the progress section
+          try {
+            const token = await getAuthToken();
+            const storedUser = await getUserData();
+            if (token && storedUser) {
+              const user = storedUser;
+              const headers: Record<string, string> = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              };
+              await fetch(`${API_URL}/users/${user.id}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ isFirstTimeUser: false }),
+              }).catch(err => console.log('Failed to update first-time status on skip:', err));
+              // Update local userData via reducer
+              dispatch({ type: 'UPDATE_USER_FIRST_TIME_STATUS', payload: false });
+            }
+          } catch (error) {
+            console.error('Failed to update first-time user status on skip:', error);
+          }
+        }}
       />
       </ScrollView>
     </SafeAreaView>
@@ -1795,7 +1729,7 @@ export default function KidsHomeScreenWithSwipe() {
   // Swipe navigation is enabled by default. Can be disabled per screen by passing disabled={true}
   return (
     <SwipeNavigator
-      tabRoutes={['index', 'money-jars', 'goals', 'chores', 'learn', 'more']}
+      tabRoutes={['index', 'money-jars', 'goals', 'chores', 'learn', 'more', 'transaction-history']}
     >
       <KidsHomeScreen />
     </SwipeNavigator>

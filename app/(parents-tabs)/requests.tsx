@@ -1,5 +1,6 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { formatDateTime } from '@/utils/dateUtils';
 import { getAuthToken } from '@/utils/secureStorage';
@@ -10,7 +11,6 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   RefreshControl,
@@ -18,12 +18,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 export default function ParentsRequestsScreen() {
   const router = useRouter();
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const styles = createStyles(themeColors);
 
   // Function to get user-friendly request type display name
@@ -84,16 +85,17 @@ export default function ParentsRequestsScreen() {
     const searchQuery = opts?.searchQuery ?? pagination.searchQuery;
 
     try {
-      if (reset) setPagination((prev) => ({ ...prev, loading: true, currentPage: 1, hasNextPage: true, refreshing: false }));
+      if (reset) setPagination((prev) => ({ ...prev, loading: true, currentPage: 1, hasNextPage: true }));
       else if (page === 1) setPagination((prev) => ({ ...prev, loading: true, loadingMore: false, refreshing: false }));
       else setPagination((prev) => ({ ...prev, loadingMore: true }));
 
       const token = await getAuthToken();
-      if (!token) {
-        Alert.alert('Error', 'Not authenticated. Please login again.');
-        return;
-      }
-      let url = `${API_URL}/requests?page=${page}&limit=20&status=${filter}`;
+                  if (!token) {
+                    showMessage('Not authenticated. Please login again.', 'error');
+                    return;
+                  }
+      const apiStatus = getApiStatus(filter);
+      let url = `${API_URL}/requests?page=${page}&limit=20&status=${apiStatus}`;
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
 
       const response = await fetch(url, {
@@ -140,7 +142,7 @@ export default function ParentsRequestsScreen() {
         loadingMore: false,
         hasNextPage: !!meta.hasNextPage,
         currentPage: meta.currentPage || page,
-        refreshing: false,
+        refreshing: false, // Always set to false when operation completes
       }));
       markRefreshed();
     } catch (error: any) {
@@ -179,7 +181,7 @@ export default function ParentsRequestsScreen() {
     try {
       const token = await getAuthToken();
       if (!token) {
-        Alert.alert('Error', 'Not authenticated. Please login again.');
+        showMessage('Not authenticated. Please login again.', 'error');
         return;
       }
 
@@ -210,7 +212,11 @@ export default function ParentsRequestsScreen() {
       setFeedback(`Request ${approvalModal.approved ? 'approved' : 'denied'}.`);
       setApprovalModal({ visible: false, request: null, approved: false, comment: '' });
 
-      setTimeout(() => { loadRequests({ page: 1, reset: true }); setFeedback(''); }, 2500);
+      // Refresh the requests list immediately
+      loadRequests({ page: 1, reset: true });
+
+      // Clear feedback after 2.5 seconds
+      setTimeout(() => setFeedback(''), 2500);
     } catch (error: any) {
       setFeedback(error?.message || 'Failed to update request. Please try again.');
       setTimeout(() => setFeedback(''), 4000);
@@ -223,6 +229,16 @@ export default function ParentsRequestsScreen() {
     loadRequests({ page: 1, reset: true, filter: newFilter });
   };
 
+  // Map filter to API status values
+  const getApiStatus = (filter: string) => {
+    switch (filter) {
+      case 'pending': return 'Pending';
+      case 'approved': return 'Approved';
+      case 'denied': return 'Denied';
+      default: return 'Pending';
+    }
+  };
+
   // FlatList: load next page when reaching end
   const loadMore = () => {
     if (pagination.hasNextPage && !pagination.loadingMore && !pagination.loading) {
@@ -230,11 +246,11 @@ export default function ParentsRequestsScreen() {
     }
   };
 
-  const archiveThreshold = (() => {
+  const archiveThreshold = React.useMemo(() => {
     const now = new Date();
     now.setDate(now.getDate() - 90);
     return now;
-  })();
+  }, []);
 
   // Calculate request counts for filter chips
   React.useEffect(() => {
@@ -246,23 +262,26 @@ export default function ParentsRequestsScreen() {
     setRequestCounts(counts);
   }, [requests, archiveThreshold]);
 
-  // Filter for recent approved/denied
-  let displayedRequests: any[] = [];
-  if (pagination.filter === 'approved' || pagination.filter === 'denied') {
-    const statusLabel = pagination.filter === 'approved' ? 'Approved' : 'Denied';
-    displayedRequests = requests.filter((r) =>
-      r.status === statusLabel && new Date(r.createdAt) >= archiveThreshold
-    );
-  } else {
-    displayedRequests = requests.filter((r) => r.status === 'Pending');
-  }
-  if (pagination.searchQuery) {
-    displayedRequests = displayedRequests.filter(
-      (req) =>
-        req.name?.toLowerCase().includes(pagination.searchQuery.toLowerCase()) ||
-        req.type?.toLowerCase().includes(pagination.searchQuery.toLowerCase())
-    );
-  }
+  // Filter for recent approved/denied - memoized to prevent infinite loops
+  const displayedRequests = React.useMemo(() => {
+    let filtered: any[] = [];
+    if (pagination.filter === 'approved' || pagination.filter === 'denied') {
+      const statusLabel = pagination.filter === 'approved' ? 'Approved' : 'Denied';
+      filtered = requests.filter((r) =>
+        r.status === statusLabel && new Date(r.createdAt) >= archiveThreshold
+      );
+    } else {
+      filtered = requests.filter((r) => r.status === 'Pending');
+    }
+    if (pagination.searchQuery) {
+      filtered = filtered.filter(
+        (req) =>
+          req.name?.toLowerCase().includes(pagination.searchQuery.toLowerCase()) ||
+          req.type?.toLowerCase().includes(pagination.searchQuery.toLowerCase())
+      );
+    }
+    return filtered;
+  }, [requests, pagination.filter, pagination.searchQuery, archiveThreshold]);
 
   const renderRequestCard = ({ item: request }: { item: any }) => (
     <View style={[styles.sectionCard, { alignSelf: 'center', width: '97%', maxWidth: 520, minWidth: 320 }]}>
@@ -512,7 +531,7 @@ export default function ParentsRequestsScreen() {
                 try {
                   const token = await getAuthToken();
                   if (!token) {
-                    Alert.alert('Error', 'Not authenticated. Please login again.');
+                    showMessage('Not authenticated. Please login again.', 'error');
                     return;
                   }
                   const response = await fetch(`${API_URL}/requests/${request._id}/messages`, {
@@ -537,7 +556,7 @@ export default function ParentsRequestsScreen() {
                   setApprovalModal(prev => ({ ...prev, comment: '' }));
                   loadRequests({ page: 1, reset: true });
                 } catch (error) {
-                  Alert.alert('Error', 'Failed to send message. Please try again.');
+                  showMessage('Failed to send message. Please try again.', 'error');
                 }
               }}
             >

@@ -1,5 +1,6 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
@@ -28,6 +29,7 @@ function getFamilyChildKey(base: string, familyId?: string, childId?: string) {
 
 export default function ParentsTeachingScreen() {
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const [selectedGuide, setSelectedGuide] = useState<string | null>(null);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [milestones, setMilestones] = useState<any[]>([]);
@@ -1001,11 +1003,7 @@ const loadStoredData = async () => {
   };
 
   const handleMilestoneAchieved = (milestoneId: string) => {
-    Alert.alert(
-      'Milestone Achieved! 🎉',
-      'Great job teaching your child about money! Keep up the excellent work.',
-      [{ text: 'Continue Teaching', style: 'default' }]
-    );
+    showMessage('Milestone Achieved! Great job teaching your child about money! Keep up the excellent work.', 'success');
   };
 
   return (
@@ -1713,7 +1711,7 @@ const loadStoredData = async () => {
                   console.log('Available children length:', availableChildren.length);
 
                   if (availableChildren.length === 0) {
-                    Alert.alert('No Children Found', 'Please add children to your family first.');
+                  showMessage('Please add children to your family first.', 'error');
                     return;
                   }
 
@@ -1840,14 +1838,8 @@ const loadStoredData = async () => {
                       return;
                     }
 
-                    // Extract child ID as string (handle both string and object cases)
-                    let childId: string;
-                    const childValue = discussionForm.childId;
-                    if (typeof childValue === 'object' && childValue && 'id' in childValue) {
-                      childId = String(childValue.id);
-                    } else {
-                      childId = String(childValue || '');
-                    }
+                    // Extract child ID as string
+                    const childId = String(discussionForm.childId || '');
 
                     // Create discussion object
                     const newDiscussion = {

@@ -6,9 +6,10 @@ import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 type OTPLoginProps = {
   onLoginSuccess: (data: any) => void;
   onBack: () => void;
+  onReactivationRequired?: () => void;
 };
 
-const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack }) => {
+const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack, onReactivationRequired }) => {
   const [mobileNumber, setMobileNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [showOtp, setShowOtp] = useState(false);

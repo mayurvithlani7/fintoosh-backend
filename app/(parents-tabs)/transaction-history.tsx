@@ -7,7 +7,6 @@ import { useTheme } from "@/utils/themeContext";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Modal,
   Platform,
   ScrollView,
@@ -806,7 +805,10 @@ export default function ParentTransactionHistoryScreen() {
   });
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: themeColors.background }}
+      contentContainerStyle={{ alignItems: "center", paddingVertical: 10, paddingHorizontal: 4 }}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 560, marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
@@ -1001,43 +1003,27 @@ export default function ParentTransactionHistoryScreen() {
         </View>
         {loading ? (
           <ActivityIndicator />
+        ) : filtered.length === 0 ? (
+          <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>
+            No points activity found.
+          </Text>
         ) : (
-          <FlatList
-            data={filtered.sort((a, b) => {
-              const dateA = new Date(a.date || a.createdAt || "1970-01-01");
-              const dateB = new Date(b.date || b.createdAt || "1970-01-01");
-              return dateB.getTime() - dateA.getTime();
-            })}
-            keyExtractor={(item) => item._id || Math.random().toString()}
-            initialNumToRender={10}
-            maxToRenderPerBatch={5}
-            windowSize={10}
-            getItemLayout={(data, index) => ({
-              length: 80,
-              offset: 80 * index,
-              index
-            })}
-            renderItem={({ item: tx }) => (
-              <TransactionCard
-                tx={tx}
-                themeColors={themeColors}
-                isExpanded={expandedTransactionId === (tx._id || tx.id)}
-                onToggle={() => {
-                  setExpandedTransactionId((prev: string | null): string | null => {
-                    const txId = tx._id || tx.id || '';
-                    return prev === txId ? null : txId;
-                  });
-                }}
-              />
-            )}
-            ListEmptyComponent={
-              <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>
-                No points activity found.
-              </Text>
-            }
-            // Load more only when explicitly requested - disabled continuous loading
-            // Users can manually refresh for more data if needed
-          />
+          filtered.sort((a, b) => {
+            const dateA = new Date(a.date || a.createdAt || "1970-01-01");
+            const dateB = new Date(b.date || b.createdAt || "1970-01-01");
+            return dateB.getTime() - dateA.getTime();
+          }).map((tx) => (
+            <TransactionCard
+              key={tx._id || tx.id || Math.random().toString()}
+              tx={tx}
+              themeColors={themeColors}
+              isExpanded={expandedTransactionId === (tx._id || tx.id)}
+              onToggle={() => {
+                const txId = tx._id || tx.id || '';
+                setExpandedTransactionId(expandedTransactionId === txId ? null : txId);
+              }}
+            />
+          ))
         )}
       </View>
 
@@ -1227,6 +1213,6 @@ export default function ParentTransactionHistoryScreen() {
           },
         ]}
       />
-    </View>
+    </ScrollView>
   );
 }

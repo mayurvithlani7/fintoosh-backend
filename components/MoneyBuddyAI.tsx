@@ -260,13 +260,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   conversationStarters: {
     padding: 20,
-    // TODO: Replace with LinearGradient for gradient background
-    backgroundColor: themeColors.primary + '11',
+    // Transparent background - no white overlay
+    backgroundColor: 'transparent',
     borderRadius: 16,
     margin: 20,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: themeColors.primary + '20',
+    // No border to keep it clean
   },
   startersTitle: {
     fontSize: 18,
@@ -276,20 +275,15 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     textAlign: 'center',
   },
   starterButton: {
-    // TODO: Replace with LinearGradient for gradient background
-    backgroundColor: themeColors.primary + '22',
-    borderWidth: 1,
-    borderColor: themeColors.primary + '30',
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    // No background or border - completely invisible
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 8,
     marginRight: 8,
     marginBottom: 8,
-    elevation: 1,
-    shadowColor: themeColors.primary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    // No elevation or shadow
   },
   starterButtonText: {
     color: themeColors.primary,
@@ -544,6 +538,7 @@ export default function MoneyBuddyAI({ onClose, initialMessage, compact = false 
     <KeyboardAvoidingView
       style={compact ? styles.compactContainer : styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
     >
       {/* Background Pattern */}
       {!compact && (
@@ -722,6 +717,12 @@ export default function MoneyBuddyAI({ onClose, initialMessage, compact = false 
           accessibilityHint="Type your question for MoneyBuddy AI"
           onSubmitEditing={() => handleSendMessage()}
           returnKeyType="send"
+          onFocus={() => {
+            // Scroll to make input visible when keyboard opens
+            setTimeout(() => {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+          }}
         />
         <TouchableOpacity
           style={[styles.sendButton, (isLoading || !inputText.trim()) && styles.sendButtonDisabled]}

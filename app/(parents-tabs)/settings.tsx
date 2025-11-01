@@ -1,8 +1,9 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
-import { deleteAuthToken, getAuthToken } from '@/utils/secureStorage';
+import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from 'expo-router';
@@ -24,6 +25,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 4,
+    backgroundColor: themeColors.background,
   },
   title: {
     fontSize: 28,
@@ -56,6 +58,16 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     fontSize: 16,
   },
   input: {
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 7,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 12,
+    backgroundColor: themeColors.surface,
+    color: themeColors.text,
+  },
+  inputWithPlaceholder: {
     borderWidth: 1,
     borderColor: themeColors.border,
     borderRadius: 7,
@@ -113,6 +125,34 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginTop: 10,
     color: themeColors.success,
     textAlign: "center",
+  },
+  radioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 12,
+  },
+  radioOption: {
+    flex: 1,
+    backgroundColor: themeColors.surface,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 8,
+    marginHorizontal: 2,
+    borderWidth: 1.5,
+    borderColor: themeColors.border,
+  },
+  radioSelected: {
+    backgroundColor: themeColors.primary,
+    borderColor: themeColors.primary,
+  },
+  radioText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: themeColors.text,
+  },
+  radioTextSelected: {
+    color: themeColors.card,
   },
 });
 
@@ -183,7 +223,8 @@ function ParentAutomationRulesSection({ themeColors }: { themeColors: any }) {
           onChangeText={setChoreClaimMax}
           keyboardType="numeric"
           placeholder="Points (e.g., 50)"
-          style={styles.input}
+          style={styles.inputWithPlaceholder}
+          placeholderTextColor={themeColors.textSecondary}
         />
         <Text style={{ fontSize: 13, color: themeColors.textSecondary }}>Example: Enter 50 to auto-approve all chores worth 50 points or less.</Text>
       </View>
@@ -194,7 +235,8 @@ function ParentAutomationRulesSection({ themeColors }: { themeColors: any }) {
           onChangeText={setRewardClaimMax}
           keyboardType="numeric"
           placeholder="Points (e.g., 20)"
-          style={styles.input}
+          style={styles.inputWithPlaceholder}
+          placeholderTextColor={themeColors.textSecondary}
         />
         <Text style={{ fontSize: 13, color: themeColors.textSecondary }}>Example: Enter 20 to auto-approve reward redemptions that cost 20 points or less.</Text>
       </View>
@@ -226,6 +268,7 @@ function ParentAutomationRulesSection({ themeColors }: { themeColors: any }) {
 export default function ParentSettingsScreen() {
   const router = useRouter();
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const { currency, conversionRate, showDenominations, defaultSplit, interestRule, updateSettings, reloadSettings } = useCurrency();
   const styles = createStyles(themeColors);
 
@@ -285,6 +328,12 @@ export default function ParentSettingsScreen() {
   const [updatingRelationship, setUpdatingRelationship] = useState(false);
   const [caregiverMessage, setCaregiverMessage] = useState('');
 
+  // Custom Dropdown State
+  const [currencyDropdownVisible, setCurrencyDropdownVisible] = useState(false);
+  const [frequencyDropdownVisible, setFrequencyDropdownVisible] = useState(false);
+  const [relationshipDropdownVisible, setRelationshipDropdownVisible] = useState(false);
+  const [childDropdownVisible, setChildDropdownVisible] = useState(false);
+
   // Secure: Reset children state and refetch on parent session/token/user change
   useEffect(() => {
     async function checkUser() {
@@ -334,7 +383,7 @@ export default function ParentSettingsScreen() {
   const handleSave = async () => {
     const rate = parseFloat(selectedConversionRate);
     if (isNaN(rate) || rate < 0.1 || rate > 100) {
-      Alert.alert('Invalid Input', 'Conversion rate must be between 0.1 and 100');
+      showMessage('Conversion rate must be between 0.1 and 100', 'error');
       return;
     }
 
@@ -348,7 +397,7 @@ export default function ParentSettingsScreen() {
       setMessage("Settings saved successfully!");
       setTimeout(() => setMessage(""), 3000);
     } catch {
-      Alert.alert('Error', 'Failed to save settings. Please try again.');
+      showMessage('Failed to save settings. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -365,8 +414,8 @@ export default function ParentSettingsScreen() {
 
     const total = Object.values(split).reduce((sum, val) => sum + val, 0);
     if (total !== 100) {
-      Alert.alert('Invalid Split', 'Point percentages must total exactly 100%');
-      return;
+        showMessage('Point percentages must total exactly 100%', 'error');
+        return;
     }
 
     setSaving(true);
@@ -375,7 +424,7 @@ export default function ParentSettingsScreen() {
       setMessage("Point automation settings saved successfully!");
       setTimeout(() => setMessage(""), 3000);
     } catch {
-      Alert.alert('Error', 'Failed to save automation settings. Please try again.');
+      showMessage('Failed to save automation settings. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -385,11 +434,11 @@ export default function ParentSettingsScreen() {
   const handleSaveInterestRule = async () => {
     const rateNum = parseFloat(interestRate);
     if (isNaN(rateNum) || rateNum < 0.1 || rateNum > 10) {
-      Alert.alert('Invalid Interest Rate', 'Interest rate should be between 0.1% and 10%');
+      showMessage('Interest rate should be between 0.1% and 10%', 'error');
       return;
     }
     if (!['weekly', 'monthly'].includes(interestFrequency)) {
-      Alert.alert('Invalid Frequency', 'Choose a payout frequency.');
+      showMessage('Choose a payout frequency.', 'error');
       return;
     }
     setSavingInterest(true);
@@ -406,7 +455,7 @@ export default function ParentSettingsScreen() {
       setInterestMsg("Interest rule saved!");
       setTimeout(() => setInterestMsg(""), 2500);
     } catch {
-      Alert.alert('Error', 'Could not save interest rule, try again later.');
+      showMessage('Could not save interest rule, try again later.', 'error');
     } finally {
       setSavingInterest(false);
     }
@@ -546,27 +595,30 @@ export default function ParentSettingsScreen() {
         setDeactivationMessage('Account deactivated successfully. All family logins are now blocked.');
         // Close modal immediately
         setDeactivationModalVisible(false);
-        // Force immediate logout and navigation
-        setTimeout(async () => {
-          try {
-            // Reset data cache to prevent cross-user data leakage
-            const dataCache = require('@/utils/dataCacheContext').useDataCache();
-            dataCache.resetDataCache();
-            // Clear all authentication data
-            await deleteAuthToken();
-            const { clearSensitiveAppData } = await import('@/utils/secureStorage');
-            await clearSensitiveAppData();
-            console.log('Auth data cleared, navigating to login...');
-            // Use dismissAll to ensure clean navigation state
-            router.dismissAll();
-            // Navigate to login screen directly
-            router.replace('/login');
-          } catch (error) {
-            console.error('Error during logout:', error);
-            // Fallback navigation
-            router.replace('/login');
-          }
-        }, 200);
+    // Force immediate logout and navigation
+    setTimeout(async () => {
+      try {
+        console.log('Account deactivated, clearing ALL auth data and navigating to login...');
+        // Clear ALL user data to prevent app reload from showing dashboard
+        const { clearAllUserData } = await import('@/utils/secureStorage');
+        await clearAllUserData();
+        // Use dismissAll to ensure clean navigation state
+        router.dismissAll();
+        // Navigate to login screen directly
+        router.replace('/login');
+      } catch (error) {
+        console.error('Error during logout after deactivation:', error);
+        // Fallback navigation - try to clear what we can
+        try {
+          const { clearAllUserData } = await import('@/utils/secureStorage');
+          await clearAllUserData();
+        } catch (clearError) {
+          console.error('Fallback clear failed:', clearError);
+        }
+        router.dismissAll();
+        router.replace('/login');
+      }
+    }, 200);
       } else {
         setDeactivationMessage(data.message || 'Failed to deactivate account. Please try again.');
       }
@@ -590,7 +642,8 @@ export default function ParentSettingsScreen() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/users?familyId=${currentUser.familyId}&role=parent`, {
+      // Fetch all parents in the family
+      const parentsResponse = await fetch(`${API_URL}/users?familyId=${currentUser.familyId}&role=parent`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -598,14 +651,54 @@ export default function ParentSettingsScreen() {
         },
       });
 
-      if (response.ok) {
-        const caregivers = await response.json();
-        setCaregivers(caregivers || []);
-      } else {
+      if (!parentsResponse.ok) {
         console.error('Failed to fetch caregivers for management');
         setCaregivers([]);
-        Alert.alert('Error', 'Failed to load caregivers.');
+        return;
       }
+
+      const caregivers = await parentsResponse.json();
+
+      // Fetch children to get relationship information
+      const childrenResponse = await fetch(`${API_URL}/users?familyId=${currentUser.familyId}&role=child`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      let children = [];
+      if (childrenResponse.ok) {
+        children = await childrenResponse.json();
+      }
+
+      // Add relationship information to caregivers based on children data
+      const caregiversWithRelationships = caregivers.map((caregiver: any) => {
+        // First, try to find relationship from any child that has this caregiver
+        let relationship = null;
+        for (const child of children) {
+          if (child.caregivers && Array.isArray(child.caregivers)) {
+            const caregiverEntry = child.caregivers.find((c: any) => c.userId === caregiver.id);
+            if (caregiverEntry && caregiverEntry.relationship) {
+              relationship = caregiverEntry.relationship;
+              break;
+            }
+          }
+        }
+
+        // If no child-specific relationship found, use the parent's stored relationship
+        if (!relationship && caregiver.relationship) {
+          relationship = caregiver.relationship;
+        }
+
+        return {
+          ...caregiver,
+          relationship: relationship
+        };
+      });
+
+      setCaregivers(caregiversWithRelationships || []);
     } catch (error) {
       console.error('Error fetching caregivers for management:', error);
       setCaregivers([]);
@@ -731,22 +824,26 @@ export default function ParentSettingsScreen() {
         // Force immediate logout and navigation
         setTimeout(async () => {
           try {
-            // Reset data cache to prevent cross-user data leakage
-            const dataCache = require('@/utils/dataCacheContext').useDataCache();
-            dataCache.resetDataCache();
-            // Clear all authentication data
-            await deleteAuthToken();
-            const { clearSensitiveAppData } = await import('@/utils/secureStorage');
-            await clearSensitiveAppData();
-            console.log('Account deleted, clearing auth and navigating to login...');
-            // Navigate to login screen directly
+            console.log('Account deleted, clearing ALL auth data and navigating to login...');
+            // Clear ALL user data to prevent app reload from showing dashboard
+            const { clearAllUserData } = await import('@/utils/secureStorage');
+            await clearAllUserData();
+            // Navigate to login screen directly - use dismissAll to ensure clean navigation state
+            router.dismissAll();
             router.replace('/login');
           } catch (error) {
             console.error('Error during logout after deletion:', error);
-            // Fallback navigation
+            // Fallback navigation - try to clear what we can
+            try {
+              const { clearAllUserData } = await import('@/utils/secureStorage');
+              await clearAllUserData();
+            } catch (clearError) {
+              console.error('Fallback clear failed:', clearError);
+            }
+            router.dismissAll();
             router.replace('/login');
           }
-        }, 1000); // Give user time to see success message
+        }, 500); // Reduced delay for faster logout
       } else {
         setDeletionMessage(data.message || 'Failed to delete account. Please try again.');
       }
@@ -795,15 +892,23 @@ export default function ParentSettingsScreen() {
         <Text style={styles.sectionTitle}>💰 Currency Display</Text>
 
         <Text style={styles.inputLabel}>Display Format:</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedCurrency}
-            onValueChange={(value) => setSelectedCurrency(value)}
-            style={{ height: 50 }}
+        <View style={styles.radioRow}>
+          <TouchableOpacity
+            style={[styles.radioOption, selectedCurrency === 'points' && styles.radioSelected]}
+            onPress={() => setSelectedCurrency('points')}
           >
-            <Picker.Item label="Points (Default)" value="points" />
-            <Picker.Item label="Indian Rupees (₹)" value="inr" />
-          </Picker>
+            <Text style={[styles.radioText, selectedCurrency === 'points' && styles.radioTextSelected]}>
+              Points (Default)
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.radioOption, selectedCurrency === 'inr' && styles.radioSelected]}
+            onPress={() => setSelectedCurrency('inr')}
+          >
+            <Text style={[styles.radioText, selectedCurrency === 'inr' && styles.radioTextSelected]}>
+              Indian Rupees (₹)
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {selectedCurrency === 'inr' && (
@@ -814,7 +919,8 @@ export default function ParentSettingsScreen() {
               onChangeText={setSelectedConversionRate}
               keyboardType="numeric"
               placeholder="e.g., 5"
-              style={styles.input}
+              style={styles.inputWithPlaceholder}
+              placeholderTextColor={themeColors.textSecondary}
             />
 
             <TouchableOpacity
@@ -935,25 +1041,34 @@ export default function ParentSettingsScreen() {
         </Text>
         <View style={{ marginBottom: 12 }}>
           <Text style={styles.inputLabel}>Interest Rate (%)</Text>
-          <TextInput
-            value={interestRate}
-            onChangeText={setInterestRate}
-            keyboardType="numeric"
-            placeholder="e.g., 5"
-            style={styles.input}
-          />
+        <TextInput
+          value={interestRate}
+          onChangeText={setInterestRate}
+          keyboardType="numeric"
+          placeholder="e.g., 5"
+          style={styles.inputWithPlaceholder}
+          placeholderTextColor={themeColors.textSecondary}
+        />
         </View>
         <View style={{ marginBottom: 12 }}>
           <Text style={styles.inputLabel}>Frequency</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={interestFrequency}
-              onValueChange={setInterestFrequency}
-              style={{ height: 42 }}
+          <View style={styles.radioRow}>
+            <TouchableOpacity
+              style={[styles.radioOption, interestFrequency === 'monthly' && styles.radioSelected]}
+              onPress={() => setInterestFrequency('monthly')}
             >
-              <Picker.Item label="Monthly" value="monthly" />
-              <Picker.Item label="Weekly" value="weekly" />
-            </Picker>
+              <Text style={[styles.radioText, interestFrequency === 'monthly' && styles.radioTextSelected]}>
+                Monthly
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.radioOption, interestFrequency === 'weekly' && styles.radioSelected]}
+              onPress={() => setInterestFrequency('weekly')}
+            >
+              <Text style={[styles.radioText, interestFrequency === 'weekly' && styles.radioTextSelected]}>
+                Weekly
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
         <View style={{ marginBottom: 12 }}>
@@ -1021,21 +1136,7 @@ export default function ParentSettingsScreen() {
               if (response.ok) {
                 const data = await response.json();
                 console.log('[SETTINGS] Family code data:', data);
-                Alert.alert(
-                  'Family Code Generated',
-                  `Share this code with additional caregivers:\n\n${data.familyCode}\n\nThey can use this code to join your family and help manage your children's activities.`,
-                  [
-                    {
-                      text: 'Copy Code',
-                      onPress: () => {
-                        // Copy to clipboard functionality would go here
-                        // For now, just show it again
-                        Alert.alert('Code Copied', data.familyCode);
-                      }
-                    },
-                    { text: 'OK' }
-                  ]
-                );
+                showMessage(`Family Code Generated: ${data.familyCode}\n\nShare this code with additional caregivers to join your family.`, 'success');
               } else {
                 let errorMessage = 'Failed to generate family code.';
                 try {
@@ -1612,7 +1713,8 @@ export default function ParentSettingsScreen() {
                       onChangeText={setParentPassword}
                       secureTextEntry
                       placeholder="Enter your password"
-                      style={styles.input}
+                      style={styles.inputWithPlaceholder}
+                      placeholderTextColor={themeColors.textSecondary}
                     />
 
                     <Text style={styles.inputLabel}>New PIN (4-6 digits):</Text>
@@ -1684,20 +1786,20 @@ export default function ParentSettingsScreen() {
           backgroundColor: 'rgba(0,0,0,0.5)'
         }}>
           <View style={{
-            backgroundColor: '#fff',
+            backgroundColor: themeColors.card,
             borderRadius: 14,
             padding: 20,
             width: '90%',
             maxWidth: 400,
             maxHeight: '80%'
           }}>
-            <Text style={[styles.sectionTitle, { marginBottom: 16, color: '#d32f2f' }]}>🚫 Deactivate Family Account</Text>
+            <Text style={[styles.sectionTitle, { marginBottom: 16, color: themeColors.error }]}>🚫 Deactivate Family Account</Text>
 
-            <Text style={{ fontSize: 16, color: "#333", marginBottom: 16, lineHeight: 22 }}>
+            <Text style={{ fontSize: 16, color: themeColors.text, marginBottom: 16, lineHeight: 22 }}>
               Are you sure you want to temporarily deactivate your family account?
             </Text>
 
-            <Text style={{ fontSize: 14, color: "#666", marginBottom: 20, lineHeight: 20 }}>
+            <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginBottom: 20, lineHeight: 20 }}>
               • All family logins (Parent and Child) will be blocked{'\n'}
               • All data (points, chores, goals, history) will be saved{'\n'}
               • Contact support to reactivate your account
@@ -1709,7 +1811,8 @@ export default function ParentSettingsScreen() {
               onChangeText={setDeactivationPassword}
               secureTextEntry
               placeholder="Enter your password"
-              style={styles.input}
+              style={styles.inputWithPlaceholder}
+              placeholderTextColor={themeColors.textSecondary}
             />
 
             {deactivationMessage ? (
@@ -1769,7 +1872,7 @@ export default function ParentSettingsScreen() {
           backgroundColor: 'rgba(0,0,0,0.7)'
         }}>
           <View style={{
-            backgroundColor: '#fff',
+            backgroundColor: themeColors.card,
             borderRadius: 14,
             padding: 24,
             width: '90%',
@@ -1779,37 +1882,37 @@ export default function ParentSettingsScreen() {
             {/* Step Indicator */}
             <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 20 }}>
               {[1, 2, 3].map(step => (
-                <View
-                  key={step}
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 15,
-                    backgroundColor: deletionStep >= step ? '#8B0000' : '#e0e0e0',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginHorizontal: 5
-                  }}
-                >
-                  <Text style={{ color: deletionStep >= step ? '#fff' : '#666', fontWeight: 'bold' }}>
-                    {step}
-                  </Text>
-                </View>
+                  <View
+                    key={step}
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      backgroundColor: deletionStep >= step ? themeColors.error : themeColors.border,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginHorizontal: 5
+                    }}
+                  >
+                    <Text style={{ color: deletionStep >= step ? themeColors.card : themeColors.textSecondary, fontWeight: 'bold' }}>
+                      {step}
+                    </Text>
+                  </View>
               ))}
             </View>
 
             {/* Step 1: Warning */}
             {deletionStep === 1 && (
               <>
-                <Text style={[styles.sectionTitle, { marginBottom: 16, color: '#8B0000', textAlign: 'center' }]}>
+                <Text style={[styles.sectionTitle, { marginBottom: 16, color: themeColors.error, textAlign: 'center' }]}>
                   💀 Permanent Account Deletion
                 </Text>
 
-                <Text style={{ fontSize: 16, color: "#333", marginBottom: 20, lineHeight: 24, textAlign: 'center' }}>
-                  This action will <Text style={{ fontWeight: 'bold', color: '#8B0000' }}>permanently and irreversibly</Text> delete your family account and all associated data.
+                <Text style={{ fontSize: 16, color: themeColors.text, marginBottom: 20, lineHeight: 24, textAlign: 'center' }}>
+                  This action will <Text style={{ fontWeight: 'bold', color: themeColors.error }}>permanently and irreversibly</Text> delete your family account and all associated data.
                 </Text>
 
-                <Text style={{ fontSize: 14, color: "#d32f2f", marginBottom: 20, lineHeight: 22, backgroundColor: '#ffeaea', padding: 12, borderRadius: 8 }}>
+                <Text style={{ fontSize: 14, color: themeColors.error, marginBottom: 20, lineHeight: 22, backgroundColor: themeColors.surface, padding: 12, borderRadius: 8 }}>
                   🚨 <Text style={{ fontWeight: 'bold' }}>Irreversible Data Loss:</Text>{'\n'}
                   • All points, savings, and transaction history{'\n'}
                   • All chores, goals, and achievements{'\n'}
@@ -1818,7 +1921,7 @@ export default function ParentSettingsScreen() {
                   • All personal information and settings
                 </Text>
 
-                <Text style={{ fontSize: 14, color: "#666", marginBottom: 24, lineHeight: 20 }}>
+                <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginBottom: 24, lineHeight: 20 }}>
                   This deletion complies with data protection regulations and ensures complete removal of all personal information from our systems.
                 </Text>
 
@@ -1849,16 +1952,16 @@ export default function ParentSettingsScreen() {
             {/* Step 2: Manual Confirmation */}
             {deletionStep === 2 && (
               <>
-                <Text style={[styles.sectionTitle, { marginBottom: 16, color: '#8B0000', textAlign: 'center' }]}>
+                <Text style={[styles.sectionTitle, { marginBottom: 16, color: themeColors.error, textAlign: 'center' }]}>
                   ✍️ Manual Confirmation Required
                 </Text>
 
-                <Text style={{ fontSize: 16, color: "#333", marginBottom: 20, lineHeight: 24, textAlign: 'center' }}>
+                <Text style={{ fontSize: 16, color: themeColors.text, marginBottom: 20, lineHeight: 24, textAlign: 'center' }}>
                   To prevent accidental deletions, you must manually confirm by typing the word below.
                 </Text>
 
-                <View style={{ backgroundColor: '#ffeaea', padding: 16, borderRadius: 8, marginBottom: 20, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#8B0000', letterSpacing: 2 }}>
+                <View style={{ backgroundColor: themeColors.surface, padding: 16, borderRadius: 8, marginBottom: 20, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 24, fontWeight: 'bold', color: themeColors.error, letterSpacing: 2 }}>
                     DELETE
                   </Text>
                 </View>
@@ -1868,10 +1971,11 @@ export default function ParentSettingsScreen() {
                   value={deletionConfirmationText}
                   onChangeText={setDeletionConfirmationText}
                   placeholder="Type DELETE here"
-                  style={[styles.input, {
+                  style={[styles.inputWithPlaceholder, {
                     borderColor: deletionConfirmationText === 'DELETE' ? '#4CAF50' : '#aaa',
                     borderWidth: 2
                   }]}
+                  placeholderTextColor={themeColors.textSecondary}
                   autoCapitalize="characters"
                   autoCorrect={false}
                 />
@@ -1921,15 +2025,15 @@ export default function ParentSettingsScreen() {
             {/* Step 3: MFA with Password */}
             {deletionStep === 3 && (
               <>
-                <Text style={[styles.sectionTitle, { marginBottom: 16, color: '#8B0000', textAlign: 'center' }]}>
+                <Text style={[styles.sectionTitle, { marginBottom: 16, color: themeColors.error, textAlign: 'center' }]}>
                   🔐 Final Authorization Required
                 </Text>
 
-                <Text style={{ fontSize: 16, color: "#333", marginBottom: 20, lineHeight: 24, textAlign: 'center' }}>
+                <Text style={{ fontSize: 16, color: themeColors.text, marginBottom: 20, lineHeight: 24, textAlign: 'center' }}>
                   This is your final opportunity to cancel. Enter your parent password to permanently delete the account.
                 </Text>
 
-                <Text style={{ fontSize: 14, color: "#d32f2f", marginBottom: 20, lineHeight: 22, backgroundColor: '#ffeaea', padding: 12, borderRadius: 8 }}>
+                <Text style={{ fontSize: 14, color: themeColors.error, marginBottom: 20, lineHeight: 22, backgroundColor: themeColors.surface, padding: 12, borderRadius: 8 }}>
                   ⚠️ <Text style={{ fontWeight: 'bold' }}>Final Warning:</Text> After clicking "Delete Account", all data will be permanently removed and cannot be recovered.
                 </Text>
 
@@ -1939,7 +2043,8 @@ export default function ParentSettingsScreen() {
                   onChangeText={setDeletionPassword}
                   secureTextEntry
                   placeholder="Enter your password"
-                  style={styles.input}
+                  style={styles.inputWithPlaceholder}
+                  placeholderTextColor={themeColors.textSecondary}
                 />
 
                 {deletionMessage ? (

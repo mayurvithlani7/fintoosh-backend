@@ -34,7 +34,7 @@ const loginLimiter = rateLimit({
 // Register new user
 router.post('/register', sanitizeInput, validateUserInput, validateMobileNumber, validatePassword, async (req, res) => {
   try {
-    const { name, email, password, role = 'parent', id, parentId: inputParentId, parentMobile, mobileNumber, referralCode } = req.body;
+    const { name, email, password, role = 'parent', id, parentId: inputParentId, parentMobile, mobileNumber, referralCode, relationship } = req.body;
     console.log('Registration attempt:', { name, email, role, mobileNumber, parentMobile, parentId: inputParentId });
 
     // Check if user already exists
@@ -93,7 +93,8 @@ router.post('/register', sanitizeInput, validateUserInput, validateMobileNumber,
       password,
       role,
       parentId: finalParentId || null, // Keep for backward compatibility during migration
-      referralCode: role === 'parent' ? referralCode : null
+      referralCode: role === 'parent' ? referralCode : null,
+      relationship: role === 'parent' ? relationship : null // Store relationship for parents
     };
 
     // Set caregivers array for new users
@@ -351,12 +352,12 @@ router.post('/send-otp', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // For reactivation, use more lenient rate limiting (allow every 30 seconds instead of 60)
+    // Use lenient rate limiting (allow every 30 seconds)
     const now = new Date();
     const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000);
 
     if (user.otpExpiresAt && user.otpExpiresAt > thirtySecondsAgo) {
-      return res.status(429).json({ message: 'Please wait 30 seconds before requesting another reactivation OTP' });
+      return res.status(429).json({ message: 'Please wait 30 seconds before requesting another OTP' });
     }
 
     // Generate and store OTP

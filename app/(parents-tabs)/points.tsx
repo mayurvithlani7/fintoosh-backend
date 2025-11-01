@@ -1,9 +1,10 @@
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import HelpModal from '@/components/HelpModal';
 import { createTransaction, fetchFamilyChildren, fetchTransactions, fetchUser, patchUserPoints } from '@/utils/api';
-import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,7 +16,7 @@ export default function ParentsPointsScreen() {
   const router = useRouter();
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
-  const { showError, showFeedback } = useGlobalFeedback();
+  const { showMessage } = useCenteredMessage();
   const [amount, setAmount] = useState('');
   const [toJar, setToJar] = useState<string>('current'); // Initialize with first option since Android Picker doesn't show placeholder well
   const [selectedChildId, setSelectedChildId] = useState<string>('');
@@ -62,18 +63,6 @@ export default function ParentsPointsScreen() {
     }, [])
   );
 
-  // Load child data when selected child changes
-  useEffect(() => {
-    if (selectedChildId && children.length > 0) {
-      loadChildData();
-    }
-  }, [selectedChildId, children]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadChildData();
-  }, []);
-
   const loadChildren = async () => {
     try {
       const { getUser } = await import('@/utils/secureStorage');
@@ -104,7 +93,7 @@ export default function ParentsPointsScreen() {
         // Auto-select first child if available and none selected
         if (childrenData.length > 0 && !selectedChildId) {
           const firstChildId = childrenData[0].id;
-          setSelectedChildId(firstChildId);
+          setSelectedChildId(firstChildId as string);
         }
       }
     } catch (error) {
@@ -112,7 +101,7 @@ export default function ParentsPointsScreen() {
     }
   };
 
-  const loadChildData = async () => {
+  const loadChildData = useCallback(async () => {
     if (!selectedChildId) {
       setLoading(false);
       setRefreshing(false);
@@ -158,14 +147,26 @@ export default function ParentsPointsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [selectedChildId, children]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadChildData();
+  }, [loadChildData]);
+
+  // Load child data when selected child changes
+  useEffect(() => {
+    if (selectedChildId && children.length > 0) {
+      loadChildData();
+    }
+  }, [selectedChildId, children, loadChildData]);
 
   async function handlePoints(isAdd: boolean) {
     console.log('handlePoints called with isAdd:', isAdd, 'amount:', amount, 'toJar:', toJar);
 
     // Reset errors - all error/feedback is now global
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-      showError('Enter a valid positive number for points.');
+      showMessage('Enter a valid positive number for points.', 'error');
       return;
     }
 
@@ -176,18 +177,18 @@ export default function ParentsPointsScreen() {
       const { getUser } = await import('@/utils/secureStorage');
       const currentUser = await getUser();
       if (!currentUser) {
-        showError('User not logged in.');
+        showMessage('User not logged in.', 'error');
         return;
       }
       if (currentUser.role !== 'parent' || !currentUser.familyId) {
-        showError('Invalid parent account.');
+        showMessage('Invalid parent account.', 'error');
         return;
       }
 
       // Get family children
       const token = await getAuthToken();
       if (!token) {
-        showError('Authentication failed. Please log in again.');
+        showMessage('Authentication failed. Please log in again.', 'error');
         return;
       }
 
@@ -195,18 +196,18 @@ export default function ParentsPointsScreen() {
       console.log('Fetched children:', children);
 
       if (!children || children.length === 0) {
-        showError('No child found.');
+        showMessage('No child found.', 'error');
         return;
       }
 
       // Find the selected child
       const child = children.find((c: any) => c.id === selectedChildId) || children[0];
       if (!child) {
-        showError('Selected child not found.');
+        showMessage('Selected child not found.', 'error');
         return;
       }
       if (!child) {
-        showError('Selected child not found.');
+        showMessage('Selected child not found.', 'error');
         return;
       }
       console.log('Using child:', child);
@@ -219,7 +220,7 @@ export default function ParentsPointsScreen() {
 
       // Check if subtracting would result in negative points
       if (!isAdd && currentValue < changeAmount) {
-        showError(`Not enough points in ${jarOptions.find(j => j.value === toJar)?.label} pot.`);
+        showMessage(`Not enough points in ${jarOptions.find(j => j.value === toJar)?.label} pot.`, 'error');
         return;
       }
 
@@ -257,16 +258,17 @@ export default function ParentsPointsScreen() {
         console.log('After update - database shows currentPoints:', updatedChildData?.currentPoints);
       }
 
-      showFeedback(
+      showMessage(
         `${isAdd ? 'Added' : 'Subtracted'} ${amount} points ${isAdd ? 'to' : 'from'} the ${jarOptions.find(
           j => j.value === toJar
-        )?.label} pot.`
+        )?.label} pot.`,
+        'success'
       );
       setAmount('');
 
     } catch (error) {
       console.error('Error updating points:', error);
-      showError('Failed to update points. Please try again.');
+      showMessage('Failed to update points. Please try again.', 'error');
     }
   }
 
@@ -278,20 +280,26 @@ export default function ParentsPointsScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
-        <BackButton label="Back to Home" to="/(parents-tabs)" />
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.accent,
-            borderRadius: 20,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            elevation: 2,
-          }}
-          onPress={() => setHelpModalVisible(true)}
-        >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
-        </TouchableOpacity>
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
+        <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between' }}>
+          <BackButton label="Back to Home" to="/(parents-tabs)" />
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.accent,
+              borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => setHelpModalVisible(true)}
+          >
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={[styles.title, { color: themeColors.primary }]}>Manage Your Child's Points</Text>

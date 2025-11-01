@@ -1,8 +1,8 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { rewardSuggestions } from '@/constants/rewardSuggestions';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
-import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
@@ -27,7 +27,7 @@ interface Reward {
 }
 
 export default function ParentsRewardsScreen() {
-  const { showError, showFeedback } = useGlobalFeedback();
+  const { showMessage } = useCenteredMessage();
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const accentColor = themeColors.accent;
@@ -47,6 +47,7 @@ export default function ParentsRewardsScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const formSectionRef = React.useRef<View>(null);
 
   // Utility: always return the Date the reward was created (createdAt if present, else Mongo _id)
   function getRewardCreatedDate(r: Reward): Date {
@@ -113,13 +114,13 @@ export default function ParentsRewardsScreen() {
       const parentProfile = await getUser();
 
       if (!token || !parentProfile) {
-        showError('Not authenticated.');
+        showMessage('Not authenticated.', 'error');
         setLoading(false);
         return;
       }
       const familyId = parentProfile.familyId;
       if (!familyId) {
-        showError('No familyId found for parent.');
+        showMessage('No familyId found for parent.', 'error');
         setLoading(false);
         return;
       }
@@ -129,7 +130,7 @@ export default function ParentsRewardsScreen() {
         setSelectedChildId(data[0].id ?? "");
       }
     } catch (err) {
-      showError('Failed to load children for family.');
+      showMessage('Failed to load children for family.', 'error');
     } finally {
       setLoading(false);
     }
@@ -171,7 +172,7 @@ export default function ParentsRewardsScreen() {
       }
       setRewards(data);
     } catch (err: any) {
-      showError('Failed to load rewards.');
+      showMessage('Failed to load rewards.', 'error');
       setRewards([]);
     } finally {
       setLoading(false);
@@ -180,7 +181,7 @@ export default function ParentsRewardsScreen() {
 
   async function handleAddReward() {
     if (!rewardName.trim() || !pointsCost.trim() || isNaN(Number(pointsCost)) || Number(pointsCost) <= 0) {
-      showError('Please fill out all fields and enter a valid points cost (>0).');
+      showMessage('Please fill out all fields and enter a valid points cost (>0).', 'error');
       return;
     }
     setLoading(true);
@@ -225,7 +226,7 @@ export default function ParentsRewardsScreen() {
         throw new Error(errorData.message || (editingReward ? 'Failed to update reward' : 'Failed to add reward'));
       }
 
-      showFeedback(editingReward ? 'Reward updated successfully!' : 'Reward added for your child.');
+      showMessage(editingReward ? 'Reward updated successfully!' : 'Reward added for your child.', 'success');
 
       setRewardName('');
       setPointsCost('');
@@ -237,7 +238,7 @@ export default function ParentsRewardsScreen() {
         await loadRewards(selectedChild.id);
       }
     } catch (err: any) {
-      showError(err.message || (editingReward ? 'Failed to update reward.' : 'Failed to add reward.'));
+      showMessage(err.message || (editingReward ? 'Failed to update reward.' : 'Failed to add reward.'), 'error');
     } finally {
       setLoading(false);
     }
@@ -710,8 +711,8 @@ export default function ParentsRewardsScreen() {
                           setRewardName(r.name);
                           setPointsCost(r.cost.toString());
                           setDescription(r.description || '');
-                          // Scroll to top to show the form
-                          scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+                          // Scroll to the form section (approximately where the form is located)
+                          scrollViewRef.current?.scrollTo({ x: 0, y: 400, animated: true });
                         }}
                       >
                         <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
@@ -729,8 +730,6 @@ export default function ParentsRewardsScreen() {
                         }}
                         onPress={async () => {
                           console.log('[FRONTEND DELETE REWARD] Starting deletion for reward:', r._id, r.name);
-                          showError('');
-                          showFeedback('');
                           try {
                             const token = await getAuthToken();
                             console.log('[FRONTEND DELETE REWARD] Got token:', token ? 'present' : 'missing');
@@ -763,8 +762,7 @@ export default function ParentsRewardsScreen() {
                             const responseData = await response.json().catch(() => ({}));
                             console.log('[FRONTEND DELETE REWARD] Success response:', responseData);
 
-                            showFeedback('Reward deleted successfully.');
-                            setTimeout(() => showFeedback(''), 3000);
+                            showMessage('Reward deleted successfully.', 'success');
 
                             const selectedChild = children.find(child => child.id === selectedChildId);
                             if (selectedChild) {
@@ -773,7 +771,7 @@ export default function ParentsRewardsScreen() {
                             }
                           } catch (err: any) {
                             console.error('[FRONTEND DELETE REWARD] Error:', err);
-                            showError(err.message || 'Failed to delete reward.');
+                            showMessage(err.message || 'Failed to delete reward.', 'error');
                           }
                         }}
                       >

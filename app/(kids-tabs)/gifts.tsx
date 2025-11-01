@@ -1,4 +1,5 @@
 import HelpModal from '@/components/HelpModal';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { handleApiError } from '@/utils/errorHandler';
@@ -8,7 +9,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   FlatList,
   ScrollView,
   StyleSheet,
@@ -21,59 +21,59 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 4,
+    paddingVertical: MOBILE_LAYOUT.sectionSpacing,
+    paddingHorizontal: MOBILE_LAYOUT.containerPadding,
     backgroundColor: themeColors.background,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 22,
-    marginTop: 6,
+    ...MOBILE_STYLES.title,
     color: themeColors.primary,
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+    marginTop: MOBILE_LAYOUT.itemSpacing,
   },
   sectionCard: {
-    flex: 1,
+    ...MOBILE_STYLES.card,
     backgroundColor: themeColors.card,
-    borderRadius: 14,
-    marginBottom: 16,
-    padding: 18,
-    minWidth: 300,
-    width: "97%",
-    maxWidth: 520,
-    alignSelf: 'center',
-    elevation: 2,
-    shadowColor: themeColors.border,
+    borderColor: themeColors.border,
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+    width: MOBILE_LAYOUT.containerWidth,
   },
   sectionTitle: {
-    fontSize: 20,
+    ...MOBILE_STYLES.body,
     fontWeight: "600",
-    marginBottom: 8,
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.text,
   },
   placeholder: {
-    color: themeColors.textSecondary, fontStyle: "italic", fontSize: 15,
-    marginBottom: 2, marginTop: 2, minHeight: 26
+    ...MOBILE_STYLES.body,
+    color: themeColors.textSecondary,
+    fontStyle: "italic",
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
+    marginTop: MOBILE_LAYOUT.itemSpacing,
+    minHeight: 26
   },
   statusMessage: {
-    fontSize: 15, fontWeight: "600", marginTop: 3, color: themeColors.success
+    ...MOBILE_STYLES.body,
+    fontWeight: "600",
+    marginTop: MOBILE_LAYOUT.itemSpacing,
+    color: themeColors.success
   },
   refreshBtn: {
+    ...MOBILE_STYLES.primaryButton,
     backgroundColor: themeColors.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: "center",
   },
   refreshBtnDisabled: {
     backgroundColor: themeColors.surface,
   },
   refreshBtnText: {
+    ...MOBILE_STYLES.caption,
     color: themeColors.card,
     fontWeight: "bold",
-    fontSize: 12,
   },
   refreshBtnTextDisabled: {
+    ...MOBILE_STYLES.caption,
     color: themeColors.textSecondary,
   },
 });
@@ -85,18 +85,21 @@ export default function GiftsScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
 
   return (
-    <View style={styles.container}>
-      <View style={{ width: '100%', maxWidth: 520, marginBottom: 16, marginTop: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: themeColors.background }}
+      contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
+    >
+      <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
+        <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.surface,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
@@ -105,17 +108,17 @@ export default function GiftsScreen() {
             accessibilityLabel="Go back to home screen"
             accessibilityHint="Double tap to return to the main dashboard"
           >
-            <Text style={{ color: themeColors.text, fontWeight: 'bold', fontSize: 14 }}>⬅️ Back</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text, fontWeight: 'bold' }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.accent,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              elevation: 2,
-              minWidth: 48,
-              minHeight: 48,
+              borderRadius: MOBILE_LAYOUT.cardBorderRadius,
+              paddingHorizontal: MOBILE_LAYOUT.cardPadding,
+              paddingVertical: MOBILE_LAYOUT.itemSpacing,
+              elevation: MOBILE_LAYOUT.buttonElevation,
+              minWidth: MOBILE_LAYOUT.minTouchTarget,
+              minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
               alignItems: 'center',
             }}
@@ -124,10 +127,10 @@ export default function GiftsScreen() {
             accessibilityLabel="Help and information"
             accessibilityHint="Double tap to open help guide for gifts and rewards"
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
           </TouchableOpacity>
         </View>
-        <View style={{ alignItems: 'center' }}>
+        <View style={MOBILE_STYLES.center}>
           <Text style={[styles.title, { color: themeColors.primary }]}>🎁 My Gifts</Text>
         </View>
       </View>
@@ -204,21 +207,24 @@ export default function GiftsScreen() {
           }
         ]}
       />
-    </View>
+    </ScrollView>
   );
 }
 
 // --- Gifts Section (rewards/claimables) ---
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { useStaleDataWarning } from "@/utils/useStaleDataWarning";
 
 function GiftsSection() {
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const styles = createStyles(themeColors);
   const { formatAmount } = useCurrency();
   const [rewards, setRewards] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   // Tabs/filter for rewards
@@ -227,13 +233,14 @@ function GiftsSection() {
   const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
 
   // Load rewards and requests on component mount
-  const loadRewardsAndRequests = async () => {
+  const loadRewardsAndRequests = async (isRefresh = false) => {
     try {
+      if (!isRefresh) setLoading(true);
       const token = await getAuthToken();
       const user = await getUserData();
 
       if (!token || !user) {
-        setLoading(false);
+        if (!isRefresh) setLoading(false);
         return;
       }
       // Always fetch freshest user data from backend (not AsyncStorage!)
@@ -242,8 +249,8 @@ function GiftsSection() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!userRes.ok) {
-        await handleApiError(userRes, { showError: (msg) => Alert.alert('Error', msg), feature: 'Gifts - User Data' });
-        setLoading(false);
+        await handleApiError(userRes, { showError: (msg) => showMessage(msg, 'error'), feature: 'Gifts - User Data' });
+        if (!isRefresh) setLoading(false);
         return;
       }
       const freshUserData = await userRes.json();
@@ -268,9 +275,10 @@ function GiftsSection() {
       }
     } catch (error) {
       console.error('Error loading rewards and requests:', error);
-      Alert.alert('Error', 'Failed to load gifts and rewards.');
+      showMessage('Failed to load gifts and rewards.', 'error');
     } finally {
       setLoading(false);
+      if (isRefresh) setRefreshing(false);
     }
   };
 
@@ -357,6 +365,12 @@ function GiftsSection() {
     }, [])
   );
 
+  const onRefresh = React.useCallback(() => {
+    console.log('[GIFTS] Manual refresh triggered');
+    setRefreshing(true);
+    loadRewardsAndRequests(true);
+  }, []);
+
   const handleClaimReward = async (rewardId: string) => {
     try {
       setClaiming(rewardId);
@@ -364,12 +378,12 @@ function GiftsSection() {
       const token = await getAuthToken();
       const user = await getUserData();
       if (!token || !user) {
-        Alert.alert('Error', 'Not authenticated.');
+        showMessage('Not authenticated.', 'error');
         return;
       }
       const reward = rewards.find(r => r._id === rewardId);
       if (!reward) {
-        Alert.alert('Error', 'Reward not found.');
+        showMessage('Reward not found.', 'error');
         return;
       }
       // For rewards, claiming means PATCHing reward to mark as claim requested (purchased: true),
@@ -403,7 +417,7 @@ function GiftsSection() {
         } catch {
           // If JSON parsing fails, use default message
         }
-        Alert.alert('Error', errorMessage);
+        showMessage(errorMessage, 'error');
         return;
       }
 
@@ -430,7 +444,7 @@ function GiftsSection() {
 
     } catch (error) {
       console.error('Error claiming reward:', error);
-      Alert.alert('Error', 'Failed to claim gift.');
+      showMessage('Failed to claim gift.', 'error');
     } finally {
       setClaiming(null);
     }
@@ -447,56 +461,17 @@ function GiftsSection() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Quick Actions Header */}
-      <View style={{
-        backgroundColor: themeColors.surface,
-        borderRadius: 16,
-        marginBottom: 16,
-        padding: 16,
-        width: '97%',
-        maxWidth: 520,
-        alignSelf: 'center',
-        elevation: 3,
-        shadowColor: themeColors.border,
-        borderWidth: 1,
-        borderColor: themeColors.border + '30',
-      }}>
-        <TouchableOpacity
-          style={{
-            backgroundColor: themeColors.secondary,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 10,
-            alignItems: 'center',
-            elevation: 1,
-          }}
-          onPress={() => loadRewardsAndRequests()}
-          disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel={loading ? "Refreshing gifts and rewards" : "Refresh gifts and rewards"}
-          accessibilityHint="Double tap to reload your available gifts"
-          accessibilityState={{ disabled: loading }}
-        >
-          <Text style={{
-            color: themeColors.card,
-            fontSize: 14,
-            fontWeight: '600'
-          }}>
-            {loading ? '🔄 Refreshing...' : '🔄 Refresh Gifts'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Gifts Section - Always Visible */}
       <View
         style={{
           backgroundColor: themeColors.card,
-          borderRadius: 14,
+          borderRadius: 16,
           marginBottom: 16,
+          minWidth: 320,
           width: '97%',
           maxWidth: 520,
           alignSelf: 'center',
-          elevation: 2,
+          elevation: 3,
           shadowColor: themeColors.border,
         }}
       >
@@ -508,7 +483,7 @@ function GiftsSection() {
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>🎁 My Gifts</Text>
+              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0, fontSize: 20 }]}>🎁 My Gifts</Text>
               <View style={{
                 backgroundColor: themeColors.primary,
                 borderRadius: 10,
@@ -521,6 +496,19 @@ function GiftsSection() {
                 </Text>
               </View>
             </View>
+            <TouchableOpacity
+              style={[styles.refreshBtn, { backgroundColor: themeColors.secondary }]}
+              onPress={onRefresh}
+              disabled={refreshing}
+              accessibilityRole="button"
+              accessibilityLabel={refreshing ? "Refreshing gifts and rewards" : "Refresh gifts and rewards"}
+              accessibilityHint="Double tap to reload your available gifts"
+              accessibilityState={{ disabled: refreshing }}
+            >
+              <Text style={{ fontSize: 14, color: themeColors.card }}>
+                {refreshing ? '⏳' : '↻'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -551,13 +539,11 @@ function GiftsSection() {
               <TouchableOpacity
                 key={t}
                 style={{
-                  flex: 1,
-                  paddingVertical: 14,
-                  paddingHorizontal: 16,
-                  borderRadius: 12,
-                  backgroundColor: rewardsTab === t ? themeColors.primary : 'transparent',
-                  alignItems: 'center',
-                  minHeight: 48,
+                  marginHorizontal: 6,
+                  paddingVertical: 12,
+                  paddingHorizontal: 15,
+                  borderRadius: 18,
+                  backgroundColor: rewardsTab === t ? themeColors.secondary : themeColors.surface
                 }}
                 onPress={() => { setRewardsTab(t as "Available" | "Claimed"); setShowRewardsArchive(false); }}
                 accessibilityRole="tab"
@@ -566,9 +552,9 @@ function GiftsSection() {
                 accessibilityState={{ selected: rewardsTab === t }}
               >
                 <Text style={{
-                  color: rewardsTab === t ? 'white' : themeColors.text,
+                  color: rewardsTab === t ? themeColors.card : themeColors.text,
                   fontWeight: rewardsTab === t ? "bold" : "600",
-                  fontSize: 16
+                  fontSize: 15
                 }}>
                   {t === "Available" ? "🎯 Ready to Win!" : "🏆 My Treasures!"}
                 </Text>
@@ -764,20 +750,20 @@ function GiftsSection() {
     const statusConfig = getStatusConfig();
 
     return (
-      <View
+<View
         key={r._id}
-        style={{
+style={{
           backgroundColor: statusConfig.bgColor,
-          marginBottom: 12,
-          borderRadius: 16,
+          marginVertical: 5,
+          borderRadius: 7,
           padding: 16,
-          borderWidth: 2,
+          borderWidth: 1,
           borderColor: r.purchased ? themeColors.success : hasPending ? themeColors.warning : canClaim ? themeColors.primary : themeColors.border,
           shadowColor: statusConfig.color,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.08,
+          shadowRadius: 2,
+          elevation: 1,
         }}
         accessibilityLabel={`Gift: ${r.name}. Cost: ${formatAmount(r.cost)} points. Status: ${getStatusText()}.`}
         accessibilityHint={canClaim ? 'Double tap to claim this gift' : r.purchased ? 'This gift has been claimed' : hasPending ? 'Waiting for parent approval' : 'You need more points to claim this gift'}
@@ -802,7 +788,8 @@ function GiftsSection() {
               }}>
                 💰 {formatAmount(r.cost)} points
               </Text>
-              {userData && (
+              {/* Only show total for available gifts (not claimed) */}
+              {userData && !r.purchased && (
                 <Text style={{
                   fontSize: 14,
                   color: themeColors.textSecondary

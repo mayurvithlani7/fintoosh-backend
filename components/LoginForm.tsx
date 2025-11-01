@@ -7,9 +7,10 @@ import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 type LoginFormProps = {
   onLoginSuccess: (data: any) => void;
   onBack: () => void;
+  onReactivationRequired?: () => void;
 };
 
-const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack, onReactivationRequired }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -76,6 +77,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onBack }) => {
 
       if (!response.ok) {
         if (data.requiresReactivation) {
+          // Call the callback to show reactivation screen
+          if (onReactivationRequired) {
+            onReactivationRequired();
+            return;
+          }
+          // Fallback to showing message if no callback provided
           setStatusMessage('This account has been deactivated. Please reactivate your account.');
           return;
         }

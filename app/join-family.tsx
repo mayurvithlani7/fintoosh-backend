@@ -1,3 +1,4 @@
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -6,7 +7,6 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ImageBackground,
   KeyboardAvoidingView,
@@ -21,6 +21,7 @@ import {
 
 export default function JoinFamilyScreen() {
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const [familyCode, setFamilyCode] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,47 +36,47 @@ export default function JoinFamilyScreen() {
 
   const validateForm = () => {
     if (!familyCode.trim()) {
-      Alert.alert('Error', 'Family code is required');
+      showMessage('Family code is required', 'error');
       return false;
     }
 
     if (!name.trim()) {
-      Alert.alert('Error', 'Full name is required');
+      showMessage('Full name is required', 'error');
       return false;
     }
 
     if (!email.trim()) {
-      Alert.alert('Error', 'Email is required');
+      showMessage('Email is required', 'error');
       return false;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      showMessage('Please enter a valid email address', 'error');
       return false;
     }
 
     if (!mobileNumber.trim()) {
-      Alert.alert('Error', 'Mobile number is required');
+      showMessage('Mobile number is required', 'error');
       return false;
     }
 
     if (!/^\+91\d{10}$/.test(mobileNumber)) {
-      Alert.alert('Error', 'Please enter a valid 10-digit mobile number with +91');
+      showMessage('Please enter a valid 10-digit mobile number with +91', 'error');
       return false;
     }
 
     if (!password.trim()) {
-      Alert.alert('Error', 'Password is required');
+      showMessage('Password is required', 'error');
       return false;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      showMessage('Password must be at least 6 characters', 'error');
       return false;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      showMessage('Passwords do not match', 'error');
       return false;
     }
 

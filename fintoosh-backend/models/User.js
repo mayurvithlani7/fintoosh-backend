@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['parent', 'child', 'elder'], default: 'child' },
   status: { type: String, enum: ['active', 'deactivated'], default: 'active' }, // Account status for deactivation/reactivation
   deactivatedAt: { type: Date, default: null }, // Timestamp when account was deactivated
+  relationship: { type: String, enum: ['mother', 'father', 'grandmother', 'grandfather', 'step-mother', 'step-father', 'guardian', 'other'], default: null }, // Parent's relationship to children
   avatar: { type: String, default: 'boy1' },
   currentPoints: { type: Number, default: 0 },
   pendingCurrentPoints: { type: Number, default: 0 }, // Points reserved for pending claims

@@ -119,7 +119,7 @@ export const ActionSuggestions: React.FC<ActionSuggestionsProps> = ({
     if (isAllowanceOverdue()) {
       suggestions.push({
         icon: '💰',
-        title: lastAllowanceDate ? 'Time for Weekly Allowance?' : 'Give First Allowance',
+        title: lastAllowanceDate ? 'Time for Weekly Allowance?' : 'Give Allowance',
         action: 'Give Pocket Money',
         priority: 'medium' as const,
         onPress: onNavigateToPoints,

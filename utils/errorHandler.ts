@@ -2,12 +2,14 @@
  * Centralized error handler for consistent API error handling across the app.
  * Provides standardized error parsing, user-friendly messages, and consistent error handling patterns.
  * Enhanced with error categorization, offline detection, and recovery actions.
+ * Now uses centered message system instead of Alert.alert.
  */
 
 
 export interface ErrorHandlerOptions {
-  showError?: (message: string) => void; // For hook-based error display
-  useAlert?: boolean; // Fallback to Alert.alert
+  showMessage?: (message: string, type?: 'success' | 'error' | 'info') => void; // For centered message system
+  showError?: (message: string) => void; // Legacy support for hook-based error display
+  useAlert?: boolean; // Deprecated - now uses centered messages
   feature?: string; // Feature name for logging
   silent?: boolean; // Don't show error to user
   showRetry?: boolean; // Show retry button/option
@@ -45,7 +47,7 @@ export async function handleApiError(
   response: Response,
   options: ErrorHandlerOptions = {}
 ): Promise<ApiError | null> {
-  const { showError, useAlert = true, feature = 'API' } = options;
+  const { showMessage, showError, useAlert = true, feature = 'API' } = options;
 
   // Rate limiting (429) - special handling with retry timing
   if (response.status === 429) {
@@ -55,7 +57,9 @@ export async function handleApiError(
 
     console.warn(`[${feature}] Rate limited: ${message}`);
 
-    if (showError) {
+    if (showMessage) {
+      showMessage(message, 'error');
+    } else if (showError) {
       showError(message);
     } else if (useAlert) {
       const { Alert } = require('react-native');
@@ -88,7 +92,9 @@ export async function handleApiError(
 
     console.warn(`[${feature}] Authentication error: ${response.status}`);
 
-    if (showError) {
+    if (showMessage) {
+      showMessage(message, 'error');
+    } else if (showError) {
       showError(message);
     } else if (useAlert) {
       const { Alert } = require('react-native');
@@ -120,7 +126,9 @@ export async function handleApiError(
 
     console.error(`[${feature}] Server error: ${response.status}`);
 
-    if (showError) {
+    if (showMessage) {
+      showMessage(message, 'error');
+    } else if (showError) {
       showError(message);
     } else if (useAlert) {
       const { Alert } = require('react-native');
@@ -161,7 +169,9 @@ export async function handleApiError(
 
     console.error(`[${feature}] Client error: ${response.status} - ${message}`);
 
-    if (showError) {
+    if (showMessage) {
+      showMessage(message, 'error');
+    } else if (showError) {
       showError(message);
     } else if (useAlert) {
       const { Alert } = require('react-native');
@@ -188,7 +198,7 @@ export function handleGeneralError(
   context: string,
   options: ErrorHandlerOptions = {}
 ): void {
-  const { showError, useAlert = true, feature = 'General' } = options;
+  const { showMessage, showError, useAlert = true, feature = 'General' } = options;
 
   console.error(`[${feature}] ${context}:`, error);
 
@@ -196,7 +206,9 @@ export function handleGeneralError(
   if (!navigator.onLine || error.name === 'NetworkError' || error.message?.includes('fetch')) {
     const message = 'No internet connection. Please check your connection and try again.';
 
-    if (showError) {
+    if (showMessage) {
+      showMessage(message, 'error');
+    } else if (showError) {
       showError(message);
     } else if (useAlert) {
       const { Alert } = require('react-native');
@@ -209,7 +221,9 @@ export function handleGeneralError(
   if (error.name === 'AbortError' || error.message?.includes('timeout')) {
     const message = 'Request timed out. Please try again.';
 
-    if (showError) {
+    if (showMessage) {
+      showMessage(message, 'error');
+    } else if (showError) {
       showError(message);
     } else if (useAlert) {
       const { Alert } = require('react-native');
@@ -221,7 +235,9 @@ export function handleGeneralError(
   // Generic fallback
   const message = 'Something went wrong. Please try again.';
 
-  if (showError) {
+  if (showMessage) {
+    showMessage(message, 'error');
+  } else if (showError) {
     showError(message);
   } else if (useAlert) {
     const { Alert } = require('react-native');
@@ -278,7 +294,9 @@ export async function parseApiResponse<T = any>(
     };
 
     if (!options.silent) {
-      if (options.showError) {
+      if (options.showMessage) {
+        options.showMessage(errorResult.message, 'error');
+      } else if (options.showError) {
         options.showError(errorResult.message);
       } else if (options.useAlert !== false) {
         const { Alert } = require('react-native');
@@ -327,7 +345,9 @@ export async function apiRequest<T = any>(
     };
 
     if (!errorOptions.silent) {
-      if (errorOptions.showError) {
+      if (errorOptions.showMessage) {
+        errorOptions.showMessage(errorResult.message, 'error');
+      } else if (errorOptions.showError) {
         errorOptions.showError(errorResult.message);
       } else if (errorOptions.useAlert !== false) {
         const { Alert } = require('react-native');
@@ -466,7 +486,7 @@ export async function handleApiResponseError(
   responseOrError: Response | any,
   options: ErrorHandlerOptions = {}
 ): Promise<ApiError> {
-  const { showError, useAlert = true, feature = 'API', silent = false } = options;
+  const { showMessage, showError, useAlert = true, feature = 'API', silent = false } = options;
 
   let errorResult: ApiError;
 
@@ -519,7 +539,9 @@ export async function handleApiResponseError(
   console.error(`[${feature}] API Error:`, errorResult);
 
   if (!silent) {
-    if (showError) {
+    if (showMessage) {
+      showMessage(errorResult.message, 'error');
+    } else if (showError) {
       showError(errorResult.message);
     } else if (useAlert) {
       const { Alert } = require('react-native');

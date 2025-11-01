@@ -2,16 +2,16 @@ import Confetti from '@/components/animations/Confetti';
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { fetchTransactions } from "@/utils/api";
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { getAuthToken, getUser } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  FlatList,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -615,6 +615,7 @@ function DateInput({ value, onChange, placeholder, themeColors }: {
 
 export default function TransactionHistoryScreen() {
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const styles = createStyles(themeColors);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -672,7 +673,7 @@ export default function TransactionHistoryScreen() {
           console.warn('Transaction history refresh rate limited, skipping update');
           if (!isBackground) {
             // Show user-friendly message for manual refresh
-            Alert.alert('Please Wait', 'Too many requests. Please wait a moment before refreshing again.');
+            showMessage('Too many requests. Please wait a moment before refreshing again.', 'error');
           }
           return; // Exit early without updating
         } else {
@@ -722,7 +723,10 @@ export default function TransactionHistoryScreen() {
   }, [transactions, search, type, startDate, endDate]);
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: themeColors.background }}
+      contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back" to="/(kids-tabs)" />
         <TouchableOpacity
@@ -807,37 +811,23 @@ export default function TransactionHistoryScreen() {
         </View>
         {loading ? (
           <ActivityIndicator />
+        ) : filteredAndSorted.length === 0 ? (
+          <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>
+            No transactions found.
+          </Text>
         ) : (
-          <FlatList
-            data={filteredAndSorted}
-            keyExtractor={(item) => item._id || Math.random().toString()}
-            initialNumToRender={10}
-            maxToRenderPerBatch={5}
-            windowSize={10}
-            getItemLayout={(data, index) => ({
-              length: 80,
-              offset: 80 * index,
-              index
-            })}
-            renderItem={({ item: tx }: { item: any }) => (
-              <TransactionCard
-                tx={tx}
-                themeColors={themeColors}
-                isExpanded={expandedTransactionId === (tx._id || tx.id)}
-                onToggle={() => {
-                  const txId = tx._id || tx.id || '';
-                  setExpandedTransactionId(expandedTransactionId === txId ? null : txId);
-                }}
-              />
-            )}
-            ListEmptyComponent={
-              <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>
-                No transactions found.
-              </Text>
-            }
-            // Load more only when explicitly requested - disabled continuous loading
-            // Users can manually refresh for more data if needed
-          />
+          filteredAndSorted.map((tx) => (
+            <TransactionCard
+              key={tx._id || tx.id || Math.random().toString()}
+              tx={tx}
+              themeColors={themeColors}
+              isExpanded={expandedTransactionId === (tx._id || tx.id)}
+              onToggle={() => {
+                const txId = tx._id || tx.id || '';
+                setExpandedTransactionId(expandedTransactionId === txId ? null : txId);
+              }}
+            />
+          ))
         )}
       </View>
 
@@ -869,8 +859,7 @@ export default function TransactionHistoryScreen() {
               },
               {
                 type: "highlight",
-                text: "Watch your money story grow! 🌟",
-                icon: "✨"
+                text: "Watch your money story grow! 🌟"
               }
             ]
           },
@@ -879,8 +868,7 @@ export default function TransactionHistoryScreen() {
             content: [
               {
                 type: "text",
-                text: "Want to find a specific thing? Use these fun tools:",
-                icon: "🔍"
+                text: "Want to find a specific thing? Use these fun tools:"
               },
               {
                 type: "bullet",
@@ -896,8 +884,7 @@ export default function TransactionHistoryScreen() {
               },
               {
                 type: "highlight",
-                text: "Mix and match to find exactly what you want!",
-                icon: "🎯"
+                text: "Mix and match to find exactly what you want!"
               }
             ]
           },
@@ -906,8 +893,7 @@ export default function TransactionHistoryScreen() {
             content: [
               {
                 type: "text",
-                text: "Here are all the fun ways you can earn and spend points:",
-                icon: "🎉"
+                text: "Here are all the fun ways you can earn and spend points:"
               },
               {
                 type: "bullet",
@@ -931,13 +917,12 @@ export default function TransactionHistoryScreen() {
               },
               {
                 type: "highlight",
-                text: "Every point tells part of your awesome story!",
-                icon: "�"
+                text: "Every point tells part of your awesome story!"
               }
             ]
           }
         ]}
       />
-    </View>
+    </ScrollView>
   );
 }

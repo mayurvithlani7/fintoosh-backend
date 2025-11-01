@@ -43,8 +43,7 @@ This guide will walk you through everything you need to know to get started and 
 ### **Step 3: Child Onboarding (10 minutes)**
 1. **Have your child log in** with their username/PIN
 2. **Watch the guided tour** introduce the money pots
-3. **Complete the welcome task** for instant 25 bonus points
-4. **Set their first savings goal** together
+3. **Set their first savings goal** together
 
 **🎯 Success Check**: By now, your child should have:
 - ✅ Completed the guided tour

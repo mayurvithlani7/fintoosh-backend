@@ -292,7 +292,7 @@ As children progress:
 
 ### **For Children**
 - [ ] Complete guided onboarding tour
-- [ ] Claim welcome task (+25 bonus points)
+- [ ] Complete first chore (+25 bonus points)
 - [ ] Explore the 5 money pots
 - [ ] Set your first savings goal
 - [ ] Try moving points between pots
