@@ -627,16 +627,8 @@ router.post('/request-parent-otp', async (req, res) => {
       return res.status(500).json({ message: 'Failed to store OTP' });
     }
 
-    // Send OTP via SMS or email based on identifier type
-    let sent = false;
-    if (identifier.includes('@')) {
-      // Email OTP (for now, just log it since email service not configured)
-      console.log(`Password reset OTP ${otp} would be sent to email ${identifier}`);
-      sent = true; // Assume sent for development
-    } else {
-      // SMS OTP
-      sent = await OTPService.sendOTP(identifier, otp);
-    }
+    // Send OTP via email (we've switched to email-only)
+    const sent = await OTPService.sendOTP(identifier, otp);
 
     if (!sent) {
       return res.status(500).json({ message: 'Failed to send OTP' });
