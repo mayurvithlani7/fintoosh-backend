@@ -164,13 +164,13 @@ Your continued use of Fintoosh after changes constitutes acceptance of the updat
 ## Contact Information
 
 ### For Privacy Concerns:
-- **Email:** privacy@fintoosh.com
-- **App Support:** support@fintoosh.com
-- **Address:** [Your Business Address]
+- **Email:** mayurvithlani7@gmail.com
+- **App Support:** mayurvithlani7@gmail.com
+- **Address:** A/204, Highland Ocean, M.G Road, Charkop Village, Kandivali West, Mumbai - 400067, Maharashtra, Mumbai
 
 ### For COPPA-Specific Questions:
-- **COPPA Officer:** [Name]
-- **Email:** coppa@fintoosh.com
+- **COPPA Officer:** Mayur Vithlani
+- **Email:** mayurvithlani7@gmail.com
 
 ### Response Time:
 We aim to respond to all privacy-related inquiries within 30 days.
