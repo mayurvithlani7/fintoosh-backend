@@ -171,8 +171,11 @@ class OTPService {
         return true;
       }
 
-      // Rate limit: don't allow new OTP within 30 seconds of last request (reduced from 60)
-      const timeSinceLastOTP = Date.now() - (user.otpExpiresAt.getTime() - 10 * 60 * 1000);
+      // Calculate when the last OTP was requested (10 minutes before expiry)
+      const lastOTPTime = user.otpExpiresAt.getTime() - (10 * 60 * 1000);
+      const timeSinceLastOTP = Date.now() - lastOTPTime;
+
+      // Rate limit: don't allow new OTP within 30 seconds of last request
       return timeSinceLastOTP > 30000; // 30 second cooldown
     } catch (error) {
       console.error('Error checking OTP request eligibility:', error);

@@ -352,11 +352,9 @@ router.post('/send-otp', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Use lenient rate limiting (allow every 30 seconds)
-    const now = new Date();
-    const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000);
-
-    if (user.otpExpiresAt && user.otpExpiresAt > thirtySecondsAgo) {
+    // Check if user can request OTP (rate limiting handled by OTPService)
+    const canRequest = await OTPService.canRequestOTP(user._id);
+    if (!canRequest) {
       res.set('Retry-After', '30');
       return res.status(429).json({ message: 'Please wait 30 seconds before requesting another OTP' });
     }
