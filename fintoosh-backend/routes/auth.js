@@ -336,18 +336,18 @@ router.put('/change-password', auth, async (req, res) => {
 });
 
 /**
- * Send OTP to user's mobile number
+ * Send OTP to user's email address
  */
 router.post('/send-otp', async (req, res) => {
   try {
-    const { mobileNumber, userId } = req.body;
+    const { email, userId } = req.body;
 
-    if (!mobileNumber) {
-      return res.status(400).json({ message: 'Mobile number is required' });
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
     }
 
-    // Find user by mobile number
-    const user = await User.findOne({ mobileNumber });
+    // Find user by email
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -367,8 +367,8 @@ router.post('/send-otp', async (req, res) => {
       return res.status(500).json({ message: 'Failed to store OTP' });
     }
 
-    // Send OTP via SMS (disabled in development)
-    const sent = await OTPService.sendOTP(mobileNumber, otp);
+    // Send OTP via email
+    const sent = await OTPService.sendOTP(email, otp);
 
     if (!sent) {
       return res.status(500).json({ message: 'Failed to send OTP' });

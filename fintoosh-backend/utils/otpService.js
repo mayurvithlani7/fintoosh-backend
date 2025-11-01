@@ -1,14 +1,16 @@
 const otpGenerator = require('otp-generator');
 const User = require('../models/User');
 
-// Msg91 configuration
-const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY;
-const MSG91_SENDER_ID = process.env.MSG91_SENDER_ID || 'FINTOO';
+// SendGrid configuration
+const sgMail = require('@sendgrid/mail');
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'noreply@fintoosh.com';
 
-if (MSG91_AUTH_KEY) {
-  console.log('✅ OTP Service initialized with Msg91');
+if (SENDGRID_API_KEY) {
+  sgMail.setApiKey(SENDGRID_API_KEY);
+  console.log('✅ OTP Service initialized with SendGrid');
 } else {
-  console.log('⚠️ OTP Service initialized - Msg91 credentials not configured');
+  console.log('⚠️ OTP Service initialized - SendGrid credentials not configured');
 }
 
 class OTPService {
@@ -31,57 +33,60 @@ class OTPService {
   }
 
   /**
-   * Send OTP via SMS using Msg91
-   * @param {string} phoneNumber - Recipient phone number (with country code)
+   * Send OTP via email using SendGrid
+   * @param {string} email - Recipient email address
    * @param {string} otp - OTP to send
    * @returns {Promise<boolean>} Success status
    */
-  static async sendOTP(phoneNumber, otp) {
+  static async sendOTP(email, otp) {
     try {
-      console.log(`🔍 MSG91_AUTH_KEY present: ${!!MSG91_AUTH_KEY}`);
-      console.log(`📱 Attempting to send OTP ${otp} to ${phoneNumber}`);
+      console.log(`🔍 SENDGRID_API_KEY present: ${!!SENDGRID_API_KEY}`);
+      console.log(`📧 Attempting to send OTP ${otp} to ${email}`);
 
-      if (!MSG91_AUTH_KEY) {
-        console.log(`📱 DEV MODE: OTP ${otp} would be sent to ${phoneNumber} (no API key)`);
+      if (!SENDGRID_API_KEY) {
+        console.log(`📧 DEV MODE: OTP ${otp} would be sent to ${email} (no API key)`);
         return true; // Return true for development if no API key
       }
 
-      // Keep full number with country code for Msg91 API (remove + but keep 91)
-      const mobileNumber = phoneNumber.replace(/^\+/, '');
-      console.log(`📱 Formatted mobile number: ${mobileNumber}`);
-
-      const payload = {
-        mobile: mobileNumber,
-        sender: MSG91_SENDER_ID,
-        message: `Your Fintoosh verification code is: ${otp}`,
-        otp: otp
+      const msg = {
+        to: email,
+        from: {
+          email: SENDGRID_FROM_EMAIL,
+          name: 'Fintoosh'
+        },
+        subject: 'Your Fintoosh Verification Code',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #6A49F3;">Fintoosh Verification</h2>
+            <p>Hello!</p>
+            <p>Your verification code is:</p>
+            <div style="background-color: #f4f4f4; padding: 20px; text-align: center; margin: 20px 0;">
+              <span style="font-size: 24px; font-weight: bold; color: #6A49F3;">${otp}</span>
+            </div>
+            <p>This code will expire in 10 minutes.</p>
+            <p>If you didn't request this code, please ignore this email.</p>
+            <br>
+            <p>Best regards,<br>The Fintoosh Team</p>
+          </div>
+        `,
+        text: `Your Fintoosh verification code is: ${otp}. This code will expire in 10 minutes.`
       };
 
-      console.log(`📤 Sending to Msg91 API:`, JSON.stringify(payload, null, 2));
+      console.log(`📤 Sending email via SendGrid to ${email}`);
 
-      const response = await fetch('https://api.msg91.com/api/v5/otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'authkey': MSG91_AUTH_KEY
-        },
-        body: JSON.stringify(payload)
-      });
+      const result = await sgMail.send(msg);
 
-      console.log(`📡 Msg91 API Response Status: ${response.status}`);
+      console.log(`📡 SendGrid Response:`, result[0]?.statusCode);
 
-      const result = await response.json();
-      console.log(`📡 Msg91 API Response:`, JSON.stringify(result, null, 2));
-
-      if (result.type === 'success') {
-        console.log(`✅ OTP sent successfully to ${phoneNumber} via Msg91`);
+      if (result[0]?.statusCode === 202) {
+        console.log(`✅ OTP email sent successfully to ${email} via SendGrid`);
         return true;
       } else {
-        console.error('❌ Msg91 API Error:', result.message || result);
+        console.error('❌ SendGrid Error:', result);
         return false;
       }
     } catch (error) {
-      console.error('❌ Msg91 API Network Error:', error.message);
+      console.error('❌ SendGrid Network Error:', error.message);
       console.error('❌ Full error:', error);
       return false;
     }

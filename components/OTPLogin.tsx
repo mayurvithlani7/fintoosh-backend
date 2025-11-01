@@ -10,7 +10,7 @@ type OTPLoginProps = {
 };
 
 const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack, onReactivationRequired }) => {
-  const [mobileNumber, setMobileNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [showOtp, setShowOtp] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -29,14 +29,14 @@ const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack, onReactivat
   }, [resendTimer]);
 
   const handleSendOTP = async () => {
-    if (!mobileNumber.trim()) {
-      setStatusMessage('Please enter your mobile number.');
+    if (!email.trim()) {
+      setStatusMessage('Please enter your email address.');
       return;
     }
 
-    const mobileRegex = /^\+91\d{10}$/;
-    if (!mobileRegex.test(mobileNumber.trim())) {
-      setStatusMessage('Please enter a valid Indian mobile number (+91XXXXXXXXXX)');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setStatusMessage('Please enter a valid email address.');
       return;
     }
 
@@ -49,7 +49,7 @@ const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack, onReactivat
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          mobileNumber: mobileNumber.trim(),
+          email: email.trim(),
         }),
       });
 
@@ -78,7 +78,7 @@ const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack, onReactivat
       setUserId(data.userId);
       setOtpSent(true);
       setResendTimer(30); // Updated to match backend rate limiting
-      setStatusMessage('OTP sent to your mobile number!');
+      setStatusMessage('OTP sent to your email!');
     } catch (error) {
       console.error('Send OTP error:', error);
       setStatusMessage('Network error. Please try again.');
@@ -146,37 +146,18 @@ const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack, onReactivat
               fontWeight: '700',
               color: '#6A49F3',
               marginLeft: 6,
-            }}>Mobile Number</Text>
+            }}>Email Address</Text>
             <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
               borderWidth: 1,
               borderColor: '#D0D7E4',
               borderRadius: 14,
               backgroundColor: '#F7F9FC',
             }}>
-              <TouchableOpacity style={{
-                paddingHorizontal: 12,
-                paddingVertical: 13,
-                backgroundColor: '#e8f4ff',
-                borderRightWidth: 1,
-                borderRightColor: '#D0D7E4'
-              }}>
-                <Text style={{
-                  fontSize: 16,
-                  fontWeight: '600',
-                  color: '#4166ee'
-                }}>+91</Text>
-              </TouchableOpacity>
               <TextInput
-                placeholder="Enter 10-digit mobile number"
-                value={mobileNumber.replace(/^\+91/, '')}
-                onChangeText={val => {
-                  const digits = val.replace(/\D/g, '').slice(0, 10);
-                  setMobileNumber(`+91${digits}`);
-                }}
+                placeholder="Enter your email address"
+                value={email}
+                onChangeText={setEmail}
                 style={{
-                  flex: 1,
                   padding: 13,
                   fontSize: 16,
                   color: '#223366',
@@ -184,8 +165,7 @@ const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack, onReactivat
                 }}
                 autoCapitalize="none"
                 autoCorrect={false}
-                keyboardType="phone-pad"
-                maxLength={10}
+                keyboardType="email-address"
                 placeholderTextColor="#999"
               />
             </View>
