@@ -409,7 +409,27 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    res.json({ message: 'OTP verified successfully' });
+    // Clear OTP data after successful verification
+    await OTPService.clearOTP(user._id);
+
+    // Generate JWT token for login
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, role: user.role, familyId: user.familyId },
+      process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+      { expiresIn: '7d' }
+    );
+
+    // Remove password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    delete userResponse.loginAttempts;
+    delete userResponse.lockoutUntil;
+
+    res.json({
+      user: userResponse,
+      token,
+      message: 'OTP verified and login successful'
+    });
   } catch (error) {
     console.error('Verify OTP error:', error);
     res.status(500).json({ message: 'Failed to verify OTP' });
