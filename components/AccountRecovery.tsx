@@ -15,15 +15,15 @@ const AccountRecovery: React.FC<AccountRecoveryProps> = ({ onReactivationSuccess
 
   const handleRequestReactivationOTP = async () => {
     if (!reactivationIdentifier.trim()) {
-      setStatusMessage('Please enter your mobile number.');
+      setStatusMessage('Please enter your email address.');
       return;
     }
 
-    const mobileRegex = /^\+91\d{10}$/;
-    const isValid = mobileRegex.test(reactivationIdentifier.trim());
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValid = emailRegex.test(reactivationIdentifier.trim());
 
     if (!isValid) {
-      setStatusMessage('Please enter a valid 10-digit mobile number.');
+      setStatusMessage('Please enter a valid email address.');
       return;
     }
 
@@ -60,7 +60,7 @@ const AccountRecovery: React.FC<AccountRecoveryProps> = ({ onReactivationSuccess
       }
 
       setReactivationOtpSent(true);
-      setStatusMessage('Reactivation OTP sent! Check your mobile for the code.');
+      setStatusMessage('Reactivation OTP sent! Check your email for the code.');
     } catch (error) {
       console.error('Request reactivation OTP error:', error);
       setStatusMessage('Network error. Please try again.');
@@ -141,7 +141,7 @@ const AccountRecovery: React.FC<AccountRecoveryProps> = ({ onReactivationSuccess
         marginBottom: 20,
         lineHeight: 20
       }}>
-        Your family account has been temporarily deactivated. Enter your registered email or mobile number to receive a reactivation OTP.
+        Your family account has been temporarily deactivated. Enter your registered email address to receive a reactivation OTP.
       </Text>
 
       {!reactivationOtpSent ? (
@@ -153,37 +153,18 @@ const AccountRecovery: React.FC<AccountRecoveryProps> = ({ onReactivationSuccess
               fontWeight: '700',
               color: '#6A49F3',
               marginLeft: 6,
-            }}>Mobile Number</Text>
+            }}>Email Address</Text>
             <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
               borderWidth: 1,
               borderColor: '#D0D7E4',
               borderRadius: 14,
               backgroundColor: '#F7F9FC',
             }}>
-              <TouchableOpacity style={{
-                paddingHorizontal: 12,
-                paddingVertical: 13,
-                backgroundColor: '#e8f4ff',
-                borderRightWidth: 1,
-                borderRightColor: '#D0D7E4'
-              }}>
-                <Text style={{
-                  fontSize: 16,
-                  fontWeight: '600',
-                  color: '#4166ee'
-                }}>+91</Text>
-              </TouchableOpacity>
               <TextInput
-                placeholder="Enter 10-digit mobile number"
-                value={reactivationIdentifier.replace(/^\+91/, '')}
-                onChangeText={val => {
-                  const digits = val.replace(/\D/g, '').slice(0, 10);
-                  setReactivationIdentifier(`+91${digits}`);
-                }}
+                placeholder="Enter your registered email"
+                value={reactivationIdentifier}
+                onChangeText={setReactivationIdentifier}
                 style={{
-                  flex: 1,
                   padding: 13,
                   fontSize: 16,
                   color: '#223366',
@@ -191,8 +172,7 @@ const AccountRecovery: React.FC<AccountRecoveryProps> = ({ onReactivationSuccess
                 }}
                 autoCapitalize="none"
                 autoCorrect={false}
-                keyboardType="phone-pad"
-                maxLength={10}
+                keyboardType="email-address"
                 placeholderTextColor="#999"
               />
             </View>
@@ -261,7 +241,7 @@ const AccountRecovery: React.FC<AccountRecoveryProps> = ({ onReactivationSuccess
               marginLeft: 6,
             }}>Enter Reactivation OTP</Text>
             <TextInput
-              placeholder="6-digit OTP sent to your mobile"
+              placeholder="6-digit OTP sent to your email"
               value={reactivationOtp}
               onChangeText={setReactivationOtp}
               style={{

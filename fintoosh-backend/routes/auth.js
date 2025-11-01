@@ -803,38 +803,37 @@ router.post('/deactivate-account', auth, async (req, res) => {
 
 /**
  * Request Account Reactivation OTP (For deactivated accounts)
- * Sends OTP to parent's mobile number for account reactivation
+ * Sends OTP to parent's email address for account reactivation
  */
 router.post('/request-reactivation-otp', async (req, res) => {
   try {
     const { identifier } = req.body;
 
     if (!identifier) {
-      return res.status(400).json({ message: 'Mobile number is required' });
+      return res.status(400).json({ message: 'Email address is required' });
     }
 
-    // Validate mobile number format
-    const mobileRegex = /^\+91\d{10}$/;
-    if (!mobileRegex.test(identifier)) {
-      return res.status(400).json({ message: 'Please enter a valid 10-digit mobile number' });
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(identifier)) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
     }
 
-    // Find deactivated user by mobile number
+    // Find deactivated user by email
     const user = await User.findOne({
-      mobileNumber: identifier,
+      email: identifier,
       status: 'deactivated',
       role: 'parent'
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'No deactivated parent account found with this mobile number' });
+      return res.status(404).json({ message: 'No deactivated parent account found with this email address' });
     }
 
-    // For reactivation, use more lenient rate limiting (allow every 30 seconds instead of 60)
-    const now = new Date();
-    const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000);
-
-    if (user.otpExpiresAt && user.otpExpiresAt > thirtySecondsAgo) {
+    // Check if user can request OTP (rate limiting)
+    const canRequest = await OTPService.canRequestOTP(user._id);
+    if (!canRequest) {
+      res.set('Retry-After', '30');
       return res.status(429).json({ message: 'Please wait 30 seconds before requesting another reactivation OTP' });
     }
 
@@ -846,9 +845,8 @@ router.post('/request-reactivation-otp', async (req, res) => {
       return res.status(500).json({ message: 'Failed to store OTP' });
     }
 
-    // Send OTP via SMS (disabled in development)
-    const sent = process.env.NODE_ENV === 'production' ?
-      await OTPService.sendOTP(user.mobileNumber, otp) : true;
+    // Send OTP via email
+    const sent = await OTPService.sendOTP(user.email, otp);
 
     if (!sent) {
       return res.status(500).json({ message: 'Failed to send OTP' });
@@ -874,24 +872,24 @@ router.post('/reactivate-account', async (req, res) => {
     const { identifier, otp } = req.body;
 
     if (!identifier || !otp) {
-      return res.status(400).json({ message: 'Mobile number and OTP are required' });
+      return res.status(400).json({ message: 'Email address and OTP are required' });
     }
 
-    // Validate mobile number format
-    const mobileRegex = /^\+91\d{10}$/;
-    if (!mobileRegex.test(identifier)) {
-      return res.status(400).json({ message: 'Please enter a valid 10-digit mobile number' });
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(identifier)) {
+      return res.status(400).json({ message: 'Please enter a valid email address' });
     }
 
-    // Find deactivated parent user by mobile number
+    // Find deactivated parent user by email
     const user = await User.findOne({
-      mobileNumber: identifier,
+      email: identifier,
       status: 'deactivated',
       role: 'parent'
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'No deactivated parent account found with this mobile number' });
+      return res.status(404).json({ message: 'No deactivated parent account found with this email address' });
     }
 
     // Verify OTP
