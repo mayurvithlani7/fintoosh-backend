@@ -73,8 +73,8 @@ const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack, onReactivat
 
       setUserId(data.userId);
       setOtpSent(true);
-      setResendTimer(60);
-      setStatusMessage('?? OTP sent to your mobile number!');
+      setResendTimer(30); // Updated to match backend rate limiting
+      setStatusMessage('OTP sent to your mobile number!');
     } catch (error) {
       console.error('Send OTP error:', error);
       setStatusMessage('Network error. Please try again.');

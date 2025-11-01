@@ -377,6 +377,7 @@ router.post('/send-otp', async (req, res) => {
 
     res.json({
       message: 'OTP sent successfully',
+      userId: user._id, // Return user ID for verification
       otp: process.env.NODE_ENV === 'development' ? otp : undefined // Only show OTP in development
     });
   } catch (error) {
@@ -390,14 +391,14 @@ router.post('/send-otp', async (req, res) => {
  */
 router.post('/verify-otp', async (req, res) => {
   try {
-    const { mobileNumber, otp } = req.body;
+    const { userId, otp } = req.body;
 
-    if (!mobileNumber || !otp) {
-      return res.status(400).json({ message: 'Mobile number and OTP are required' });
+    if (!userId || !otp) {
+      return res.status(400).json({ message: 'User ID and OTP are required' });
     }
 
-    // Find user by mobile number
-    const user = await User.findOne({ mobileNumber });
+    // Find user by ID (more secure than mobile number)
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
