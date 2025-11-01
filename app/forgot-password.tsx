@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 
 // --- CONSTANTS ---
-type ResetMethod = 'email' | 'mobile';
+type ResetMethod = 'email';
 
 const { width } = Dimensions.get('window');
 
@@ -55,23 +55,14 @@ export default function ForgotPasswordScreen() {
 
   const handleSendOTP = async () => {
     if (!identifier.trim()) {
-      setStatusMessage('Please enter your email or mobile number.');
+      setStatusMessage('Please enter your email address.');
       return;
     }
 
-    let validationRegex;
-    if (resetMethod === 'email') {
-      validationRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!validationRegex.test(identifier.trim())) {
-        setStatusMessage('Please enter a valid email address.');
-        return;
-      }
-    } else {
-      validationRegex = /^\+91\d{10}$/;
-      if (!validationRegex.test(identifier.trim())) {
-        setStatusMessage('Please enter a valid Indian mobile number (+91XXXXXXXXXX).');
-        return;
-      }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(identifier.trim())) {
+      setStatusMessage('Please enter a valid email address.');
+      return;
     }
 
     try {
@@ -203,17 +194,7 @@ export default function ForgotPasswordScreen() {
     setResendTimer(0);
   };
 
-  const switchToMobile = () => {
-    setResetMethod('mobile');
-    setStatusMessage('');
-    setIdentifier('');
-    setOtp('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setStep('identifier');
-    setOtpSent(false);
-    setResendTimer(0);
-  };
+
 
   return (
     <ImageBackground
@@ -247,72 +228,28 @@ export default function ForgotPasswordScreen() {
               <Text style={styles.welcomeTitle}>Password Recovery</Text>
               <Text style={styles.title}>Reset Your Password</Text>
 
-              {/* Reset Method Toggle */}
-              <View style={styles.toggleContainer}>
-                <TouchableOpacity
-                  style={[styles.toggleButton, resetMethod === 'email' && styles.toggleActive]}
-                  onPress={switchToEmail}
-                >
-                  <Text style={[styles.toggleText, resetMethod === 'email' && styles.toggleTextActive]}>
-                    Email Reset
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.toggleButton, resetMethod === 'mobile' && styles.toggleActive]}
-                  onPress={switchToMobile}
-                >
-                  <Text style={[styles.toggleText, resetMethod === 'mobile' && styles.toggleTextActive]}>
-                    Mobile OTP
-                  </Text>
-                </TouchableOpacity>
+              {/* Email Reset Only */}
+              <View style={styles.emailOnlyContainer}>
+                <Text style={styles.emailOnlyText}>
+                  📧 Email Password Reset
+                </Text>
               </View>
 
               {step === 'identifier' && (
                 <>
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>
-                      {resetMethod === 'email' ? 'Email Address' : 'Mobile Number'}
-                    </Text>
-                    {resetMethod === 'email' ? (
-                      <TextInput
-                        placeholder="Enter your registered email"
-                        value={identifier}
-                        onChangeText={setIdentifier}
-                        style={styles.input}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        keyboardType="email-address"
-                        textContentType="emailAddress"
-                        placeholderTextColor="#999"
-                      />
-                    ) : (
-                      <View style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        borderWidth: 1,
-                        borderColor: '#D0D7E4',
-                        borderRadius: 14,
-                        backgroundColor: '#F7F9FC',
-                      }}>
-                        <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 13, backgroundColor: '#e8f4ff', borderRightWidth: 1, borderRightColor: '#D0D7E4' }}>
-                          <Text style={{ fontSize: 16, fontWeight: '600', color: '#4166ee' }}>+91</Text>
-                        </TouchableOpacity>
-                        <TextInput
-                          placeholder="Enter 10-digit mobile number"
-                          value={identifier.replace(/^\+91/, '')}
-                          onChangeText={val => {
-                            const digits = val.replace(/\D/g, '').slice(0, 10);
-                            setIdentifier(`+91${digits}`);
-                          }}
-                          style={{ flex: 1, padding: 13, fontSize: 16, color: '#223366', backgroundColor: 'transparent' }}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          keyboardType="phone-pad"
-                          maxLength={10}
-                          placeholderTextColor="#999"
-                        />
-                      </View>
-                    )}
+                    <Text style={styles.inputLabel}>Email Address</Text>
+                    <TextInput
+                      placeholder="Enter your registered email"
+                      value={identifier}
+                      onChangeText={setIdentifier}
+                      style={styles.input}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      textContentType="emailAddress"
+                      placeholderTextColor="#999"
+                    />
                   </View>
                   <View style={styles.buttonRow}>
                     <TouchableOpacity style={styles.button} onPress={handleSendOTP}>
@@ -622,5 +559,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     textDecorationLine: 'underline'
+  },
+  emailOnlyContainer: {
+    backgroundColor: '#E8F4FF',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 22,
+    width: '100%',
+    alignItems: 'center'
+  },
+  emailOnlyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: PRIMARY
   },
 });

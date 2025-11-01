@@ -110,7 +110,7 @@
     "noAccount": "Don't have an account?",
     "signupNow": "Sign up",
     "emailLogin": "Email Login",
-    "mobileOtp": "Mobile OTP",
+    "emailOtp": "Email OTP",
     "backBtn": "Back",
     "countryCode": "+91",
     "countryCodeDisplay": "🇮🇳 +91",
@@ -198,12 +198,12 @@
     "verifyingOtp": "Verifying OTP...",
     "sessionExpired": "Session expired. Please request OTP again.",
     "failedToSendOtp": "Failed to send OTP",
-    "otpSent": "📱 OTP sent to your mobile number!",
+    "otpSent": "� OTP sent to your email!",
     "invalidOtp": "Invalid OTP",
-    "enterMobileRequired": "Please enter your mobile number.",
-    "invalidIndianMobile": "Please enter a valid Indian mobile number (+91XXXXXXXXXX)",
+    "enterEmailRequired": "Please enter your email address.",
+    "invalidEmail": "Please enter a valid email address.",
     "enterOtpRequired": "Please enter the OTP.",
-    "otpSentSuccess": "OTP sent to your mobile number!",
+    "otpSentSuccess": "OTP sent to your email!",
     "loginSuccess": "Login successful!"
   }
 }

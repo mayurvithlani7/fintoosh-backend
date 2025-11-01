@@ -289,7 +289,7 @@ export default function LoginScreen() {
                           onPress={switchToMobileLogin}
                         >
                           <Text style={[styles.toggleText, loginMethod === 'mobile' && styles.toggleTextActive]}>
-                            Mobile OTP
+                           Email OTP
                           </Text>
                         </TouchableOpacity>
                       </View>
