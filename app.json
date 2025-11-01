@@ -56,22 +56,15 @@
     },
     "plugins": [
       "expo-router",
-      "expo-video",
       [
         "expo-font",
         {
           "fonts": [
             "./assets/fonts/Inter-Regular.ttf",
             "./assets/fonts/Inter-Medium.ttf",
-            "./assets/fonts/Inter-SemiBold.ttf",
             "./assets/fonts/Inter-Bold.ttf",
             "./assets/fonts/Nunito-Regular.ttf",
-            "./assets/fonts/Nunito-Medium.ttf",
-            "./assets/fonts/Nunito-SemiBold.ttf",
-            "./assets/fonts/Nunito-Bold.ttf",
-            "./assets/fonts/Fredoka-Regular.ttf",
-            "./assets/fonts/Fredoka-Medium.ttf",
-            "./assets/fonts/Fredoka-Bold.ttf"
+            "./assets/fonts/Nunito-Bold.ttf"
           ]
         }
       ]
