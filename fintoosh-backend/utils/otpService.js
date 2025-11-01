@@ -13,16 +13,21 @@ if (MSG91_AUTH_KEY) {
 
 class OTPService {
   /**
-   * Generate a 6-digit numeric OTP
+   * Generate a 6-digit numeric OTP (Msg91 requires numeric only)
    * @returns {string} Generated OTP
    */
   static generateOTP() {
-    return otpGenerator.generate(6, {
+    // Generate purely numeric OTP for Msg91 compatibility
+    const otp = otpGenerator.generate(6, {
       digits: true,
       alphabets: false,
       upperCase: false,
       specialChars: false
     });
+
+    // Ensure it's purely numeric (fallback if library behaves unexpectedly)
+    const numericOTP = otp.replace(/[^0-9]/g, '');
+    return numericOTP.length === 6 ? numericOTP : Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   /**
