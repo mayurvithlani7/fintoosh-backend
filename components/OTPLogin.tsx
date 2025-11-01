@@ -62,8 +62,12 @@ const OTPLogin: React.FC<OTPLoginProps> = ({ onLoginSuccess, onBack, onReactivat
 
       if (!response.ok) {
         if (response.status === 429) {
-          const retryAfter = response.headers.get('Retry-After');
-          const waitTime = retryAfter ? parseInt(retryAfter) : 60;
+          // Check multiple header variations (case-insensitive)
+          const retryAfter = response.headers.get('Retry-After') ||
+                            response.headers.get('retry-after') ||
+                            response.headers.get('RETRY-AFTER');
+          const waitTime = retryAfter ? parseInt(retryAfter) : 30; // Default to 30 seconds (changed from 60)
+          setResendTimer(waitTime); // Update the resend timer to match the wait time
           setStatusMessage(`Too many OTP requests. Please wait ${waitTime} seconds before trying again.`);
           return;
         }
