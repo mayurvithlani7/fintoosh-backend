@@ -14,7 +14,9 @@ import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -483,7 +485,7 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
                             height: '100%',
                             width: `${percentage}%`,
                             borderRadius: 3,
-                            backgroundColor: jar.color || themeColors.primary
+                            backgroundColor: '#D2691E' // Orange/brown color for better visibility
                           }}
                         />
                       </View>
@@ -644,14 +646,14 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   jarLabel: {
     fontWeight: "bold",
     marginBottom: 2,
-    color: themeColors.primary,
+    color: '#F59E0B',
     fontSize: 16,
   },
   jarPoints: {
     fontWeight: "700",
     fontSize: 21,
     marginBottom: 1,
-    color: themeColors.text,
+    color: '#F59E0B',
   },
   formRow: {
     flexDirection: "row",
@@ -828,6 +830,8 @@ export default function MoneyJarsScreen() {
   const [transferRequests, setTransferRequests] = useState<any[]>([]);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [coachExpanded, setCoachExpanded] = useState(false);
+  const [budgetExpanded, setBudgetExpanded] = useState(false);
+  const [charityExpanded, setCharityExpanded] = useState(false);
   const router = useRouter();
 
   const scrollToMovePoints = () => {
@@ -884,11 +888,51 @@ export default function MoneyJarsScreen() {
       };
 
       const jarData = [
-        { label: 'Pocket Money', key: 'current', value: validatePoints(freshUserData.currentPoints), color: themeColors.jarColors.current, icon: '💰' },
-        { label: 'Savings Pot', key: 'save', value: validatePoints(freshUserData.savePoints), color: themeColors.jarColors.save, icon: '🐷' },
-        { label: 'Spending Pot', key: 'spend', value: validatePoints(freshUserData.spendPoints), color: themeColors.jarColors.spend, icon: '🛒' },
-        { label: 'Help Others Pot', key: 'donate', value: validatePoints(freshUserData.donatePoints), color: themeColors.jarColors.donate, icon: '🤲' },
-        { label: 'Grow Money Pot', key: 'invest', value: validatePoints(freshUserData.investPoints), color: themeColors.jarColors.invest, icon: '📈' }
+        {
+          label: 'Pocket Money',
+          key: 'current',
+          value: validatePoints(freshUserData.currentPoints) - validatePoints(freshUserData.pendingCurrentPoints),
+          totalValue: validatePoints(freshUserData.currentPoints),
+          pendingValue: validatePoints(freshUserData.pendingCurrentPoints),
+          color: themeColors.jarColors.current,
+          icon: '💰'
+        },
+        {
+          label: 'Savings Pot',
+          key: 'save',
+          value: validatePoints(freshUserData.savePoints) - validatePoints(freshUserData.pendingSavePoints),
+          totalValue: validatePoints(freshUserData.savePoints),
+          pendingValue: validatePoints(freshUserData.pendingSavePoints),
+          color: themeColors.jarColors.save,
+          icon: '🐷'
+        },
+        {
+          label: 'Spending Pot',
+          key: 'spend',
+          value: validatePoints(freshUserData.spendPoints) - validatePoints(freshUserData.pendingSpendPoints),
+          totalValue: validatePoints(freshUserData.spendPoints),
+          pendingValue: validatePoints(freshUserData.pendingSpendPoints),
+          color: themeColors.jarColors.spend,
+          icon: '🛒'
+        },
+        {
+          label: 'Help Others Pot',
+          key: 'donate',
+          value: validatePoints(freshUserData.donatePoints) - validatePoints(freshUserData.pendingDonatePoints),
+          totalValue: validatePoints(freshUserData.donatePoints),
+          pendingValue: validatePoints(freshUserData.pendingDonatePoints),
+          color: themeColors.jarColors.donate,
+          icon: '🤲'
+        },
+        {
+          label: 'Grow Money Pot',
+          key: 'invest',
+          value: validatePoints(freshUserData.investPoints) - validatePoints(freshUserData.pendingInvestPoints),
+          totalValue: validatePoints(freshUserData.investPoints),
+          pendingValue: validatePoints(freshUserData.pendingInvestPoints),
+          color: themeColors.jarColors.invest,
+          icon: '📈'
+        }
       ];
 
       console.log('🔄 Money Jars: Setting jar data:', jarData);
@@ -968,8 +1012,798 @@ export default function MoneyJarsScreen() {
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background }]}>
         <Text style={styles.title}>Loading...</Text>
       </View>
-    );
-  }
+  );
+}
+
+/**
+ * Expandable Budget Section - Expandable wrapper for budget creation
+ */
+function ExpandableBudgetSection({ expanded, onToggle, onBudgetCreated }: {
+  expanded: boolean;
+  onToggle: () => void;
+  onBudgetCreated: () => void;
+}) {
+  const { themeColors } = useTheme();
+
+  return (
+    <TouchableOpacity
+      style={{
+        borderRadius: 14,
+        marginBottom: 16,
+        padding: 18,
+        minWidth: 300,
+        width: "97%",
+        maxWidth: 520,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        backgroundColor: themeColors.surface
+      }}
+      onPress={onToggle}
+      accessibilityRole="button"
+      accessibilityLabel={expanded ? "Collapse budget creation" : "Expand budget creation"}
+      accessibilityHint="Show or hide budget creation options"
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: "600",
+            marginBottom: expanded ? 16 : 0,
+            color: themeColors.primary
+          }}>
+            🎯 Create Money Budget
+          </Text>
+
+          {!expanded && (
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.textSecondary,
+              marginTop: 4
+            }}>
+              Set spending limits to learn responsible money management
+            </Text>
+          )}
+
+          {expanded && <BudgetCreationSection onBudgetCreated={onBudgetCreated} />}
+        </View>
+        <Text style={{ fontSize: 16, color: themeColors.primary, marginLeft: 8 }}>
+          {expanded ? '▲' : '▼'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+/**
+ * Expandable Charity Section - Expandable wrapper for charity donations
+ */
+function ExpandableCharitySection({ jars, expanded, onToggle, onDonationMade }: {
+  jars: any[];
+  expanded: boolean;
+  onToggle: () => void;
+  onDonationMade: () => void;
+}) {
+  const { themeColors } = useTheme();
+
+  return (
+    <TouchableOpacity
+      style={{
+        borderRadius: 14,
+        marginBottom: 16,
+        padding: 18,
+        minWidth: 300,
+        width: "97%",
+        maxWidth: 520,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        backgroundColor: themeColors.surface
+      }}
+      onPress={onToggle}
+      accessibilityRole="button"
+      accessibilityLabel={expanded ? "Collapse charity donation" : "Expand charity donation"}
+      accessibilityHint="Show or hide charity donation options"
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: "600",
+            marginBottom: expanded ? 16 : 0,
+            color: themeColors.secondary
+          }}>
+            ❤️ Make a Donation
+          </Text>
+
+          {!expanded && (
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.textSecondary,
+              marginTop: 4
+            }}>
+              Share your points to help others and support causes
+            </Text>
+          )}
+
+          {expanded && <CharityDonationSection jars={jars} onDonationMade={onDonationMade} />}
+        </View>
+        <Text style={{ fontSize: 16, color: themeColors.secondary, marginLeft: 8 }}>
+          {expanded ? '▲' : '▼'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+/**
+ * Budget Creation Section - Kids can create spending budgets for their jars
+ */
+function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => void }) {
+  const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
+  const [isCreating, setIsCreating] = useState(false);
+  const [jarKey, setJarKey] = useState('');
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const [budgetPeriod, setBudgetPeriod] = useState('weekly');
+  const [budgetNote, setBudgetNote] = useState('');
+
+  const jarOptions = [
+    { key: 'current', label: 'Pocket Money', icon: '💰', description: 'Daily spending money' },
+    { key: 'spend', label: 'Spending Pot', icon: '🛒', description: 'Fun purchases and treats' },
+    { key: 'donate', label: 'Help Others Pot', icon: '🤲', description: 'Money for giving to others' }
+  ];
+
+  const periodOptions = [
+    { key: 'daily', label: 'Daily', description: 'Reset every day' },
+    { key: 'weekly', label: 'Weekly', description: 'Reset every week' },
+    { key: 'monthly', label: 'Monthly', description: 'Reset every month' }
+  ];
+
+  const handleCreateBudget = async () => {
+    if (!jarKey || !budgetAmount || !budgetPeriod) {
+      showMessage('Please fill in all fields', 'error');
+      return;
+    }
+
+    const amount = parseInt(budgetAmount);
+    if (amount <= 0 || amount > 10000) {
+      showMessage('Budget amount must be between 1 and 10,000 points', 'error');
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const token = await getAuthToken();
+      const user = await getUserData();
+
+      if (!token || !user) {
+        showMessage('Not authenticated', 'error');
+        return;
+      }
+
+      const requestData = {
+        userId: user.id,
+        type: 'budget-create',
+        name: `Create ${budgetPeriod} budget for ${jarOptions.find(j => j.key === jarKey)?.label}`,
+        amount: amount,
+        jar: jarKey,
+        period: budgetPeriod,
+        reason: budgetNote || `Setting a ${budgetPeriod} spending limit to learn responsible money management`,
+        budgetAmount: amount,
+        budgetPeriod: budgetPeriod,
+        budgetJar: jarKey
+      };
+
+      const response = await fetch(`${API_URL}/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        showMessage(errorData.message || 'Failed to create budget request', 'error');
+        return;
+      }
+
+      // Update achievement for budget creation
+      try {
+        const { updateAchievementProgress } = await import('../../components/AchievementSystem');
+        await updateAchievementProgress('budget-planner', 1);
+      } catch (error) {
+        console.error('Error updating budget achievement:', error);
+      }
+
+      showMessage('Budget creation request sent to parent! 🎯', 'success');
+      setJarKey('');
+      setBudgetAmount('');
+      setBudgetPeriod('weekly');
+      setBudgetNote('');
+      onBudgetCreated();
+
+    } catch (error) {
+      console.error('Error creating budget:', error);
+      showMessage('Network error. Please try again.', 'error');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <View style={{
+      borderRadius: 14,
+      marginBottom: 16,
+      padding: 18,
+      minWidth: 300,
+      width: "97%",
+      maxWidth: 520,
+      elevation: 2,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      backgroundColor: themeColors.surface
+    }}>
+      <Text style={{
+        fontSize: 18,
+        fontWeight: "600",
+        marginBottom: 16,
+        color: themeColors.primary,
+        textAlign: 'center'
+      }}>🎯 Create Money Budget</Text>
+
+      <Text style={{
+        fontSize: 14,
+        color: themeColors.textSecondary,
+        textAlign: 'center',
+        marginBottom: 20,
+        lineHeight: 20
+      }}>
+        Set spending limits to learn responsible money management! 🧠💰
+      </Text>
+
+      {/* Jar Selection */}
+      <Text style={{
+        fontWeight: "600",
+        marginBottom: 8,
+        color: themeColors.text,
+        fontSize: 14,
+      }}>Which pot should have a budget?</Text>
+
+      <View style={{ marginBottom: 16 }}>
+        {jarOptions.map((jar) => (
+          <TouchableOpacity
+            key={jar.key}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 8,
+              borderWidth: 2,
+              borderColor: jarKey === jar.key ? themeColors.primary : themeColors.border,
+              backgroundColor: jarKey === jar.key ? themeColors.primary + '15' : themeColors.card
+            }}
+            onPress={() => setJarKey(jar.key)}
+          >
+            <Text style={{ fontSize: 24, marginRight: 12 }}>{jar.icon}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                color: themeColors.text
+              }}>
+                {jar.label}
+              </Text>
+              <Text style={{
+                fontSize: 12,
+                color: themeColors.textSecondary
+              }}>
+                {jar.description}
+              </Text>
+            </View>
+            {jarKey === jar.key && (
+              <Text style={{ fontSize: 20, color: themeColors.primary }}>✓</Text>
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Budget Amount */}
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{
+          fontWeight: "600",
+          marginBottom: 8,
+          color: themeColors.text,
+          fontSize: 14,
+        }}>Budget Amount (points):</Text>
+        <TextInput
+          style={{
+            borderWidth: 1,
+            borderColor: themeColors.border,
+            borderRadius: 8,
+            padding: 12,
+            fontSize: 16,
+            backgroundColor: themeColors.surface,
+            color: themeColors.text
+          }}
+          placeholder="e.g., 500"
+          value={budgetAmount}
+          onChangeText={(text) => setBudgetAmount(text.replace(/[^0-9]/g, ''))}
+          keyboardType="numeric"
+          maxLength={5}
+          placeholderTextColor={themeColors.textSecondary}
+        />
+      </View>
+
+      {/* Budget Period */}
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{
+          fontWeight: "600",
+          marginBottom: 8,
+          color: themeColors.text,
+          fontSize: 14,
+        }}>Budget Period:</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {periodOptions.map((period) => (
+            <TouchableOpacity
+              key={period.key}
+              style={{
+                flex: 1,
+                padding: 12,
+                borderRadius: 8,
+                borderWidth: 2,
+                borderColor: budgetPeriod === period.key ? themeColors.secondary : themeColors.border,
+                backgroundColor: budgetPeriod === period.key ? themeColors.secondary + '15' : themeColors.card,
+                alignItems: 'center'
+              }}
+              onPress={() => setBudgetPeriod(period.key)}
+            >
+              <Text style={{
+                fontSize: 14,
+                fontWeight: 'bold',
+                color: budgetPeriod === period.key ? themeColors.secondary : themeColors.text
+              }}>
+                {period.label}
+              </Text>
+              <Text style={{
+                fontSize: 10,
+                color: themeColors.textSecondary,
+                textAlign: 'center'
+              }}>
+                {period.description}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Budget Note */}
+      <View style={{ marginBottom: 20 }}>
+        <Text style={{
+          fontWeight: "600",
+          marginBottom: 8,
+          color: themeColors.text,
+          fontSize: 14,
+        }}>Why this budget? (Optional):</Text>
+        <TextInput
+          style={{
+            borderWidth: 1,
+            borderColor: themeColors.border,
+            borderRadius: 8,
+            padding: 12,
+            fontSize: 14,
+            backgroundColor: themeColors.surface,
+            color: themeColors.text,
+            minHeight: 60,
+            textAlignVertical: 'top'
+          }}
+          placeholder="e.g., To save for a special toy or learn to control spending"
+          value={budgetNote}
+          onChangeText={setBudgetNote}
+          multiline
+          maxLength={200}
+          placeholderTextColor={themeColors.textSecondary}
+        />
+      </View>
+
+      {/* Create Budget Button */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: isCreating ? themeColors.surface : themeColors.primary,
+          borderRadius: 12,
+          paddingVertical: 16,
+          alignItems: 'center',
+          elevation: 3,
+          shadowColor: themeColors.primary,
+          shadowOpacity: 0.3,
+          shadowRadius: 4
+        }}
+        onPress={handleCreateBudget}
+        disabled={isCreating}
+      >
+        <Text style={{
+          color: isCreating ? themeColors.textSecondary : themeColors.card,
+          fontSize: 16,
+          fontWeight: 'bold'
+        }}>
+          {isCreating ? '⏳ Creating Budget...' : '🎯 Create Budget Plan'}
+        </Text>
+      </TouchableOpacity>
+
+      <Text style={{
+        fontSize: 12,
+        color: themeColors.textSecondary,
+        textAlign: 'center',
+        marginTop: 12,
+        fontStyle: 'italic'
+      }}>
+        Your parent will review and approve your budget plan! 📝✅
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Charity Donation Section - Kids can donate points from their jars to causes
+ */
+function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonationMade: () => void }) {
+  const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
+  const [isDonating, setIsDonating] = useState(false);
+  const [fromJar, setFromJar] = useState('');
+  const [donationAmount, setDonationAmount] = useState('');
+  const [cause, setCause] = useState('');
+  const [donationNote, setDonationNote] = useState('');
+
+  const donationCauses = [
+    { key: 'animals', label: 'Animal Shelter 🐾', description: 'Help animals find homes and care' },
+    { key: 'environment', label: 'Save Nature 🌱', description: 'Protect our planet and wildlife' },
+    { key: 'education', label: 'School Supplies 📚', description: 'Help kids learn and grow' },
+    { key: 'food', label: 'Food for Families 🍽️', description: 'Provide meals for those in need' },
+    { key: 'health', label: 'Medical Help ⚕️', description: 'Support healthcare for communities' },
+    { key: 'other', label: 'Other Cause 🤝', description: 'Any cause that helps people' }
+  ];
+
+  // Get jars that have points available for donation
+  const availableJars = jars.filter(jar => jar.value > 0 && jar.key !== 'invest'); // Can't donate from invest jar
+
+  const handleMakeDonation = async () => {
+    if (!fromJar || !donationAmount || !cause) {
+      showMessage('Please fill in all required fields', 'error');
+      return;
+    }
+
+    const amount = parseInt(donationAmount);
+    if (amount <= 0) {
+      showMessage('Donation amount must be greater than 0', 'error');
+      return;
+    }
+
+    const selectedJar = jars.find(j => j.key === fromJar);
+    if (!selectedJar || selectedJar.value < amount) {
+      showMessage('Not enough points in selected jar', 'error');
+      return;
+    }
+
+    setIsDonating(true);
+    try {
+      const token = await getAuthToken();
+      const user = await getUserData();
+
+      if (!token || !user) {
+        showMessage('Not authenticated', 'error');
+        return;
+      }
+
+      const selectedCause = donationCauses.find(c => c.key === cause);
+      // First, reserve points in pending state
+      const reserveResponse = await fetch(`${API_URL}/transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          type: 'donation-reservation',
+          description: `Reserving ${amount} points for donation to ${selectedCause?.label}`,
+          amount: -amount,
+          fromJar: fromJar,
+          toJar: fromJar, // Reserve in same jar temporarily
+          reference: 'pending-donation'
+        }),
+      });
+
+      if (!reserveResponse.ok) {
+        const errorData = await reserveResponse.json().catch(() => ({}));
+        showMessage(errorData.message || 'Failed to reserve points for donation', 'error');
+        return;
+      }
+
+      const requestData = {
+        userId: user.id,
+        type: 'donation',
+        name: `Donate ${amount} points to ${selectedCause?.label}`,
+        amount: amount,
+        from: fromJar,
+        to: 'donate', // Points will be moved to donate jar for actual donation
+        cause: cause,
+        reason: donationNote || `Making a donation to help ${selectedCause?.description.toLowerCase()}`,
+        donationAmount: amount,
+        donationCause: cause,
+        donationNote: donationNote
+      };
+
+      const response = await fetch(`${API_URL}/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        showMessage(errorData.message || 'Failed to submit donation request', 'error');
+        return;
+      }
+
+      // Update achievement for making a donation
+      try {
+        const { updateAchievementProgress } = await import('../../components/AchievementSystem');
+        await updateAchievementProgress('charity-helper', amount);
+      } catch (error) {
+        console.error('Error updating charity achievement:', error);
+      }
+
+      showMessage(`Thank you for your generous donation! ❤️ ${selectedCause?.label}`, 'success');
+      setFromJar('');
+      setDonationAmount('');
+      setCause('');
+      setDonationNote('');
+      onDonationMade();
+
+    } catch (error) {
+      console.error('Error making donation:', error);
+      showMessage('Network error. Please try again.', 'error');
+    } finally {
+      setIsDonating(false);
+    }
+  };
+
+  return (
+    <View style={{
+      borderRadius: 14,
+      marginBottom: 16,
+      padding: 18,
+      minWidth: 300,
+      width: "97%",
+      maxWidth: 520,
+      elevation: 2,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      backgroundColor: themeColors.surface
+    }}>
+      <Text style={{
+        fontSize: 18,
+        fontWeight: "600",
+        marginBottom: 16,
+        color: themeColors.secondary,
+        textAlign: 'center'
+      }}>❤️ Make a Donation</Text>
+
+      <Text style={{
+        fontSize: 14,
+        color: themeColors.textSecondary,
+        textAlign: 'center',
+        marginBottom: 20,
+        lineHeight: 20
+      }}>
+        Share your points to help others! Every donation makes a difference! 🌟
+      </Text>
+
+      {/* From Jar Selection */}
+      <Text style={{
+        fontWeight: "600",
+        marginBottom: 8,
+        color: themeColors.text,
+        fontSize: 14,
+      }}>Which pot to donate from?</Text>
+
+      <View style={{ marginBottom: 16 }}>
+        {availableJars.map((jar) => (
+          <TouchableOpacity
+            key={jar.key}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 12,
+              borderRadius: 8,
+              marginBottom: 8,
+              borderWidth: 2,
+              borderColor: fromJar === jar.key ? themeColors.secondary : themeColors.border,
+              backgroundColor: fromJar === jar.key ? themeColors.secondary + '15' : themeColors.card
+            }}
+            onPress={() => setFromJar(jar.key)}
+          >
+            <Text style={{ fontSize: 24, marginRight: 12 }}>{jar.icon}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                color: themeColors.text
+              }}>
+                {jar.label}
+              </Text>
+              <Text style={{
+                fontSize: 12,
+                color: themeColors.textSecondary
+              }}>
+                {jar.value} points available
+              </Text>
+            </View>
+            {fromJar === jar.key && (
+              <Text style={{ fontSize: 20, color: themeColors.secondary }}>✓</Text>
+            )}
+          </TouchableOpacity>
+        ))}
+
+        {availableJars.length === 0 && (
+          <Text style={{
+            textAlign: 'center',
+            color: themeColors.textSecondary,
+            fontStyle: 'italic',
+            padding: 20
+          }}>
+            You need points in your jars to make donations! 💝
+          </Text>
+        )}
+      </View>
+
+      {/* Donation Amount */}
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{
+          fontWeight: "600",
+          marginBottom: 8,
+          color: themeColors.text,
+          fontSize: 14,
+        }}>How many points to donate?</Text>
+        <TextInput
+          style={{
+            borderWidth: 1,
+            borderColor: themeColors.border,
+            borderRadius: 8,
+            padding: 12,
+            fontSize: 16,
+            backgroundColor: themeColors.surface,
+            color: themeColors.text
+          }}
+          placeholder="e.g., 25"
+          value={donationAmount}
+          onChangeText={(text) => setDonationAmount(text.replace(/[^0-9]/g, ''))}
+          keyboardType="numeric"
+          maxLength={5}
+          placeholderTextColor={themeColors.textSecondary}
+        />
+      </View>
+
+      {/* Cause Selection */}
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{
+          fontWeight: "600",
+          marginBottom: 8,
+          color: themeColors.text,
+          fontSize: 14,
+        }}>What cause do you want to support?</Text>
+
+        <View style={{ gap: 8 }}>
+          {donationCauses.map((donationCause) => (
+            <TouchableOpacity
+              key={donationCause.key}
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                borderWidth: 2,
+                borderColor: cause === donationCause.key ? themeColors.secondary : themeColors.border,
+                backgroundColor: cause === donationCause.key ? themeColors.secondary + '15' : themeColors.card
+              }}
+              onPress={() => setCause(donationCause.key)}
+            >
+              <Text style={{
+                fontSize: 16,
+                fontWeight: 'bold',
+                color: themeColors.text
+              }}>
+                {donationCause.label}
+              </Text>
+              <Text style={{
+                fontSize: 12,
+                color: themeColors.textSecondary
+              }}>
+                {donationCause.description}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Donation Note */}
+      <View style={{ marginBottom: 20 }}>
+        <Text style={{
+          fontWeight: "600",
+          marginBottom: 8,
+          color: themeColors.text,
+          fontSize: 14,
+        }}>Why are you donating? (Optional):</Text>
+        <TextInput
+          style={{
+            borderWidth: 1,
+            borderColor: themeColors.border,
+            borderRadius: 8,
+            padding: 12,
+            fontSize: 14,
+            backgroundColor: themeColors.surface,
+            color: themeColors.text,
+            minHeight: 60,
+            textAlignVertical: 'top'
+          }}
+          placeholder="e.g., I want to help animals because they're so cute!"
+          value={donationNote}
+          onChangeText={setDonationNote}
+          multiline
+          maxLength={200}
+          placeholderTextColor={themeColors.textSecondary}
+        />
+      </View>
+
+      {/* Make Donation Button */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: isDonating ? themeColors.surface : themeColors.secondary,
+          borderRadius: 12,
+          paddingVertical: 16,
+          alignItems: 'center',
+          elevation: 3,
+          shadowColor: themeColors.secondary,
+          shadowOpacity: 0.3,
+          shadowRadius: 4
+        }}
+        onPress={handleMakeDonation}
+        disabled={isDonating || availableJars.length === 0}
+      >
+        <Text style={{
+          color: isDonating ? themeColors.textSecondary : themeColors.card,
+          fontSize: 16,
+          fontWeight: 'bold'
+        }}>
+          {isDonating ? '⏳ Making Donation...' : '❤️ Make Donation'}
+        </Text>
+      </TouchableOpacity>
+
+      <Text style={{
+        fontSize: 12,
+        color: themeColors.textSecondary,
+        textAlign: 'center',
+        marginTop: 12,
+        fontStyle: 'italic'
+      }}>
+        Your parent will help make the donation happen! Every point helps! 🌈
+      </Text>
+    </View>
+  );
+}
 
   function daysUntilPayout(rule: InterestRuleType): number {
     const now = new Date();
@@ -978,14 +1812,20 @@ export default function MoneyJarsScreen() {
   }
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      style={{ flex: 1, backgroundColor: themeColors.background }}
-      contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+    <KeyboardAvoidingView
+      style={{ flex: 1, width: '100%' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
     >
+      <ScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1, backgroundColor: themeColors.background }}
+        contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
         {/* Header Row with Back and Action Buttons */}
         <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
@@ -1034,7 +1874,7 @@ export default function MoneyJarsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={{
-                backgroundColor: themeColors.accent,
+                backgroundColor: themeColors.secondary,
                 borderRadius: MOBILE_LAYOUT.borderRadius * 1.5,
                 width: MOBILE_LAYOUT.minTouchTarget,
                 height: MOBILE_LAYOUT.minTouchTarget,
@@ -1063,36 +1903,36 @@ export default function MoneyJarsScreen() {
       {/* JARS DISPLAY */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 18 }}>
         {jars.map(jar => (
-          <View
-            key={jar.label}
-            style={[
-              styles.jarBox,
-              { backgroundColor: jar.color || themeColors.surface, borderColor: themeColors.border }
-            ]}
-          >
-            <Text style={{ fontSize: 25, marginBottom: 3 }}>{jar.icon}</Text>
-            <Text style={[styles.jarPoints]}>{formatAmount(jar.value)}</Text>
-            <Text style={[styles.jarLabel]}>{jar.label}</Text>
-            {showDenominations && (
-              <RupeeDenominations amount={convertToINR(jar.value)} />
-            )}
-            {jar.key === "save" && interestRule && (
-              <Text style={{
-                marginTop: 4,
-                fontSize: 13,
-                color: themeColors.success,
-                backgroundColor: themeColors.success + "25",
-                borderRadius: 5,
-                paddingHorizontal: 7,
-                paddingVertical: 3,
-                fontWeight: "600"
-              }}>
-                🏦 Your points are earning!
-                {"\n"}
-                Next payout in {daysUntilPayout(interestRule)} days
-              </Text>
-            )}
-          </View>
+            <View
+              key={jar.label}
+              style={[
+                styles.jarBox,
+                { backgroundColor: jar.color || themeColors.surface, borderColor: themeColors.border }
+              ]}
+            >
+              <Text style={{ fontSize: 25, marginBottom: 3 }}>{jar.icon}</Text>
+              <Text style={[styles.jarPoints]}>{formatAmount(jar.value)}</Text>
+              <Text style={[styles.jarLabel]}>{jar.label}</Text>
+              {showDenominations && (
+                <RupeeDenominations amount={convertToINR(jar.value)} />
+              )}
+              {jar.key === "save" && interestRule && (
+                <Text style={{
+                  marginTop: 4,
+                  fontSize: 13,
+                  color: themeColors.success,
+                  backgroundColor: themeColors.success + "25",
+                  borderRadius: 5,
+                  paddingHorizontal: 7,
+                  paddingVertical: 3,
+                  fontWeight: "600"
+                }}>
+                  🏦 Your points are earning!
+                  {"\n"}
+                  Next payout in {daysUntilPayout(interestRule)} days
+                </Text>
+              )}
+            </View>
         ))}
       </View>
 
@@ -1139,6 +1979,39 @@ export default function MoneyJarsScreen() {
       <TransferTimeline
         requests={transferRequests}
         router={router}
+      />
+
+      {/* Section Divider */}
+      <View style={{
+        height: 1,
+        backgroundColor: themeColors.border + '40',
+        marginVertical: 12,
+        width: '90%',
+        alignSelf: 'center'
+      }} />
+
+      {/* BUDGET CREATION SECTION - EXPANDABLE */}
+      <ExpandableBudgetSection
+        expanded={budgetExpanded}
+        onToggle={() => setBudgetExpanded(!budgetExpanded)}
+        onBudgetCreated={() => loadUserData(false)}
+      />
+
+      {/* Section Divider */}
+      <View style={{
+        height: 1,
+        backgroundColor: themeColors.border + '40',
+        marginVertical: 12,
+        width: '90%',
+        alignSelf: 'center'
+      }} />
+
+      {/* CHARITY DONATION SECTION - EXPANDABLE */}
+      <ExpandableCharitySection
+        jars={jars}
+        expanded={charityExpanded}
+        onToggle={() => setCharityExpanded(!charityExpanded)}
+        onDonationMade={() => loadUserData(false)}
       />
 
       {/* Help Modal */}
@@ -1269,7 +2142,8 @@ export default function MoneyJarsScreen() {
           }
         ]}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1453,6 +2327,15 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
         },
         body: JSON.stringify(requestData),
       });
+
+      // Update savings achievement if moving to save jar
+      if (to === 'save' && response.ok) {
+        import('../../components/AchievementSystem').then(({ updateAchievementProgress }) => {
+          updateAchievementProgress('first-saver', amt);
+        }).catch(error => {
+          console.error('Error updating savings achievement:', error);
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -1716,9 +2599,9 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
           style={{
             flex: 1,
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'flex-start',
+            justifyContent: 'center',
             alignItems: 'center',
-            paddingTop: 600 // Position at 600 padding as requested
+            paddingHorizontal: 20
           }}
           activeOpacity={1}
           onPress={() => setFromDropdownVisible(false)}
@@ -1726,17 +2609,17 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.surface,
-              borderRadius: 7,
+              borderRadius: 12,
               borderWidth: 1,
               borderColor: themeColors.border,
-              minWidth: 200,
-              elevation: 5,
+              minWidth: 280,
+              elevation: 10,
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              maxWidth: 300,
-              marginTop: 10 // Small gap from the dropdown field
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              maxWidth: 320,
+              paddingVertical: 8
             }}
             activeOpacity={1}
           >
@@ -1776,9 +2659,9 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
           style={{
             flex: 1,
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'flex-start',
+            justifyContent: 'center',
             alignItems: 'center',
-            paddingTop: 650 // Position at 650 padding for "To" field
+            paddingHorizontal: 20
           }}
           activeOpacity={1}
           onPress={() => setToDropdownVisible(false)}
@@ -1786,17 +2669,17 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
           <TouchableOpacity
             style={{
               backgroundColor: themeColors.surface,
-              borderRadius: 7,
+              borderRadius: 12,
               borderWidth: 1,
               borderColor: themeColors.border,
-              minWidth: 200,
-              elevation: 5,
+              minWidth: 280,
+              elevation: 10,
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              maxWidth: 300,
-              marginTop: 10 // Small gap from the dropdown field
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              maxWidth: 320,
+              paddingVertical: 8
             }}
             activeOpacity={1}
           >

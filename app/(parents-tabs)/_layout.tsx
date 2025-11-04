@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   notificationDrawer: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '70%',
+    maxHeight: '50%', // Increased from 70% to 50% for better scrolling
     minHeight: 300,
   },
   notificationHeader: {

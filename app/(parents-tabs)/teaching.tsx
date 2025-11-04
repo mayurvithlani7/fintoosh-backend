@@ -2,13 +2,15 @@ import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
-import { getAuthToken } from '@/utils/secureStorage';
+import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -261,21 +263,20 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
   // Load current user and family data
   const loadCurrentUser = async () => {
     try {
-      // Load auth token and user from AsyncStorage (set during login)
+      // Load auth token and user from secure storage (set during login)
       const [token, userData] = await Promise.all([
         getAuthToken(),
-        AsyncStorage.getItem('user')
+        getUserData()
       ]);
 
       console.log('🔐 Loading user data:', { hasToken: !!token, hasUserData: !!userData });
 
       if (token && userData) {
-        const user = JSON.parse(userData);
-        console.log('✅ Parsed authenticated user:', user);
-        setCurrentUser(user);
+        console.log('✅ Retrieved authenticated user:', userData);
+        setCurrentUser(userData);
 
         // Load family's children with real authentication
-        await loadRealChildren(user.familyId, token);
+        await loadRealChildren(userData.familyId, token);
       } else {
         console.log('⚠️ No authentication data found, using demo mode');
         // Use demo user for testing (no real auth)
@@ -1007,10 +1008,16 @@ const loadStoredData = async () => {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: themeColors.background }]}
-      contentContainerStyle={styles.contentContainer}
+    <KeyboardAvoidingView
+      style={{ flex: 1, width: '100%' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
     >
+      <ScrollView
+        style={[styles.container, { backgroundColor: themeColors.background }]}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
@@ -2642,7 +2649,8 @@ const loadStoredData = async () => {
           },
         ]}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

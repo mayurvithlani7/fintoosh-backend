@@ -3,6 +3,7 @@ import HelpModal from '@/components/HelpModal';
 import { SpendingInsights } from '@/components/SpendingInsights';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { fetchFamilyChildren } from '@/utils/api';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { getAuthToken, getUser } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 
@@ -102,15 +103,112 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
 });
 
+// Memoized child selector item component for performance
+const ChildSelectorItem = React.memo(({
+  child,
+  isSelected,
+  themeColors,
+  onPress
+}: {
+  child: { id?: string; _id?: string; name: string };
+  isSelected: boolean;
+  themeColors: any;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    style={[
+      {
+        width: 90,
+        height: 90,
+        borderRadius: 16,
+        marginHorizontal: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        elevation: 2,
+        shadowColor: themeColors.shadow || '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        backgroundColor: isSelected ? themeColors.primary : themeColors.card,
+        borderColor: isSelected ? themeColors.primary : themeColors.border,
+      }
+    ]}
+    accessibilityRole="button"
+    accessibilityLabel={`Select ${child.name} - ${isSelected ? 'currently selected' : 'tap to select'}`}
+    accessibilityHint="Switch to view this child's analytics and progress"
+    onPress={onPress}
+  >
+    <View style={{
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: themeColors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 4
+    }}>
+      <Text style={{
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: isSelected ? themeColors.card : themeColors.primary
+      }}>
+        {child.name.charAt(0).toUpperCase()}
+      </Text>
+    </View>
+    <Text style={[{
+      fontSize: 12,
+      fontWeight: '600',
+      textAlign: 'center',
+      color: isSelected ? themeColors.card : themeColors.text
+    }]}>
+      {child.name}
+    </Text>
+    {isSelected && (
+      <View style={{
+        position: 'absolute',
+        top: -8,
+        right: -8,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: themeColors.success,
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Text style={{
+          color: themeColors.card,
+          fontSize: 14,
+          fontWeight: 'bold'
+        }}>👑</Text>
+      </View>
+    )}
+  </TouchableOpacity>
+));
+
 export default function ParentsAnalyticsScreen() {
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const styles = createStyles(themeColors);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
-  const [feedback, setFeedback] = useState('');
   const [children, setChildren] = useState<{ id?: string; _id?: string; name: string }[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string>('');
 
   const { analyticsData, loading, error, refetch, exportData, clearCache } = useAnalytics();
+
+  // Memoize child selector items - only when we have multiple children
+  const memoizedChildSelectorItems = React.useMemo(() =>
+    children.length > 1 ? children.map((child) => (
+      <ChildSelectorItem
+        key={child._id || child.id}
+        child={child}
+        isSelected={selectedChildId === (child._id || child.id)}
+        themeColors={themeColors}
+        onPress={() => setSelectedChildId(child._id || child.id || "")}
+      />
+    )) : [],
+    [children, selectedChildId, themeColors]
+  );
 
   // Load children and initialize analytics
   React.useEffect(() => {
@@ -119,12 +217,12 @@ export default function ParentsAnalyticsScreen() {
         const token = await getAuthToken();
         const parentProfile = await getUser();
         if (!token || !parentProfile) {
-          setFeedback('Please log in to view analytics.');
+          showMessage('Please log in to view analytics.', 'error');
           return;
         }
         const familyId = parentProfile.familyId;
         if (!familyId) {
-          setFeedback('Family information not available. Please contact support.');
+          showMessage('Family information not available. Please contact support.', 'error');
           return;
         }
 
@@ -135,7 +233,7 @@ export default function ParentsAnalyticsScreen() {
         }
       } catch (err) {
         console.error('Failed to load children:', err);
-        setFeedback('Failed to load family data. Please try refreshing.');
+        showMessage('Failed to load family data. Please try refreshing.', 'error');
       }
     }
 
@@ -146,11 +244,9 @@ export default function ParentsAnalyticsScreen() {
   const handleExport = () => {
     const csvData = exportData();
     if (csvData) {
-      setFeedback('Analytics data exported successfully!');
-      setTimeout(() => setFeedback(''), 3000);
+      showMessage('Analytics data exported successfully!', 'success');
     } else {
-      setFeedback('No data available to export');
-      setTimeout(() => setFeedback(''), 3000);
+      showMessage('No data available to export', 'info');
     }
   };
 
@@ -236,40 +332,7 @@ export default function ParentsAnalyticsScreen() {
             style={styles.childrenScroll}
             contentContainerStyle={styles.childrenScrollContent}
           >
-            {children.map((child) => (
-              <TouchableOpacity
-                key={child._id || child.id}
-                style={[
-                  styles.childCard,
-                  {
-                    backgroundColor: selectedChildId === (child._id || child.id) ? themeColors.primary : themeColors.card,
-                    borderColor: selectedChildId === (child._id || child.id) ? themeColors.primary : themeColors.border,
-                  }
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={`Select ${child.name} - ${selectedChildId === (child._id || child.id) ? 'currently selected' : 'tap to select'}`}
-                accessibilityHint="Switch to view this child's analytics and progress"
-                onPress={() => setSelectedChildId(child._id || child.id || "")}
-              >
-                <View style={styles.childAvatar}>
-                  <Text style={[styles.childAvatarText, {
-                    color: selectedChildId === (child._id || child.id) ? themeColors.card : themeColors.primary
-                  }]}>
-                    {child.name.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <Text style={[styles.childName, {
-                  color: selectedChildId === (child._id || child.id) ? themeColors.card : themeColors.text
-                }]}>
-                  {child.name}
-                </Text>
-                {selectedChildId === (child._id || child.id) && (
-                  <View style={styles.selectedIndicator}>
-                    <Text style={styles.selectedCheckmark}>👑</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
+            {memoizedChildSelectorItems}
           </ScrollView>
           <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
             Tap any child to view their individual analytics and progress
@@ -277,9 +340,9 @@ export default function ParentsAnalyticsScreen() {
         </View>
       )}
 
-      {feedback ? <Text style={styles.statusMessage}>{feedback}</Text> : null}
 
-      {/* Simple Analytics Overview */}
+
+      {/* Simple Analytics Overview - Always render to avoid hook count issues */}
       <AnalyticsOverview analyticsData={analyticsData} analyticsLoading={loading} selectedChildId={selectedChildId} />
 
       {/* Separator */}
@@ -487,236 +550,103 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
 
-  const [processedData, setProcessedData] = React.useState<any>(null);
-  const [processing, setProcessing] = React.useState(false);
+  // MEMOIZED: Process child-specific analytics data - only recalculates when inputs change
+  const processedData = React.useMemo(() => {
+    if (!analyticsData || !selectedChildId) {
+      return null;
+    }
 
-  // Process child-specific analytics data when analyticsData or selectedChildId changes
-  React.useEffect(() => {
-    const processChildData = async () => {
-      if (!analyticsData || !selectedChildId) {
-        setProcessedData(null);
-        return;
-      }
+    try {
+      // Find the selected child for child-specific analytics
+      const familyMembers = analyticsData.familyMembers || [];
+      const selectedChild = familyMembers.find((m: any) => m._id === selectedChildId) ||
+                           familyMembers.find((m: any) => m.id === selectedChildId) ||
+                           familyMembers.find((m: any) => m.role === 'child') ||
+                           familyMembers.find((m: any) => m.role !== 'parent');
 
-      setProcessing(true);
+      // Optimized filtering - convert user IDs to strings once
+      const mongoChildId = selectedChildId;
+      const customChildId = selectedChild ? selectedChild.id : selectedChildId;
 
-      try {
-        // Build summary from processed analytics data
-        console.log('AnalyticsOverview - analyticsData:', analyticsData);
-        const familyMembers = analyticsData.familyMembers || [];
-        console.log('AnalyticsOverview - familyMembers:', familyMembers);
+      // Filter data efficiently
+      const childTransactions = analyticsData.transactions?.filter((t: any) => {
+        const transactionUser = typeof t.user === 'object' ? t.user.toString() : t.user;
+        return transactionUser === mongoChildId;
+      }) || [];
 
-        // Find the selected child for child-specific analytics
-        // familyMembers from analytics API now include '_id' field
-        // selectedChildId from fetchFamilyChildren is the MongoDB _id string
-        // Match by _id first, then fallback to other logic
-        console.log('AnalyticsOverview - selectedChildId from state:', selectedChildId);
-        console.log('AnalyticsOverview - familyMembers available:', familyMembers.map(m => ({ _id: m._id, id: m.id, name: m.name, role: m.role })));
+      const childChores = analyticsData.chores?.filter((c: any) => {
+        const choreUser = typeof c.user === 'object' ? c.user.toString() : c.user;
+        return choreUser === mongoChildId;
+      }) || [];
 
-        const selectedChild = familyMembers.find((m: any) => m._id === selectedChildId) ||
-                             familyMembers.find((m: any) => m.id === selectedChildId) ||
-                             familyMembers.find((m: any) => m.role === 'child') ||
-                             familyMembers.find((m: any) => m.role !== 'parent');
+      const childGoals = analyticsData.goals?.filter((g: any) => {
+        const goalUser = typeof g.user === 'object' ? g.user.toString() : g.user;
+        return goalUser === mongoChildId;
+      }) || [];
 
-        console.log('AnalyticsOverview - selectedChildId:', selectedChildId);
-        console.log('AnalyticsOverview - found selected child:', selectedChild);
-        console.log('AnalyticsOverview - selected child name:', selectedChild ? selectedChild.name : 'No child found');
-        console.log('AnalyticsOverview - selected child _id:', selectedChild ? selectedChild._id : 'No _id');
-        console.log('AnalyticsOverview - selected child id:', selectedChild ? selectedChild.id : 'No id');
+      const childRewards = analyticsData.rewards?.filter((r: any) => {
+        const rewardUser = typeof r.user === 'object' ? r.user.toString() : r.user;
+        return rewardUser === mongoChildId;
+      }) || [];
 
-        // Filter data to be child-specific instead of family-wide
-        // Use selectedChildId (MongoDB _id string) for filtering transactions, chores, goals, rewards
-        // Use selectedChild.id (custom id) for filtering real allowances
-        const mongoChildId = selectedChildId; // MongoDB _id string
-        const customChildId = selectedChild ? selectedChild.id : selectedChildId; // custom id for allowances
+      const childRealAllowances = analyticsData.realAllowances?.filter((ra: any) => ra.childId === customChildId) || [];
 
-        console.log('AnalyticsOverview - CHILD FILTERING DEBUG:');
-        console.log('AnalyticsOverview - mongoChildId (selectedChildId):', mongoChildId);
-        console.log('AnalyticsOverview - selectedChild object:', selectedChild);
+      // Process analytics data
+      const { processSpendingTrends, processChoreCompletion, processGoalProgress, processJarDistribution } = require('../../utils/analyticsEngine');
 
-        // Debug transaction filtering
-        console.log('AnalyticsOverview - DEBUG filtering transactions for mongoChildId:', mongoChildId);
-        console.log('AnalyticsOverview - DEBUG analyticsData.transactions length:', analyticsData.transactions?.length);
-        console.log('AnalyticsOverview - DEBUG analyticsData.chores length:', analyticsData.chores?.length);
-        console.log('AnalyticsOverview - DEBUG analyticsData.goals length:', analyticsData.goals?.length);
+      const spendingTrends = processSpendingTrends(childTransactions);
+      const choreCompletion = processChoreCompletion(childChores, childTransactions);
+      const goalProgress = processGoalProgress(childGoals);
+      const jarDistribution = selectedChild ? processJarDistribution(selectedChild, childTransactions) : [];
 
-        if (analyticsData.transactions?.length > 0) {
-          console.log('AnalyticsOverview - DEBUG first transaction user field:', analyticsData.transactions[0].user, 'type:', typeof analyticsData.transactions[0].user);
-          console.log('AnalyticsOverview - DEBUG comparison test:', analyticsData.transactions[0].user === mongoChildId);
-          // Try converting ObjectId to string if needed
-          const userAsString = typeof analyticsData.transactions[0].user === 'object' ? analyticsData.transactions[0].user.toString() : analyticsData.transactions[0].user;
-          console.log('AnalyticsOverview - DEBUG converted user field:', userAsString, 'comparison:', userAsString === mongoChildId);
-        }
+      // Calculate summary data
+      const currentJar = jarDistribution.find((jar: any) => jar.jarName === 'Pocket Money');
+      const saveJar = jarDistribution.find((jar: any) => jar.jarName === 'Savings Pot');
+      const spendJar = jarDistribution.find((jar: any) => jar.jarName === 'Spending Pot');
+      const donateJar = jarDistribution.find((jar: any) => jar.jarName === 'Help Others Pot');
+      const investJar = jarDistribution.find((jar: any) => jar.jarName === 'Grow Money Pot');
 
-        if (analyticsData.chores?.length > 0) {
-          console.log('AnalyticsOverview - DEBUG first chore user field:', analyticsData.chores[0].user, 'type:', typeof analyticsData.chores[0].user);
-          const choreUserAsString = typeof analyticsData.chores[0].user === 'object' ? analyticsData.chores[0].user.toString() : analyticsData.chores[0].user;
-          console.log('AnalyticsOverview - DEBUG chore user converted:', choreUserAsString, 'comparison:', choreUserAsString === mongoChildId);
-        }
+      const completedGoalsCount = goalProgress.filter((g: any) => g.progress === 100 || g.projectedCompletion === 'Completed').length;
+      const completedTaskCount = childChores.filter((c: any) => c._doc && c._doc.completed === true).length;
 
-        if (analyticsData.goals?.length > 0) {
-          console.log('AnalyticsOverview - DEBUG first goal user field:', analyticsData.goals[0].user, 'type:', typeof analyticsData.goals[0].user);
-          const goalUserAsString = typeof analyticsData.goals[0].user === 'object' ? analyticsData.goals[0].user.toString() : analyticsData.goals[0].user;
-          console.log('AnalyticsOverview - DEBUG goal user converted:', goalUserAsString, 'comparison:', goalUserAsString === mongoChildId);
-        }
-
-        // Try multiple filtering approaches
-        const childTransactions = analyticsData.transactions?.filter((t: any) => {
-          const transactionUser = typeof t.user === 'object' ? t.user.toString() : t.user;
-          const matches = transactionUser === mongoChildId;
-          console.log('AnalyticsOverview - DEBUG transaction filter:', { transactionUser, mongoChildId, matches });
-          return matches;
-        }) || [];
-        const childChores = analyticsData.chores?.filter((c: any) => {
-          const choreUser = typeof c.user === 'object' ? c.user.toString() : c.user;
-          const matches = choreUser === mongoChildId;
-          console.log('AnalyticsOverview - DEBUG chore filter:', { choreUser, mongoChildId, matches });
-          return matches;
-        }) || [];
-        const childGoals = analyticsData.goals?.filter((g: any) => {
-          const goalUser = typeof g.user === 'object' ? g.user.toString() : g.user;
-          const matches = goalUser === mongoChildId;
-          console.log('AnalyticsOverview - DEBUG goal filter:', {
-            goal: g,
-            goalUser,
-            goalUserType: typeof g.user,
-            mongoChildId,
-            mongoChildIdType: typeof mongoChildId,
-            matches
-          });
-          return matches;
-        }) || [];
-
-        console.log('AnalyticsOverview - GOALS FILTERING RESULTS:');
-        console.log('AnalyticsOverview - analyticsData.goals length:', analyticsData.goals?.length || 0);
-        console.log('AnalyticsOverview - childGoals length:', childGoals.length);
-        console.log('AnalyticsOverview - childGoals content:', childGoals);
-        console.log('AnalyticsOverview - analyticsData.goals sample:', analyticsData.goals?.slice(0, 2));
-        console.log('AnalyticsOverview - childGoals sample:', childGoals.slice(0, 2));
-        const childRewards = analyticsData.rewards?.filter((r: any) => {
-          const rewardUser = typeof r.user === 'object' ? r.user.toString() : r.user;
-          return rewardUser === mongoChildId;
-        }) || [];
-        const childRealAllowances = analyticsData.realAllowances?.filter((ra: any) => ra.childId === customChildId) || [];
-
-        // More detailed debugging
-        console.log('AnalyticsOverview - DETAILED FILTERING:');
-        console.log('AnalyticsOverview - Total transactions:', analyticsData.transactions?.length || 0);
-        console.log('AnalyticsOverview - Total chores:', analyticsData.chores?.length || 0);
-        console.log('AnalyticsOverview - Total goals:', analyticsData.goals?.length || 0);
-        console.log('AnalyticsOverview - Total rewards:', analyticsData.rewards?.length || 0);
-
-        if (analyticsData.transactions?.length > 0) {
-          console.log('AnalyticsOverview - Sample transaction users:', analyticsData.transactions.slice(0, 3).map(t => ({
-            user: t.user,
-            userType: typeof t.user,
-            userString: typeof t.user === 'object' ? t.user.toString() : t.user,
-            matches: (typeof t.user === 'object' ? t.user.toString() : t.user) === mongoChildId
-          })));
-        }
-        if (analyticsData.chores?.length > 0) {
-          console.log('AnalyticsOverview - Sample chore users:', analyticsData.chores.slice(0, 3).map(c => ({
-            user: c.user,
-            userType: typeof c.user,
-            userString: typeof c.user === 'object' ? c.user.toString() : c.user,
-            matches: (typeof c.user === 'object' ? c.user.toString() : c.user) === mongoChildId
-          })));
-        }
-
-        console.log('AnalyticsOverview - childTransactions count:', childTransactions.length);
-        console.log('AnalyticsOverview - childChores count:', childChores.length);
-        console.log('AnalyticsOverview - childGoals count:', childGoals.length);
-        console.log('AnalyticsOverview - childRewards count:', childRewards.length);
-        console.log('AnalyticsOverview - childRealAllowances count:', childRealAllowances.length);
-
-        // Process child-specific analytics data
-        const { processSpendingTrends, processChoreCompletion, processGoalProgress, processJarDistribution } = await import('../../utils/analyticsEngine');
-
-        console.log('AnalyticsOverview - ABOUT TO PROCESS GOALS:');
-        console.log('AnalyticsOverview - childGoals before processing:', childGoals);
-        console.log('AnalyticsOverview - childGoals[0]:', childGoals[0]);
-        console.log('AnalyticsOverview - childGoals[1]:', childGoals[1]);
-
-        const spendingTrends = processSpendingTrends(childTransactions);
-        const choreCompletion = processChoreCompletion(childChores, childTransactions);
-        const goalProgress = processGoalProgress(childGoals);
-        const jarDistribution = selectedChild ? processJarDistribution(selectedChild, childTransactions) : [];
-        const rewards = childRewards;
-        const realAllowances = childRealAllowances;
-
-        // Get current points from jar distribution
-        const currentJar = jarDistribution.find((jar: any) => jar.jarName === 'Pocket Money');
-        const saveJar = jarDistribution.find((jar: any) => jar.jarName === 'Savings Pot');
-        const spendJar = jarDistribution.find((jar: any) => jar.jarName === 'Spending Pot');
-        const donateJar = jarDistribution.find((jar: any) => jar.jarName === 'Help Others Pot');
-        const investJar = jarDistribution.find((jar: any) => jar.jarName === 'Grow Money Pot');
-
-        console.log('AnalyticsOverview - GOAL PROGRESS RESULTS:');
-        console.log('AnalyticsOverview - goalProgress array:', goalProgress);
-        console.log('AnalyticsOverview - goalProgress length:', goalProgress.length);
-        goalProgress.forEach((g, index) => {
-          console.log(`AnalyticsOverview - goal ${index}:`, {
-            name: g.goalName,
-            progress: g.progress,
-            projectedCompletion: g.projectedCompletion,
-            isCompleted: g.progress === 100 || g.projectedCompletion === 'Completed'
-          });
-        });
-
-        const completedGoalsCount = goalProgress.filter((g: any) => g.progress === 100 || g.projectedCompletion === 'Completed').length;
-        console.log('AnalyticsOverview - completedGoalsCount:', completedGoalsCount);
-
-        // Output full structure of childChores for the first 5 elements
-        const assignedChoreCount = childChores.length;
-        console.log('[CHORE COMPLETION DEBUG] Full childChores[0..4] (for field inspection):', childChores.slice(0, 5));
-        // Try to handle common nesting (_doc, data, details etc.)
-        // FINAL: Count only chores with _doc.completed === true
-        const completedTaskCount = childChores.filter(c => c._doc && c._doc.completed === true).length;
-
-        const summaryData = {
-          totalPoints: (currentJar?.currentBalance || 0) + (saveJar?.currentBalance || 0) + (spendJar?.currentBalance || 0) + (donateJar?.currentBalance || 0) + (investJar?.currentBalance || 0),
-          chores: choreCompletion.length,
-          completedChores: choreCompletion.filter((chore: any) => (chore.completedCount || 0) > 0).length,
-          goals: goalProgress.length,
-          completedGoals: completedGoalsCount,
-          rewardsCount: rewards.length,
-          completedRewards: rewards.filter((r: any) => r.approved === true || r.purchased === true || r.status === 'claimed').length,
-          // New: Real task stats
-          assignedChoreCount,
-          completedTaskCount,
-          jars: {
-            current: currentJar?.currentBalance || 0,
-            save: saveJar?.currentBalance || 0,
-            spend: spendJar?.currentBalance || 0,
-            donate: donateJar?.currentBalance || 0,
-            invest: investJar?.currentBalance || 0
-          },
-          name: selectedChild ? selectedChild.name : 'Child',
-          goalsList: goalProgress.map((g: any) => ({
-            name: g.goalName || 'Goal',
-            progress: Math.max(0, Math.min(1, (g.progress || 0) / 100)),
-          })),
-          spendingTrends,
-          choreCompletion,
-          goalProgress,
-          jarDistribution,
-          rewards: rewards,
-          realAllowances: realAllowances
-        };
-
-        setProcessedData(summaryData);
-      } catch (error) {
-        console.error('Error processing child analytics data:', error);
-        setProcessedData(null);
-      } finally {
-        setProcessing(false);
-      }
-    };
-
-    processChildData();
+      return {
+        totalPoints: (currentJar?.currentBalance || 0) + (saveJar?.currentBalance || 0) + (spendJar?.currentBalance || 0) + (donateJar?.currentBalance || 0) + (investJar?.currentBalance || 0),
+        chores: choreCompletion.length,
+        completedChores: choreCompletion.filter((chore: any) => (chore.completedCount || 0) > 0).length,
+        goals: goalProgress.length,
+        completedGoals: completedGoalsCount,
+        rewardsCount: childRewards.length,
+        completedRewards: childRewards.filter((r: any) => r.approved === true || r.purchased === true || r.status === 'claimed').length,
+        assignedChoreCount: childChores.length,
+        completedTaskCount,
+        jars: {
+          current: currentJar?.currentBalance || 0,
+          save: saveJar?.currentBalance || 0,
+          spend: spendJar?.currentBalance || 0,
+          donate: donateJar?.currentBalance || 0,
+          invest: investJar?.currentBalance || 0
+        },
+        name: selectedChild ? selectedChild.name : 'Child',
+        goalsList: goalProgress.map((g: any) => ({
+          name: g.goalName || 'Goal',
+          progress: Math.max(0, Math.min(1, (g.progress || 0) / 100)),
+        })),
+        spendingTrends,
+        choreCompletion,
+        goalProgress,
+        jarDistribution,
+        rewards: childRewards,
+        realAllowances: childRealAllowances,
+        saveJar,
+        spendJar
+      };
+    } catch (error) {
+      console.error('Error processing child analytics data:', error);
+      return null;
+    }
   }, [analyticsData, selectedChildId]);
 
-  if (analyticsLoading || processing) {
+  if (analyticsLoading) {
     return (
       <View style={[styles.sectionCard]}>
         <ActivityIndicator size="small" color={themeColors.text} />

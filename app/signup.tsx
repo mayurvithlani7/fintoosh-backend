@@ -1,13 +1,14 @@
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { MOBILE_LAYOUT } from '@/utils/mobileLayout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from "@react-native-picker/picker";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,6 +20,7 @@ import {
 } from 'react-native';
 
 export default function SignupScreen() {
+  const { showMessage } = useCenteredMessage();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
@@ -31,8 +33,6 @@ export default function SignupScreen() {
 
   // Computed mobile number
   const mobileNumber = `${countryCode}${mobileDigits}`;
-  const [statusMessage, setStatusMessage] = useState('');
-  const [statusColor, setStatusColor] = useState('red');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -110,14 +110,11 @@ export default function SignupScreen() {
     const fieldErrors = validateAll();
     setErrors(fieldErrors);
     if (fieldErrors.fullName || fieldErrors.email || fieldErrors.mobileNumber || fieldErrors.password) {
-      setStatusMessage('Please fix the errors above before submitting.');
-      setStatusColor('red');
+      showMessage('Please fix the errors above before submitting.', 'error');
       return;
     }
 
     setLoading(true);
-    setStatusMessage('');
-    setStatusColor('red');
 
     try {
       const body: any = {
@@ -144,8 +141,7 @@ export default function SignupScreen() {
         if (data.message) {
           errorMessage = data.message;
         }
-        setStatusMessage(errorMessage);
-        setStatusColor('red');
+        showMessage(errorMessage, 'error');
         setLoading(false);
         return;
       }
@@ -154,23 +150,20 @@ export default function SignupScreen() {
       try {
         await AsyncStorage.setItem('authToken', data.token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
-        setStatusMessage('Account created successfully!');
-        setStatusColor('green');
+        showMessage('Account created successfully!', 'success');
         setLoading(false);
         // Navigate immediately after storage
         router.replace('/addChild');
       } catch (storageError) {
         console.error('Failed to store auth data:', storageError);
-        setStatusMessage('Account created but login failed. Please try logging in manually.');
-        setStatusColor('red');
+        showMessage('Account created but login failed. Please try logging in manually.', 'error');
         setLoading(false);
         setTimeout(() => {
           router.replace('/login');
         }, 2000);
       }
     } catch (e: any) {
-      setStatusMessage('Network error. Please try again.');
-      setStatusColor('red');
+      showMessage('Network error. Please try again.', 'error');
       setLoading(false);
     }
   };
@@ -180,12 +173,13 @@ export default function SignupScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require('../assets/images/android-icon-background.png')}
-      style={styles.background}
-      resizeMode="cover"
-      blurRadius={2}
-    >
+    <View style={styles.background}>
+      <LinearGradient
+        colors={['#6366f1', '#8b5cf6', '#a855f7', '#c084fc']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -331,9 +325,7 @@ export default function SignupScreen() {
               <TouchableOpacity style={[styles.button, loading && { opacity: 0.5 }]} onPress={handleSubmit} disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create Account</Text>}
               </TouchableOpacity>
-              {statusMessage ? (
-                <Text style={[styles.statusMessage, { color: statusColor }]}>{statusMessage}</Text>
-              ) : null}
+
               <TouchableOpacity onPress={handleLoginRedirect} disabled={loading}>
                 <Text style={styles.loginLink}>Already have an account? Sign in</Text>
               </TouchableOpacity>
@@ -371,7 +363,7 @@ export default function SignupScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -406,20 +398,20 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '900',
     letterSpacing: 0.5,
-    color: '#6A49F3',
+    color: '#FFD700',
     textAlign: 'center',
     marginBottom: 3,
   },
   heroTagline: {
     fontSize: 16,
-    color: '#4CAF50',
+    color: '#FF6B6B',
     fontWeight: '700',
     marginBottom: 10,
     textAlign: 'center'
   },
   heroStory: {
     fontSize: 14.7,
-    color: '#455574',
+    color: '#E6E6FA',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 4,

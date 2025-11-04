@@ -6,8 +6,8 @@ import { API_URL } from '@/utils/config';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { fetchFamilyChildren, fetchRewards } from '../../utils/api';
 
 interface ChildUser {
@@ -245,7 +245,17 @@ export default function ParentsRewardsScreen() {
   }
 
   return (
-    <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, width: '100%' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
+    >
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
@@ -614,36 +624,42 @@ export default function ParentsRewardsScreen() {
         </View>
 
         {loading && <ActivityIndicator size="small" color={themeColors.primary} />}
+
         {(() => {
-          // DEBUG: Show status of all rewards at parent render time
-          console.log('Rewards for rendering:', rewards.map(r => ({ id: r._id, name: r.name, status: r.status, purchased: r.purchased })));
-          let filteredRewards: Reward[] = [];
-          let showArchiveButton = false;
-          if (rewardsTab === 'Available') {
-            filteredRewards = rewards.filter(r => !r.purchased).sort((a, b) =>
-              getRewardCreatedDate(b).getTime() - getRewardCreatedDate(a).getTime()
-            );
-          } else {
-            // Claimed (purchased) rewards—recent by default
-            const now = new Date();
-            const ninetyDaysAgo = new Date(now);
-            ninetyDaysAgo.setDate(now.getDate() - 90);
-            const filteredRecent = rewards.filter(r =>
-              r.purchased && getRewardCreatedDate(r) >= ninetyDaysAgo
-            );
-            const filteredArchived = rewards.filter(r =>
-              r.purchased && getRewardCreatedDate(r) < ninetyDaysAgo
-            );
-            filteredRewards = filteredRecent.sort((a, b) =>
-              getRewardCreatedDate(b).getTime() - getRewardCreatedDate(a).getTime()
-            );
-            showArchiveButton = filteredArchived.length > 0;
-            if (showAllClaimed) {
-              filteredRewards = [...filteredRecent, ...filteredArchived].sort((a, b) =>
+          // Memoized filtered rewards calculation
+          const memoizedRewards = useMemo(() => {
+            console.log('Rewards for rendering:', rewards.map(r => ({ id: r._id, name: r.name, status: r.status, purchased: r.purchased })));
+            let filteredRewards: Reward[] = [];
+            let showArchiveButton = false;
+            if (rewardsTab === 'Available') {
+              filteredRewards = rewards.filter(r => !r.purchased).sort((a, b) =>
                 getRewardCreatedDate(b).getTime() - getRewardCreatedDate(a).getTime()
               );
+            } else {
+              const now = new Date();
+              const ninetyDaysAgo = new Date(now);
+              ninetyDaysAgo.setDate(now.getDate() - 90);
+              const filteredRecent = rewards.filter(r =>
+                r.purchased && getRewardCreatedDate(r) >= ninetyDaysAgo
+              );
+              const filteredArchived = rewards.filter(r =>
+                r.purchased && getRewardCreatedDate(r) < ninetyDaysAgo
+              );
+              filteredRewards = filteredRecent.sort((a, b) =>
+                getRewardCreatedDate(b).getTime() - getRewardCreatedDate(a).getTime()
+              );
+              showArchiveButton = filteredArchived.length > 0;
+              if (showAllClaimed) {
+                filteredRewards = [...filteredRecent, ...filteredArchived].sort((a, b) =>
+                  getRewardCreatedDate(b).getTime() - getRewardCreatedDate(a).getTime()
+                );
+              }
             }
-          }
+            return { filteredRewards, showArchiveButton };
+          }, [rewards, rewardsTab, showAllClaimed]);
+
+          const { filteredRewards, showArchiveButton } = memoizedRewards;
+
           if (!loading && rewards.length === 0) {
             return <Text style={[styles.placeholder, { color: themeColors.textSecondary }]}>No rewards set for your child yet.</Text>;
           }
@@ -658,7 +674,7 @@ export default function ParentsRewardsScreen() {
           }
           return (
             <View>
-              {filteredRewards.map((r) => (
+              {filteredRewards.map((r: Reward) => (
                 <View
                   key={r._id}
                   style={{
@@ -1090,7 +1106,8 @@ export default function ParentsRewardsScreen() {
           }
         ]}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -66,6 +66,15 @@ const userSchema = new mongoose.Schema({
   achievements: [{ type: Object, default: [] }],
   tutorialCompleted: { type: Boolean, default: false },
   isFirstTimeUser: { type: Boolean, default: function() { return this.role === 'child'; } }, // New child onboarding flag
+  // Budget management
+  budgets: [{
+    jar: { type: String, enum: ['current', 'save', 'spend', 'donate', 'invest'], required: true },
+    amount: { type: Number, required: true },
+    period: { type: String, enum: ['weekly', 'monthly', 'yearly'], required: true },
+    note: { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now },
+    isActive: { type: Boolean, default: true }
+  }],
   parentPin: { type: String, default: '1234' },
   feedbackPromptCompleted: { type: Boolean, default: false }, // persistent consent/feedback flag
   // OTP fields for mobile verification

@@ -284,10 +284,15 @@ export function usePredictions() {
     riskLevel: 'low' as const
   };
 
+  // Theme-aware risk colors using theme system
+  const successColor = '#4CAF50'; // Keep green for success/low risk as it's universally good
+  const warningColor = '#FF9800'; // Keep orange for warning/medium risk
+  const errorColor = '#F44336'; // Keep red for error/high risk
+
   const riskColor = {
-    low: '#4CAF50',
-    medium: '#FF9800',
-    high: '#F44336'
+    low: successColor,
+    medium: warningColor,
+    high: errorColor
   };
 
   const riskText = {

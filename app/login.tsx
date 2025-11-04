@@ -5,10 +5,10 @@ import { useTheme } from '@/utils/themeContext';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Dimensions,
   Image,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -209,12 +209,13 @@ export default function LoginScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require('../assets/images/android-icon-background.png')}
-      style={styles.background}
-      resizeMode="cover"
-      blurRadius={2}
-    >
+    <View style={styles.background}>
+      <LinearGradient
+        colors={['#6366f1', '#8b5cf6', '#a855f7', '#c084fc']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -349,7 +350,7 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -384,20 +385,20 @@ const styles = StyleSheet.create({
     fontSize: 33,
     fontWeight: '900',
     letterSpacing: 0.5,
-    color: PRIMARY,
+    color: '#FFD700',
     textAlign: 'center',
     marginBottom: 3,
   },
   heroTagline: {
     fontSize: 16,
-    color: SUCCESS_GREEN,
+    color: '#FF6B6B',
     fontWeight: '700',
     marginBottom: 11,
     textAlign: 'center'
   },
   heroStory: {
     fontSize: 14.7,
-    color: '#455574',
+    color: '#E6E6FA',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 4,

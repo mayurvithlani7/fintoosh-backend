@@ -2,6 +2,7 @@ import HelpModal from '@/components/HelpModal';
 import RealAllowanceForm, { RealAllowanceData } from '@/components/RealAllowanceForm';
 import RealAllowanceHistory from '@/components/RealAllowanceHistory';
 import { ActionSuggestions } from '@/components/ui/ActionSuggestions';
+import { EnhancedEmptyState } from '@/components/ui/EnhancedEmptyState';
 import { InterestMotivator } from '@/components/ui/InterestMotivator';
 import SkeletonJar from '@/components/ui/SkeletonJar';
 import { API_URL } from '@/utils/config';
@@ -14,7 +15,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
-import { Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 /**
  * Calculate a readable next interest payout date string.
@@ -53,49 +54,7 @@ const getJarStatus = (points: number, jarType: 'pocket' | 'savings' | 'spending'
   }
 };
 
-// Enhanced empty state component with progressive onboarding
-const EmptyState = ({ styles }: { styles: any }) => {
-  const router = useRouter();
-  const { themeColors } = useTheme();
 
-  return (
-    <View style={styles.emptyContainer}>
-      <Image
-        source={require('@/assets/images/placeholder-family.png')}
-        style={styles.emptyImage}
-        resizeMode="contain"
-      />
-      <Text style={[styles.emptyTitle, { color: themeColors.primary }]}>
-        Welcome to Family Finance Hub!
-      </Text>
-      <Text style={[styles.emptyDescription, { color: themeColors.text }]}>
-        Start teaching your child about money management by adding their profile.
-      </Text>
-      <View style={styles.onboardingSteps}>
-        <Text style={[styles.onboardingStep, { color: themeColors.textSecondary }]}>
-          • Set up money pots and goals
-        </Text>
-        <Text style={[styles.onboardingStep, { color: themeColors.textSecondary }]}>
-          • Approve spending requests
-        </Text>
-        <Text style={[styles.onboardingStep, { color: themeColors.textSecondary }]}>
-          • Track financial learning progress
-        </Text>
-      </View>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel="Add your child profile"
-        accessibilityHint="Navigate to child setup and onboarding screen"
-        style={[styles.primaryButton, { backgroundColor: themeColors.success }]}
-        onPress={() => router.push('/addChild')}
-      >
-        <Text style={[styles.primaryButtonText, { color: themeColors.card }]}>
-          Add Your Child
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
 
 export default function ParentsOverviewScreen() {
   const router = useRouter();
@@ -420,7 +379,7 @@ export default function ParentsOverviewScreen() {
               accessibilityLabel="Help and information"
               accessibilityHint="Open help guide for parent dashboard features"
               style={{
-                backgroundColor: themeColors.accent,
+                backgroundColor: themeColors.secondary,
                 borderRadius: MOBILE_LAYOUT.cardBorderRadius,
                 width: MOBILE_LAYOUT.minTouchTarget,
                 height: MOBILE_LAYOUT.minTouchTarget,
@@ -720,7 +679,13 @@ export default function ParentsOverviewScreen() {
             </View>
           </>
         ) : (
-          <EmptyState styles={styles} />
+          <EnhancedEmptyState
+            icon="👨‍👩‍👧‍👦"
+            title="Welcome to Family Finance Hub!"
+            description="Start teaching your child about money management by adding their profile."
+            actionText="Add Your Child"
+            onAction={() => router.push('/addChild')}
+          />
         )}
       </View>
 

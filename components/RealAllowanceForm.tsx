@@ -1,3 +1,4 @@
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { useTheme } from '@/utils/themeContext';
 import { Picker } from '@react-native-picker/picker';
 import React, { useState } from 'react';
@@ -40,6 +41,7 @@ const RealAllowanceForm: React.FC<RealAllowanceFormProps> = ({
   selectedChildId,
 }) => {
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
 
   const initialChildId = selectedChildId && children.some(c => c.id === selectedChildId) ? selectedChildId : (children[0]?.id || "");
 
@@ -127,7 +129,14 @@ const RealAllowanceForm: React.FC<RealAllowanceFormProps> = ({
         category: 'Allowance'
       });
       setErrors({});
+
+      // Close modal first
       onClose();
+
+      // Then show success message (after modal is closed)
+      setTimeout(() => {
+        showMessage('Allowance recorded successfully!', 'success', 3000);
+      }, 100); // Small delay to ensure modal is fully closed
     } catch (error) {
       Alert.alert('Error', 'Failed to save real allowance. Please try again.');
     }

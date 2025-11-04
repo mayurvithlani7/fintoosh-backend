@@ -7,7 +7,7 @@ import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   ScrollView,
@@ -365,11 +365,232 @@ function GiftsSection() {
     }, [])
   );
 
-  const onRefresh = React.useCallback(() => {
-    console.log('[GIFTS] Manual refresh triggered');
-    setRefreshing(true);
-    loadRewardsAndRequests(true);
+  // Memoized helper functions
+  const getRewardStatus = useCallback((r: any) => {
+    if (r.purchased) return "claimed";
+    return "available";
   }, []);
+
+  const getRewardClaimedDate = useCallback((r: any): Date => {
+    if (r.purchasedAt && typeof r.purchasedAt === "string") return new Date(r.purchasedAt);
+    if (r.createdAt && typeof r.createdAt === "string") return new Date(r.createdAt);
+    if (r._id && typeof r._id === "string" && r._id.length >= 8) {
+      const timestamp = parseInt(r._id.slice(0, 8), 16) * 1000;
+      return new Date(timestamp);
+    }
+    return new Date();
+  }, []);
+
+  // Memoized processed data
+  const processedRewards = useMemo(() => {
+    const availableRewards = rewards.filter(r => !r.purchased)
+      .sort((a, b) => getRewardClaimedDate(b).getTime() - getRewardClaimedDate(a).getTime());
+
+    const claimedRewards = rewards.filter(r => r.purchased)
+      .sort((a, b) => getRewardClaimedDate(b).getTime() - getRewardClaimedDate(a).getTime());
+
+    return {
+      available: availableRewards,
+      claimed: claimedRewards
+    };
+  }, [rewards, getRewardClaimedDate]);
+
+  // Memoized reward renderer component
+  const RewardItem = memo(({ reward, userData, requests, onClaim, claiming }: {
+    reward: any;
+    userData: any;
+    requests: any[];
+    onClaim: (rewardId: string) => void;
+    claiming: string | null;
+  }) => {
+    const { themeColors } = useTheme();
+    const { formatAmount } = useCurrency();
+
+    // Pending if there is a pending approval request for this reward
+    const hasPending = requests.some(
+      (req: any) => req.type === "reward" && req.rewardId === reward._id && req.status === "Pending"
+    );
+    // "Can claim" if available, not purchased, not pending, and enough available points (total - pending)
+    const availablePoints = userData ? (userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0) : 0;
+    const canClaim = reward.available && !reward.purchased && userData && availablePoints >= reward.cost && !hasPending;
+
+    // Fun status icons and colors for kids
+    const getStatusConfig = () => {
+      if (reward.purchased) return { icon: '🏆', color: themeColors.success, bgColor: themeColors.success + '20', text: 'Won!' };
+      if (hasPending) return { icon: '⏳', color: themeColors.warning, bgColor: themeColors.warning + '25', text: 'Waiting...' };
+      if (canClaim) return { icon: '🎯', color: themeColors.primary, bgColor: themeColors.primary + '20', text: 'Claim Now!' };
+      return { icon: '💪', color: themeColors.textSecondary, bgColor: themeColors.surface, text: 'Keep Saving!' };
+    };
+
+    const statusConfig = getStatusConfig();
+
+    return (
+      <View
+        style={{
+          backgroundColor: statusConfig.bgColor,
+          marginVertical: 5,
+          borderRadius: 7,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: reward.purchased ? themeColors.success : hasPending ? themeColors.warning : canClaim ? themeColors.primary : themeColors.border,
+          shadowColor: statusConfig.color,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.08,
+          shadowRadius: 2,
+          elevation: 1,
+        }}
+        accessibilityLabel={`Gift: ${reward.name}. Cost: ${formatAmount(reward.cost)} points. Status: ${statusConfig.text}.`}
+        accessibilityHint={canClaim ? 'Double tap to claim this gift' : reward.purchased ? 'This gift has been claimed' : hasPending ? 'Waiting for parent approval' : 'You need more points to claim this gift'}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={{ fontSize: 24, marginRight: 12 }}>{statusConfig.icon}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: "bold",
+              color: themeColors.text,
+              marginBottom: 4
+            }} numberOfLines={1} ellipsizeMode="tail">
+              {reward.name}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: themeColors.primary,
+                marginRight: 8
+              }}>
+                💰 {formatAmount(reward.cost)} points
+              </Text>
+              {/* Only show total for available gifts (not claimed) */}
+              {userData && !reward.purchased && (
+                <Text style={{
+                  fontSize: 14,
+                  color: themeColors.textSecondary
+                }}>
+                  (Total: {formatAmount(userData.currentPoints || 0)}{(userData.pendingCurrentPoints || 0) > 0 ? `, ${userData.pendingCurrentPoints} pending` : ''})
+                </Text>
+              )}
+              {userData && (userData.pendingCurrentPoints || 0) > 0 && (
+                <Text style={{
+                  fontSize: 12,
+                  color: themeColors.textSecondary,
+                  marginTop: 2
+                }}>
+                  Available: {formatAmount((userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0))}
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Status button - more engaging for kids */}
+        {reward.purchased ? (
+          <View style={{
+            backgroundColor: themeColors.success,
+            borderRadius: 12,
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'center'
+          }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>🎉</Text>
+            <Text style={{
+              color: 'white',
+              fontWeight: "bold",
+              fontSize: 16
+            }}>
+              {statusConfig.text}
+            </Text>
+          </View>
+        ) : hasPending ? (
+          <View style={{ alignItems: 'center' }}>
+            <View style={{
+              backgroundColor: themeColors.warning,
+              borderRadius: 12,
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              marginBottom: 8
+            }}>
+              <Text style={{ fontSize: 16, marginRight: 8 }}>⏳</Text>
+              <Text style={{
+                color: 'white',
+                fontWeight: "bold",
+                fontSize: 16
+              }}>
+                Waiting for Parent Approval
+              </Text>
+            </View>
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.warning,
+              textAlign: 'center',
+              fontWeight: '500'
+            }}>
+              Your parent will review and approve your gift claim! 🎁👨‍👩‍👧‍👦
+            </Text>
+          </View>
+        ) : canClaim ? (
+          <TouchableOpacity
+            style={{
+              backgroundColor: themeColors.primary,
+              borderRadius: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 20,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              shadowColor: themeColors.primary,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+            onPress={() => onClaim(reward._id)}
+            disabled={claiming === reward._id}
+            accessibilityRole="button"
+            accessibilityLabel={`Claim gift: ${reward.name}`}
+            accessibilityHint="Double tap to submit gift claim request to parent"
+            accessibilityState={{ disabled: claiming === reward._id }}
+          >
+            <Text style={{ fontSize: 18, marginRight: 8 }}>🎁</Text>
+            <Text style={{
+              color: 'white',
+              fontWeight: "bold",
+              fontSize: 16
+            }}>
+              {claiming === reward._id ? "Claiming..." : statusConfig.text}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{
+            backgroundColor: themeColors.surface,
+            borderRadius: 12,
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: themeColors.border
+          }}>
+            <Text style={{ fontSize: 16, marginRight: 8 }}>💪</Text>
+            <Text style={{
+              color: themeColors.textSecondary,
+              fontWeight: "bold",
+              fontSize: 16
+            }}>
+              {statusConfig.text}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  });
 
   const handleClaimReward = async (rewardId: string) => {
     try {
@@ -421,7 +642,16 @@ function GiftsSection() {
         return;
       }
 
-      // Fetch updated requests and rewards immediately for pending status
+      // Update userData to reflect pending points immediately
+      if (userData) {
+        setUserData({
+          ...userData,
+          currentPoints: (userData.currentPoints || 0) - reward.cost,
+          pendingCurrentPoints: (userData.pendingCurrentPoints || 0) + reward.cost
+        });
+      }
+
+      // Fetch updated requests and rewards for consistency
       try {
         const token2 = await getAuthToken();
         const user2 = await getUserData();
@@ -449,6 +679,26 @@ function GiftsSection() {
       setClaiming(null);
     }
   };
+
+  // Memoized render function
+  const renderReward = useCallback(({ item }: { item: any }) => (
+    <RewardItem
+      reward={item}
+      userData={userData}
+      requests={requests}
+      onClaim={handleClaimReward}
+      claiming={claiming}
+    />
+  ), [userData, requests, claiming, handleClaimReward]);
+
+  // Memoized key extractor
+  const keyExtractor = useCallback((item: any) => item._id, []);
+
+  const onRefresh = React.useCallback(() => {
+    console.log('[GIFTS] Manual refresh triggered');
+    setRefreshing(true);
+    loadRewardsAndRequests(true);
+  }, []);
 
   if (loading) {
     return (
@@ -624,8 +874,8 @@ function GiftsSection() {
               return (
                 <FlatList
                   data={availableRewards}
-                  keyExtractor={(item) => item._id}
-                  renderItem={({ item }) => renderReward(item)}
+                  keyExtractor={keyExtractor}
+                  renderItem={renderReward}
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={{ paddingBottom: 10 }}
                   style={{ flex: 1 }}
@@ -667,8 +917,8 @@ function GiftsSection() {
               <>
                 <FlatList
                   data={claimedRewards}
-                  keyExtractor={(item) => item._id}
-                  renderItem={({ item }) => renderReward(item)}
+                  keyExtractor={keyExtractor}
+                  renderItem={renderReward}
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={{ paddingBottom: 10 }}
                   style={{ flex: 1 }}
@@ -722,188 +972,5 @@ function GiftsSection() {
     </View>
   );
 
-  // Individual reward renderer - visually engaging for kids
-  function renderReward(r: any) {
-    // Pending if there is a pending approval request for this reward
-    const hasPending = requests.some(
-      (req: any) => req.type === "reward" && req.rewardId === r._id && req.status === "Pending"
-    );
-    // "Can claim" if available, not purchased, not pending, and enough available points (total - pending)
-    const availablePoints = userData ? (userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0) : 0;
-    const canClaim = r.available && !r.purchased && userData && availablePoints >= r.cost && !hasPending;
 
-    const getStatusText = () => {
-      if (r.purchased) return 'Claimed';
-      if (hasPending) return 'Pending approval';
-      if (canClaim) return 'Available to claim';
-      return 'Not enough points';
-    };
-
-    // Fun status icons and colors for kids
-    const getStatusConfig = () => {
-      if (r.purchased) return { icon: '🏆', color: themeColors.success, bgColor: themeColors.success + '20', text: 'Won!' };
-      if (hasPending) return { icon: '⏳', color: themeColors.warning, bgColor: themeColors.warning + '25', text: 'Waiting...' };
-      if (canClaim) return { icon: '🎯', color: themeColors.primary, bgColor: themeColors.primary + '20', text: 'Claim Now!' };
-      return { icon: '💪', color: themeColors.textSecondary, bgColor: themeColors.surface, text: 'Keep Saving!' };
-    };
-
-    const statusConfig = getStatusConfig();
-
-    return (
-<View
-        key={r._id}
-style={{
-          backgroundColor: statusConfig.bgColor,
-          marginVertical: 5,
-          borderRadius: 7,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: r.purchased ? themeColors.success : hasPending ? themeColors.warning : canClaim ? themeColors.primary : themeColors.border,
-          shadowColor: statusConfig.color,
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.08,
-          shadowRadius: 2,
-          elevation: 1,
-        }}
-        accessibilityLabel={`Gift: ${r.name}. Cost: ${formatAmount(r.cost)} points. Status: ${getStatusText()}.`}
-        accessibilityHint={canClaim ? 'Double tap to claim this gift' : r.purchased ? 'This gift has been claimed' : hasPending ? 'Waiting for parent approval' : 'You need more points to claim this gift'}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <Text style={{ fontSize: 24, marginRight: 12 }}>{statusConfig.icon}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{
-              fontSize: 18,
-              fontWeight: "bold",
-              color: themeColors.text,
-              marginBottom: 4
-            }} numberOfLines={1} ellipsizeMode="tail">
-              {r.name}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: themeColors.primary,
-                marginRight: 8
-              }}>
-                💰 {formatAmount(r.cost)} points
-              </Text>
-              {/* Only show total for available gifts (not claimed) */}
-              {userData && !r.purchased && (
-                <Text style={{
-                  fontSize: 14,
-                  color: themeColors.textSecondary
-                }}>
-                  (Total: {formatAmount(userData.currentPoints || 0)}{(userData.pendingCurrentPoints || 0) > 0 ? `, ${userData.pendingCurrentPoints} pending` : ''})
-                </Text>
-              )}
-              {userData && (userData.pendingCurrentPoints || 0) > 0 && (
-                <Text style={{
-                  fontSize: 12,
-                  color: themeColors.textSecondary,
-                  marginTop: 2
-                }}>
-                  Available: {formatAmount((userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0))}
-                </Text>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Status button - more engaging for kids */}
-        {r.purchased ? (
-          <View style={{
-            backgroundColor: themeColors.success,
-            borderRadius: 12,
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center'
-          }}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>🎉</Text>
-            <Text style={{
-              color: 'white',
-              fontWeight: "bold",
-              fontSize: 16
-            }}>
-              {statusConfig.text}
-            </Text>
-          </View>
-        ) : hasPending ? (
-          <View style={{
-            backgroundColor: themeColors.warning,
-            borderRadius: 12,
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center'
-          }}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>⏳</Text>
-            <Text style={{
-              color: 'white',
-              fontWeight: "bold",
-              fontSize: 16
-            }}>
-              {statusConfig.text}
-            </Text>
-          </View>
-        ) : canClaim ? (
-          <TouchableOpacity
-            style={{
-              backgroundColor: themeColors.primary,
-              borderRadius: 12,
-              paddingVertical: 12,
-              paddingHorizontal: 20,
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              shadowColor: themeColors.primary,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 4,
-              elevation: 4,
-            }}
-            onPress={() => handleClaimReward(r._id)}
-            disabled={claiming === r._id}
-            accessibilityRole="button"
-            accessibilityLabel={`Claim gift: ${r.name}`}
-            accessibilityHint="Double tap to submit gift claim request to parent"
-            accessibilityState={{ disabled: claiming === r._id }}
-          >
-            <Text style={{ fontSize: 18, marginRight: 8 }}>🎁</Text>
-            <Text style={{
-              color: 'white',
-              fontWeight: "bold",
-              fontSize: 16
-            }}>
-              {claiming === r._id ? "Claiming..." : statusConfig.text}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={{
-            backgroundColor: themeColors.surface,
-            borderRadius: 12,
-            paddingVertical: 10,
-            paddingHorizontal: 16,
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: themeColors.border
-          }}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>💪</Text>
-            <Text style={{
-              color: themeColors.textSecondary,
-              fontWeight: "bold",
-              fontSize: 16
-            }}>
-              {statusConfig.text}
-            </Text>
-          </View>
-        )}
-      </View>
-    );
-  }
 }

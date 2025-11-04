@@ -516,6 +516,14 @@ function ChoresSection() {
           body: JSON.stringify({ isFirstTimeUser: false }),
         });
 
+        // Update achievement for completing first chore
+        try {
+          const { updateAchievementProgress } = await import('../../components/AchievementSystem');
+          await updateAchievementProgress('family-helper', 1);
+        } catch (error) {
+          console.error('Error updating chore achievement:', error);
+        }
+
         // Reload data immediately to show completion
         await loadChoresUserAndRequests();
         showMessage("Welcome task completed! You earned 25 points! 🎉", 'success');
@@ -592,6 +600,17 @@ function ChoresSection() {
       }
       // Check for auto-approval in backend response
       const data = await response.json().catch(() => ({}));
+
+      // Update achievement for completing chore (claimed/submitted)
+      try {
+        const { updateAchievementProgress } = await import('../../components/AchievementSystem');
+        await updateAchievementProgress('family-helper', 1);
+        // Also check for super helper (5 chores total)
+        // Note: This could be improved to track total completed chores
+      } catch (error) {
+        console.error('Error updating chore achievement:', error);
+      }
+
       await loadChoresUserAndRequests();
       if (data.autoApproved) {
         showMessage("Points added! (Auto-Approved)", 'success');

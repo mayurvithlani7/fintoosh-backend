@@ -11,7 +11,7 @@ import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { memo, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   RefreshControl,
   SafeAreaView,
@@ -130,6 +130,8 @@ interface Jar {
   label: string;
   key: string;
   value: number;
+  totalValue?: number;
+  pendingValue?: number;
   color: string;
   icon: string;
 }
@@ -141,6 +143,11 @@ interface UserData {
   spendPoints: number;
   donatePoints: number;
   investPoints: number;
+  pendingCurrentPoints?: number;
+  pendingSavePoints?: number;
+  pendingSpendPoints?: number;
+  pendingDonatePoints?: number;
+  pendingInvestPoints?: number;
   isFirstTimeUser?: boolean;
   role: string;
   goals?: any[];
@@ -154,7 +161,7 @@ interface Activity {
   id?: string;
   type: string;
   amount: number;
-  description: string;
+  description: string | null | undefined;
   timestamp: string;
   icon: string;
 }
@@ -271,6 +278,17 @@ const getTransactionDescription = (tx: any) => {
     default:
       return `Transaction: ${tx.type}`;
   }
+};
+
+// Helper function to convert abbreviated jar names to user-friendly pot names for kids
+const mapJarNamesToUserFriendly = (description: string | null | undefined) => {
+  if (!description) return '';
+  return description
+    .replace(/current jar/g, 'Pocket Money Pot')
+    .replace(/save jar/g, 'Savings Pot')
+    .replace(/spend jar/g, 'Spending Pot')
+    .replace(/donate jar/g, 'Help Others Pot')
+    .replace(/invest jar/g, 'Grow Money Pot');
 };
 
 const getTransactionIcon = (type: string) => {
@@ -432,6 +450,53 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     guidedTourVisible
   } = state;
 
+  // Memoize expensive calculations
+  const totalPoints = useMemo(() =>
+    jars.reduce((sum, jar) => sum + jar.value, 0),
+    [jars]
+  );
+
+  // Memoize today's earnings calculation
+  const todaysEarnings = useMemo(() => {
+    if (!recentActivities || recentActivities.length === 0) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1); // Start of tomorrow
+
+    return recentActivities
+      .filter(activity => {
+        const activityDate = new Date(activity.timestamp);
+        return activityDate >= today && activityDate < tomorrow && activity.amount > 0;
+      })
+      .reduce((sum, activity) => sum + activity.amount, 0);
+  }, [recentActivities]);
+
+  // Memoize setup progress calculation
+  const setupProgress = useMemo(() => {
+    let completed = 0;
+    const totalSteps = 3;
+
+    // 1. Claim First Task - check if user is no longer first-time user
+    if (userData && !userData.isFirstTimeUser) {
+      completed++;
+    }
+
+    // 2. Set a Goal - check if user has any goals
+    if (userData && userData.goals && userData.goals.length > 0) {
+      completed++;
+    }
+
+    // 3. Move Points Between Pots - check if user has moved points (has transactions of type 'points-move')
+    if (userData && userData.transactions && userData.transactions.some((tx: any) => tx.type === 'points-move')) {
+      completed++;
+    }
+
+    return completed / totalSteps;
+  }, [userData]);
+
   // Local UI state not managed by reducer
   const [helpModalVisible, setHelpModalVisible] = React.useState(false);
   const [caregivers, setCaregivers] = React.useState<Array<{ userId: string; role: string; name?: string | null }>>([]);
@@ -538,11 +603,51 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       }
 
       const jars = [
-        { label: 'Pocket Money', key: 'current', value: data.currentPoints || 0, color: themeColors.jarColors.current, icon: '💵' },
-        { label: 'Savings Pot', key: 'save', value: data.savePoints || 0, color: themeColors.jarColors.save, icon: '🏦' },
-        { label: 'Spending Pot', key: 'spend', value: data.spendPoints || 0, color: themeColors.jarColors.spend, icon: '🛒' },
-        { label: 'Help Others Pot', key: 'donate', value: data.donatePoints || 0, color: themeColors.jarColors.donate, icon: '❤️' },
-        { label: 'Grow Money Pot', key: 'invest', value: data.investPoints || 0, color: themeColors.jarColors.invest, icon: '📈' }
+        {
+          label: 'Pocket Money',
+          key: 'current',
+          value: (data.currentPoints || 0) - (data.pendingCurrentPoints || 0),
+          totalValue: data.currentPoints || 0,
+          pendingValue: data.pendingCurrentPoints || 0,
+          color: themeColors.jarColors.current,
+          icon: '💵'
+        },
+        {
+          label: 'Savings Pot',
+          key: 'save',
+          value: (data.savePoints || 0) - (data.pendingSavePoints || 0),
+          totalValue: data.savePoints || 0,
+          pendingValue: data.pendingSavePoints || 0,
+          color: themeColors.jarColors.save,
+          icon: '🏦'
+        },
+        {
+          label: 'Spending Pot',
+          key: 'spend',
+          value: (data.spendPoints || 0) - (data.pendingSpendPoints || 0),
+          totalValue: data.spendPoints || 0,
+          pendingValue: data.pendingSpendPoints || 0,
+          color: themeColors.jarColors.spend,
+          icon: '🛒'
+        },
+        {
+          label: 'Help Others Pot',
+          key: 'donate',
+          value: (data.donatePoints || 0) - (data.pendingDonatePoints || 0),
+          totalValue: data.donatePoints || 0,
+          pendingValue: data.pendingDonatePoints || 0,
+          color: themeColors.jarColors.donate,
+          icon: '❤️'
+        },
+        {
+          label: 'Grow Money Pot',
+          key: 'invest',
+          value: (data.investPoints || 0) - (data.pendingInvestPoints || 0),
+          totalValue: data.investPoints || 0,
+          pendingValue: data.pendingInvestPoints || 0,
+          color: themeColors.jarColors.invest,
+          icon: '📈'
+        }
       ];
 
       // Add goals, badges, and rewards to userData
@@ -704,52 +809,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
     fetchUserData(requestId);
   }, [fetchUserData]);
 
-  const totalPoints = jars.reduce((sum, jar) => sum + jar.value, 0);
 
-  // Calculate today's earnings from transactions
-  const calculateTodaysEarnings = () => {
-    if (!recentActivities || recentActivities.length === 0) return 0;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1); // Start of tomorrow
-
-    return recentActivities
-      .filter(activity => {
-        const activityDate = new Date(activity.timestamp);
-        return activityDate >= today && activityDate < tomorrow && activity.amount > 0;
-      })
-      .reduce((sum, activity) => sum + activity.amount, 0);
-  };
-
-  const todaysEarnings = calculateTodaysEarnings();
-
-  // Calculate progress for gamified progress bar
-  const calculateSetupProgress = () => {
-    let completed = 0;
-    const totalSteps = 3;
-
-    // 1. Claim First Task - check if user is no longer first-time user
-    if (userData && !userData.isFirstTimeUser) {
-      completed++;
-    }
-
-    // 2. Set a Goal - check if user has any goals
-    if (userData && userData.goals && userData.goals.length > 0) {
-      completed++;
-    }
-
-    // 3. Move Points Between Pots - check if user has moved points (has transactions of type 'points-move')
-    if (userData && userData.transactions && userData.transactions.some((tx: any) => tx.type === 'points-move')) {
-      completed++;
-    }
-
-    return completed / totalSteps;
-  };
-
-  const setupProgress = calculateSetupProgress();
 
   // Dynamic styles based on theme
   const dynamicStyles = {
@@ -965,7 +1025,7 @@ contentContainerStyle={{
               accessibilityLabel="Help and information"
               accessibilityHint="Open help guide for money pots"
               style={{
-                backgroundColor: themeColors.accent,
+                backgroundColor: themeColors.secondary,
                 borderRadius: MOBILE_LAYOUT.borderRadius * 1.5,
                 width: MOBILE_LAYOUT.minTouchTarget,
                 height: MOBILE_LAYOUT.minTouchTarget,
@@ -1386,7 +1446,7 @@ contentContainerStyle={{
               icon="🎮"
               title="Play Money Games"
               subtitle="Have fun while learning!"
-              color={themeColors.accent}
+              color={themeColors.secondary}
               onPress={() => router.push('./games')}
             />
           </>
@@ -1434,10 +1494,10 @@ contentContainerStyle={{
                 <Text style={{ fontSize: 24, marginRight: 12 }}>{activity.icon}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '500' }}>
-                    {activity.description}
+                    {mapJarNamesToUserFriendly(activity.description)}
                   </Text>
                   <Text style={{ fontSize: 12, color: themeColors.textSecondary, marginTop: 2 }}>
-                    {new Date(activity.timestamp).toLocaleDateString()} • {Number(activity.amount) > 0 ? '+' : ''}{formatAmount(Math.abs(Number(activity.amount) || 0))} points
+                    {new Date(activity.timestamp).toLocaleDateString()} • {Number(activity.amount) > 0 ? '+' : ''}{formatAmount(Math.abs(Number(activity.amount || 0)))} points
                   </Text>
                 </View>
               </View>
@@ -1683,7 +1743,7 @@ contentContainerStyle={{
               await fetch(`${API_URL}/users/${user.id}`, {
                 method: 'PATCH',
                 headers,
-                body: JSON.stringify({ isFirstTimeUser: false as any }),
+                body: JSON.stringify({ isFirstTimeUser: false }),
               }).catch(err => console.log('Failed to update first-time status:', err));
               // Update local userData via reducer
               dispatch({ type: 'UPDATE_USER_FIRST_TIME_STATUS', payload: false });

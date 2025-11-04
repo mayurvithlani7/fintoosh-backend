@@ -24,6 +24,7 @@ import {
 } from "react-native";
 
 import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
+import { updateAchievementProgress } from '../../components/AchievementSystem';
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
@@ -119,7 +120,7 @@ export default function GoalsScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={{
-              backgroundColor: themeColors.accent,
+              backgroundColor: themeColors.secondary,
               borderRadius: MOBILE_LAYOUT.borderRadius,
               paddingHorizontal: MOBILE_LAYOUT.cardPadding,
               paddingVertical: MOBILE_LAYOUT.itemSpacing,
@@ -618,6 +619,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
         type: 'goal-completion',
         name: `Goal: ${goalName}`,
         amount: targetAmount,
+        jar: jar,
         reason: `I have completed my goal to save ${targetAmount} points in the ${jar} jar!`,
         goalId: goalId,
       };
@@ -644,15 +646,29 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
         return;
       }
 
-      // Update local state to show goal as pending
+      // Update local state to show goal as pending immediately
       setGoals(goals.map(g =>
         g._id === goalId ? { ...g, status: 'pending' } : g
       ));
 
-      // Immediately refresh user data to show updated pending points
-      await loadGoalsAndRewards();
+      // Update achievement for goal completion
+      updateAchievementProgress('goal-achiever', 1).catch((error: unknown) => {
+        console.error('Error updating goal achievement:', error);
+      });
 
+      // Show success message immediately so user knows the request was sent
       showMessage("Goal completion request submitted to parent!", 'success');
+
+      // Refresh data after a short delay to sync with server
+      // This ensures the pending status is visible immediately
+      setTimeout(async () => {
+        try {
+          await loadGoalsAndRewards();
+        } catch (error) {
+          // Silently handle refresh errors to not disturb the user experience
+          console.error('Error refreshing goals after claim:', error);
+        }
+      }, 1000);
 
     } catch (error) {
       console.error('Error submitting goal completion request:', error);
@@ -751,6 +767,260 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
       );
     }
   };
+
+  // Individual goal renderer - Simplified and less confusing
+  function renderGoal(g: any) {
+    const jarPoints = userData ? userData[g.jar + "Points"] || 0 : 0;
+    const availableJarPoints = jarPoints - (userData ? userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"] || 0 : 0);
+
+    // Check if there is a pending goal-completion request for this goal
+    const hasPendingClaim = requests.some(
+      (req: any) => req.type === "goal-completion" && req.goalId === g._id && req.status === "Pending"
+    );
+
+    const isCompleted = g.completed === true || g.status === "completed";
+    const isPending = g.status === "pending" && !isCompleted;
+    const isExpired = g.status === "expired";
+    const canClaim = availableJarPoints >= g.targetAmount && g.status === "active" && !isCompleted && !isExpired && !hasPendingClaim;
+
+    // Determine status and colors
+    let statusText = '';
+    let statusColor = themeColors.secondary;
+    let bgColor = themeColors.surface;
+
+    if (isCompleted) {
+      statusText = '🏆 Completed';
+      statusColor = themeColors.success;
+      bgColor = themeColors.success + '10';
+    } else if (isPending) {
+      statusText = '⏳ Pending';
+      statusColor = themeColors.warning;
+      bgColor = themeColors.warning + '15';
+    } else if (isExpired) {
+      statusText = '❌ Expired';
+      statusColor = themeColors.error;
+      bgColor = themeColors.error + '10';
+    } else if (canClaim) {
+      statusText = '✅ Ready to Claim';
+      statusColor = themeColors.primary;
+    } else {
+      statusText = '💪 In Progress';
+      statusColor = themeColors.secondary;
+    }
+
+    return (
+      <View
+        key={g._id}
+        style={{
+          backgroundColor: bgColor,
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 16,
+          borderWidth: 2,
+          borderColor: statusColor + '30',
+          elevation: 3,
+          shadowColor: statusColor,
+        }}
+        accessibilityLabel={`Goal: ${g.name}. ${statusText}. Progress: ${formatAmount(jarPoints)} out of ${formatAmount(g.targetAmount)} points.`}
+        accessibilityHint={canClaim ? 'Double tap to claim this goal' : isCompleted ? 'This goal has been completed' : isPending ? 'Waiting for parent approval' : isExpired ? 'This goal has expired' : 'You need more points to claim this goal'}
+      >
+        {/* Goal Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: themeColors.text,
+              marginBottom: 4
+            }} numberOfLines={2} ellipsizeMode="tail">
+              {g.name}
+            </Text>
+            <Text style={{
+              fontSize: 14,
+              color: statusColor,
+              fontWeight: '600'
+            }}>
+              {statusText}
+            </Text>
+          </View>
+
+          {/* Progress Circle */}
+          {g.status === "active" && !isCompleted && !isExpired && (
+            <View style={{ alignItems: 'center' }}>
+              <AnimatedCircularProgress
+                size={60}
+                width={6}
+                fill={Math.min((jarPoints / g.targetAmount) * 100, 100)}
+                tintColor={canClaim ? themeColors.primary : themeColors.textSecondary}
+                backgroundColor={themeColors.border}
+                duration={1500}
+              />
+              <Text style={{
+                fontSize: 12,
+                color: themeColors.primary,
+                fontWeight: 'bold',
+                marginTop: 4
+              }}>
+                {Math.round((jarPoints / g.targetAmount) * 100)}%
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Progress Text */}
+        <View style={{ marginBottom: 16 }}>
+          {isCompleted ? (
+            <Text style={{
+              fontSize: 16,
+              color: themeColors.success,
+              fontWeight: '600',
+              textAlign: 'center'
+            }}>
+              🎉 Target Reached!
+            </Text>
+          ) : isPending ? (
+            <Text style={{
+              fontSize: 16,
+              color: themeColors.warning,
+              fontWeight: '600',
+              textAlign: 'center'
+            }}>
+              ⏳ Waiting for Parent Approval ({formatAmount(g.targetAmount)})
+            </Text>
+          ) : (
+            <Text style={{
+              fontSize: 16,
+              color: themeColors.text,
+              fontWeight: '600',
+              textAlign: 'center'
+            }}>
+              {formatAmount(jarPoints)} / {formatAmount(g.targetAmount)} points
+            </Text>
+          )}
+          {isCompleted ? (
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.success,
+              textAlign: 'center',
+              marginTop: 2,
+              fontWeight: '600'
+            }}>
+              Target: {formatAmount(g.targetAmount)} points achieved! 🎉
+            </Text>
+          ) : isPending ? (
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.warning,
+              textAlign: 'center',
+              marginTop: 2,
+              fontWeight: '500'
+            }}>
+              Your parent will review and approve your goal completion! 👨‍👩‍👧‍👦
+            </Text>
+          ) : (
+            <>
+              {/* Only show total for active goals (not completed) */}
+              {userData && !isCompleted && (
+                <Text style={{
+                  fontSize: 14,
+                  color: themeColors.textSecondary,
+                  textAlign: 'center',
+                  marginTop: 2
+                }}>
+                  Total: {formatAmount(jarPoints)}{(userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"] || 0) > 0 ? `, ${userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"]} pending` : ''}
+                </Text>
+              )}
+              {/* Show available points when there are pending points */}
+              {userData && (userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"] || 0) > 0 && (
+                <Text style={{
+                  fontSize: 12,
+                  color: themeColors.textSecondary,
+                  textAlign: 'center',
+                  marginTop: 2
+                }}>
+                  Available: {formatAmount(availableJarPoints)}
+                </Text>
+              )}
+              <Text style={{
+                fontSize: 14,
+                color: themeColors.textSecondary,
+                textAlign: 'center',
+                marginTop: 2
+              }}>
+                Save in: {getJarDisplayName(g.jar)}
+              </Text>
+            </>
+          )}
+        </View>
+
+        {/* Action Button */}
+        <View style={{ alignItems: 'center' }}>
+          {canClaim && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: themeColors.success,
+                paddingVertical: 12,
+                paddingHorizontal: 24,
+                borderRadius: 12,
+                minWidth: 120,
+                elevation: 2,
+              }}
+              onPress={() => handleClaimGoal(g._id, g.name, g.jar, g.targetAmount)}
+              disabled={claiming === g._id}
+              accessibilityRole="button"
+              accessibilityLabel={`Claim goal: ${g.name}`}
+              accessibilityHint="Double tap to submit goal completion request to parent"
+              accessibilityState={{ disabled: claiming === g._id }}
+            >
+              <Text style={{
+                color: 'white',
+                fontSize: 16,
+                fontWeight: 'bold',
+                textAlign: 'center'
+              }}>
+                {claiming === g._id ? '🎯 Claiming...' : '🎯 Claim Goal'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {g.status === 'active' && g.createdByType === 'child' && !canClaim && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: themeColors.error,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: 10,
+                marginTop: 8,
+              }}
+              onPress={() => handleDeleteGoal(g._id, g.name)}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete goal: ${g.name}`}
+              accessibilityHint="Double tap to delete this goal"
+            >
+              <Text style={{
+                color: 'white',
+                fontSize: 14,
+                fontWeight: 'bold'
+              }}>
+                🗑️ Delete
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {!canClaim && !isCompleted && !isPending && !isExpired && (
+            <Text style={{
+              fontSize: 14,
+              color: themeColors.textSecondary,
+              textAlign: 'center',
+              marginTop: 8
+            }}>
+              Keep saving! 💪
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -1021,7 +1291,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                   style={{
                     marginTop: 20,
                     alignSelf: "center",
-                    backgroundColor: themeColors.accent + "22",
+                    backgroundColor: themeColors.secondary + "22",
                     paddingHorizontal: 24,
                     paddingVertical: 12,
                     borderRadius: 20,
@@ -1066,216 +1336,6 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
   );
 
 
-  // Individual goal renderer - Simplified and less confusing
-  function renderGoal(g: any) {
-    const jarPoints = userData ? userData[g.jar + "Points"] || 0 : 0;
-    const availableJarPoints = jarPoints - (userData ? userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"] || 0 : 0);
-
-    // Check if there is a pending goal-completion request for this goal
-    const hasPendingClaim = requests.some(
-      (req: any) => req.type === "goal-completion" && req.goalId === g._id && req.status === "Pending"
-    );
-
-    const isCompleted = g.completed === true || g.status === "completed";
-    const isPending = g.status === "pending" && !isCompleted;
-    const isExpired = g.status === "expired";
-    const canClaim = availableJarPoints >= g.targetAmount && g.status === "active" && !isCompleted && !isExpired && !hasPendingClaim;
-
-    // Determine status and colors
-    let statusText = '';
-    let statusColor = themeColors.secondary;
-    let bgColor = themeColors.surface;
-
-    if (isCompleted) {
-      statusText = '🏆 Completed';
-      statusColor = themeColors.success;
-      bgColor = themeColors.success + '10';
-    } else if (isPending) {
-      statusText = '⏳ Pending';
-      statusColor = themeColors.warning;
-      bgColor = themeColors.warning + '15';
-    } else if (isExpired) {
-      statusText = '❌ Expired';
-      statusColor = themeColors.error;
-      bgColor = themeColors.error + '10';
-    } else if (canClaim) {
-      statusText = '✅ Ready to Claim';
-      statusColor = themeColors.primary;
-    } else {
-      statusText = '💪 In Progress';
-      statusColor = themeColors.secondary;
-    }
-
-    return (
-      <View
-        key={g._id}
-        style={{
-          backgroundColor: bgColor,
-          borderRadius: 16,
-          padding: 20,
-          marginBottom: 16,
-          borderWidth: 2,
-          borderColor: statusColor + '30',
-          elevation: 3,
-          shadowColor: statusColor,
-        }}
-        accessibilityLabel={`Goal: ${g.name}. ${statusText}. Progress: ${formatAmount(jarPoints)} out of ${formatAmount(g.targetAmount)} points.`}
-        accessibilityHint={canClaim ? 'Double tap to claim this goal' : isCompleted ? 'This goal has been completed' : isPending ? 'Waiting for parent approval' : isExpired ? 'This goal has expired' : 'You need more points to claim this goal'}
-      >
-        {/* Goal Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{
-              fontSize: 18,
-              fontWeight: 'bold',
-              color: themeColors.text,
-              marginBottom: 4
-            }} numberOfLines={2} ellipsizeMode="tail">
-              {g.name}
-            </Text>
-            <Text style={{
-              fontSize: 14,
-              color: statusColor,
-              fontWeight: '600'
-            }}>
-              {statusText}
-            </Text>
-          </View>
-
-          {/* Progress Circle */}
-          {g.status === "active" && !isCompleted && !isExpired && (
-            <View style={{ alignItems: 'center' }}>
-              <AnimatedCircularProgress
-                size={60}
-                width={6}
-                fill={Math.min((jarPoints / g.targetAmount) * 100, 100)}
-                tintColor={canClaim ? themeColors.primary : themeColors.textSecondary}
-                backgroundColor={themeColors.border}
-                duration={1500}
-              />
-              <Text style={{
-                fontSize: 12,
-                color: themeColors.primary,
-                fontWeight: 'bold',
-                marginTop: 4
-              }}>
-                {Math.round((jarPoints / g.targetAmount) * 100)}%
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Progress Text */}
-        <View style={{ marginBottom: 16 }}>
-          {isCompleted ? (
-            <Text style={{
-              fontSize: 16,
-              color: themeColors.success,
-              fontWeight: '600',
-              textAlign: 'center'
-            }}>
-              🎉 Target Reached!
-            </Text>
-          ) : (
-            <Text style={{
-              fontSize: 16,
-              color: themeColors.text,
-              fontWeight: '600',
-              textAlign: 'center'
-            }}>
-              {formatAmount(jarPoints)} / {formatAmount(g.targetAmount)} points
-            </Text>
-          )}
-          {isCompleted ? (
-            <Text style={{
-              fontSize: 14,
-              color: themeColors.success,
-              textAlign: 'center',
-              marginTop: 2,
-              fontWeight: '600'
-            }}>
-              Target: {formatAmount(g.targetAmount)} points achieved! 🎉
-            </Text>
-          ) : (
-            <Text style={{
-              fontSize: 14,
-              color: themeColors.textSecondary,
-              textAlign: 'center',
-              marginTop: 2
-            }}>
-              Save in: {getJarDisplayName(g.jar)}
-            </Text>
-          )}
-        </View>
-
-        {/* Action Button */}
-        <View style={{ alignItems: 'center' }}>
-          {canClaim && (
-            <TouchableOpacity
-              style={{
-                backgroundColor: themeColors.success,
-                paddingVertical: 12,
-                paddingHorizontal: 24,
-                borderRadius: 12,
-                minWidth: 120,
-                elevation: 2,
-              }}
-              onPress={() => handleClaimGoal(g._id, g.name, g.jar, g.targetAmount)}
-              disabled={claiming === g._id}
-              accessibilityRole="button"
-              accessibilityLabel={`Claim goal: ${g.name}`}
-              accessibilityHint="Double tap to submit goal completion request to parent"
-              accessibilityState={{ disabled: claiming === g._id }}
-            >
-              <Text style={{
-                color: 'white',
-                fontSize: 16,
-                fontWeight: 'bold',
-                textAlign: 'center'
-              }}>
-                {claiming === g._id ? '🎯 Claiming...' : '🎯 Claim Goal'}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {g.status === 'active' && g.createdByType === 'child' && !canClaim && (
-            <TouchableOpacity
-              style={{
-                backgroundColor: themeColors.error,
-                paddingVertical: 8,
-                paddingHorizontal: 16,
-                borderRadius: 10,
-                marginTop: 8,
-              }}
-              onPress={() => handleDeleteGoal(g._id, g.name)}
-              accessibilityRole="button"
-              accessibilityLabel={`Delete goal: ${g.name}`}
-              accessibilityHint="Double tap to delete this goal"
-            >
-              <Text style={{
-                color: 'white',
-                fontSize: 14,
-                fontWeight: 'bold'
-              }}>
-                🗑️ Delete
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {!canClaim && !isCompleted && !isPending && !isExpired && (
-            <Text style={{
-              fontSize: 14,
-              color: themeColors.textSecondary,
-              textAlign: 'center',
-              marginTop: 8
-            }}>
-              Keep saving! 💪
-            </Text>
-          )}
-        </View>
-      </View>
-    );
-  }
 
 
 }

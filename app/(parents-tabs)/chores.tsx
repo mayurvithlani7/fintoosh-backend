@@ -2,13 +2,14 @@ import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import ValidationMessage from '@/components/ui/ValidationMessage';
 import { choreSuggestions } from '@/constants/choreSuggestions';
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { getAuthToken, getUserData } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const createStyles = (themeColors: any) => StyleSheet.create({
   scroll: { backgroundColor: themeColors.background },
@@ -208,6 +209,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
 
 export default function ParentsChoresScreen() {
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const styles = createStyles(themeColors);
   const [choreName, setChoreName] = useState('');
   const [description, setDescription] = useState('');
@@ -243,9 +245,7 @@ export default function ParentsChoresScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [feedback, setFeedback] = useState('');
   const [lastRefreshed, setLastRefreshed] = useState(Date.now());
-  const [showStaleWarning, setShowStaleWarning] = useState(false);
   // Validation
   const [choreNameError, setChoreNameError] = useState<string | null>(null);
   const [pointsError, setPointsError] = useState<string | null>(null);
@@ -313,11 +313,12 @@ export default function ParentsChoresScreen() {
     }, [selectedChild])
   );
 
-  // If the tab loses focus, mark data as potentially stale
+    // If the tab loses focus, mark data as potentially stale
   useEffect(() => {
     // Only on web, listen for blur to mark data as potentially stale
     if (Platform.OS === "web" && typeof window !== "undefined" && typeof window.addEventListener === "function") {
-      const onBlur = () => setShowStaleWarning(true);
+      // Stale warning removed for better UX
+      const onBlur = () => {}; // No-op
       window.addEventListener('blur', onBlur);
       return () => window.removeEventListener('blur', onBlur);
     }
@@ -327,13 +328,9 @@ export default function ParentsChoresScreen() {
 
   // Optionally, after certain time (e.g., 60s), show data might be stale
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (Date.now() - lastRefreshed > 60 * 1000) {
-        setShowStaleWarning(true);
-      }
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [lastRefreshed]);
+    // Stale warning removed for better UX
+    return () => {};
+  }, []);
 
   const loadChildren = async () => {
     try {
@@ -414,7 +411,6 @@ export default function ParentsChoresScreen() {
         }
         setChores(choresData);
         setLastRefreshed(Date.now());
-        setShowStaleWarning(false);
       }
     } catch (error) {
       console.error('Error loading chores:', error);
@@ -431,8 +427,8 @@ export default function ParentsChoresScreen() {
 
   const handleAddChore = async () => {
     setError('');
-    setFeedback('');
 
+    // Validate input
     if (!choreName.trim() || !points.trim()) {
       setError('Please enter a task name and points for the task.');
       return;
@@ -458,56 +454,104 @@ export default function ParentsChoresScreen() {
       }
     }
 
+    // Custom split validation
+    if (!useDefaultSplit) {
+      const customSplitObj = {
+        current: parseInt(customSplit.current) || 0,
+        save: parseInt(customSplit.save) || 0,
+        spend: parseInt(customSplit.spend) || 0,
+        donate: parseInt(customSplit.donate) || 0,
+        invest: parseInt(customSplit.invest) || 0,
+      };
+
+      // Validate custom split totals 100%
+      const total = Object.values(customSplitObj).reduce((sum, val) => sum + val, 0);
+      if (total !== 100) {
+        setError('Custom split percentages must total exactly 100%');
+        return;
+      }
+    }
+
+    // Create optimistic chore object
+    const optimisticChore = {
+      _id: `temp-${Date.now()}`, // Temporary ID for optimistic update
+      name: choreName.trim(),
+      description: description.trim() || undefined,
+      points: Number(points),
+      frequency,
+      deadline: deadline.trim() || undefined,
+      status: 'active' as const,
+      completed: false,
+      approved: false,
+      createdAt: new Date().toISOString(),
+      useDefaultSplit,
+      customSplit: useDefaultSplit ? undefined : {
+        current: parseInt(customSplit.current) || 0,
+        save: parseInt(customSplit.save) || 0,
+        spend: parseInt(customSplit.spend) || 0,
+        donate: parseInt(customSplit.donate) || 0,
+        invest: parseInt(customSplit.invest) || 0,
+      }
+    };
+
+    // Store original state for potential rollback
+    const originalChores = [...chores];
+    const originalEditingChore = editingChore;
+
+    // OPTIMISTIC UPDATE: Add chore to UI immediately
+    if (editingChore) {
+      // Update existing chore
+      setChores(prev => prev.map(c => c._id === editingChore._id ? { ...optimisticChore, _id: editingChore._id } : c));
+    } else {
+      // Add new chore
+      setChores(prev => [optimisticChore, ...prev]);
+    }
+
+    // Show instant success message
+    showMessage(editingChore ? 'Task updated successfully!' : 'Task added successfully!', 'success');
+
+    // Clear form immediately for instant feedback
+    setChoreName('');
+    setDescription('');
+    setPoints('');
+    setFrequency('once');
+    setDeadline('');
+    setEditingChore(null);
+
     try {
       const token = await getAuthToken();
       if (!token) {
-        setError('Not authenticated. Please login again.');
-        return;
+        throw new Error('Not authenticated. Please login again.');
       }
 
       const requestBody: any = {
-        name: choreName.trim(),
-        points: Number(points),
-        frequency,
-        useDefaultSplit,
+        name: optimisticChore.name,
+        points: optimisticChore.points,
+        frequency: optimisticChore.frequency,
+        useDefaultSplit: optimisticChore.useDefaultSplit,
       };
 
-      if (description.trim()) {
-        requestBody.description = description.trim();
+      if (optimisticChore.description) {
+        requestBody.description = optimisticChore.description;
       }
 
-      if (deadline.trim()) {
-        requestBody.deadline = deadline.trim();
+      if (optimisticChore.deadline) {
+        requestBody.deadline = optimisticChore.deadline;
       }
 
       // Add split settings if custom split is selected
-      if (!useDefaultSplit) {
-        const customSplitObj = {
-          current: parseInt(customSplit.current) || 0,
-          save: parseInt(customSplit.save) || 0,
-          spend: parseInt(customSplit.spend) || 0,
-          donate: parseInt(customSplit.donate) || 0,
-          invest: parseInt(customSplit.invest) || 0,
-        };
-
-        // Validate custom split totals 100%
-        const total = Object.values(customSplitObj).reduce((sum, val) => sum + val, 0);
-        if (total !== 100) {
-          setError('Custom split percentages must total exactly 100%');
-          return;
-        }
-
-        requestBody.customSplit = customSplitObj;
+      if (optimisticChore.customSplit) {
+        requestBody.customSplit = optimisticChore.customSplit;
       }
 
       let response;
-      if (editingChore) {
+      if (originalEditingChore) {
         // Update existing chore
-        response = await fetch(`${API_URL}/chores/${editingChore._id}`, {
+        response = await fetch(`${API_URL}/chores/${originalEditingChore._id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(requestBody),
         });
@@ -518,31 +562,46 @@ export default function ParentsChoresScreen() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(requestBody),
         });
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: editingChore ? 'Failed to update task' : 'Failed to add task' }));
-        throw new Error(errorData.message || (editingChore ? 'Failed to update task' : 'Failed to add task'));
+        const errorData = await response.json().catch(() => ({ message: originalEditingChore ? 'Failed to update task' : 'Failed to add task' }));
+        throw new Error(errorData.message || (originalEditingChore ? 'Failed to update task' : 'Failed to add task'));
       }
 
-      setChoreName('');
-      setDescription('');
-      setPoints('');
-      setFrequency('once');
-      setDeadline('');
-      setEditingChore(null);
-      setFeedback(editingChore ? 'Task updated successfully!' : 'Task added successfully!');
-      setTimeout(() => setFeedback(''), 3000);
-
-      // Refresh chores list
+      // Success: Refresh data to get server-generated IDs and any updates
       loadChores();
+
     } catch (error: any) {
       console.error('Error saving task:', error);
-      setError(error.message || (editingChore ? 'Failed to update task. Please try again.' : 'Failed to add task. Please try again.'));
+
+      // FAILURE: Rollback optimistic update
+      setChores(originalChores);
+      setEditingChore(originalEditingChore);
+
+      // Restore form data so user can retry
+      setChoreName(optimisticChore.name);
+      setDescription(optimisticChore.description || '');
+      setPoints(optimisticChore.points.toString());
+      setFrequency(optimisticChore.frequency);
+      setDeadline(optimisticChore.deadline || '');
+      setUseDefaultSplit(optimisticChore.useDefaultSplit);
+      if (optimisticChore.customSplit) {
+        setCustomSplit({
+          current: optimisticChore.customSplit.current.toString(),
+          save: optimisticChore.customSplit.save.toString(),
+          spend: optimisticChore.customSplit.spend.toString(),
+          donate: optimisticChore.customSplit.donate.toString(),
+          invest: optimisticChore.customSplit.invest.toString(),
+        });
+      }
+
+      // Show error message
+      showMessage(error.message || (originalEditingChore ? 'Failed to update task. Please try again.' : 'Failed to add task. Please try again.'), 'error');
     }
   };
 
@@ -551,14 +610,20 @@ export default function ParentsChoresScreen() {
   };
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+    <KeyboardAvoidingView
+      style={{ flex: 1, width: '100%' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
     >
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 520, marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back to Home" to="/(parents-tabs)" />
         <TouchableOpacity
@@ -1079,7 +1144,6 @@ export default function ParentsChoresScreen() {
                 setFrequency('once');
                 setDeadline('');
                 setError('');
-                setFeedback('');
                 setChoreNameError(null);
                 setPointsError(null);
               }}
@@ -1090,14 +1154,9 @@ export default function ParentsChoresScreen() {
           )}
         </View>
         <ValidationMessage message={error} type="error" />
-        {feedback ? <Text style={styles.statusMessage}>{feedback}</Text> : null}
       </View>
 
-      {showStaleWarning && (
-        <Text style={{ color: themeColors.warning, fontWeight: 'bold', fontSize: 15, backgroundColor: '#fffbe5', borderLeftWidth: 4, borderLeftColor: themeColors.warning, padding: 9, borderRadius: 6, marginBottom: 8, textAlign: 'center' }}>
-          Tasks data may be outdated. Tap "Refresh" for the latest status.
-        </Text>
-      )}
+
       {/* Current Chores - With Tabs/Filters */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -1248,7 +1307,6 @@ export default function ParentsChoresScreen() {
                             setFrequency(c.frequency);
                             setDeadline(c.deadline ? c.deadline.split('T')[0] : '');
                             setError('');
-                            setFeedback('');
                             // Scroll to the form section (approximately where the form is located)
                             scrollViewRef.current?.scrollTo({ x: 0, y: 400, animated: true });
                           }}
@@ -1268,7 +1326,6 @@ export default function ParentsChoresScreen() {
                           }}
                           onPress={async () => {
                             setError('');
-                            setFeedback('');
                             try {
                               const token = await getAuthToken();
                               const response = await fetch(`${API_URL}/chores/${c._id}`, {
@@ -1279,11 +1336,10 @@ export default function ParentsChoresScreen() {
                                 const data = await response.json().catch(() => ({}));
                                 throw new Error(data.message || 'Failed to delete chore.');
                               }
-                              setFeedback('Task deleted successfully.');
-                              setTimeout(() => setFeedback(''), 3000);
+                              showMessage('Task deleted successfully.', 'success');
                               loadChores();
                             } catch (err: any) {
-                              setError(err.message || 'Failed to delete chore.');
+                              showMessage(err.message || 'Failed to delete chore.', 'error');
                             }
                           }}
                         >
@@ -1536,6 +1592,7 @@ export default function ParentsChoresScreen() {
           }
         ]}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

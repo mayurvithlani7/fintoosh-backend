@@ -9,6 +9,7 @@ import { useTheme } from '@/utils/themeContext';
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -723,10 +724,16 @@ export default function TransactionHistoryScreen() {
   }, [transactions, search, type, startDate, endDate]);
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: themeColors.background }}
-      contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
+    <KeyboardAvoidingView
+      style={{ flex: 1, width: '100%' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
     >
+      <ScrollView
+        style={{ flex: 1, backgroundColor: themeColors.background }}
+        contentContainerStyle={{ alignItems: "center", paddingVertical: 16, paddingHorizontal: 8 }}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 22, marginTop: 6 }}>
         <BackButton label="Back" to="/(kids-tabs)" />
         <TouchableOpacity
@@ -923,6 +930,7 @@ export default function TransactionHistoryScreen() {
           }
         ]}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

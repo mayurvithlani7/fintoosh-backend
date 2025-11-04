@@ -1,6 +1,6 @@
 import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import HelpModal from '@/components/HelpModal';
 import { createTransaction, fetchFamilyChildren, fetchTransactions, fetchUser, patchUserPoints } from '@/utils/api';
@@ -164,69 +164,80 @@ export default function ParentsPointsScreen() {
   async function handlePoints(isAdd: boolean) {
     console.log('handlePoints called with isAdd:', isAdd, 'amount:', amount, 'toJar:', toJar);
 
-    // Reset errors - all error/feedback is now global
+    // Validate input
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       showMessage('Enter a valid positive number for points.', 'error');
       return;
     }
 
+    if (!childData) {
+      showMessage('Child data not loaded. Please try again.', 'error');
+      return;
+    }
 
+    const changeAmount = parseInt(amount, 10);
+    const pointsField = `${toJar}Points` as keyof typeof childData;
+    const currentValue = childData[pointsField] as number || 0;
+
+    // Check if subtracting would result in negative points
+    if (!isAdd && currentValue < changeAmount) {
+      showMessage(`Not enough points in ${jarOptions.find(j => j.value === toJar)?.label} pot.`, 'error');
+      return;
+    }
+
+    // Calculate new value
+    const newValue = isAdd ? currentValue + changeAmount : currentValue - changeAmount;
+
+    // Store original value for potential rollback
+    const originalValue = currentValue;
+
+    // OPTIMISTIC UPDATE: Update UI immediately
+    setChildData(prev => prev ? {
+      ...prev,
+      [pointsField]: newValue
+    } : null);
+
+    // Show instant success message
+    showMessage(
+      `${isAdd ? 'Added' : 'Subtracted'} ${amount} points ${isAdd ? 'to' : 'from'} the ${jarOptions.find(
+        j => j.value === toJar
+      )?.label} pot.`,
+      'success'
+    );
+
+    // Clear form immediately for instant feedback
+    setAmount('');
 
     try {
       // Get current user and child info
       const { getUser } = await import('@/utils/secureStorage');
       const currentUser = await getUser();
       if (!currentUser) {
-        showMessage('User not logged in.', 'error');
-        return;
+        throw new Error('User not logged in');
       }
       if (currentUser.role !== 'parent' || !currentUser.familyId) {
-        showMessage('Invalid parent account.', 'error');
-        return;
+        throw new Error('Invalid parent account');
       }
 
       // Get family children
       const token = await getAuthToken();
       if (!token) {
-        showMessage('Authentication failed. Please log in again.', 'error');
-        return;
+        throw new Error('Authentication failed');
       }
 
       const children = await fetchFamilyChildren(currentUser.familyId as string, token);
       console.log('Fetched children:', children);
 
       if (!children || children.length === 0) {
-        showMessage('No child found.', 'error');
-        return;
+        throw new Error('No child found');
       }
 
       // Find the selected child
       const child = children.find((c: any) => c.id === selectedChildId) || children[0];
       if (!child) {
-        showMessage('Selected child not found.', 'error');
-        return;
-      }
-      if (!child) {
-        showMessage('Selected child not found.', 'error');
-        return;
+        throw new Error('Selected child not found');
       }
       console.log('Using child:', child);
-
-      const pointsField = toJar + 'Points';
-      const currentValue = child[pointsField] || 0;
-      const changeAmount = parseInt(amount, 10);
-      console.log('Current value in', pointsField, ':', currentValue);
-      console.log('Change amount:', changeAmount);
-
-      // Check if subtracting would result in negative points
-      if (!isAdd && currentValue < changeAmount) {
-        showMessage(`Not enough points in ${jarOptions.find(j => j.value === toJar)?.label} pot.`, 'error');
-        return;
-      }
-
-      // Calculate new value
-      const newValue = isAdd ? currentValue + changeAmount : currentValue - changeAmount;
-      console.log('New value will be:', newValue);
 
       // Update child points via API
       const updateData = { [pointsField]: newValue };
@@ -246,40 +257,40 @@ export default function ParentsPointsScreen() {
       // @ts-ignore
       await createTransaction(transactionData, token);
 
-      // Refresh child data
-      console.log('Refreshing child data...');
-      await loadChildData();
-
-      // Check what the updated value is
-      const updatedChildren = await fetchFamilyChildren(currentUser.familyId as string, token);
-      if (updatedChildren && updatedChildren.length > 0) {
-        const updatedChild = updatedChildren[0];
-        const updatedChildData = await fetchUser(updatedChild.id, token);
-        console.log('After update - database shows currentPoints:', updatedChildData?.currentPoints);
-      }
-
-      showMessage(
-        `${isAdd ? 'Added' : 'Subtracted'} ${amount} points ${isAdd ? 'to' : 'from'} the ${jarOptions.find(
-          j => j.value === toJar
-        )?.label} pot.`,
-        'success'
-      );
-      setAmount('');
+      // Success: Refresh recent transactions to show the new entry
+      loadChildData();
 
     } catch (error) {
       console.error('Error updating points:', error);
+
+      // FAILURE: Rollback optimistic update
+      setChildData(prev => prev ? {
+        ...prev,
+        [pointsField]: originalValue
+      } : null);
+
+      // Restore form data so user can retry
+      setAmount(amount);
+
+      // Show error message
       showMessage('Failed to update points. Please try again.', 'error');
     }
   }
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+    <KeyboardAvoidingView
+      style={{ flex: 1, width: '100%' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
     >
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
         <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between' }}>
           <BackButton label="Back to Home" to="/(parents-tabs)" />
@@ -501,6 +512,7 @@ export default function ParentsPointsScreen() {
               accessibilityHint="Enter the number of points to add or subtract from child's account"
               style={[styles.input, { minHeight: 40 }]}
               placeholder="e.g. 10"
+              placeholderTextColor={themeColors.textSecondary}
               keyboardType="numeric"
               value={amount}
               onChangeText={setAmount}
@@ -845,7 +857,8 @@ export default function ParentsPointsScreen() {
           }
         ]}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -5,7 +5,6 @@ import { API_URL } from '@/utils/config';
 import { formatDateTime } from '@/utils/dateUtils';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -62,7 +61,6 @@ export default function ParentsRequestsScreen() {
     denied: 0,
   });
   const [paginationMeta, setPaginationMeta] = useState<any | null>(null);
-  const [feedback, setFeedback] = useState('');
   const [approvalModal, setApprovalModal] = useState({
     visible: false,
     request: null as any,
@@ -70,7 +68,6 @@ export default function ParentsRequestsScreen() {
     comment: '',
   });
   const [helpModalVisible, setHelpModalVisible] = useState(false);
-  const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
   const [errorState, setErrorState] = useState<{
     type: 'network' | 'auth' | 'server' | null;
     message: string;
@@ -144,7 +141,6 @@ export default function ParentsRequestsScreen() {
         currentPage: meta.currentPage || page,
         refreshing: false, // Always set to false when operation completes
       }));
-      markRefreshed();
     } catch (error: any) {
       setPagination((prev) => ({
         ...prev,
@@ -209,17 +205,13 @@ export default function ParentsRequestsScreen() {
         throw new Error(errorMessage);
       }
 
-      setFeedback(`Request ${approvalModal.approved ? 'approved' : 'denied'}.`);
+      showMessage(`Request ${approvalModal.approved ? 'approved' : 'denied'}.`, approvalModal.approved ? 'success' : 'info');
       setApprovalModal({ visible: false, request: null, approved: false, comment: '' });
 
       // Refresh the requests list immediately
       loadRequests({ page: 1, reset: true });
-
-      // Clear feedback after 2.5 seconds
-      setTimeout(() => setFeedback(''), 2500);
     } catch (error: any) {
-      setFeedback(error?.message || 'Failed to update request. Please try again.');
-      setTimeout(() => setFeedback(''), 4000);
+      showMessage(error?.message || 'Failed to update request. Please try again.', 'error');
     }
   };
 
@@ -402,44 +394,46 @@ export default function ParentsRequestsScreen() {
                 return null;
               })()}
 
-              {/* Quick Action Buttons */}
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'center',
-                marginTop: 12,
-                paddingTop: 12,
-                borderTopWidth: 1,
-                borderTopColor: themeColors.border + '40'
-              }}>
-                <TouchableOpacity
-                  style={[{
-                    backgroundColor: themeColors.success,
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 6,
-                    marginHorizontal: 4,
-                    minWidth: 80,
-                    alignItems: 'center'
-                  }]}
-                  onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
-                >
-                  <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>✓ Approve</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[{
-                    backgroundColor: themeColors.error,
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 6,
-                    marginHorizontal: 4,
-                    minWidth: 80,
-                    alignItems: 'center'
-                  }]}
-                  onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
-                >
-                  <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>✗ Deny</Text>
-                </TouchableOpacity>
-              </View>
+              {/* Quick Action Buttons - Only show for pending requests */}
+              {request.status === 'Pending' && (
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: themeColors.border + '40'
+                }}>
+                  <TouchableOpacity
+                    style={[{
+                      backgroundColor: themeColors.success,
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      borderRadius: 6,
+                      marginHorizontal: 4,
+                      minWidth: 80,
+                      alignItems: 'center'
+                    }]}
+                    onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
+                  >
+                    <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>✓ Approve</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[{
+                      backgroundColor: themeColors.error,
+                      paddingHorizontal: 16,
+                      paddingVertical: 8,
+                      borderRadius: 6,
+                      marginHorizontal: 4,
+                      minWidth: 80,
+                      alignItems: 'center'
+                    }]}
+                    onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
+                  >
+                    <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>✗ Deny</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
 
@@ -669,11 +663,7 @@ export default function ParentsRequestsScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      {showStaleWarning && (
-        <Text style={{ color: themeColors.warning, fontWeight: 'bold', fontSize: 15, backgroundColor: '#fffbe5', borderLeftWidth: 4, borderLeftColor: themeColors.warning, padding: 9, borderRadius: 6, marginBottom: 8, textAlign: 'center' }}>
-          Requests list may be outdated. Tap "Refresh" for latest status.
-        </Text>
-      )}
+
       <Text style={styles.title}>Child's Requests</Text>
 
       {/* Search and Filter Section */}
@@ -770,12 +760,7 @@ export default function ParentsRequestsScreen() {
         }
       />
 
-      {/* Feedback and modals */}
-      {feedback ? (
-        <View style={[styles.feedbackCard, { backgroundColor: themeColors.secondary + "22" }]}>
-          <Text style={[styles.feedbackText, { color: themeColors.secondary }]}>{feedback}</Text>
-        </View>
-      ) : null}
+
 
       <Modal
         visible={approvalModal.visible}

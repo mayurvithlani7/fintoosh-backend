@@ -1,6 +1,6 @@
+import { useTheme } from '@/utils/themeContext';
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useThemeColor } from '../hooks/use-theme-color';
 import { usePredictions } from '../hooks/useAnalytics';
 
 interface SpendingInsightsProps {
@@ -9,17 +9,20 @@ interface SpendingInsightsProps {
 }
 
 export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps) {
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const tintColor = useThemeColor({}, 'tint');
+  const { themeColors } = useTheme();
+
+  // All hooks must be called in the same order on every render
+  const backgroundColor = themeColors.background;
+  const textColor = themeColors.text;
+  const tintColor = themeColors.primary; // Using primary as tint color
+  const secondaryTextColor = themeColors.textSecondary;
+  const surfaceColor = themeColors.surface;
+  const successColor = themeColors.success;
 
   const { predictions, riskColor, riskText, loading, error } = usePredictions();
 
-  // Guaranteed high-contrast colors
-  const isDarkMode = backgroundColor === '#000000';
-  const mainTextColor = isDarkMode ? '#ffffff' : '#000000';
-  const secondaryTextColor = isDarkMode ? '#cccccc' : '#666666';
-  const surfaceColor = isDarkMode ? '#1a1a1a' : '#f5f5f5';
+  // Theme-aware colors using the existing theme system
+  const mainTextColor = textColor;
   const cardBackgroundColor = backgroundColor;
 
   if (loading) {
@@ -85,7 +88,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
           flexDirection: 'row',
           alignItems: 'center',
           padding: 12,
-          backgroundColor: riskColor + '20',
+          backgroundColor: surfaceColor,
           borderRadius: 8,
           borderLeftWidth: 4,
           borderLeftColor: riskColor
@@ -194,7 +197,7 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
           backgroundColor: surfaceColor,
           borderRadius: 8,
           borderLeftWidth: 3,
-          borderLeftColor: '#4CAF50'
+          borderLeftColor: successColor
         }}>
           <Text style={{
             color: mainTextColor,
@@ -214,10 +217,13 @@ export function SpendingInsightsCard({ analyticsData, onExport, onRefresh }: {
   onExport?: () => void;
   onRefresh?: () => void | Promise<void>;
 }) {
+  const { themeColors } = useTheme();
+  const textSecondaryColor = themeColors.textSecondary;
+
   if (!analyticsData) {
     return (
       <View style={{ padding: 16, alignItems: 'center' }}>
-        <Text style={{ fontSize: 16, color: '#666' }}>No analytics data available</Text>
+        <Text style={{ fontSize: 16, color: textSecondaryColor }}>No analytics data available</Text>
       </View>
     );
   }

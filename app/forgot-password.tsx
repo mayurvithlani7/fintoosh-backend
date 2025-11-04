@@ -1,11 +1,12 @@
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Dimensions,
   Image,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -32,6 +33,7 @@ const INPUT_BG = '#F7F9FC';
 
 // --- ForgotPasswordScreen COMPONENT ---
 export default function ForgotPasswordScreen() {
+  const { showMessage } = useCenteredMessage();
   const [resetMethod, setResetMethod] = useState<ResetMethod>('email');
   const [identifier, setIdentifier] = useState('');
   const [otp, setOtp] = useState('');
@@ -40,7 +42,6 @@ export default function ForgotPasswordScreen() {
   const [step, setStep] = useState<'identifier' | 'otp' | 'password'>('identifier');
   const [otpSent, setOtpSent] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const [statusMessage, setStatusMessage] = useState('');
   const router = useRouter();
 
   React.useEffect(() => {
@@ -55,18 +56,18 @@ export default function ForgotPasswordScreen() {
 
   const handleSendOTP = async () => {
     if (!identifier.trim()) {
-      setStatusMessage('Please enter your email address.');
+      showMessage('Please enter your email address.', 'error');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(identifier.trim())) {
-      setStatusMessage('Please enter a valid email address.');
+      showMessage('Please enter a valid email address.', 'error');
       return;
     }
 
     try {
-      setStatusMessage('Sending OTP...');
+      showMessage('Sending OTP...', 'info');
 
       const response = await fetch(`${API_URL}/auth/request-parent-otp`, {
         method: 'POST',
@@ -81,28 +82,28 @@ export default function ForgotPasswordScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        setStatusMessage(data.message || 'Failed to send OTP. Please try again.');
+        showMessage(data.message || 'Failed to send OTP. Please try again.', 'error');
         return;
       }
 
       setOtpSent(true);
       setStep('otp');
       setResendTimer(60);
-      setStatusMessage('OTP sent successfully!');
+      showMessage('OTP sent successfully!', 'success');
     } catch (error) {
       console.error('Send OTP error:', error);
-      setStatusMessage('Network error. Please try again.');
+      showMessage('Network error. Please try again.', 'error');
     }
   };
 
   const handleVerifyOTP = async () => {
     if (!otp.trim()) {
-      setStatusMessage('Please enter the OTP.');
+      showMessage('Please enter the OTP.', 'error');
       return;
     }
 
     try {
-      setStatusMessage('Verifying OTP...');
+      showMessage('Verifying OTP...', 'info');
 
       const response = await fetch(`${API_URL}/auth/verify-parent-otp`, {
         method: 'POST',
@@ -118,36 +119,36 @@ export default function ForgotPasswordScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        setStatusMessage(data.message || 'Invalid OTP. Please try again.');
+        showMessage(data.message || 'Invalid OTP. Please try again.', 'error');
         return;
       }
 
       setStep('password');
-      setStatusMessage('OTP verified! Please set your new password.');
+      showMessage('OTP verified! Please set your new password.', 'success');
     } catch (error) {
       console.error('Verify OTP error:', error);
-      setStatusMessage('Network error. Please try again.');
+      showMessage('Network error. Please try again.', 'error');
     }
   };
 
   const handleResetPassword = async () => {
     if (!newPassword.trim() || !confirmPassword.trim()) {
-      setStatusMessage('Please fill in all password fields.');
+      showMessage('Please fill in all password fields.', 'error');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setStatusMessage('Passwords do not match.');
+      showMessage('Passwords do not match.', 'error');
       return;
     }
 
     if (newPassword.length < 6) {
-      setStatusMessage('Password must be at least 6 characters long.');
+      showMessage('Password must be at least 6 characters long.', 'error');
       return;
     }
 
     try {
-      setStatusMessage('Resetting password...');
+      showMessage('Resetting password...', 'info');
 
       const response = await fetch(`${API_URL}/auth/reset-parent-password`, {
         method: 'POST',
@@ -164,17 +165,17 @@ export default function ForgotPasswordScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        setStatusMessage(data.message || 'Failed to reset password. Please try again.');
+        showMessage(data.message || 'Failed to reset password. Please try again.', 'error');
         return;
       }
 
-      setStatusMessage('Password reset successful! Redirecting to login...');
+      showMessage('Password reset successful! Redirecting to login...', 'success');
       setTimeout(() => {
         router.replace('/login');
       }, 2000);
     } catch (error) {
       console.error('Reset password error:', error);
-      setStatusMessage('Network error. Please try again.');
+      showMessage('Network error. Please try again.', 'error');
     }
   };
 
@@ -184,7 +185,6 @@ export default function ForgotPasswordScreen() {
 
   const switchToEmail = () => {
     setResetMethod('email');
-    setStatusMessage('');
     setIdentifier('');
     setOtp('');
     setNewPassword('');
@@ -197,12 +197,13 @@ export default function ForgotPasswordScreen() {
 
 
   return (
-    <ImageBackground
-      source={require('../assets/images/android-icon-background.png')}
-      style={styles.background}
-      resizeMode="cover"
-      blurRadius={2}
-    >
+    <View style={styles.background}>
+      <LinearGradient
+        colors={['#6366f1', '#8b5cf6', '#a855f7', '#c084fc']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -339,24 +340,13 @@ export default function ForgotPasswordScreen() {
                 </>
               )}
 
-              {statusMessage ? (
-                <Text
-                  style={[
-                    styles.statusMessage,
-                    statusMessage.includes('success') || statusMessage.includes('sent') || statusMessage.includes('verified')
-                      ? styles.success
-                      : styles.error
-                  ]}
-                >
-                  {statusMessage}
-                </Text>
-              ) : null}
+
             </View>
             {/* --- END RESET CARD --- */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -391,20 +381,20 @@ const styles = StyleSheet.create({
     fontSize: 33,
     fontWeight: '900',
     letterSpacing: 0.5,
-    color: PRIMARY,
+    color: '#FFD700',
     textAlign: 'center',
     marginBottom: 3,
   },
   heroTagline: {
     fontSize: 16,
-    color: SUCCESS_GREEN,
+    color: '#FF6B6B',
     fontWeight: '700',
     marginBottom: 11,
     textAlign: 'center'
   },
   heroStory: {
     fontSize: 14.7,
-    color: '#455574',
+    color: '#E6E6FA',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 4,

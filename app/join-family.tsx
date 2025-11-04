@@ -3,12 +3,12 @@ import { API_URL } from '@/utils/config';
 import { useTheme } from '@/utils/themeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from "@react-native-picker/picker";
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -30,8 +30,6 @@ export default function JoinFamilyScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [relationship, setRelationship] = useState('');
   const [loading, setLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [statusColor, setStatusColor] = useState('red');
   const router = useRouter();
 
   const validateForm = () => {
@@ -87,8 +85,6 @@ export default function JoinFamilyScreen() {
     if (!validateForm()) return;
 
     setLoading(true);
-    setStatusMessage('');
-    setStatusColor('red');
 
     try {
       const response = await fetch(`${API_URL}/auth/join-family-code`, {
@@ -109,8 +105,7 @@ export default function JoinFamilyScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        setStatusMessage(data.message || 'Failed to join family. Please try again.');
-        setStatusColor('red');
+        showMessage(data.message || 'Failed to join family. Please try again.', 'error');
         setLoading(false);
         return;
       }
@@ -120,8 +115,7 @@ export default function JoinFamilyScreen() {
         await AsyncStorage.setItem('authToken', data.token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
-        setStatusMessage('Successfully joined family! Welcome aboard! 🎉');
-        setStatusColor('green');
+        showMessage('Successfully joined family! Welcome aboard! 🎉', 'success');
         setLoading(false);
 
         // Navigate to parent dashboard after short delay
@@ -131,8 +125,7 @@ export default function JoinFamilyScreen() {
 
       } catch (storageError) {
         console.error('Failed to store auth data:', storageError);
-        setStatusMessage('Joined family but login failed. Please try logging in manually.');
-        setStatusColor('red');
+        showMessage('Joined family but login failed. Please try logging in manually.', 'error');
         setLoading(false);
         setTimeout(() => {
           router.replace('/login');
@@ -140,8 +133,7 @@ export default function JoinFamilyScreen() {
       }
     } catch (error) {
       console.error('Join family error:', error);
-      setStatusMessage('Network error. Please try again.');
-      setStatusColor('red');
+      showMessage('Network error. Please try again.', 'error');
       setLoading(false);
     }
   };
@@ -151,12 +143,13 @@ export default function JoinFamilyScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require('../assets/images/android-icon-background.png')}
-      style={styles.background}
-      resizeMode="cover"
-      blurRadius={2}
-    >
+    <View style={styles.background}>
+      <LinearGradient
+        colors={['#6366f1', '#8b5cf6', '#a855f7', '#c084fc']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -310,11 +303,7 @@ export default function JoinFamilyScreen() {
                 )}
               </TouchableOpacity>
 
-              {statusMessage ? (
-                <Text style={[styles.statusMessage, { color: statusColor }]}>
-                  {statusMessage}
-                </Text>
-              ) : null}
+
 
               <TouchableOpacity onPress={handleBackToLogin} disabled={loading}>
                 <Text style={styles.backLink}>Back to Login</Text>
@@ -351,7 +340,7 @@ export default function JoinFamilyScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -386,13 +375,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '900',
     letterSpacing: 0.5,
-    color: '#6A49F3',
+    color: '#FFD700',
     textAlign: 'center',
     marginBottom: 3,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#4CAF50',
+    color: '#FF6B6B',
     fontWeight: '700',
     textAlign: 'center'
   },

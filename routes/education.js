@@ -11,6 +11,15 @@ router.get('/modules', auth, async (req, res) => {
   try {
     const { category, difficulty, childId } = req.query;
 
+    console.log('📚 Fetching education modules:', {
+      userId: req.user?.id,
+      userRole: req.user?.role,
+      familyId: req.user?.familyId,
+      childId,
+      category,
+      difficulty
+    });
+
     // Build query filters
     let query = { isActive: true };
 
@@ -23,34 +32,51 @@ router.get('/modules', auth, async (req, res) => {
     }
 
     // Get modules with optional progress info if childId provided
+    console.log('🔍 Finding modules with query:', query);
     const modules = await EducationModule.find(query)
       .sort({ category: 1, order: 1, difficulty: 1 })
       .lean();
 
-    // If childId provided, include progress information
+    console.log(`✅ Found ${modules.length} modules in database`);
+
+    // If childId provided, include progress information (but don't fail if childId is invalid)
     let modulesWithProgress = modules;
     if (childId) {
-      // Verify child belongs to user's family
-      const child = await User.findOne({ id: childId });
-      if (!child || child.familyId !== req.user.familyId) {
-        return res.status(403).json({ message: 'Not authorized to view this child\'s progress' });
+      console.log('👶 Looking up child:', childId);
+
+      try {
+        // Verify child belongs to user's family
+        const child = await User.findOne({ id: childId });
+        console.log('👶 Child lookup result:', child ? { id: child.id, name: child.name, familyId: child.familyId } : 'NOT FOUND');
+
+        if (child && child.familyId === req.user.familyId) {
+          console.log('✅ Child authorization passed');
+
+          // Get progress for each module
+          const progressPromises = modules.map(async (module) => {
+            const progress = await ChildProgress.findOne({
+              child: child._id,
+              module: module._id
+            }).select('status progress completedAt');
+
+            return {
+              ...module,
+              progress: progress || null
+            };
+          });
+
+          modulesWithProgress = await Promise.all(progressPromises);
+          console.log('✅ Added progress data to modules');
+        } else {
+          console.log('⚠️ Child not found or not authorized, returning modules without progress');
+        }
+      } catch (error) {
+        console.error('❌ Error looking up child progress:', error);
+        console.log('⚠️ Returning modules without progress data');
       }
-
-      // Get progress for each module
-      const progressPromises = modules.map(async (module) => {
-        const progress = await ChildProgress.findOne({
-          child: child._id,
-          module: module._id
-        }).select('status progress completedAt');
-
-        return {
-          ...module,
-          progress: progress || null
-        };
-      });
-
-      modulesWithProgress = await Promise.all(progressPromises);
     }
+
+    console.log(`🚀 Returning ${modulesWithProgress.length} modules to client`);
 
     res.json({
       modules: modulesWithProgress,
@@ -60,8 +86,17 @@ router.get('/modules', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching education modules:', error);
-    res.status(500).json({ message: 'Failed to fetch education modules', error: error.message });
+    console.error('❌ Error fetching education modules:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({
+      message: 'Failed to fetch education modules',
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -71,8 +106,15 @@ router.get('/modules/:moduleId', auth, async (req, res) => {
     const { moduleId } = req.params;
     const { childId } = req.query;
 
+    // Handle invalid ObjectIds gracefully
+    if (!moduleId || moduleId.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(moduleId)) {
+      console.log('Invalid module ID format:', moduleId);
+      return res.status(404).json({ message: 'Education module not found - invalid ID format' });
+    }
+
     const module = await EducationModule.findById(moduleId);
     if (!module) {
+      console.log('Module not found in database:', moduleId);
       return res.status(404).json({ message: 'Education module not found' });
     }
 

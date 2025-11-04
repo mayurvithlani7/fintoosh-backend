@@ -65,11 +65,11 @@ export const themes = {
     error: '#D32F2F',          // Red with good contrast
     accent: '#C2185B',         // Darker pink for better contrast (WCAG AA compliant)
     jarColors: {
-      current: '#E8F5E8',      // Light green
-      save: '#E3F2FD',         // Light blue
-      spend: '#FFF3E0',        // Light orange
-      donate: '#FCE4EC',       // Light pink
-      invest: '#F3E5F5',       // Light purple
+      current: '#228B22',      // Dark green - high contrast
+      save: '#1E40AF',         // Dark blue - high contrast
+      spend: '#C2410C',        // Dark orange - high contrast
+      donate: '#7C2D12',       // Dark brown - high contrast
+      invest: '#B45309',       // Dark gold - high contrast
     }
   },
   dark: {
@@ -86,11 +86,11 @@ export const themes = {
     error: '#f87171',
     accent: '#ff6b6b',
     jarColors: {
-      current: '#1e3a2e',
-      save: '#1e3a2e',
-      spend: '#3a2e1e',
-      donate: '#3a1e2e',
-      invest: '#1e2e3a',
+      current: '#22C55E',      // Bright green - high contrast
+      save: '#3B82F6',         // Bright blue - high contrast
+      spend: '#F97316',        // Bright orange - high contrast
+      donate: '#A855F7',       // Bright purple - high contrast
+      invest: '#F59E0B',       // Bright gold - high contrast
     }
   },
   // Seasonal themes

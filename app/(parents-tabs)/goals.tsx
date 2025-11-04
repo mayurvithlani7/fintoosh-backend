@@ -2,7 +2,7 @@ import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import BackButton from '@/components/BackButton';
 import GoalTemplates from '@/components/GoalTemplates';
@@ -12,7 +12,6 @@ import { API_URL } from '@/utils/config';
 import { useDataCache } from '@/utils/dataCacheContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
-import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 
 import { goalSuggestions } from '@/constants/goalSuggestions';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
@@ -51,7 +50,7 @@ export default function ParentsGoalsScreen() {
   }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
+
 
   // Validation
   const [goalNameError, setGoalNameError] = useState<string | null>(null);
@@ -190,7 +189,6 @@ export default function ParentsGoalsScreen() {
         }
         console.log('[PARENTS GOALS] Loaded goals:', goalsData.length, 'goals');
         setGoals(Array.isArray(goalsData) ? goalsData : []);
-        markRefreshed();
       } else {
         console.error('[PARENTS GOALS] Failed to load goals:', response.status);
       }
@@ -228,6 +226,7 @@ export default function ParentsGoalsScreen() {
       editingGoal: !!editingGoal
     });
 
+    // Validate input
     if (!goal.trim() || !pointsNeeded.trim()) {
       console.log('[PARENTS GOALS] Validation failed: missing goal or points');
       showError('Please enter a goal and points amount.');
@@ -263,6 +262,49 @@ export default function ParentsGoalsScreen() {
       }
     }
 
+    // Create optimistic goal object
+    const optimisticGoal = {
+      _id: `temp-${Date.now()}`, // Temporary ID for optimistic update
+      name: goal.trim(),
+      description: description.trim() || undefined,
+      targetAmount: Number(pointsNeeded),
+      jar: selectedJar,
+      deadline: deadline.trim() || undefined,
+      status: 'active' as const,
+      createdAt: new Date().toISOString(),
+      currentPoints: {
+        current: 0,
+        save: 0,
+        spend: 0,
+        donate: 0,
+        invest: 0,
+      }
+    };
+
+    // Store original state for potential rollback
+    const originalGoals = [...goals];
+    const originalEditingGoal = editingGoal;
+
+    // OPTIMISTIC UPDATE: Add goal to UI immediately
+    if (editingGoal) {
+      // Update existing goal
+      setGoals(prev => prev.map(g => g._id === editingGoal._id ? { ...optimisticGoal, _id: editingGoal._id } : g));
+    } else {
+      // Add new goal
+      setGoals(prev => [optimisticGoal, ...prev]);
+    }
+
+    // Show instant success message
+    showMessage(editingGoal ? 'Goal updated successfully!' : 'Goal added successfully!', 'success');
+
+    // Clear form immediately for instant feedback
+    setGoal('');
+    setDescription('');
+    setPointsNeeded('');
+    setDeadline('');
+    setSelectedJar('current');
+    setEditingGoal(null);
+
     try {
       console.log('[PARENTS GOALS] Getting auth token...');
       const token = await getAuthToken();
@@ -270,28 +312,27 @@ export default function ParentsGoalsScreen() {
 
       if (!token) {
         console.log('[PARENTS GOALS] No token found');
-        showError('Not authenticated. Please login again.');
-        return;
+        throw new Error('Not authenticated. Please login again.');
       }
 
       const requestBody: any = {
-        name: goal.trim(),
-        targetAmount: Number(pointsNeeded),
-        jar: selectedJar,
+        name: optimisticGoal.name,
+        targetAmount: optimisticGoal.targetAmount,
+        jar: optimisticGoal.jar,
       };
 
-      if (description.trim()) {
-        requestBody.description = description.trim();
+      if (optimisticGoal.description) {
+        requestBody.description = optimisticGoal.description;
       }
 
-      if (deadline.trim()) {
-        requestBody.deadline = deadline.trim();
+      if (optimisticGoal.deadline) {
+        requestBody.deadline = optimisticGoal.deadline;
       }
 
       let response;
       let apiUrl;
-      if (editingGoal) {
-        apiUrl = `${API_URL}/goals/${editingGoal._id}`;
+      if (originalEditingGoal) {
+        apiUrl = `${API_URL}/goals/${originalEditingGoal._id}`;
         response = await fetch(apiUrl, {
           method: 'PATCH',
           headers: {
@@ -320,21 +361,29 @@ export default function ParentsGoalsScreen() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: editingGoal ? 'Failed to update goal' : 'Failed to add goal' }));
-        throw new Error(errorData.message || (editingGoal ? 'Failed to update goal' : 'Failed to add goal'));
+        const errorData = await response.json().catch(() => ({ message: originalEditingGoal ? 'Failed to update goal' : 'Failed to add goal' }));
+        throw new Error(errorData.message || (originalEditingGoal ? 'Failed to update goal' : 'Failed to add goal'));
       }
 
-      setGoal('');
-      setDescription('');
-      setPointsNeeded('');
-      setDeadline('');
-      setSelectedJar('current');
-      setEditingGoal(null);
-      showMessage(editingGoal ? 'Goal updated successfully!' : 'Goal added successfully!', 'success');
-
+      // Success: Refresh data to get server-generated IDs and any updates
       loadGoals();
+
     } catch (err: any) {
-      showError(err.message || (editingGoal ? 'Failed to update goal. Please try again.' : 'Failed to add goal. Please try again.'));
+      console.error('[PARENTS GOALS] Error:', err);
+
+      // FAILURE: Rollback optimistic update
+      setGoals(originalGoals);
+      setEditingGoal(originalEditingGoal);
+
+      // Restore form data so user can retry
+      setGoal(optimisticGoal.name);
+      setDescription(optimisticGoal.description || '');
+      setPointsNeeded(optimisticGoal.targetAmount.toString());
+      setDeadline(optimisticGoal.deadline || '');
+      setSelectedJar(optimisticGoal.jar);
+
+      // Show error message
+      showMessage(err.message || (originalEditingGoal ? 'Failed to update goal. Please try again.' : 'Failed to add goal. Please try again.'), 'error');
     }
   };
 
@@ -444,14 +493,20 @@ export default function ParentsGoalsScreen() {
   };
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      style={styles.scroll}
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+    <KeyboardAvoidingView
+      style={{ flex: 1, width: '100%' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 60}
     >
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={{ ...MOBILE_STYLES.fullWidthContainer, marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing }}>
         <View style={{ ...MOBILE_STYLES.row, justifyContent: 'space-between' }}>
           <BackButton label="Back to Home" to="/(parents-tabs)" />
@@ -702,6 +757,7 @@ export default function ParentsGoalsScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. New bike, vacation fund..."
+              placeholderTextColor={themeColors.textSecondary}
               value={goal}
               onChangeText={val => {
                 setGoal(val);
@@ -727,6 +783,7 @@ export default function ParentsGoalsScreen() {
             <TextInput
               style={styles.input}
               placeholder="How many points?"
+              placeholderTextColor={themeColors.textSecondary}
               keyboardType="numeric"
               value={pointsNeeded}
               onChangeText={val => {
@@ -813,6 +870,7 @@ export default function ParentsGoalsScreen() {
         <TextInput
           style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
           placeholder="Describe what the goal is about..."
+          placeholderTextColor={themeColors.textSecondary}
           value={description}
           onChangeText={setDescription}
           multiline
@@ -922,11 +980,7 @@ export default function ParentsGoalsScreen() {
         </View>
       </View>
 
-      {showStaleWarning && (
-        <Text style={{ color: themeColors.warning, fontWeight: 'bold', fontSize: 15, backgroundColor: '#fffbe5', borderLeftWidth: 4, borderLeftColor: themeColors.warning, padding: 9, borderRadius: 6, marginBottom: 8, textAlign: 'center' }}>
-          This goals data may be outdated. Tap "Refresh" for the latest status.
-        </Text>
-      )}
+
       {/* Current Goals - With Tabs/Filters */}
       <View style={[styles.sectionCard, { backgroundColor: themeColors.card, shadowColor: themeColors.border }]}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -1360,7 +1414,8 @@ export default function ParentsGoalsScreen() {
         onSelect={handleTemplateSelect}
         onClose={() => setShowTemplates(false)}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

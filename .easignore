@@ -1,109 +1,41 @@
-# EAS Build: Exclude unnecessary files to reduce archive size
-
-# Node dependencies and build output
-node_modules/
-npm-debug.log
-yarn-error.log
-package-lock.json
-yarn.lock
-
-# Git
-.git/
-.git_disabled/
-.gitignore
-
-# Environment files and config secrets
-.env
-.env.*
-*.env
-
-# Back-end and server-only directories
-backend/
-fintoosh-backend/
-scripts/
-test/
-tests/
-__tests__/
-
-# Development and documentation folders
-memory-bank/
-.clinerules/
-.idea/
-
-# Unused/large asset folders (adjust as needed)
-assets/videos/
+node_modules
+android
+fintoosh-backend
+backend
+.git
+.vscode
+.idea
+.clinerules
+memory-bank
+*.md
+scripts
+*.log
+*.tmp
+.env*
+assets/videos
 *.mp4
 *.avi
 *.mov
 *.mkv
-
-# Temporary and system files
-*.log
-*.tmp
-*.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-.cache/
-
-# Documentation, design, and project management
-README.md
-CHANGELOG.md
-*.md
-TESTING_GUIDE.md
-BRAND_GUIDE.md
-BRAND_IMPLEMENTATION_GUIDE.md
-MARKET_ANALYSIS.md
-MARKETING_GUIDE.md
-QA_CHECKLIST.md
-USER_GUIDE.md
-New Text Document.txt
-*.txt
-*.doc
-*.docx
-*.pdf
-*.psd
-*.ai
-*.sketch
+*.webm
+*.flv
+*.wmv
+*.m4v
+*.3gp
+dist
+build
+.expo
+.expo-shared
+web-build
+web-dist
+ios
+.cxx
+__pycache__
 *.zip
 *.tar.gz
 *.7z
-
-# VSCode/IDE
-.vscode/
-.idea/
-
-# OS/app specific
-.DS_Store
-
-# Expo/Build output
-dist/
-build/
-.expo/
-web-build/
-web-dist/
-.expo-shared/
-ios/
-android/
-
-# Database and utility scripts (development only)
-reset-database.js
-add-status-field.js
-check-users.js
-create-demo-otp-user.js
-create-demo-users.js
-fix-parent-child-relationship.js
-fix-username-index.js
-test-api.js
-test-login.js
-test-milestones.js
-test-color-contrast.js
-test-theme-accessibility.js
-test-updated-theme.js
-fix-corrupted-transactions.js
-savingsInterestJob-concept.md
-
-# Remove if you use these folders for app code
-# components/   # (Commented, KEEP THESE UNLESS unused)
-# assets/images/ # (Commented, KEEP app images; EXCLUDE only if not used in production)
+*.rar
+*.apk
+*.aab
+*.ipa
+*.xcarchive

@@ -1,11 +1,12 @@
+import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { getAuthToken } from '@/utils/secureStorage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,14 +18,13 @@ import {
 } from 'react-native';
 
 export default function AddChildScreen() {
+  const { showMessage } = useCenteredMessage();
   const [childName, setChildName] = useState('');
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [touched, setTouched] = useState<{ childName: boolean; username: boolean; pin: boolean }>({ childName: false, username: false, pin: false });
   const [errors, setErrors] = useState<{ childName: string; username: string; pin: string }>({ childName: '', username: '', pin: '' });
 
-  const [statusMessage, setStatusMessage] = useState('');
-  const [statusColor, setStatusColor] = useState('red');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -84,14 +84,11 @@ export default function AddChildScreen() {
     const fieldErrors = validateAll();
     setErrors(fieldErrors);
     if (fieldErrors.childName || fieldErrors.username || fieldErrors.pin) {
-      setStatusMessage('Please fix the errors above before submitting.');
-      setStatusColor('red');
+      showMessage('Please fix the errors above before submitting.', 'error');
       return;
     }
 
     setLoading(true);
-    setStatusMessage('');
-    setStatusColor('red');
 
     try {
       // Get auth token with retry logic
@@ -101,8 +98,7 @@ export default function AddChildScreen() {
         await new Promise(resolve => setTimeout(resolve, 500));
         token = await getAuthToken();
         if (!token) {
-          setStatusMessage('Authentication required. Please login again.');
-          setStatusColor('red');
+          showMessage('Authentication required. Please login again.', 'error');
           setLoading(false);
           // Redirect to login after a delay
           setTimeout(() => {
@@ -141,14 +137,12 @@ export default function AddChildScreen() {
         if (data.message) {
           errorMessage = data.message;
         }
-        setStatusMessage(errorMessage);
-        setStatusColor('red');
+        showMessage(errorMessage, 'error');
         setLoading(false);
         return;
       }
 
-      setStatusMessage('Child account created successfully!');
-      setStatusColor('green');
+      showMessage('Child account created successfully!', 'success');
       setLoading(false);
       setTimeout(() => {
         // Navigate back to parent dashboard with refresh trigger
@@ -158,8 +152,7 @@ export default function AddChildScreen() {
         });
       }, 1200);
     } catch (e: any) {
-      setStatusMessage('Network error. Please try again.');
-      setStatusColor('red');
+      showMessage('Network error. Please try again.', 'error');
       setLoading(false);
     }
   };
@@ -169,12 +162,13 @@ export default function AddChildScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require('../assets/images/android-icon-background.png')}
-      style={styles.background}
-      resizeMode="cover"
-      blurRadius={2}
-    >
+    <View style={styles.background}>
+      <LinearGradient
+        colors={['#6366f1', '#8b5cf6', '#a855f7', '#c084fc']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
       <KeyboardAvoidingView
         style={{ flex: 1, width: '100%' }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -258,9 +252,7 @@ export default function AddChildScreen() {
               <TouchableOpacity style={[styles.button, loading && { opacity: 0.5 }]} onPress={handleSubmit} disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create Child Account</Text>}
               </TouchableOpacity>
-              {statusMessage ? (
-                <Text style={[styles.statusMessage, { color: statusColor }]}>{statusMessage}</Text>
-              ) : null}
+
               <TouchableOpacity onPress={handleSkip} disabled={loading}>
                 <Text style={styles.skipLink}>Skip for now</Text>
               </TouchableOpacity>
@@ -294,7 +286,7 @@ export default function AddChildScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -329,20 +321,20 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '900',
     letterSpacing: 0.5,
-    color: '#6A49F3',
+    color: '#FFD700',
     textAlign: 'center',
     marginBottom: 3,
   },
   heroTagline: {
     fontSize: 16,
-    color: '#4CAF50',
+    color: '#FF6B6B',
     fontWeight: '700',
     marginBottom: 10,
     textAlign: 'center'
   },
   heroStory: {
     fontSize: 14.5,
-    color: '#455574',
+    color: '#E6E6FA',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 4,

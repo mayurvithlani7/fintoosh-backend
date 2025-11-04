@@ -144,8 +144,24 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
     const saved = await transaction.save();
     console.log('DEBUG: Transaction saved:', saved._id);
 
-    // Update user's points based on toJar (but not for parent manual adjustments)
-    if (saved.toJar && saved.type !== 'parent-points-adjustment') {
+    // Update user's points based on transaction type
+    if (saved.type === 'donation-reservation') {
+      // Reserve points in pending state for donations
+      const pendingFieldMap = {
+        current: 'pendingCurrentPoints',
+        save: 'pendingSavePoints',
+        spend: 'pendingSpendPoints',
+        donate: 'pendingDonatePoints',
+        invest: 'pendingInvestPoints'
+      };
+
+      const fieldName = pendingFieldMap[saved.fromJar];
+      if (fieldName) {
+        user[fieldName] = (user[fieldName] || 0) + Math.abs(saved.amount); // amount is negative for deduction
+        console.log(`DEBUG: Reserved ${Math.abs(saved.amount)} points in ${saved.fromJar} jar (${fieldName}) for donation for user ${user.id}`);
+      }
+    } else if (saved.toJar && saved.type !== 'parent-points-adjustment') {
+      // Normal point additions
       const jarFieldMap = {
         current: 'currentPoints',
         save: 'savePoints',
@@ -2013,6 +2029,70 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       console.log('DEBUG: Chore approved now set to', chore.approved, 'and status', chore.status, 'for Chore', chore._id);
     }
 
+    // If approved and donation, move points from selected jar to donate jar
+    if (status === 'Approved' && approval.type === 'donation') {
+      const user = await User.findOne({ id: approval.childId });
+      if (user && approval.from && user[approval.from + 'Points'] !== undefined) {
+        // Check available points (actual - pending)
+        const actualPoints = user[approval.from + 'Points'] || 0;
+        const pendingPoints = user['pending' + approval.from.charAt(0).toUpperCase() + approval.from.slice(1) + 'Points'] || 0;
+        const availablePoints = actualPoints - pendingPoints;
+
+        if (availablePoints >= approval.amount) {
+          // Move points from source jar to donate jar
+          user[approval.from + 'Points'] -= approval.amount;
+          user.donatePoints = (user.donatePoints || 0) + approval.amount;
+          // Clear the pending reservation
+          user['pending' + approval.from.charAt(0).toUpperCase() + approval.from.slice(1) + 'Points'] -= approval.amount;
+          await user.save();
+
+          // Create transaction for donation
+          const txn = new Transaction({
+            type: 'donation-approved',
+            description: `Donation approved: ${approval.amount} points to ${approval.cause} from ${approval.from}`,
+            amount: -approval.amount,
+            user: user._id,
+            fromJar: approval.from,
+            toJar: 'donate',
+            date: new Date().toLocaleString(),
+          });
+          await txn.save();
+          user.transactions = user.transactions || [];
+          user.transactions.unshift(txn._id);
+          await user.save();
+        } else {
+          return res.status(400).json({ message: 'Not enough available points in selected jar for donation (some points may be pending for other requests).' });
+        }
+      } else {
+        return res.status(400).json({ message: 'Invalid jar selection for donation.' });
+      }
+    }
+
+    // If approved and budget-create, add budget to user's budgets array
+    if (status === 'Approved' && approval.type === 'budget-create') {
+      const user = await User.findOne({ id: approval.childId });
+      if (user) {
+        // Initialize budgets array if it doesn't exist
+        if (!user.budgets) {
+          user.budgets = [];
+        }
+
+        // Add the new budget
+        user.budgets.push({
+          jar: approval.budgetJar || approval.jar,
+          amount: approval.budgetAmount || approval.amount,
+          period: approval.budgetPeriod || approval.period,
+          note: approval.reason || approval.note || '',
+          createdAt: new Date(),
+          isActive: true
+        });
+
+        await user.save();
+      } else {
+        return res.status(404).json({ message: 'User not found for budget creation.' });
+      }
+    }
+
     // If approved and goal-completion, check points, deduct, set goal status to 'completed'
     if (status === 'Approved' && approval.type === 'goal-completion') {
       const Goal = require('../models/Goal');
@@ -2022,60 +2102,59 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         if (goal) {
           // Find child user
           const user = await User.findOne({ id: approval.childId });
-          if (!user) {
-            return res.status(400).json({ message: "Could not find child user for goal completion." });
-          }
-          // Determine which jar is required and how much
-          const jar = goal.jar;
-          const pointsField = jar + "Points";
-          const pendingField = 'pending' + jar.charAt(0).toUpperCase() + jar.slice(1) + 'Points';
-          const target = goal.targetAmount || approval.amount || 0;
-          if (!user[pointsField] || user[pointsField] < target) {
-            // Reset goal status back to 'active' so child can try again
-            goal.status = 'active';
+          if (user) {
+            // Determine which jar is required and how much
+            const jar = goal.jar;
+            const pointsField = jar + "Points";
+            const pendingField = 'pending' + jar.charAt(0).toUpperCase() + jar.slice(1) + 'Points';
+            const target = goal.targetAmount || approval.amount || 0;
+            if (!user[pointsField] || user[pointsField] < target) {
+              // Reset goal status back to 'active' so child can try again
+              goal.status = 'active';
+              await goal.save();
+
+              return res.status(400).json({
+                message: `Not enough points in ${jar} jar for goal completion. The child needs ${target - (user[pointsField] || 0)} more points. Goal has been reset to active status.`
+              });
+            }
+
+            // Atomically deduct from both pending and actual points
+            const updatedUser = await User.findOneAndUpdate(
+              { _id: user._id },
+              {
+                $inc: {
+                  [pointsField]: -target,
+                  [pendingField]: -target
+                }
+              },
+              { new: true }
+            );
+
+            if (!updatedUser) {
+              return res.status(500).json({ message: 'Failed to update points for goal approval.' });
+            }
+
+            goal.status = 'completed'; // Mark as completed/claimed
+            goal.achieved = true;
+            goal.achievedAt = new Date();
+            goal.updatedAt = new Date();
             await goal.save();
 
-            return res.status(400).json({
-              message: `Not enough points in ${jar} jar for goal completion. The child needs ${target - (user[pointsField] || 0)} more points. Goal has been reset to active status.`
+            // Create transaction for goal completion
+            const txn = new Transaction({
+              type: 'goal-completion',
+              description: `Parent approved goal "${goal.name}" completion, ${target} points from ${jar}`,
+              amount: -target,
+              user: user._id,
+              toJar: jar,
+              reference: goal._id,
+              date: new Date().toLocaleString()
             });
+            await txn.save();
+            updatedUser.transactions = updatedUser.transactions || [];
+            updatedUser.transactions.unshift(txn._id);
+            await updatedUser.save();
           }
-
-          // Atomically deduct from both pending and actual points
-          const updatedUser = await User.findOneAndUpdate(
-            { _id: user._id },
-            {
-              $inc: {
-                [pointsField]: -target,
-                [pendingField]: -target
-              }
-            },
-            { new: true }
-          );
-
-          if (!updatedUser) {
-            return res.status(500).json({ message: 'Failed to update points for goal approval.' });
-          }
-
-          goal.status = 'completed'; // Mark as completed/claimed
-          goal.achieved = true;
-          goal.achievedAt = new Date();
-          goal.updatedAt = new Date();
-          await goal.save();
-
-          // Create transaction for goal completion
-          const txn = new Transaction({
-            type: 'goal-completion',
-            description: `Parent approved goal "${goal.name}" completion, ${target} points from ${jar}`,
-            amount: -target,
-            user: user._id,
-            toJar: jar,
-            reference: goal._id,
-            date: new Date().toLocaleString()
-          });
-          await txn.save();
-          updatedUser.transactions = updatedUser.transactions || [];
-          updatedUser.transactions.unshift(txn._id);
-          await updatedUser.save();
         }
       }
     }
@@ -2130,6 +2209,19 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
             );
           }
         }
+      }
+    }
+
+    // If denied and donation, refund pending points
+    if (status === 'Denied' && approval.type === 'donation') {
+      const childUser = await User.findOne({ id: approval.childId });
+      if (childUser && approval.from) {
+        const pendingField = 'pending' + approval.from.charAt(0).toUpperCase() + approval.from.slice(1) + 'Points';
+        await User.findOneAndUpdate(
+          { _id: childUser._id },
+          { $inc: { [pendingField]: -approval.amount } },
+          { new: true }
+        );
       }
     }
 
