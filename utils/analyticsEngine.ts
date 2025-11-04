@@ -33,6 +33,7 @@ export interface PredictionData {
   nextMonthSpending: number;
   nextMonthSavingsPot: number;
   nextMonthSpendingPot: number;
+  savingsRate: number;
   recommendations: string[];
   riskLevel: 'low' | 'medium' | 'high';
 }
@@ -249,6 +250,12 @@ export function processJarDistribution(user: any, transactions: any[], days: num
 
 // Process jar distribution analytics for entire family (aggregates balances across all family members)
 export function processFamilyJarDistribution(familyMembers: any[], transactions: any[], days: number = 30): JarAnalytics[] {
+  console.log('[DEBUG] processFamilyJarDistribution - Input:', {
+    familyMembersCount: familyMembers?.length || 0,
+    transactionsCount: transactions?.length || 0,
+    days
+  });
+
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
 
@@ -260,6 +267,8 @@ export function processFamilyJarDistribution(familyMembers: any[], transactions:
     donate: familyMembers.reduce((sum, member) => sum + (member.donatePoints || 0), 0),
     invest: familyMembers.reduce((sum, member) => sum + (member.investPoints || 0), 0)
   };
+
+  console.log('[DEBUG] processFamilyJarDistribution - Aggregated balances:', aggregatedBalances);
 
   const jarStats: { [jar: string]: { deposits: number; withdrawals: number; current: number } } = {
     current: { deposits: 0, withdrawals: 0, current: aggregatedBalances.current },
@@ -278,14 +287,35 @@ export function processFamilyJarDistribution(familyMembers: any[], transactions:
     }
   });
 
+  console.log('[DEBUG] processFamilyJarDistribution - Recent transactions count:', recentTransactions.length);
+  console.log('[DEBUG] processFamilyJarDistribution - Sample recent transactions:', recentTransactions.slice(0, 3).map(t => ({
+    type: t.type,
+    amount: t.amount,
+    toJar: t.toJar,
+    fromJar: t.fromJar,
+    createdAt: t.createdAt
+  })));
+
   recentTransactions.forEach(transaction => {
     if (transaction.toJar && jarStats[transaction.toJar]) {
       jarStats[transaction.toJar].deposits += transaction.amount;
+      console.log('[DEBUG] processFamilyJarDistribution - Added deposit:', {
+        jar: transaction.toJar,
+        amount: transaction.amount,
+        newTotal: jarStats[transaction.toJar].deposits
+      });
     }
     if (transaction.fromJar && jarStats[transaction.fromJar]) {
       jarStats[transaction.fromJar].withdrawals += transaction.amount;
+      console.log('[DEBUG] processFamilyJarDistribution - Added withdrawal:', {
+        jar: transaction.fromJar,
+        amount: transaction.amount,
+        newTotal: jarStats[transaction.fromJar].withdrawals
+      });
     }
   });
+
+  console.log('[DEBUG] processFamilyJarDistribution - Final jar stats:', jarStats);
 
   const jarNames = {
     current: 'Pocket Money',
@@ -389,6 +419,19 @@ export function generatePredictions(
   jarDistribution: JarAnalytics[],
   goalProgress: GoalMetrics[]
 ): PredictionData {
+  console.log('[DEBUG] generatePredictions - Input data:', {
+    spendingTrendsCount: spendingTrends?.length || 0,
+    jarDistributionCount: jarDistribution?.length || 0,
+    goalProgressCount: goalProgress?.length || 0
+  });
+
+  console.log('[DEBUG] generatePredictions - Jar distribution:', jarDistribution?.map(jar => ({
+    name: jar.jarName,
+    currentBalance: jar.currentBalance,
+    totalDeposits: jar.totalDeposits,
+    totalWithdrawals: jar.totalWithdrawals
+  })));
+
   // Predict next month spending using linear regression
   const spendingData = spendingTrends.map((trend, index) => ({
     x: index,
@@ -398,6 +441,13 @@ export function generatePredictions(
   const regression = linearRegression(spendingData);
   const nextMonthSpending = Math.max(0, Math.round(regression.slope * spendingData.length + regression.intercept));
 
+  console.log('[DEBUG] generatePredictions - Spending prediction:', {
+    spendingDataPoints: spendingData.length,
+    regressionSlope: regression.slope,
+    regressionIntercept: regression.intercept,
+    nextMonthSpending
+  });
+
   // Calculate savings potential based on current jar distribution
   const totalBalance = jarDistribution.reduce((sum, jar) => sum + jar.currentBalance, 0);
   const savingsJar = jarDistribution.find(jar => jar.jarName === 'Savings Pot');
@@ -406,6 +456,13 @@ export function generatePredictions(
   const savingsPotential = Math.round(totalBalance * 0.3); // Target 30% in savings
   const savingsPotAmount = savingsJar ? savingsJar.currentBalance : 0;
   const spendingPotAmount = spendingJar ? spendingJar.currentBalance : 0;
+
+  console.log('[DEBUG] generatePredictions - Balance calculations:', {
+    totalBalance,
+    savingsJarBalance: savingsPotAmount,
+    spendingJarBalance: spendingPotAmount,
+    savingsRate: `${savingsRate.toFixed(2)}%`
+  });
 
   // Generate recommendations
   const recommendations: string[] = [];
@@ -436,6 +493,12 @@ export function generatePredictions(
   const recentWithdrawals = jarDistribution.map(jar => jar.totalWithdrawals).reduce((sum, wit) => sum + wit, 0);
   const monthlyGrowth = recentDeposits - recentWithdrawals;
 
+  console.log('[DEBUG] generatePredictions - Growth calculations:', {
+    recentDeposits,
+    recentWithdrawals,
+    monthlyGrowth
+  });
+
   // Simple prediction: current balance + expected monthly growth, but never below current balance
   // If no recent activity, assume balance stays the same
   const savingsGrowth = monthlyGrowth > 0 ? monthlyGrowth * 0.4 : 0;
@@ -444,10 +507,20 @@ export function generatePredictions(
   const nextMonthSavingsPot = Math.max(savingsJar?.currentBalance || 0, (savingsJar?.currentBalance || 0) + savingsGrowth);
   const nextMonthSpendingPot = Math.max(spendingJar?.currentBalance || 0, (spendingJar?.currentBalance || 0) + spendingGrowth);
 
+  console.log('[DEBUG] generatePredictions - Final projections:', {
+    savingsGrowth,
+    spendingGrowth,
+    nextMonthSavingsPot: Math.round(nextMonthSavingsPot),
+    nextMonthSpendingPot: Math.round(nextMonthSpendingPot),
+    recommendations,
+    riskLevel
+  });
+
   return {
     nextMonthSpending,
     nextMonthSavingsPot: Math.round(nextMonthSavingsPot),
     nextMonthSpendingPot: Math.round(nextMonthSpendingPot),
+    savingsRate: Math.round(savingsRate * 100) / 100, // Round to 2 decimal places
     recommendations: recommendations.length > 0 ? recommendations : ['Financial habits are on track!'],
     riskLevel
   };

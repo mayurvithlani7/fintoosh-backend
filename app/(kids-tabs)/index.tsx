@@ -1359,12 +1359,42 @@ contentContainerStyle={{
                 backgroundColor: themeColors.card,
                 borderWidth: 2,
                 borderColor: jar.color,
+                position: 'relative',
               }}>
-                <Text style={{ fontSize: 20, marginBottom: 2 }}>{jar.icon}</Text>
+                <Text style={{ fontSize: 20 }}>{jar.icon}</Text>
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: themeColors.text }}>{jar.value}</Text>
                 <Text style={{ fontSize: 10, textAlign: 'center', lineHeight: 12, color: themeColors.textSecondary }}>
                   {jar.label.replace(' Pot', '').replace(' Money', '')}
                 </Text>
+                {(jar.pendingValue || 0) > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: -8,
+                    right: -8,
+                    backgroundColor: themeColors.warning,
+                    borderRadius: 10,
+                    minWidth: 20,
+                    height: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: themeColors.card,
+                    elevation: 3,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 2,
+                  }}>
+                    <Text style={{
+                      fontSize: 10,
+                      color: themeColors.card,
+                      fontWeight: '700',
+                      textAlign: 'center'
+                    }}>
+                      {jar.pendingValue}
+                    </Text>
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           ))}
@@ -1789,7 +1819,7 @@ export default function KidsHomeScreenWithSwipe() {
   // Swipe navigation is enabled by default. Can be disabled per screen by passing disabled={true}
   return (
     <SwipeNavigator
-      tabRoutes={['index', 'money-jars', 'goals', 'chores', 'learn', 'more', 'transaction-history']}
+      tabRoutes={['index', 'money-jars', 'goals', 'chores', 'learn', 'transaction-history']}
     >
       <KidsHomeScreen />
     </SwipeNavigator>

@@ -594,65 +594,100 @@ export default function ParentsOverviewScreen() {
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Pocket Money: ${childData.currentPoints} points`}
+                accessibilityLabel={`Pocket Money: ${(childData.currentPoints || 0) - (childData.pendingCurrentPoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/points')}
               >
                 <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>🤑</Text>
-                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.currentPoints}</Text>
+                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
+                    {(childData.currentPoints || 0) - (childData.pendingCurrentPoints || 0)}
+                  </Text>
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Pocket</Text>
+                  {(childData.pendingCurrentPoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingCurrentPoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Savings Pot: ${childData.savePoints} points`}
+                accessibilityLabel={`Savings Pot: ${(childData.savePoints || 0) - (childData.pendingSavePoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/goals')}
               >
                 <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>🐷</Text>
-                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.savePoints}</Text>
+                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
+                    {(childData.savePoints || 0) - (childData.pendingSavePoints || 0)}
+                  </Text>
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Savings</Text>
+                  {(childData.pendingSavePoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingSavePoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Spending Pot: ${childData.spendPoints} points`}
+                accessibilityLabel={`Spending Pot: ${(childData.spendPoints || 0) - (childData.pendingSpendPoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/requests')}
               >
                 <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>🛍️</Text>
-                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.spendPoints}</Text>
+                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
+                    {(childData.spendPoints || 0) - (childData.pendingSpendPoints || 0)}
+                  </Text>
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Spending</Text>
+                  {(childData.pendingSpendPoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingSpendPoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Help Others Pot: ${childData.donatePoints} points`}
+                accessibilityLabel={`Help Others Pot: ${(childData.donatePoints || 0) - (childData.pendingDonatePoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/points')}
               >
                 <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>❤️</Text>
-                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.donatePoints}</Text>
+                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
+                    {(childData.donatePoints || 0) - (childData.pendingDonatePoints || 0)}
+                  </Text>
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Help Others</Text>
+                  {(childData.pendingDonatePoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingDonatePoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Grow Money Pot: ${childData.investPoints} points`}
+                accessibilityLabel={`Grow Money Pot: ${(childData.investPoints || 0) - (childData.pendingInvestPoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/points')}
               >
                 <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>📈</Text>
-                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>{childData.investPoints}</Text>
+                  <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
+                    {(childData.investPoints || 0) - (childData.pendingInvestPoints || 0)}
+                  </Text>
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Grow Money</Text>
+                  {(childData.pendingInvestPoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingInvestPoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
             </ScrollView>

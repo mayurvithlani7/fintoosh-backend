@@ -451,6 +451,37 @@ export default function ParentsRequestsScreen() {
               <Text style={styles.boldText}>Amount:</Text> {request.amount} points
             </Text>
           )}
+
+          {/* Available Balance Context for Financial Requests */}
+          {(request.type === 'donation' || request.type === 'reward' || request.type === 'goal-completion') && request.amount && (
+            <View style={{
+              backgroundColor: themeColors.surface + '80',
+              borderRadius: 8,
+              padding: 10,
+              marginTop: 8,
+              borderWidth: 1,
+              borderColor: themeColors.border
+            }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: 'bold',
+                color: themeColors.primary,
+                textAlign: 'center',
+                marginBottom: 6
+              }}>
+                💰 Available Balance Check
+              </Text>
+              <Text style={{
+                fontSize: 13,
+                color: themeColors.textSecondary,
+                textAlign: 'center',
+                fontStyle: 'italic'
+              }}>
+                This request requires {request.amount} points. Check your child's available balance before approving.
+              </Text>
+            </View>
+          )}
+
           {request.reason && (
             <View>
               <Text style={styles.requestText}>
@@ -584,18 +615,6 @@ export default function ParentsRequestsScreen() {
               <Text style={styles.quickActionText}>Deny</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={`Message about: ${request.name}`}
-            accessibilityHint="Send a message to your child about this request"
-            style={[styles.messageActionBtn, { borderColor: themeColors.primary }]}
-            onPress={() => {
-              // Focus on message input
-              setApprovalModal(prev => ({ ...prev, comment: prev.comment || '' }));
-            }}
-          >
-            <Text style={[styles.messageActionText, { color: themeColors.primary }]}>💬 Message</Text>
-          </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.statusContainer}>
@@ -825,8 +844,9 @@ export default function ParentsRequestsScreen() {
             )}
             <Text style={styles.modalLabel}>Add a Note (Optional):</Text>
             <TextInput
-              style={styles.commentInput}
+              style={[styles.commentInput, { color: themeColors.text }]}
               placeholder="Add a note for your child..."
+              placeholderTextColor={themeColors.textSecondary}
               value={approvalModal.comment}
               onChangeText={(text) => setApprovalModal(prev => ({ ...prev, comment: text }))}
               multiline={true}

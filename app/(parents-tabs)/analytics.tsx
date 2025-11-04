@@ -4,6 +4,7 @@ import { SpendingInsights } from '@/components/SpendingInsights';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { fetchFamilyChildren } from '@/utils/api';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
+import { useDataCache } from '@/utils/dataCacheContext';
 import { getAuthToken, getUser } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 
@@ -195,6 +196,7 @@ export default function ParentsAnalyticsScreen() {
   const [selectedChildId, setSelectedChildId] = useState<string>('');
 
   const { analyticsData, loading, error, refetch, exportData, clearCache } = useAnalytics();
+  const { childData: selectedChildData, fetchChildData } = useDataCache();
 
   // Memoize child selector items - only when we have multiple children
   const memoizedChildSelectorItems = React.useMemo(() =>
@@ -240,6 +242,15 @@ export default function ParentsAnalyticsScreen() {
     loadChildren();
     // Don't clear cache immediately - let the analytics hook handle caching
   }, []); // Empty dependency array to run only once on mount
+
+  // Load specific child data when selectedChildId changes
+  React.useEffect(() => {
+    if (selectedChildId && fetchChildData) {
+      fetchChildData(false, selectedChildId).catch(err => {
+        console.error('Failed to load child data for analytics:', err);
+      });
+    }
+  }, [selectedChildId, fetchChildData]);
 
   const handleExport = () => {
     const csvData = exportData();
@@ -564,6 +575,9 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
                            familyMembers.find((m: any) => m.role === 'child') ||
                            familyMembers.find((m: any) => m.role !== 'parent');
 
+      // Store selectedChild for passing to components
+      const selectedChildData = selectedChild;
+
       // Optimized filtering - convert user IDs to strings once
       const mongoChildId = selectedChildId;
       const customChildId = selectedChild ? selectedChild.id : selectedChildId;
@@ -638,7 +652,8 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
         rewards: childRewards,
         realAllowances: childRealAllowances,
         saveJar,
-        spendJar
+        spendJar,
+        selectedChild: selectedChildData
       };
     } catch (error) {
       console.error('Error processing child analytics data:', error);
@@ -678,6 +693,7 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
   const spendJar = summary?.jarDistribution?.find((jar: any) => jar.jarName === 'Spending Pot');
   const jarDistribution = summary?.jarDistribution || [];
   const realAllowances = summary?.realAllowances || [];
+  const selectedChildData = summary?.selectedChild;
 
   // Theme-aware colors from the theme API (always use themeColors)
   const accentTextColor = themeColors.card;
@@ -832,12 +848,12 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
             )}
           </View>
 
-          {/* Pie Chart: Points by Pot */}
+          {/* Pie Chart: Total Points by Pot */}
           <Text style={{ fontWeight: "bold", fontSize: 16, marginTop: 18, marginBottom: 7, color: mainTextColor }}>
-            Points by Pot
+            Total Points by Pot
           </Text>
           <View style={{ alignItems: "center", justifyContent: "center" }}>
-            <PieChartPointsByPot jarDistribution={jarDistribution} themeColors={themeColors} />
+            <PieChartPointsByPot jarDistribution={jarDistribution} themeColors={themeColors} selectedChild={selectedChildData} />
           </View>
         </>
       )}
@@ -922,10 +938,12 @@ export function ProgressRing({
 
 function PieChartPointsByPot({
   jarDistribution,
-  themeColors
+  themeColors,
+  selectedChild
 }: {
   jarDistribution: any,
-  themeColors: any
+  themeColors: any,
+  selectedChild: any
 }) {
   const screenWidth = 340;
 
@@ -938,14 +956,43 @@ function PieChartPointsByPot({
     'Grow Money Pot': '#FF5722'     // Red
   };
 
-  // Prepare pieData using total deposits to show historical pot allocation
+  // Calculate available balances using same logic as other screens
+  const availableBalances = selectedChild ? {
+    pocket: (selectedChild.currentPoints || 0) - (selectedChild.pendingCurrentPoints || 0),
+    savings: (selectedChild.savePoints || 0) - (selectedChild.pendingSavePoints || 0),
+    spending: (selectedChild.spendPoints || 0) - (selectedChild.pendingSpendPoints || 0),
+    donate: (selectedChild.donatePoints || 0) - (selectedChild.pendingDonatePoints || 0),
+    invest: (selectedChild.investPoints || 0) - (selectedChild.pendingInvestPoints || 0)
+  } : {
+    pocket: 0,
+    savings: 0,
+    spending: 0,
+    donate: 0,
+    invest: 0
+  };
+
+  // Prepare pieData using available balance (current - pending) to show actual spending power
   const pieData = jarDistribution
-    .map((jar: any) => ({
-      name: jar.jarName,
-      population: jar.totalDeposits || 0,
-      color: jarColorMap[jar.jarName as keyof typeof jarColorMap] || themeColors.primary,
-      key: jar.jarName.toLowerCase().replace(' pot', '').replace(' money', '')
-    }))
+    .map((jar: any) => {
+      // Map jar names to available balance keys
+      const balanceKey = jar.jarName === 'Pocket Money' ? 'pocket' :
+                        jar.jarName === 'Savings Pot' ? 'savings' :
+                        jar.jarName === 'Spending Pot' ? 'spending' :
+                        jar.jarName === 'Help Others Pot' ? 'donate' :
+                        jar.jarName === 'Grow Money Pot' ? 'invest' : null;
+
+      const availableBalance = balanceKey ? availableBalances[balanceKey as keyof typeof availableBalances] || 0 : 0;
+
+      return {
+        name: jar.jarName,
+        population: Math.max(0, availableBalance), // Show available balance, not historical deposits
+        totalBalance: jar.currentBalance || 0,
+        pendingBalance: balanceKey ? (jar.currentBalance || 0) - availableBalance : 0,
+        historicalDeposits: jar.totalDeposits || 0,
+        color: jarColorMap[jar.jarName as keyof typeof jarColorMap] || themeColors.primary,
+        key: jar.jarName.toLowerCase().replace(' pot', '').replace(' money', '')
+      };
+    })
     .filter((item: any) => item.population > 0);
 
   if (pieData.length === 0) {

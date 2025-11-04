@@ -817,7 +817,7 @@ export default function MoneyJarsScreen() {
   const styles = createStyles(themeColors);
   const { formatAmount, showDenominations, convertToINR, interestRule } = useCurrency();
   const scrollViewRef = useRef<ScrollView>(null);
-  const [jars, setJars] = useState([
+  const [jars, setJars] = useState<any[]>([
     { label: 'Pocket Money', key: 'current', value: 0, color: themeColors.jarColors.current, icon: '💰' },
     { label: 'Savings Pot', key: 'save', value: 0, color: themeColors.jarColors.save, icon: '🐷' },
     { label: 'Spending Pot', key: 'spend', value: 0, color: themeColors.jarColors.spend, icon: '🛒' },
@@ -1505,30 +1505,26 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
       }
 
       const selectedCause = donationCauses.find(c => c.key === cause);
-      // First, reserve points in pending state
-      const reserveResponse = await fetch(`${API_URL}/transactions`, {
-        method: 'POST',
+
+      // Reserve points as pending (direct DB update to prevent race conditions)
+      const pendingField = `pending${fromJar.charAt(0).toUpperCase()}${fromJar.slice(1)}Points`;
+      const reserveResponse = await fetch(`${API_URL}/users/${user.id}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          userId: user.id,
-          type: 'donation-reservation',
-          description: `Reserving ${amount} points for donation to ${selectedCause?.label}`,
-          amount: -amount,
-          fromJar: fromJar,
-          toJar: fromJar, // Reserve in same jar temporarily
-          reference: 'pending-donation'
+          [pendingField]: ((user as any)[pendingField] || 0) + amount
         }),
       });
 
       if (!reserveResponse.ok) {
-        const errorData = await reserveResponse.json().catch(() => ({}));
-        showMessage(errorData.message || 'Failed to reserve points for donation', 'error');
+        showMessage('Failed to reserve points for donation', 'error');
         return;
       }
 
+      // Create donation request for parent approval
       const requestData = {
         userId: user.id,
         type: 'donation',
@@ -1553,12 +1549,23 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
       });
 
       if (!response.ok) {
+        // If request creation fails, release the pending reservation
+        await fetch(`${API_URL}/users/${user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            [pendingField]: ((user as any)[pendingField] || 0) - amount
+          }),
+        });
         const errorData = await response.json().catch(() => ({}));
         showMessage(errorData.message || 'Failed to submit donation request', 'error');
         return;
       }
 
-      // Update achievement for making a donation
+      // Update achievement for making a donation request
       try {
         const { updateAchievementProgress } = await import('../../components/AchievementSystem');
         await updateAchievementProgress('charity-helper', amount);
@@ -1566,7 +1573,7 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
         console.error('Error updating charity achievement:', error);
       }
 
-      showMessage(`Thank you for your generous donation! ❤️ ${selectedCause?.label}`, 'success');
+      showMessage(`Donation request sent to parent! ❤️ ${selectedCause?.label}`, 'success');
       setFromJar('');
       setDonationAmount('');
       setCause('');
@@ -1913,6 +1920,26 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
               <Text style={{ fontSize: 25, marginBottom: 3 }}>{jar.icon}</Text>
               <Text style={[styles.jarPoints]}>{formatAmount(jar.value)}</Text>
               <Text style={[styles.jarLabel]}>{jar.label}</Text>
+              {jar.pendingValue > 0 && (
+                <View style={{
+                  backgroundColor: themeColors.warning + '20',
+                  borderRadius: 4,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  marginTop: 2,
+                  borderWidth: 1,
+                  borderColor: themeColors.warning + '40'
+                }}>
+                  <Text style={{
+                    fontSize: 10,
+                    color: themeColors.warning,
+                    fontWeight: '600',
+                    textAlign: 'center'
+                  }}>
+                    {formatAmount(jar.totalValue)} total, {formatAmount(jar.pendingValue)} pending
+                  </Text>
+                </View>
+              )}
               {showDenominations && (
                 <RupeeDenominations amount={convertToINR(jar.value)} />
               )}
@@ -2151,7 +2178,7 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
  * Move Points Section
  */
 function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
-  jars: { key: string; label: string; value: number; color: string; icon: string }[],
+  jars: { key: string; label: string; value: number; totalValue?: number; pendingValue?: number; color: string; icon: string }[],
   setJars: React.Dispatch<React.SetStateAction<any>>,
   onRequestSubmitted?: () => void
 }) {

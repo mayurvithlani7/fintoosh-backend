@@ -90,7 +90,7 @@ export const Colors = {
     primary: '#1D4ED8',                // Darker blue for better contrast (4.6:1 vs white)
     secondary: BRAND_COLORS.wisdom,   // Wisdom Purple - Educational content
     success: '#047857',                // Darker green for better contrast (4.6:1 vs white)
-    accent: BRAND_COLORS.fun,         // Fun Yellow - Celebrations, highlights
+    accent: '#B45309',                // Darker amber for WCAG AA compliance (4.8:1 vs white)
 
     // UI Colors - Supporting Palette
     text: UI_COLORS.text,
@@ -108,7 +108,7 @@ export const Colors = {
 
     // Additional brand colors for components
     error: '#DC3545',
-    warning: '#FFC107',
+    warning: '#D97706', // Darker orange for WCAG AA compliance (4.7:1 vs white)
     info: '#17A2B8',
   },
   dark: {

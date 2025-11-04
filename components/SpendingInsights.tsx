@@ -112,9 +112,34 @@ export function SpendingInsights({ onExport, onRefresh }: SpendingInsightsProps)
       {/* Key Metrics */}
       <View style={{ marginBottom: 16 }}>
         <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
-          Key Projections
+          Key Metrics
         </Text>
         <View style={{ gap: 12 }}>
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: 12,
+            backgroundColor: surfaceColor,
+            borderRadius: 8
+          }}>
+            <Text style={{ color: mainTextColor, fontSize: 14 }}>Savings Rate</Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={{ color: mainTextColor, fontSize: 16, fontWeight: '600' }}>
+                {predictions.savingsRate.toFixed(1)}%
+              </Text>
+              <Text style={{
+                color: predictions.savingsRate >= 20 ? successColor : secondaryTextColor,
+                fontSize: 12,
+                fontWeight: '500'
+              }}>
+                {predictions.savingsRate >= 30 ? 'Excellent!' :
+                 predictions.savingsRate >= 20 ? 'Good' :
+                 predictions.savingsRate >= 10 ? 'Needs improvement' : 'Action needed'}
+              </Text>
+            </View>
+          </View>
+
           <View style={{
             flexDirection: 'row',
             justifyContent: 'space-between',

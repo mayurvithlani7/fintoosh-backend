@@ -28,6 +28,11 @@ export default function ParentsPointsScreen() {
     spendPoints: number;
     donatePoints: number;
     investPoints: number;
+    pendingCurrentPoints?: number;
+    pendingSavePoints?: number;
+    pendingSpendPoints?: number;
+    pendingDonatePoints?: number;
+    pendingInvestPoints?: number;
   } | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,6 +128,11 @@ export default function ParentsPointsScreen() {
             spendPoints: childUserData.spendPoints || 0,
             donatePoints: childUserData.donatePoints || 0,
             investPoints: childUserData.investPoints || 0,
+            pendingCurrentPoints: childUserData.pendingCurrentPoints || 0,
+            pendingSavePoints: childUserData.pendingSavePoints || 0,
+            pendingSpendPoints: childUserData.pendingSpendPoints || 0,
+            pendingDonatePoints: childUserData.pendingDonatePoints || 0,
+            pendingInvestPoints: childUserData.pendingInvestPoints || 0,
           });
 
           // Fetch recent transactions for the child
@@ -433,7 +443,7 @@ export default function ParentsPointsScreen() {
               paddingVertical: 12,
               elevation: 2,
             }}
-            onPress={() => router.push('/addChild')}
+            onPress={() => router.push('/addChild' as any)}
           >
             <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 16 }}>
               Add Your First Child
@@ -473,28 +483,63 @@ export default function ParentsPointsScreen() {
           <View style={styles.summaryGrid}>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🤑 Pocket</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.primary }]}>{childData.currentPoints}</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary }]}>
+                {(childData.currentPoints || 0) - (childData.pendingCurrentPoints || 0)}
+              </Text>
+              {(childData.pendingCurrentPoints || 0) > 0 && (
+                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                  {childData.currentPoints} total, {childData.pendingCurrentPoints} pending
+                </Text>
+              )}
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🐷 Savings</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.accent }]}>{childData.savePoints}</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.accent }]}>
+                {(childData.savePoints || 0) - (childData.pendingSavePoints || 0)}
+              </Text>
+              {(childData.pendingSavePoints || 0) > 0 && (
+                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                  {childData.savePoints} total, {childData.pendingSavePoints} pending
+                </Text>
+              )}
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🛍️ Spending</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.secondary }]}>{childData.spendPoints}</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.secondary }]}>
+                {(childData.spendPoints || 0) - (childData.pendingSpendPoints || 0)}
+              </Text>
+              {(childData.pendingSpendPoints || 0) > 0 && (
+                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                  {childData.spendPoints} total, {childData.pendingSpendPoints} pending
+                </Text>
+              )}
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text }]}>❤️ Help Others</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.warning }]}>{childData.donatePoints}</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.warning }]}>
+                {(childData.donatePoints || 0) - (childData.pendingDonatePoints || 0)}
+              </Text>
+              {(childData.pendingDonatePoints || 0) > 0 && (
+                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                  {childData.donatePoints} total, {childData.pendingDonatePoints} pending
+                </Text>
+              )}
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text }]}>📈 Grow Money</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.success }]}>{childData.investPoints}</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.success }]}>
+                {(childData.investPoints || 0) - (childData.pendingInvestPoints || 0)}
+              </Text>
+              {(childData.pendingInvestPoints || 0) > 0 && (
+                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                  {childData.investPoints} total, {childData.pendingInvestPoints} pending
+                </Text>
+              )}
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text, fontWeight: 'bold' }]}>🏆 Total</Text>
               <Text style={[styles.summaryValue, { color: themeColors.primary, fontWeight: 'bold' }]}>
-                {childData.currentPoints + childData.savePoints + childData.spendPoints + childData.donatePoints + childData.investPoints}
+                {(childData.currentPoints || 0) + (childData.savePoints || 0) + (childData.spendPoints || 0) + (childData.donatePoints || 0) + (childData.investPoints || 0)}
               </Text>
             </View>
           </View>

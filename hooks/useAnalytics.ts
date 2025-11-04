@@ -280,6 +280,7 @@ export function usePredictions() {
     nextMonthSpending: 0,
     nextMonthSavingsPot: 0,
     nextMonthSpendingPot: 0,
+    savingsRate: 0,
     recommendations: [],
     riskLevel: 'low' as const
   };
