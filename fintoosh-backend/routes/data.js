@@ -170,8 +170,8 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
           );
           console.log(`DEBUG: ATOMIC - Reserved ${Math.abs(saved.amount)} points in ${saved.fromJar} jar for donation for user ${user.id}`);
         }
-      } else if (saved.toJar && saved.type !== 'parent-points-adjustment') {
-        // Normal point additions (ATOMIC)
+      } else if (saved.toJar) {
+        // ALL point additions to jars (including parent-points-adjustment) (ATOMIC)
         await atomicModifyPoints(
           user._id,
           saved.toJar,

@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, Styl
 
 import HelpModal from '@/components/HelpModal';
 import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
-import { createTransaction, fetchFamilyChildren, fetchTransactions, fetchUser, patchUserPoints } from '@/utils/api';
+import { createTransaction, fetchFamilyChildren, fetchTransactions, fetchUser } from '@/utils/api';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
@@ -119,8 +119,7 @@ export default function ParentsPointsScreen() {
       const selectedChild = children.find(child => child.id === selectedChildId);
 
       if (selectedChild && token) {
-        // @ts-ignore - fetchUser expects token to be string | undefined but token can be null
-        const childUserData = await fetchUser(selectedChild.id, token);
+        const childUserData = await fetchUser(selectedChild.id, token || undefined);
 
         if (childUserData) {
           setChildData({
@@ -263,13 +262,7 @@ export default function ParentsPointsScreen() {
       }
       console.log('Using child:', child);
 
-      // Update child points via API
-      const updateData = { [pointsField]: newValue };
-      console.log('Calling patchUserPoints with:', updateData);
-      // @ts-ignore
-      await patchUserPoints(child.id || '', updateData, token);
-
-      // Create transaction record
+      // Create transaction record (this handles point updates atomically)
       const transactionData = {
         userId: child.id || '',
         type: 'parent-points-adjustment',
@@ -278,8 +271,7 @@ export default function ParentsPointsScreen() {
         toJar: toJar
       };
       console.log('Creating transaction:', transactionData);
-      // @ts-ignore
-      await createTransaction(transactionData, token);
+      await createTransaction(transactionData, token || undefined);
 
       // Success: Refresh recent transactions to show the new entry
       loadChildData();

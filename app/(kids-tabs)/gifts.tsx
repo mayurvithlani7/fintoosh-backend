@@ -270,8 +270,12 @@ function GiftsSection() {
       });
 
       if (rewardsResponse.ok) {
-        const rewardsData = await rewardsResponse.json();
-        setRewards(rewardsData);
+        const rewardsResponseData = await rewardsResponse.json();
+        // Extract rewards array from response object
+        const rewardsData = rewardsResponseData.rewards || [];
+        // Ensure rewardsData is an array
+        const safeRewardsData = Array.isArray(rewardsData) ? rewardsData : [];
+        setRewards(safeRewardsData);
       }
     } catch (error) {
       console.error('Error loading rewards and requests:', error);
@@ -666,8 +670,12 @@ function GiftsSection() {
             headers: { 'Authorization': `Bearer ${token2}` },
           });
           if (rewardsResponse.ok) {
-            const rewardsData = await rewardsResponse.json();
-            setRewards(rewardsData);
+            const rewardsResponseData = await rewardsResponse.json();
+            // Extract rewards array from response object
+            const rewardsData = rewardsResponseData.rewards || [];
+            // Ensure rewardsData is an array
+            const safeRewardsData = Array.isArray(rewardsData) ? rewardsData : [];
+            setRewards(safeRewardsData);
           }
         }
       } catch {}

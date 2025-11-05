@@ -387,20 +387,24 @@ function ChoresSection() {
         if (!isRefresh) setLoading(false);
         return;
       }
-      const choresData = await choresRes.json();
+      const choresResponse = await choresRes.json();
+      // Extract chores array from response object
+      const choresData = choresResponse.chores || [];
+      // Ensure choresData is an array
+      const safeChoresData = Array.isArray(choresData) ? choresData : [];
       // Security: Only allow chores for this child session (user.id)
       if (
         user &&
-        choresData &&
-        choresData.length > 0 &&
-        choresData.some((c: any) => (c.childId && c.childId !== user.id))
+        safeChoresData &&
+        safeChoresData.length > 0 &&
+        safeChoresData.some((c: any) => (c.childId && c.childId !== user.id))
       ) {
         const { clearSensitiveAppData } = await import('@/utils/secureStorage');
         await clearSensitiveAppData();
         if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
         return;
       }
-      setChores(choresData);
+      setChores(safeChoresData);
       // Requests (for pending claim)
       const reqRes = await fetch(`${API_URL}/requests/${userId}`);
       if (reqRes.ok) setRequests(await reqRes.json());
@@ -568,7 +572,41 @@ function ChoresSection() {
         return;
       }
 
-      // Normal chore handling - Post approval request for chore
+      // Normal chore handling - First update chore status locally, then API calls
+      console.log('🔄 Claiming chore:', choreId);
+
+      // Update local state immediately to show pending status
+      setChores(prevChores =>
+        prevChores.map(c =>
+          c._id === choreId
+            ? { ...c, completed: true, status: 'pending', completedAt: new Date() }
+            : c
+        )
+      );
+
+      try {
+        // Update chore status on backend
+        await patchChore(choreId, {
+          completed: true,
+          completedAt: new Date(),
+          status: 'pending'
+        }, token as any);
+        console.log('✅ Chore status updated on backend');
+      } catch (patchError) {
+        console.error('❌ Error updating chore status:', patchError);
+        // Revert local state on error
+        setChores(prevChores =>
+          prevChores.map(c =>
+            c._id === choreId
+              ? { ...c, completed: false, status: c.status === 'pending' && !c.completed ? 'active' : c.status }
+              : c
+          )
+        );
+        showMessage('Failed to update chore status', 'error');
+        return;
+      }
+
+      // Then post approval request for chore
       const requestData = {
         userId: userId,
         parentId: parentId,
@@ -578,44 +616,55 @@ function ChoresSection() {
         reason: `I completed the chore: ${chore.name}`,
         choreId: choreId,
       };
-      const response = await fetch(`${API_URL}/requests`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestData),
-      });
-      if (!response.ok) {
-        // Handle non-JSON responses (like plain text for rate limiting)
-        let errorMessage = "Failed to request chore approval.";
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          // If JSON parsing fails, use default message
-        }
-        showMessage(errorMessage, 'error');
-        return;
-      }
-      // Check for auto-approval in backend response
-      const data = await response.json().catch(() => ({}));
 
-      // Update achievement for completing chore (claimed/submitted)
       try {
-        const { updateAchievementProgress } = await import('../../components/AchievementSystem');
-        await updateAchievementProgress('family-helper', 1);
-        // Also check for super helper (5 chores total)
-        // Note: This could be improved to track total completed chores
-      } catch (error) {
-        console.error('Error updating chore achievement:', error);
-      }
+        const response = await fetch(`${API_URL}/requests`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(requestData),
+        });
 
-      await loadChoresUserAndRequests();
-      if (data.autoApproved) {
-        showMessage("Points added! (Auto-Approved)", 'success');
-      } else {
-        showMessage("Chore claimed! Awaiting parent approval...", 'success');
+        if (!response.ok) {
+          // Handle non-JSON responses (like plain text for rate limiting)
+          let errorMessage = "Failed to request chore approval.";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // If JSON parsing fails, use default message
+          }
+          console.error('❌ Approval request failed:', errorMessage);
+          showMessage(errorMessage, 'error');
+          return;
+        }
+
+        // Check for auto-approval in backend response
+        const data = await response.json().catch(() => ({}));
+        console.log('✅ Approval request successful, autoApproved:', data.autoApproved);
+
+        // Update achievement for completing chore (claimed/submitted)
+        try {
+          const { updateAchievementProgress } = await import('../../components/AchievementSystem');
+          await updateAchievementProgress('family-helper', 1);
+        } catch (error) {
+          console.error('Error updating chore achievement:', error);
+        }
+
+        // Reload data to get final state
+        await loadChoresUserAndRequests();
+
+        if (data.autoApproved) {
+          showMessage("Points added! (Auto-Approved)", 'success');
+        } else {
+          showMessage("Chore claimed! Awaiting parent approval...", 'success');
+        }
+
+      } catch (requestError) {
+        console.error('❌ Network error during approval request:', requestError);
+        showMessage('Network error during approval request', 'error');
       }
     } catch (err) {
       showMessage("Network error. Try again.", 'error');
@@ -720,12 +769,14 @@ function ChoresSection() {
 
           {/* Tasks content */}
           {(() => {
-            // Partition chores
+            // Partition chores based on status
+            // Active tab shows: claimable chores + chores waiting for parent approval
             let activeChores = chores.filter(
-              c => !(c.completed || c.approved)
+              c => c.status === 'active' || c.status === 'pending'
             ).sort((a, b) => getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime());
+            // Completed tab shows: only fully approved chores
             let completedChoresAll = chores.filter(
-              c => c.completed || c.approved
+              c => c.status === 'completed' || c.approved
             );
             if (choresTab === "Active") {
               if (activeChores.length === 0) {
@@ -882,9 +933,10 @@ function ChoresSection() {
   // Helper for rendering a chore row
   function renderChore(c: any) {
     // Use status field from database for consistency
-    const canClaim = c.status === 'active';
-    const showPending = c.status === 'pending';
-    const showCompleted = c.status === 'completed';
+    // active = can claim, pending = waiting for approval, completed = approved
+    const canClaim = c.status === 'active' || (c.status === 'pending' && !c.completed && !c.approved);
+    const showPending = c.status === 'pending' && c.completed && !c.approved;
+    const showCompleted = c.status === 'completed' || c.approved;
 
     // Smart categorization and styling
     const category = detectCategory(c.name, c.description);
