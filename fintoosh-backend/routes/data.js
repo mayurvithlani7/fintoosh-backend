@@ -153,42 +153,53 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
     const saved = await transaction.save();
     console.log('DEBUG: Transaction saved:', saved._id);
 
-    // Update user's points based on transaction type
-    if (saved.type === 'donation-reservation') {
-      // Reserve points in pending state for donations
-      const pendingFieldMap = {
-        current: 'pendingCurrentPoints',
-        save: 'pendingSavePoints',
-        spend: 'pendingSpendPoints',
-        donate: 'pendingDonatePoints',
-        invest: 'pendingInvestPoints'
-      };
-
-      const fieldName = pendingFieldMap[saved.fromJar];
-      if (fieldName) {
-        user[fieldName] = (user[fieldName] || 0) + Math.abs(saved.amount); // amount is negative for deduction
-        console.log(`DEBUG: Reserved ${Math.abs(saved.amount)} points in ${saved.fromJar} jar (${fieldName}) for donation for user ${user.id}`);
+    // ATOMIC: Update user's points based on transaction type
+    try {
+      if (saved.type === 'donation-reservation') {
+        // Reserve points in pending state for donations (ATOMIC)
+        if (saved.fromJar) {
+          await atomicReservePoints(
+            user._id,
+            saved.fromJar,
+            Math.abs(saved.amount), // amount is negative for deduction, so use absolute
+            {
+              description: `Reserved points for donation: ${saved.description}`,
+              type: 'donation-reservation',
+              reference: saved._id
+            }
+          );
+          console.log(`DEBUG: ATOMIC - Reserved ${Math.abs(saved.amount)} points in ${saved.fromJar} jar for donation for user ${user.id}`);
+        }
+      } else if (saved.toJar && saved.type !== 'parent-points-adjustment') {
+        // Normal point additions (ATOMIC)
+        await atomicModifyPoints(
+          user._id,
+          saved.toJar,
+          saved.amount,
+          {
+            description: saved.description || `Points added to ${saved.toJar} jar`,
+            type: saved.type,
+            reference: saved._id
+          }
+        );
+        console.log(`DEBUG: ATOMIC - Added ${saved.amount} points to ${saved.toJar} jar for user ${user.id}`);
       }
-    } else if (saved.toJar && saved.type !== 'parent-points-adjustment') {
-      // Normal point additions
-      const jarFieldMap = {
-        current: 'currentPoints',
-        save: 'savePoints',
-        spend: 'spendPoints',
-        donate: 'donatePoints',
-        invest: 'investPoints'
-      };
 
-      const fieldName = jarFieldMap[saved.toJar];
-      if (fieldName) {
-        user[fieldName] = (user[fieldName] || 0) + saved.amount;
-        console.log(`DEBUG: Added ${saved.amount} points to ${saved.toJar} jar (${fieldName}) for user ${user.id}`);
-      }
+      // Add transaction reference to user (this doesn't affect balances, so manual update is safe)
+      await User.findByIdAndUpdate(user._id, {
+        $push: { transactions: { $each: [saved._id], $position: 0 } }
+      });
+
+      console.log('DEBUG: Transaction processing completed atomically');
+    } catch (atomicError) {
+      console.error('DEBUG: Atomic transaction failed:', atomicError);
+      // Transaction was already saved, but balance update failed - this is a serious error
+      // In production, this should trigger rollback or compensation logic
+      return res.status(500).json({
+        message: 'Transaction recorded but balance update failed. Please contact support.',
+        transactionId: saved._id
+      });
     }
-
-    user.transactions.unshift(saved._id);
-    await user.save();
-    console.log('DEBUG: User updated with transaction');
 
     res.status(201).json(saved);
   } catch (error) {
@@ -595,20 +606,24 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
       let autoApproved = false;
       let autoApprovalStatusMessage = '';
       // Get auto-approval thresholds for this family/parent
-      // Prefer parent if assigned, otherwise family-wide rule from rewardOwner
+      // Primary: Use parentId system, Fallback: Check caregivers array
       let parent = null;
 
-      // Find primary caregiver (first in caregivers array) - NEW MULTI-PARENT LOGIC
-      if (rewardOwner.caregivers && Array.isArray(rewardOwner.caregivers) && rewardOwner.caregivers.length > 0) {
-        const primaryCaregiver = rewardOwner.caregivers[0];
-        if (primaryCaregiver && primaryCaregiver.userId) {
-          parent = await User.findOne({ id: primaryCaregiver.userId });
-        }
+      // Primary: Use parentId directly (main system)
+      if (rewardOwner.parentId) {
+        parent = await User.findOne({ id: rewardOwner.parentId });
       }
 
-      // Fallback to legacy parentId for backward compatibility
-      if (!parent && rewardOwner.parentId) {
-        parent = await User.findOne({ id: rewardOwner.parentId });
+      // Fallback: Check caregivers array only if parentId fails
+      if (!parent && rewardOwner.caregivers && Array.isArray(rewardOwner.caregivers)) {
+        // Filter for active caregivers with valid userId (avoid stale entries)
+        const activeCaregivers = rewardOwner.caregivers.filter(caregiver =>
+          caregiver && caregiver.userId
+        );
+        if (activeCaregivers.length > 0) {
+          // Use first active caregiver
+          parent = await User.findOne({ id: activeCaregivers[0].userId });
+        }
       }
 
       let autoApprovalRules = (parent && parent.autoApprovalRules) || rewardOwner.autoApprovalRules || {};

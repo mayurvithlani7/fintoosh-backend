@@ -8,6 +8,30 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 
 /**
+ * Resolve user identifier to MongoDB ObjectId
+ * Handles both custom user IDs (strings) and ObjectIds
+ * @param {string|ObjectId} userIdentifier - User ID or ObjectId
+ * @returns {ObjectId} - MongoDB ObjectId
+ */
+async function resolveUserObjectId(userIdentifier) {
+  // If already an ObjectId, return it
+  if (userIdentifier instanceof mongoose.Types.ObjectId) {
+    return userIdentifier;
+  }
+
+  // If it's a string, try to find the user and return their _id
+  if (typeof userIdentifier === 'string') {
+    const user = await User.findOne({ id: userIdentifier }).select('_id');
+    if (!user) {
+      throw new Error(`User not found: ${userIdentifier}`);
+    }
+    return user._id;
+  }
+
+  throw new Error(`Invalid user identifier: ${userIdentifier}`);
+}
+
+/**
  * Execute atomic financial transaction with MongoDB session
  * @param {Function} operation - Async function that receives session and returns result
  * @returns {Promise} - Result of the atomic operation
@@ -32,13 +56,15 @@ async function executeFinancialTransaction(operation) {
 
 /**
  * Atomic point transfer between jars
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (custom or ObjectId)
  * @param {string} fromJar - Source jar (current, save, spend, donate, invest)
  * @param {string} toJar - Destination jar
  * @param {number} amount - Amount to transfer
  * @param {Object} transactionData - Additional transaction data
  */
 async function atomicPointTransfer(userId, fromJar, toJar, amount, transactionData = {}) {
+  const userObjectId = await resolveUserObjectId(userId);
+
   return executeFinancialTransaction(async (session) => {
     // Validate jars
     const validJars = ['current', 'save', 'spend', 'donate', 'invest'];
@@ -52,7 +78,7 @@ async function atomicPointTransfer(userId, fromJar, toJar, amount, transactionDa
 
     // Atomic transfer: deduct from source, add to destination
     const updatedUser = await User.findOneAndUpdate(
-      { _id: userId },
+      { _id: userObjectId },
       {
         $inc: {
           [fromField]: -amount,
@@ -73,7 +99,7 @@ async function atomicPointTransfer(userId, fromJar, toJar, amount, transactionDa
       amount: amount,
       fromJar: fromJar,
       toJar: toJar,
-      user: userId,
+      user: userObjectId,
       ...transactionData
     }], { session });
 
@@ -86,12 +112,14 @@ async function atomicPointTransfer(userId, fromJar, toJar, amount, transactionDa
 
 /**
  * Atomic point reservation for pending operations (rewards, goals, etc.)
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (custom or ObjectId)
  * @param {string} jar - Jar to reserve from
  * @param {number} amount - Amount to reserve
  * @param {Object} transactionData - Additional transaction data
  */
 async function atomicReservePoints(userId, jar, amount, transactionData = {}) {
+  const userObjectId = await resolveUserObjectId(userId);
+
   return executeFinancialTransaction(async (session) => {
     const pointsField = `${jar}Points`;
     const pendingField = `pending${jar.charAt(0).toUpperCase() + jar.slice(1)}Points`;
@@ -99,7 +127,7 @@ async function atomicReservePoints(userId, jar, amount, transactionData = {}) {
     // Check available points and reserve atomically
     const updatedUser = await User.findOneAndUpdate(
       {
-        _id: userId,
+        _id: userObjectId,
         [pointsField]: { $gte: amount } // Ensure sufficient available points
       },
       {
@@ -118,7 +146,7 @@ async function atomicReservePoints(userId, jar, amount, transactionData = {}) {
       description: transactionData.description || `Reserved ${amount} points from ${jar} jar`,
       amount: -amount, // Negative for reservation
       fromJar: jar,
-      user: userId,
+      user: userObjectId,
       ...transactionData
     }], { session });
 
@@ -131,19 +159,21 @@ async function atomicReservePoints(userId, jar, amount, transactionData = {}) {
 
 /**
  * Atomic approval of reserved points (finalize deduction)
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (custom or ObjectId)
  * @param {string} jar - Jar where points were reserved
  * @param {number} amount - Amount to approve/deduct
  * @param {Object} transactionData - Additional transaction data
  */
 async function atomicApproveReservedPoints(userId, jar, amount, transactionData = {}) {
+  const userObjectId = await resolveUserObjectId(userId);
+
   return executeFinancialTransaction(async (session) => {
     const pointsField = `${jar}Points`;
     const pendingField = `pending${jar.charAt(0).toUpperCase() + jar.slice(1)}Points`;
 
     // Atomically deduct from both actual and pending balances
     const updatedUser = await User.findOneAndUpdate(
-      { _id: userId },
+      { _id: userObjectId },
       {
         $inc: {
           [pointsField]: -amount,
@@ -163,7 +193,7 @@ async function atomicApproveReservedPoints(userId, jar, amount, transactionData 
       description: transactionData.description || `Approved ${amount} points from ${jar} jar`,
       amount: -amount,
       fromJar: jar,
-      user: userId,
+      user: userObjectId,
       ...transactionData
     }], { session });
 
@@ -176,18 +206,20 @@ async function atomicApproveReservedPoints(userId, jar, amount, transactionData 
 
 /**
  * Atomic release of reserved points (deny/cancel operation)
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (custom or ObjectId)
  * @param {string} jar - Jar where points were reserved
  * @param {number} amount - Amount to release back
  * @param {Object} transactionData - Additional transaction data
  */
 async function atomicReleaseReservedPoints(userId, jar, amount, transactionData = {}) {
+  const userObjectId = await resolveUserObjectId(userId);
+
   return executeFinancialTransaction(async (session) => {
     const pendingField = `pending${jar.charAt(0).toUpperCase() + jar.slice(1)}Points`;
 
     // Atomically release pending reservation
     const updatedUser = await User.findOneAndUpdate(
-      { _id: userId },
+      { _id: userObjectId },
       {
         $inc: { [pendingField]: -amount }
       },
@@ -204,7 +236,7 @@ async function atomicReleaseReservedPoints(userId, jar, amount, transactionData 
       description: transactionData.description || `Released ${amount} reserved points back to ${jar} jar`,
       amount: amount, // Positive for release
       toJar: jar,
-      user: userId,
+      user: userObjectId,
       ...transactionData
     }], { session });
 
@@ -217,18 +249,20 @@ async function atomicReleaseReservedPoints(userId, jar, amount, transactionData 
 
 /**
  * Atomic direct points award/deduction (admin operations, chores, etc.)
- * @param {string} userId - User ID
+ * @param {string} userId - User ID (custom or ObjectId)
  * @param {string} jar - Jar to modify
  * @param {number} amount - Amount to add (positive) or deduct (negative)
  * @param {Object} transactionData - Additional transaction data
  */
 async function atomicModifyPoints(userId, jar, amount, transactionData = {}) {
+  const userObjectId = await resolveUserObjectId(userId);
+
   return executeFinancialTransaction(async (session) => {
     const pointsField = `${jar}Points`;
 
     // Atomic points modification
     const updatedUser = await User.findOneAndUpdate(
-      { _id: userId },
+      { _id: userObjectId },
       {
         $inc: { [pointsField]: amount }
       },
@@ -245,7 +279,7 @@ async function atomicModifyPoints(userId, jar, amount, transactionData = {}) {
       description: transactionData.description || `${amount > 0 ? 'Awarded' : 'Deducted'} ${Math.abs(amount)} points to ${jar} jar`,
       amount: amount,
       [amount > 0 ? 'toJar' : 'fromJar']: jar,
-      user: userId,
+      user: userObjectId,
       ...transactionData
     }], { session });
 

@@ -77,11 +77,7 @@ router.post('/register', sanitizeInput, validateUserInput, validateMobileNumber,
         return res.status(400).json({ message: 'Invalid parentId/parentMobile. Parent user not found.' });
       }
       familyId = parent.familyId;
-      // ENFORCE: Only one child per familyId
-      const existingChild = await User.findOne({ familyId, role: 'child' });
-      if (existingChild) {
-        return res.status(400).json({ message: 'A child is already registered for this family.' });
-      }
+      // Allow multiple children per family (consistent with /create-child endpoint)
       // Set parentId for child
       finalParentId = parent.id;
     } else {
