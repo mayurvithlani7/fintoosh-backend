@@ -189,19 +189,31 @@ export default function ParentsPointsScreen() {
 
     const changeAmount = parseInt(amount, 10);
     const pointsField = `${toJar}Points` as keyof typeof childData;
-    const currentValue = childData[pointsField] as number || 0;
+    const totalPoints = childData[pointsField] as number || 0;
 
-    // Check if subtracting would result in negative points
-    if (!isAdd && currentValue < changeAmount) {
-      showMessage(`Not enough points in ${jarOptions.find(j => j.value === toJar)?.label} pot.`, 'error');
+    // Map jar names to their pending field keys
+    const pendingFieldMap: Record<string, keyof typeof childData> = {
+      current: 'pendingCurrentPoints',
+      save: 'pendingSavePoints',
+      spend: 'pendingSpendPoints',
+      donate: 'pendingDonatePoints',
+      invest: 'pendingInvestPoints'
+    };
+    const pendingField = pendingFieldMap[toJar] as keyof typeof childData;
+    const pendingPoints = (childData[pendingField] as number) || 0;
+    const availablePoints = totalPoints - pendingPoints;
+
+    // Check if subtracting would result in negative available points
+    if (!isAdd && availablePoints < changeAmount) {
+      showMessage(`Not enough available points in ${jarOptions.find(j => j.value === toJar)?.label} pot. Only ${availablePoints} points are available (some may be reserved for pending requests).`, 'error');
       return;
     }
 
     // Calculate new value
-    const newValue = isAdd ? currentValue + changeAmount : currentValue - changeAmount;
+    const newValue = isAdd ? totalPoints + changeAmount : totalPoints - changeAmount;
 
     // Store original value for potential rollback
-    const originalValue = currentValue;
+    const originalValue = totalPoints;
 
     // OPTIMISTIC UPDATE: Update UI immediately
     setChildData(prev => prev ? {

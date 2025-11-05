@@ -2,7 +2,7 @@ import AnimatedCircularProgress from '@/components/animations/AnimatedCircularPr
 import AnimatedCounter from '@/components/animations/AnimatedCounter';
 import HelpModal from '@/components/HelpModal';
 import { RupeeDenominations } from '@/components/RupeeDenominations';
-import { TYPOGRAPHY } from '@/constants/theme';
+import { TYPOGRAPHY, getContrastRatio } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { InterestRuleType, useCurrency } from '@/utils/currencyContext';
@@ -26,6 +26,22 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+
+// Utility function to get optimal text color based on background
+const getOptimalTextColor = (backgroundColor: string): string => {
+  try {
+    // Check contrast with white text
+    const whiteContrast = getContrastRatio(backgroundColor, '#FFFFFF');
+    // Check contrast with dark text
+    const darkContrast = getContrastRatio(backgroundColor, '#000000');
+
+    // Return white if it has better contrast, otherwise dark
+    return whiteContrast > darkContrast ? '#FFFFFF' : '#000000';
+  } catch (error) {
+    // Fallback to white text if contrast calculation fails
+    return '#FFFFFF';
+  }
+};
 
 // Enhanced Jar Card with Progress Rings
 const EnhancedJarCard = ({ jar, totalPoints, goals }: {
@@ -149,11 +165,11 @@ const EnhancedJarCard = ({ jar, totalPoints, goals }: {
           marginBottom: 3,
           zIndex: 2,
         }}>{jar.icon}</Text>
-        <AnimatedCounter value={jar.value} fontSize={TYPOGRAPHY.h3.fontSize} />
+        <AnimatedCounter value={jar.value} fontSize={TYPOGRAPHY.h3.fontSize} color={getOptimalTextColor(jar.color)} />
         <Text style={{
           ...TYPOGRAPHY.label,
           marginBottom: 2,
-          color: '#FFFFFF', // White text for contrast on dark jar backgrounds
+          color: getOptimalTextColor(jar.color), // Dynamic text color for contrast
           textAlign: 'center',
         }}>{jar.label}</Text>
 

@@ -2,6 +2,7 @@ import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import ValidationMessage from '@/components/ui/ValidationMessage';
 import { choreSuggestions } from '@/constants/choreSuggestions';
+import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { getAuthToken, getUserData } from '@/utils/secureStorage';
@@ -14,22 +15,22 @@ import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet,
 const createStyles = (themeColors: any) => StyleSheet.create({
   scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  title: { ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginBottom: 22, marginTop: 6, color: themeColors.primary },
   sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
+  sectionTitle: { ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 12, color: themeColors.text },
   formRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   formGroup: { flex: 1, marginHorizontal: 6 },
-  inputLabel: { fontWeight: '500', marginBottom: 4, color: themeColors.text, fontSize: 15 },
-  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
+  inputLabel: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 4, color: themeColors.text },
+  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
   formBtn: { backgroundColor: themeColors.primary, padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
-  formBtnText: { fontWeight: '700', color: themeColors.card, fontSize: 15 },
-  validation: { color: themeColors.error, fontSize: 15, marginTop: 4 },
-  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success, marginTop: 4 },
-  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
+  formBtnText: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.card },
+  validation: { color: themeColors.error, ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginTop: 4 },
+  statusMessage: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.success, marginTop: 4 },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', paddingVertical: 20 },
   frequencySelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: 8, marginBottom: 8 },
   frequencyButton: { backgroundColor: themeColors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, margin: 2, minWidth: 60, alignItems: 'center' },
   frequencyButtonSelected: { backgroundColor: themeColors.secondary },
-  frequencyButtonText: { color: themeColors.text, fontSize: 12, fontWeight: '600' },
+  frequencyButtonText: { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-caption-small"] },
   frequencyButtonTextSelected: { color: themeColors.card },
   refreshBtn: {
     backgroundColor: themeColors.secondary,
@@ -43,8 +44,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   refreshBtnText: {
     color: themeColors.card,
-    fontWeight: "bold",
-    fontSize: 12,
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
   },
   refreshBtnTextDisabled: {
     color: themeColors.textSecondary,
@@ -58,9 +58,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: {
-    fontWeight: '700',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     color: themeColors.text,
-    fontSize: 15,
   },
   checkboxContainer: {
     flexDirection: "row",
@@ -81,17 +80,17 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.primary,
   },
   checkboxText: {
-    fontSize: 16,
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     color: themeColors.text,
   },
   presetContainer: { marginTop: 16, marginBottom: 8 },
   presetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   presetBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 6, marginHorizontal: 2, alignItems: 'center', minWidth: 50 },
-  presetBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
+  presetBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
   suggestionsContainer: { marginTop: 16, marginBottom: 8 },
   suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   suggestionBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 6, marginHorizontal: 2, marginVertical: 4, alignItems: 'center', minWidth: 70, maxWidth: 120 },
-  suggestionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 12, textAlign: 'center' },
+  suggestionBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-caption-small"], textAlign: 'center' },
   childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
   childButton: {
     backgroundColor: themeColors.surface,
@@ -105,7 +104,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   childButtonSelected: { backgroundColor: themeColors.primary },
-  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonText: { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
   childButtonTextSelected: { color: themeColors.card },
   // Child selector styles for enhanced design
   countBadge: {
@@ -117,8 +116,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   countText: {
     color: themeColors.card,
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   childrenScroll: {
     marginTop: 8,
@@ -150,12 +148,10 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginBottom: 4,
   },
   childAvatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
   },
   childName: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     textAlign: 'center',
   },
   selectedIndicator: {
@@ -171,8 +167,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   selectedCheckmark: {
     color: themeColors.card,
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   // Tasks summary dashboard styles (copied from goals)
   summaryGrid: {
@@ -195,14 +190,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     shadowRadius: 2,
   },
   summaryLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     textAlign: 'center',
     marginBottom: 4,
   },
   summaryValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
     textAlign: 'center',
   },
 });
@@ -638,7 +631,7 @@ export default function ParentsChoresScreen() {
           }}
           onPress={() => setHelpModalVisible(true)}
         >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: themeColors.card }]}>❓ Help</Text>
         </TouchableOpacity>
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Manage Tasks</Text>
@@ -654,7 +647,7 @@ export default function ParentsChoresScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 0 }]}>
               👨‍👩‍👦 Select Child to View Tasks
             </Text>
             <View style={[styles.countBadge, {
@@ -706,7 +699,7 @@ export default function ParentsChoresScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+          <Text style={[SEMANTIC_TYPOGRAPHY["type-caption"], { color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }]}>
             Tap any child to view their individual tasks and progress
           </Text>
         </View>
@@ -723,7 +716,7 @@ export default function ParentsChoresScreen() {
           marginTop: 6,
           width: '100%',
         }}>
-          <Text style={{ fontSize: 15, color: themeColors.primary, fontWeight: '600', marginRight: 4 }}>Child:</Text>
+          <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: themeColors.primary, marginRight: 4 }]}>Child:</Text>
           <Text
             style={{
               backgroundColor: themeColors.primary,
@@ -731,9 +724,7 @@ export default function ParentsChoresScreen() {
               borderRadius: 18,
               paddingHorizontal: 14,
               paddingVertical: 6,
-              fontWeight: '700',
               maxWidth: 140,
-              fontSize: 15,
               overflow: 'hidden',
               textAlign: 'center',
             }}
@@ -757,7 +748,7 @@ export default function ParentsChoresScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 0 }]}>
               🧹 Tasks Summary
             </Text>
             <TouchableOpacity
@@ -769,7 +760,7 @@ export default function ParentsChoresScreen() {
               onPress={onRefresh}
               disabled={refreshing}
             >
-              <Text style={{ fontSize: 14, color: themeColors.card }}>
+              <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: themeColors.card }]}>
                 {refreshing ? '⏳' : '↻'}
               </Text>
             </TouchableOpacity>
@@ -794,8 +785,8 @@ export default function ParentsChoresScreen() {
               </Text>
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>  
-              <Text style={[styles.summaryLabel, { color: themeColors.text, fontWeight: 'bold' }]}>🏆 Total</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.primary, fontWeight: 'bold' }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🏆 Total</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary }]}>
                 {chores.length}
               </Text>
             </View>
@@ -848,7 +839,7 @@ export default function ParentsChoresScreen() {
 
         {/* Quick Preset Points */}
         <View style={styles.presetContainer}>
-          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
+          <Text style={[styles.inputLabel, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 8 }]}>Quick Amounts:</Text>
           <View style={styles.presetRow}>
             <TouchableOpacity
               accessibilityRole="button"
@@ -891,7 +882,7 @@ export default function ParentsChoresScreen() {
 
         {/* Chore Name Suggestions */}
         <View style={styles.suggestionsContainer}>
-          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Task Ideas:</Text>
+          <Text style={[styles.inputLabel, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 8 }]}>Task Ideas:</Text>
           <View style={styles.suggestionsGrid}>
             {choreSuggestions.slice(0, 16).map((suggestion) => (
               <TouchableOpacity
@@ -975,10 +966,10 @@ export default function ParentsChoresScreen() {
               onPress={() => setShowDatePicker(true)}
               activeOpacity={0.75}
             >
-              <Text style={{ color: deadline ? themeColors.text : themeColors.textSecondary, fontSize: 16 }}>
+              <Text style={[SEMANTIC_TYPOGRAPHY["type-body"], { color: deadline ? themeColors.text : themeColors.textSecondary }]}>
                 {deadline ? deadline : 'Select deadline date'}
               </Text>
-              <Text style={{ marginLeft: 8, fontSize: 18 }}>📅</Text>
+              <Text style={[SEMANTIC_TYPOGRAPHY["type-heading-small"], { marginLeft: 8 }]}>📅</Text>
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
@@ -1025,7 +1016,7 @@ export default function ParentsChoresScreen() {
             onPress={() => setUseDefaultSplit(true)}
           >
             <View style={[styles.checkbox, useDefaultSplit && styles.checkboxChecked]}>
-              {useDefaultSplit && <Text style={{ color: 'white', fontSize: 14 }}>✓</Text>}
+              {useDefaultSplit && <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: 'white' }]}>✓</Text>}
             </View>
             <Text style={[styles.checkboxText, { color: themeColors.text }]}>Use Family Default Split</Text>
           </TouchableOpacity>
@@ -1040,7 +1031,7 @@ export default function ParentsChoresScreen() {
             onPress={() => setUseDefaultSplit(false)}
           >
             <View style={[styles.checkbox, !useDefaultSplit && styles.checkboxChecked]}>
-              {!useDefaultSplit && <Text style={{ color: 'white', fontSize: 14 }}>✓</Text>}
+              {!useDefaultSplit && <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: 'white' }]}>✓</Text>}
             </View>
             <Text style={[styles.checkboxText, { color: themeColors.text }]}>Custom Split for This Task</Text>
           </TouchableOpacity>
@@ -1048,12 +1039,12 @@ export default function ParentsChoresScreen() {
 
         {!useDefaultSplit && (
           <View style={{ marginBottom: 12 }}>
-            <Text style={{ fontSize: 14, color: themeColors.text, marginBottom: 8 }}>
+            <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: themeColors.text, marginBottom: 8 }]}>
               Set custom percentages (must total 100%):
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
               <View style={{ width: '48%', marginBottom: 8 }}>
-                <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>💰 Pocket Money</Text>
+                <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: themeColors.text, marginBottom: 2 }]}>💰 Pocket Money</Text>
                 <TextInput
                   accessibilityLabel="Pocket money percentage"
                   accessibilityHint="Set percentage of task points to go to pocket money"
@@ -1066,7 +1057,7 @@ export default function ParentsChoresScreen() {
                 />
               </View>
               <View style={{ width: '48%', marginBottom: 8 }}>
-                <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>🐷 Savings Pot</Text>
+                <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: themeColors.text, marginBottom: 2 }]}>🐷 Savings Pot</Text>
                 <TextInput
                   accessibilityLabel="Savings pot percentage"
                   accessibilityHint="Set percentage of task points to go to savings"
@@ -1079,7 +1070,7 @@ export default function ParentsChoresScreen() {
                 />
               </View>
               <View style={{ width: '48%', marginBottom: 8 }}>
-                <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>🛒 Spending Pot</Text>
+                <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: themeColors.text, marginBottom: 2 }]}>🛒 Spending Pot</Text>
                 <TextInput
                   accessibilityLabel="Spending pot percentage"
                   accessibilityHint="Set percentage of task points to go to spending"
@@ -1092,7 +1083,7 @@ export default function ParentsChoresScreen() {
                 />
               </View>
               <View style={{ width: '48%', marginBottom: 8 }}>
-                <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>❤️ Help Others</Text>
+                <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: themeColors.text, marginBottom: 2 }]}>❤️ Help Others</Text>
                 <TextInput
                   accessibilityLabel="Help others pot percentage"
                   accessibilityHint="Set percentage of task points to go to charity"
@@ -1105,7 +1096,7 @@ export default function ParentsChoresScreen() {
                 />
               </View>
               <View style={{ width: '48%', marginBottom: 8 }}>
-                <Text style={{ fontSize: 12, color: themeColors.text, marginBottom: 2 }}>📈 Grow Money</Text>
+                <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: themeColors.text, marginBottom: 2 }]}>📈 Grow Money</Text>
                 <TextInput
                   accessibilityLabel="Grow money pot percentage"
                   accessibilityHint="Set percentage of task points to go to investments"
@@ -1118,7 +1109,7 @@ export default function ParentsChoresScreen() {
                 />
               </View>
             </View>
-            <Text style={{ fontSize: 14, color: themeColors.text, textAlign: 'center' }}>
+            <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: themeColors.text, textAlign: 'center' }]}>
               Total: {Object.values(customSplit).reduce((sum, val) => sum + (parseInt(val) || 0), 0)}%
             </Text>
           </View>
@@ -1191,7 +1182,7 @@ export default function ParentsChoresScreen() {
                 marginHorizontal: 6
               }}
             >
-              <Text style={{ color: choresTab === tab ? themeColors.card : themeColors.text, fontWeight: choresTab === tab ? 'bold' : '600', fontSize: 15 }}>
+              <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: choresTab === tab ? themeColors.card : themeColors.text }]}>
                 {tab}
               </Text>
             </TouchableOpacity>
@@ -1267,22 +1258,22 @@ export default function ParentsChoresScreen() {
                     }}
                   >
                     <Text style={{ marginBottom: 4 }}>
-                      <Text style={{ fontWeight: 'bold', color: '#234', fontSize: 16 }}>{c.name}</Text>
+                      <Text style={[SEMANTIC_TYPOGRAPHY["type-body"], { color: '#234' }]}>{c.name}</Text>
                     </Text>
                     {c.description && (
-                      <Text style={{ fontSize: 14, color: '#666', marginBottom: 6 }}>
+                      <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: '#666', marginBottom: 6 }]}>
                         {c.description}
                       </Text>
                     )}
-                    <Text style={{ color: '#666', fontSize: 14 }}>
+                    <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: '#666' }]}>
                       Reward: {c.points} points • Frequency: {frequencyOptions.find(f => f.value === c.frequency)?.label || c.frequency}
                     </Text>
                     {c.deadline && (
-                      <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>
+                      <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: '#666', marginTop: 2 }]}>
                         Deadline: {new Date(c.deadline).toLocaleDateString()}
                       </Text>
                     )}
-                    <Text style={{ color: '#666', fontSize: 12, marginTop: 2 }}>
+                    <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: '#666', marginTop: 2 }]}>
                       Status: {c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : ((c.completed && c.approved) ? 'Completed' : c.completed ? 'Pending Approval' : 'Active')} • Created: {new Date(c.createdAt).toLocaleDateString()}
                     </Text>
                     {/* Parent controls: edit/delete for active, pending indicator, nothing for completed/approved */}
@@ -1311,7 +1302,7 @@ export default function ParentsChoresScreen() {
                             scrollViewRef.current?.scrollTo({ x: 0, y: 400, animated: true });
                           }}
                         >
-                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
+                          <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: themeColors.card }]}>✏️ Edit</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           accessibilityRole="button"
@@ -1343,15 +1334,14 @@ export default function ParentsChoresScreen() {
                             }
                           }}
                         >
-                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
+                          <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: themeColors.card }]}>🗑️ Delete</Text>
                         </TouchableOpacity>
                       </View>
                     ) : c.status === 'pending' ? (
                       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                         <Text style={{
                           color: themeColors.warning,
-                          fontWeight: 'bold',
-                          fontSize: 13,
+                          ...SEMANTIC_TYPOGRAPHY["type-caption"],
                           backgroundColor: themeColors.surface,
                           paddingVertical: 7,
                           paddingHorizontal: 14,
@@ -1379,7 +1369,7 @@ export default function ParentsChoresScreen() {
                     }}
                     onPress={() => setShowAllCompleted(true)}
                   >
-                    <Text style={{ color: '#5837a7', fontWeight: '600' }}>Show All Completed Tasks</Text>
+                    <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: '#5837a7' }]}>Show All Completed Tasks</Text>
                   </TouchableOpacity>
                 )}
                 {choresTab === 'Done' && showAllCompleted && (
@@ -1397,7 +1387,7 @@ export default function ParentsChoresScreen() {
                     }}
                     onPress={() => setShowAllCompleted(false)}
                   >
-                    <Text style={{ color: '#5837a7', fontWeight: '500' }}>Show Only Last 90 Days</Text>
+                    <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: '#5837a7' }]}>Show Only Last 90 Days</Text>
                   </TouchableOpacity>
                 )}
               </View>

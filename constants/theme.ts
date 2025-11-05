@@ -7,8 +7,7 @@
 
 import { Platform } from 'react-native';
 
-// Color contrast validation utilities
-const getContrastRatio = (color1: string, color2: string): number => {
+export const getContrastRatio = (color1: string, color2: string): number => {
   const parseHex = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {

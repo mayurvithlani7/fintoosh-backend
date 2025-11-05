@@ -1,5 +1,6 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
+import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { getAuthToken, getUserData } from '@/utils/secureStorage';
@@ -1033,7 +1034,7 @@ const loadStoredData = async () => {
           accessibilityLabel="Help and information"
           accessibilityHint="Open help guide for family teaching tools"
         >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: themeColors.card }]}>❓ Help</Text>
         </TouchableOpacity>
       </View>
       <Text style={[styles.title, { color: themeColors.text }]}>
@@ -2664,8 +2665,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-display-medium"],
     marginBottom: 22,
     marginTop: 6,
     // color set inline with themeColors
@@ -2682,8 +2682,7 @@ const styles = StyleSheet.create({
     // backgroundColor, shadowColor, borderColor set inline with themeColors
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
     marginBottom: 8,
     // color set inline with themeColors
   },
@@ -2708,8 +2707,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   guideTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     textAlign: 'center',
     // color set inline with themeColors
   },
@@ -2717,7 +2715,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   guideText: {
-    fontSize: 16,
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     lineHeight: 24,
     marginBottom: 8,
   },
@@ -2731,20 +2729,19 @@ const styles = StyleSheet.create({
     // backgroundColor, borderColor set inline with themeColors
   },
   starterNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
     marginRight: 12,
     minWidth: 24,
     // color set inline with themeColors
   },
   starterText: {
     flex: 1,
-    fontSize: 15,
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     lineHeight: 20,
     // color set inline with themeColors
   },
   starterCategory: {
-    fontSize: 12,
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     fontStyle: 'italic',
     marginTop: 4,
     // color set inline with themeColors
@@ -2758,8 +2755,7 @@ const styles = StyleSheet.create({
     // backgroundColor set inline with themeColors
   },
   refreshButtonText: {
-    fontWeight: 'bold',
-    fontSize: 16,
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     // color set inline with themeColors
   },
   milestoneCard: {
@@ -2776,8 +2772,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   milestoneTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     flex: 1,
     // color set inline with themeColors
   },
@@ -2785,20 +2780,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    fontSize: 12,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     // backgroundColor and color set inline with themeColors
   },
   inProgressBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    fontSize: 12,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     // backgroundColor and color set inline with themeColors
   },
   milestoneDesc: {
-    fontSize: 14,
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     marginBottom: 8,
     // color set inline with themeColors
   },
@@ -2806,8 +2799,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   progressText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-caption"],
     marginBottom: 4,
     // color set inline with themeColors
   },
@@ -2823,7 +2815,7 @@ const styles = StyleSheet.create({
     // backgroundColor set inline with themeColors
   },
   milestoneDate: {
-    fontSize: 12,
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     // color set inline with themeColors
     fontStyle: 'italic',
   },
@@ -2849,18 +2841,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-heading-large"],
     marginBottom: 15,
     textAlign: 'center',
   },
   modalSubtitle: {
-    fontSize: 16,
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     textAlign: 'center',
     marginBottom: 20,
   },
   modalTextContent: {
-    fontSize: 16,
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     lineHeight: 24,
     marginBottom: 20,
   },
@@ -2871,8 +2862,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
   },
   discussionCard: {
     borderRadius: 10,
@@ -2886,26 +2876,24 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   discussionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     flex: 1,
     marginRight: 8,
   },
   discussionDate: {
-    fontSize: 12,
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     fontStyle: 'italic',
   },
   discussionChild: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     marginBottom: 4,
   },
   discussionMood: {
-    fontSize: 13,
+    ...SEMANTIC_TYPOGRAPHY["type-caption"],
     marginBottom: 4,
   },
   discussionLearnings: {
-    fontSize: 14,
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     fontStyle: 'italic',
   },
   discussionActions: {
@@ -2920,8 +2908,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   deleteButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   emptyDiscussions: {
     borderRadius: 10,
@@ -2930,7 +2917,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   emptyText: {
-    fontSize: 15,
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -2942,8 +2929,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   primaryButtonText: {
-    fontWeight: 'bold',
-    fontSize: 16,
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
   },
   timelineContainer: {
     marginBottom: 15,
@@ -2970,22 +2956,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   timelineYear: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     marginBottom: 4,
   },
   timelineEvent: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     marginBottom: 4,
   },
   timelineDesc: {
-    fontSize: 14,
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     marginBottom: 4,
   },
   timelineAmount: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   dreamBoardGrid: {
     flexDirection: 'row',
@@ -3009,18 +2992,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dreamIcon: {
-    fontSize: 24,
+    ...SEMANTIC_TYPOGRAPHY["type-heading-large"],
     marginBottom: 8,
   },
   dreamTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     textAlign: 'center',
     marginBottom: 6,
   },
   dreamAmount: {
-    fontSize: 13,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-caption"],
     marginBottom: 8,
   },
   dreamProgress: {
@@ -3039,8 +3020,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   dreamStatsText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   inspirationCard: {
     borderRadius: 12,
@@ -3048,15 +3028,14 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
   },
   inspirationQuote: {
-    fontSize: 16,
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     fontStyle: 'italic',
     marginBottom: 8,
     textAlign: 'center',
   },
   inspirationAuthor: {
-    fontSize: 14,
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     textAlign: 'center',
-    fontWeight: '600',
   },
   emptyState: {
     borderRadius: 12,
@@ -3065,8 +3044,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     marginBottom: 8,
     marginTop: 12,
   },
@@ -3074,14 +3052,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     marginBottom: 8,
   },
   textArea: {
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     marginBottom: 8,
     minHeight: 80,
     textAlignVertical: 'top',
@@ -3100,8 +3078,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
   },
   saveButton: {
     flex: 1,
@@ -3112,8 +3089,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
   },
   incrementButton: {
     paddingHorizontal: 12,
@@ -3123,11 +3099,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   incrementButtonText: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
   },
   milestoneCategory: {
-    fontSize: 12,
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     fontStyle: 'italic',
     marginTop: 4,
   },
@@ -3157,12 +3132,11 @@ const styles = StyleSheet.create({
     minHeight: 80,
   },
   eventIcon: {
-    fontSize: 24,
+    ...SEMANTIC_TYPOGRAPHY["type-heading-large"],
     marginBottom: 8,
   },
   eventLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     textAlign: 'center',
   },
 });

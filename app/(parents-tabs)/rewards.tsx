@@ -1,6 +1,7 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { rewardSuggestions } from '@/constants/rewardSuggestions';
+import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { getAuthToken } from '@/utils/secureStorage';
@@ -273,10 +274,10 @@ export default function ParentsRewardsScreen() {
           }}
           onPress={() => setHelpModalVisible(true)}
         >
-          <Text style={{ color: cardColor, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: cardColor }]}>❓ Help</Text>
         </TouchableOpacity>
       </View>
-      <Text style={[styles.title, { color: themeColors.primary }]}>Manage Child Rewards</Text>
+      <Text style={[styles.title, { color: themeColors.primary, ...SEMANTIC_TYPOGRAPHY["type-display-medium"] }]}>Manage Child Rewards</Text>
 
       {/* Enhanced Child Selector */}
       {children.length > 1 && (
@@ -289,7 +290,7 @@ export default function ParentsRewardsScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 0 }]}>
               👨‍👩‍👦 Select Child to View Rewards
             </Text>
             <View style={[styles.countBadge, {
@@ -297,7 +298,7 @@ export default function ParentsRewardsScreen() {
               marginLeft: 8,
               backgroundColor: themeColors.success
             }]}>
-              <Text style={styles.countText}>{children.length}</Text>
+              <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: themeColors.card }]}>{children.length}</Text>
             </View>
           </View>
           <ScrollView
@@ -341,7 +342,7 @@ export default function ParentsRewardsScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+          <Text style={[SEMANTIC_TYPOGRAPHY["type-caption"], { color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }]}>
             Tap any child to view their individual rewards and progress
           </Text>
         </View>
@@ -358,7 +359,7 @@ export default function ParentsRewardsScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 0 }]}>
               🎁 Rewards Summary
             </Text>
             <TouchableOpacity
@@ -375,7 +376,7 @@ export default function ParentsRewardsScreen() {
               }}
               disabled={loading}
             >
-              <Text style={{ fontSize: 14, color: themeColors.card }}>
+              <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: themeColors.card }]}>
                 {loading ? '⏳' : '↻'}
               </Text>
             </TouchableOpacity>
@@ -400,8 +401,8 @@ export default function ParentsRewardsScreen() {
               </Text>
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>
-              <Text style={[styles.summaryLabel, { color: themeColors.text, fontWeight: 'bold' }]}>🏆 Total</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.primary, fontWeight: 'bold' }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🏆 Total</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary }]}>
                 {rewards.length}
               </Text>
             </View>
@@ -427,7 +428,7 @@ export default function ParentsRewardsScreen() {
               {loading ? (
                 <Text style={{ color: themeColors.textSecondary }}>Loading children...</Text>
               ) : children.length > 0 ? (
-                <Text style={{ color: themeColors.text, fontWeight: "600" }}>
+                <Text style={[SEMANTIC_TYPOGRAPHY["type-body"], { color: themeColors.text }]}>
                   {children.find(child => child.id === selectedChildId)?.name || children[0].name}
                 </Text>
               ) : (
@@ -461,7 +462,7 @@ export default function ParentsRewardsScreen() {
 
           {/* Quick Preset Points */}
           <View style={styles.presetContainer}>
-            <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
+            <Text style={[styles.inputLabel, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 8 }]}>Quick Amounts:</Text>
           <View style={styles.presetRow}>
             <TouchableOpacity
               accessibilityRole="button"
@@ -504,7 +505,7 @@ export default function ParentsRewardsScreen() {
 
           {/* Reward Name Suggestions */}
           <View style={styles.suggestionsContainer}>
-            <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Reward Ideas:</Text>
+            <Text style={[styles.inputLabel, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 8 }]}>Reward Ideas:</Text>
             <View style={styles.suggestionsGrid}>
               {rewardSuggestions.slice(0, 16).map((suggestion) => (
                 <TouchableOpacity
@@ -592,7 +593,7 @@ export default function ParentsRewardsScreen() {
             }}
             disabled={loading}
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>
+            <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: themeColors.card }]}>
               {loading ? '⏳' : '↻'}
             </Text>
           </TouchableOpacity>
@@ -618,7 +619,7 @@ export default function ParentsRewardsScreen() {
                 marginHorizontal: 6
               }}
             >
-              <Text style={{ color: rewardsTab === tab ? themeColors.card : themeColors.primary, fontWeight: '500' }}>{tab}</Text>
+              <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: rewardsTab === tab ? themeColors.card : themeColors.primary }]}>{tab}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -694,18 +695,18 @@ export default function ParentsRewardsScreen() {
                   }}
                 >
                   <View style={{ flex: 4 }}>
-                    <Text style={{ fontWeight: 'bold', color: '#234' }}>{r.name}</Text>
-                    <Text style={{ color: '#324', fontSize: 16 }}>({r.cost} pts)</Text>
-                    {r.description && <Text style={{ fontSize: 13, color: '#567' }}>{r.description}</Text>}
+                    <Text style={[SEMANTIC_TYPOGRAPHY["type-body"], { color: '#234' }]}>{r.name}</Text>
+                    <Text style={[SEMANTIC_TYPOGRAPHY["type-body"], { color: '#324' }]}>({r.cost} pts)</Text>
+                    {r.description && <Text style={[SEMANTIC_TYPOGRAPHY["type-caption"], { color: '#567' }]}>{r.description}</Text>}
                     {/* Status Display */}
                     {r.purchased ? (
-                      <Text style={{ color: "#18722a", fontWeight: "bold", fontSize: 13 }}>Claimed</Text>
+                      <Text style={[SEMANTIC_TYPOGRAPHY["type-caption"], { color: "#18722a" }]}>Claimed</Text>
                     ) : r.status === 'pending' ? (
-                      <Text style={{ color: "#a78912", fontWeight: "bold", fontSize: 13 }}>Pending Approval</Text>
+                      <Text style={[SEMANTIC_TYPOGRAPHY["type-caption"], { color: "#a78912" }]}>Pending Approval</Text>
                     ) : r.available === false ? (
-                      <Text style={{ color: "#a78912", fontWeight: "bold", fontSize: 13 }}>Waiting for Approval</Text>
+                      <Text style={[SEMANTIC_TYPOGRAPHY["type-caption"], { color: "#a78912" }]}>Waiting for Approval</Text>
                     ) : (
-                      <Text style={{ color: "#184e82", fontSize: 13 }}>Available</Text>
+                      <Text style={[SEMANTIC_TYPOGRAPHY["type-caption"], { color: "#184e82" }]}>Available</Text>
                     )}
                   </View>
                   {/* Parent controls: edit/delete for active, pending indicator, nothing for completed/approved */}
@@ -731,7 +732,7 @@ export default function ParentsRewardsScreen() {
                           scrollViewRef.current?.scrollTo({ x: 0, y: 400, animated: true });
                         }}
                       >
-                        <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
+                        <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: themeColors.card }]}>✏️ Edit</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         accessibilityRole="button"
@@ -791,15 +792,14 @@ export default function ParentsRewardsScreen() {
                           }
                         }}
                       >
-                        <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
+                        <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: themeColors.card }]}>🗑️ Delete</Text>
                       </TouchableOpacity>
                     </View>
                   ) : r.status === 'pending' ? (
                     <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                       <Text style={{
                         color: themeColors.warning,
-                        fontWeight: 'bold',
-                        fontSize: 13,
+                        ...SEMANTIC_TYPOGRAPHY["type-caption"],
                         backgroundColor: themeColors.surface,
                         paddingVertical: 7,
                         paddingHorizontal: 14,
@@ -827,7 +827,7 @@ export default function ParentsRewardsScreen() {
                   }}
                   onPress={() => setShowAllClaimed(true)}
                 >
-                  <Text style={{ color: '#5837a7', fontWeight: '600' }}>Show All Claimed Rewards</Text>
+                  <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: '#5837a7' }]}>Show All Claimed Rewards</Text>
                 </TouchableOpacity>
               )}
               {rewardsTab === 'Claimed' && showAllClaimed && (
@@ -845,7 +845,7 @@ export default function ParentsRewardsScreen() {
                   }}
                   onPress={() => setShowAllClaimed(false)}
                 >
-                  <Text style={{ color: '#5837a7', fontWeight: '500' }}>Show Only Last 90 Days</Text>
+                  <Text style={[SEMANTIC_TYPOGRAPHY["type-body-small"], { color: '#5837a7' }]}>Show Only Last 90 Days</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1114,23 +1114,23 @@ export default function ParentsRewardsScreen() {
 const createStyles = (themeColors: any) => StyleSheet.create({
   scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  title: { ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginBottom: 22, marginTop: 6, color: themeColors.primary },
   sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
+  sectionTitle: { ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 12, color: themeColors.text },
   formRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   formGroup: { flex: 1, marginHorizontal: 6 },
-  inputLabel: { fontWeight: '500', marginBottom: 4, color: themeColors.text, fontSize: 15 },
-  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
+  inputLabel: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 4, color: themeColors.text },
+  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
   formBtn: { backgroundColor: themeColors.primary, padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
-  formBtnText: { fontWeight: '700', color: themeColors.card, fontSize: 15 },
-  validation: { color: themeColors.error, fontSize: 15, marginTop: 4 },
-  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success, marginTop: 4 },
-  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
+  formBtnText: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.card },
+  validation: { color: themeColors.error, ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginTop: 4 },
+  statusMessage: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.success, marginTop: 4 },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', paddingVertical: 20 },
   childPickerRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },
   childBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: themeColors.surface, borderRadius: 15, marginHorizontal: 3, marginBottom: 4 },
   childBtnSelected: { backgroundColor: themeColors.primary },
-  childBtnText: { fontSize: 15, color: themeColors.text, fontWeight: '600' },
-  childBtnTextSelected: { color: themeColors.card, fontWeight: '800' },
+  childBtnText: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text },
+  childBtnTextSelected: { color: themeColors.card },
   cancelBtn: {
     backgroundColor: themeColors.surface,
     borderWidth: 1,
@@ -1140,18 +1140,17 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: {
-    fontWeight: '700',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     color: themeColors.text,
-    fontSize: 15,
   },
   presetContainer: { marginTop: 16, marginBottom: 8 },
   presetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   presetBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 6, marginHorizontal: 2, alignItems: 'center', minWidth: 50 },
-  presetBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
+  presetBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
   suggestionsContainer: { marginTop: 16, marginBottom: 8 },
   suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   suggestionBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 6, marginHorizontal: 2, marginVertical: 4, alignItems: 'center', minWidth: 70, maxWidth: 120 },
-  suggestionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 12, textAlign: 'center' },
+  suggestionBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-caption-small"], textAlign: 'center' },
   childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
   childButton: {
     backgroundColor: themeColors.surface,
@@ -1165,7 +1164,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   childButtonSelected: { backgroundColor: themeColors.primary },
-  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonText: { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
   childButtonTextSelected: { color: themeColors.card },
   // Child selector styles for enhanced design
   countBadge: {
@@ -1177,8 +1176,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   countText: {
     color: themeColors.card,
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   childrenScroll: {
     marginTop: 8,
@@ -1210,12 +1208,10 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginBottom: 4,
   },
   childAvatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
   },
   childName: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     textAlign: 'center',
   },
   selectedIndicator: {
@@ -1231,8 +1227,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   selectedCheckmark: {
     color: themeColors.card,
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   // Refresh button and summary styles (copied from goals)
   refreshBtn: {
@@ -1262,14 +1257,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     shadowRadius: 2,
   },
   summaryLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     textAlign: 'center',
     marginBottom: 4,
   },
   summaryValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
     textAlign: 'center',
   },
 });

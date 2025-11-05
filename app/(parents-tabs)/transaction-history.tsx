@@ -1,6 +1,7 @@
 import Confetti from '@/components/animations/Confetti';
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
+import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { fetchFamilyChildren, fetchTransactions } from "@/utils/api";
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from "@/utils/themeContext";
@@ -35,8 +36,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     minHeight: "100%"
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    ...SEMANTIC_TYPOGRAPHY["type-display-medium"],
     marginTop: 12,
     marginBottom: 10,
     color: themeColors.primary,
@@ -70,13 +70,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: themeColors.border,
-    fontSize: 15,
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     marginRight: 5,
     color: themeColors.text,
   },
   label: {
-    fontWeight: "500",
-    fontSize: 14,
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     color: themeColors.text,
     marginRight: 3
   },
@@ -95,32 +94,28 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderLeftColor: themeColors.border,
   },
   txAmount: {
-    fontSize: 16,
-    fontWeight: "bold",
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
     minWidth: 80,
     color: themeColors.text,
   },
   txDesc: {
     flex: 1,
     marginLeft: 9,
-    fontWeight: "500",
     color: themeColors.text,
   },
   txJar: {
-    fontWeight: "bold",
     color: themeColors.success,
     marginHorizontal: 5
   },
   txDate: {
-    fontSize: 13,
+    ...SEMANTIC_TYPOGRAPHY["type-caption"],
     color: themeColors.textSecondary,
     marginLeft: 8,
     minWidth: 72
   },
   filterLabel: {
-    fontWeight: "500",
+    ...SEMANTIC_TYPOGRAPHY["type-caption"],
     color: themeColors.text,
-    fontSize: 13,
     marginRight: 4
   },
   refreshBtn: {
@@ -131,14 +126,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.primary,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
     marginBottom: 8,
     color: themeColors.text,
   },
   txChild: {
-    fontWeight: "600",
-    fontSize: 13,
+    ...SEMANTIC_TYPOGRAPHY["type-caption"],
     minWidth: 45,
     marginRight: 6,
     color: themeColors.secondary,
@@ -154,7 +147,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginTop: 2
   },
   dateFieldText: {
-    fontSize: 15,
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
   childButton: {
@@ -169,7 +162,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   childButtonSelected: { backgroundColor: themeColors.primary },
-  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonText: { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
   childButtonTextSelected: { color: themeColors.card },
   // Child selector styles for enhanced design
   countBadge: {
@@ -181,8 +174,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   countText: {
     color: themeColors.card,
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   childrenScroll: {
     marginTop: 8,
@@ -214,12 +206,10 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginBottom: 4,
   },
   childAvatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
   },
   childName: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     textAlign: 'center',
   },
   selectedIndicator: {
@@ -235,8 +225,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   selectedCheckmark: {
     color: themeColors.card,
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
 });
 
@@ -353,8 +342,7 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
           borderColor: achievement.color + '40'
         }}>
           <Text style={{
-            fontSize: 12,
-            fontWeight: 'bold',
+            ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
             color: achievement.color
           }}>
             {achievement.badge}
@@ -364,15 +352,14 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
         {/* Transaction Info */}
         <View style={{ flex: 1 }}>
           <Text style={{
-            fontSize: 14,
-            fontWeight: '600',
+            ...SEMANTIC_TYPOGRAPHY["type-body-small"],
             color: themeColors.text,
             marginBottom: 2
           }}>
             {tx.amount > 0 ? '+' : ''}{tx.amount} points
           </Text>
           <Text style={{
-            fontSize: 12,
+            ...SEMANTIC_TYPOGRAPHY["type-caption"],
             color: themeColors.textSecondary
           }}>
             {(tx.date || tx.createdAt || "").slice(0, 10)} • {tx.childName || "Child"}
@@ -381,9 +368,8 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
 
         {/* Expand Indicator */}
         <Text style={{
-          fontSize: 16,
-          color: themeColors.primary,
-          fontWeight: 'bold'
+          ...SEMANTIC_TYPOGRAPHY["type-body"],
+          color: themeColors.primary
         }}>
           {isExpanded ? '▼' : '▶'}
         </Text>
@@ -412,9 +398,14 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
             backgroundColor: achievement.color + '10',
             borderRadius: 8
           }}>
-            <Text style={{ fontSize: 20, marginRight: 8 }}>{achievement.badge.split(' ')[0]}</Text>
             <Text style={{
-              fontSize: 14,
+              ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
+              marginRight: 8
+            }}>
+              {achievement.badge.split(' ')[0]}
+            </Text>
+            <Text style={{
+              ...SEMANTIC_TYPOGRAPHY["type-body-small"],
               color: themeColors.text,
               flex: 1
             }}>
@@ -425,7 +416,7 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
           {/* Transaction Details */}
           <View style={{ marginBottom: 12 }}>
             <Text style={{
-              fontSize: 14,
+              ...SEMANTIC_TYPOGRAPHY["type-body-small"],
               color: themeColors.text,
               marginBottom: 4
             }}>
@@ -442,7 +433,7 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
 
             {tx.fromJar && (
               <Text style={{
-                fontSize: 12,
+                ...SEMANTIC_TYPOGRAPHY["type-caption"],
                 color: themeColors.textSecondary
               }}>
                 From: {tx.fromJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot')}
@@ -451,7 +442,7 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
 
             {(tx.toJar || tx.type === "points-move") && (
               <Text style={{
-                fontSize: 12,
+                ...SEMANTIC_TYPOGRAPHY["type-caption"],
                 color: themeColors.textSecondary
               }}>
                 To: {tx.toJar ? tx.toJar.replace(/current/g, 'Pocket Money').replace(/save/g, 'Savings Pot').replace(/spend/g, 'Spending Pot').replace(/donate/g, 'Help Others Pot').replace(/invest/g, 'Grow Money Pot') : 'Different Pot'}
@@ -462,7 +453,7 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
           {/* Quick Reactions */}
           <View style={{ marginBottom: 8 }}>
             <Text style={{
-              fontSize: 12,
+              ...SEMANTIC_TYPOGRAPHY["type-caption"],
               color: themeColors.textSecondary,
               marginBottom: 6
             }}>
@@ -484,7 +475,11 @@ const TransactionCard = ({ tx, themeColors, isExpanded, onToggle }: {
                   }}
                   onPress={() => setReaction(reaction === emoji ? null : emoji)}
                 >
-                  <Text style={{ fontSize: 16 }}>{emoji}</Text>
+                  <Text style={{
+                    ...SEMANTIC_TYPOGRAPHY["type-body"]
+                  }}>
+                    {emoji}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -529,7 +524,7 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
           borderRadius: 7,
           borderWidth: 1,
           borderColor: themeColors.border,
-          fontSize: 15,
+          ...SEMANTIC_TYPOGRAPHY["type-body-small"],
           padding: 8,
           width: "100%",
           minHeight: 35,
@@ -563,16 +558,15 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
         onPress={() => setDropdownVisible(true)}
       >
         <Text style={{
-          fontSize: 15,
+          ...SEMANTIC_TYPOGRAPHY["type-body-small"],
           color: themeColors.text,
           flex: 1
         }}>
           {selectedLabel}
         </Text>
         <Text style={{
-          fontSize: 16,
-          color: themeColors.primary,
-          fontWeight: 'bold'
+          ...SEMANTIC_TYPOGRAPHY["type-body"],
+          color: themeColors.primary
         }}>
           ▼
         </Text>
@@ -624,7 +618,7 @@ function TypeSelect({ value, onChange, themeColors }: { value: string; onChange:
                 }}
               >
                 <Text style={{
-                  fontSize: 16,
+                  ...SEMANTIC_TYPOGRAPHY["type-body"],
                   color: themeColors.text
                 }}>
                   {option.label}
@@ -654,7 +648,7 @@ function DateInput({ value, onChange, placeholder, themeColors }: {
           borderRadius: 7,
           borderWidth: 1,
           borderColor: themeColors.border,
-          fontSize: 15,
+          ...SEMANTIC_TYPOGRAPHY["type-body-small"],
           padding: 8,
           minHeight: 35,
           minWidth: 110,
@@ -687,7 +681,7 @@ function DateInput({ value, onChange, placeholder, themeColors }: {
       >
         <Text
           style={{
-            fontSize: 15,
+            ...SEMANTIC_TYPOGRAPHY["type-body-small"],
             color: value ? themeColors.text : themeColors.textSecondary,
             flex: 1
           }}
@@ -695,9 +689,8 @@ function DateInput({ value, onChange, placeholder, themeColors }: {
           {value ? value : (placeholder || "Select Date")}
         </Text>
         <Text style={{
-          fontSize: 16,
-          color: themeColors.primary,
-          fontWeight: 'bold'
+          ...SEMANTIC_TYPOGRAPHY["type-body"],
+          color: themeColors.primary
         }}>
           📅
         </Text>
@@ -824,7 +817,12 @@ export default function ParentTransactionHistoryScreen() {
           accessibilityLabel="Help and information"
           accessibilityHint="Open help guide for transaction history"
         >
-          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
+          <Text style={{
+            ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+            color: themeColors.card
+          }}>
+            ❓ Help
+          </Text>
         </TouchableOpacity>
       </View>
       <Text style={[styles.title, { color: themeColors.primary }]}>Family Points Story</Text>
@@ -840,7 +838,10 @@ export default function ParentTransactionHistoryScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+            <Text style={[styles.sectionTitle, {
+              color: themeColors.text,
+              ...SEMANTIC_TYPOGRAPHY["type-body"]
+            }]}>
               👨‍👩‍👦 Select Child to View Transactions
             </Text>
             <View style={[styles.countBadge, {
@@ -923,7 +924,12 @@ export default function ParentTransactionHistoryScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+          <Text style={{
+            ...SEMANTIC_TYPOGRAPHY["type-caption"],
+            color: themeColors.textSecondary,
+            marginTop: 8,
+            textAlign: 'center'
+          }}>
             Tap any child to view their individual transactions and activity
           </Text>
         </View>
@@ -948,7 +954,12 @@ export default function ParentTransactionHistoryScreen() {
             <TypeSelect value={type} onChange={setType} themeColors={themeColors} />
           </View>
           <TouchableOpacity style={[styles.refreshBtn, { minWidth: 32, alignItems: 'center' }]} onPress={() => loadTransactions()} accessibilityLabel="Refresh transaction list">
-            <Text style={{ color: themeColors.card, fontWeight: "bold", fontSize: 14 }}>↻</Text>
+            <Text style={{
+              ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+              color: themeColors.card
+            }}>
+              ↻
+            </Text>
           </TouchableOpacity>
         </View>
         {/* Date Range Filter */}
@@ -979,12 +990,22 @@ export default function ParentTransactionHistoryScreen() {
               accessibilityLabel="Clear date filters"
               accessibilityHint="Remove all date range filters to show all transactions"
             >
-              <Text style={{ color: themeColors.primary, fontWeight: "bold" }}>✕ Clear</Text>
+              <Text style={{
+                ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+                color: themeColors.primary
+              }}>
+                ✕ Clear
+              </Text>
             </TouchableOpacity>
           )}
         </View>
         {(startDate && endDate && startDate > endDate) && (
-          <Text style={{ color: themeColors.error, fontWeight: "bold", marginLeft: 4, marginTop: 2, fontSize: 14 }}>
+          <Text style={{
+            ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+            color: themeColors.error,
+            marginLeft: 4,
+            marginTop: 2
+          }}>
             Start date cannot be after end date.
           </Text>
         )}
@@ -995,7 +1016,11 @@ export default function ParentTransactionHistoryScreen() {
           {(() => {
             const lastUpdated = new Date();
             return (
-              <Text style={{ fontSize: 12, color: themeColors.textSecondary, fontStyle: "italic" }}>
+              <Text style={{
+                ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
+                color: themeColors.textSecondary,
+                fontStyle: "italic"
+              }}>
                 Updated {Math.floor((Date.now() - lastUpdated.getTime()) / 1000)}s ago
               </Text>
             );
@@ -1004,7 +1029,12 @@ export default function ParentTransactionHistoryScreen() {
         {loading ? (
           <ActivityIndicator />
         ) : filtered.length === 0 ? (
-          <Text style={{ color: themeColors.textSecondary, padding: 10, fontStyle: "italic" }}>
+          <Text style={{
+            ...SEMANTIC_TYPOGRAPHY["type-caption"],
+            color: themeColors.textSecondary,
+            padding: 10,
+            fontStyle: "italic"
+          }}>
             No points activity found.
           </Text>
         ) : (

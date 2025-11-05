@@ -1,10 +1,12 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
 import { SpendingInsights } from '@/components/SpendingInsights';
+import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { fetchFamilyChildren } from '@/utils/api';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { useDataCache } from '@/utils/dataCacheContext';
+import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { getAuthToken, getUser } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 
@@ -14,12 +16,12 @@ import { PieChart } from 'react-native-chart-kit';
 import Svg, { Circle } from 'react-native-svg';
 
 const createStyles = (themeColors: any) => StyleSheet.create({
-  container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
-  sectionCard: { borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, backgroundColor: themeColors.card, shadowColor: themeColors.border },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
-  statusMessage: { fontSize: 15, fontWeight: '600', marginTop: 8, marginBottom: 16, textAlign: 'center', padding: 10, borderRadius: 8, width: '97%', maxWidth: 520, color: themeColors.success },
-  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, marginBottom: 8 },
+  container: { ...MOBILE_STYLES.scrollContent, alignItems: 'center' },
+  title: { ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing, color: themeColors.primary },
+  sectionCard: { ...MOBILE_STYLES.card, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, backgroundColor: themeColors.card, shadowColor: themeColors.border },
+  sectionTitle: { ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: MOBILE_LAYOUT.itemSpacing, color: themeColors.text },
+  statusMessage: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], fontWeight: '600', marginTop: MOBILE_LAYOUT.itemSpacing, marginBottom: MOBILE_LAYOUT.sectionSpacing, textAlign: 'center', padding: MOBILE_LAYOUT.cardPadding, borderRadius: MOBILE_LAYOUT.borderRadius, width: '97%', maxWidth: 520, color: themeColors.success },
+  placeholder: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, fontStyle: 'italic', marginBottom: MOBILE_LAYOUT.itemSpacing },
   childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
   childButton: {
     backgroundColor: themeColors.surface,
@@ -33,19 +35,19 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   childButtonSelected: { backgroundColor: themeColors.primary },
-  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonText: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text },
   childButtonTextSelected: { color: themeColors.card },
   // Child selector styles for enhanced design
   countBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: MOBILE_LAYOUT.minTouchTarget,
+    height: MOBILE_LAYOUT.minTouchTarget,
+    borderRadius: MOBILE_LAYOUT.minTouchTarget / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countText: {
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     color: themeColors.card,
-    fontSize: 14,
     fontWeight: 'bold',
   },
   childrenScroll: {
@@ -78,28 +80,26 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginBottom: 4,
   },
   childAvatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
   },
   childName: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-caption"],
     textAlign: 'center',
   },
   selectedIndicator: {
     position: 'absolute',
     top: -8,
     right: -8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: MOBILE_LAYOUT.minTouchTarget,
+    height: MOBILE_LAYOUT.minTouchTarget,
+    borderRadius: MOBILE_LAYOUT.minTouchTarget / 2,
     backgroundColor: themeColors.success,
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectedCheckmark: {
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     color: themeColors.card,
-    fontSize: 14,
     fontWeight: 'bold',
   },
 });
@@ -150,16 +150,14 @@ const ChildSelectorItem = React.memo(({
       marginBottom: 4
     }}>
       <Text style={{
-        fontSize: 20,
-        fontWeight: 'bold',
+        ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
         color: isSelected ? themeColors.card : themeColors.primary
       }}>
         {child.name.charAt(0).toUpperCase()}
       </Text>
     </View>
     <Text style={[{
-      fontSize: 12,
-      fontWeight: '600',
+      ...SEMANTIC_TYPOGRAPHY["type-caption"],
       textAlign: 'center',
       color: isSelected ? themeColors.card : themeColors.text
     }]}>
@@ -178,8 +176,8 @@ const ChildSelectorItem = React.memo(({
         justifyContent: 'center'
       }}>
         <Text style={{
+          ...SEMANTIC_TYPOGRAPHY["type-body-small"],
           color: themeColors.card,
-          fontSize: 14,
           fontWeight: 'bold'
         }}>👑</Text>
       </View>
@@ -290,7 +288,7 @@ export default function ParentsAnalyticsScreen() {
             accessibilityHint="Reload the latest analytics and progress data"
             accessibilityState={{ disabled: loading }}
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>
+            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.card, fontWeight: 'bold' }}>
               {loading ? '⏳' : '↻'}
             </Text>
           </TouchableOpacity>
@@ -307,7 +305,7 @@ export default function ParentsAnalyticsScreen() {
             accessibilityLabel="Help and information"
             accessibilityHint="Open help guide for analytics dashboard"
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>Help</Text>
+            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.card, fontWeight: 'bold' }}>Help</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -326,7 +324,7 @@ export default function ParentsAnalyticsScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-medium"], marginBottom: 0 }]}>
               👨‍👩‍👦 Select Child to View Analytics
             </Text>
             <View style={[styles.countBadge, {
@@ -345,7 +343,7 @@ export default function ParentsAnalyticsScreen() {
           >
             {memoizedChildSelectorItems}
           </ScrollView>
-          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary, marginTop: MOBILE_LAYOUT.itemSpacing, textAlign: 'center' }}>
             Tap any child to view their individual analytics and progress
           </Text>
         </View>
@@ -359,7 +357,7 @@ export default function ParentsAnalyticsScreen() {
       {/* Separator */}
       <View style={{ height: 2, backgroundColor: themeColors.text, opacity: 0.3, marginVertical: 20, width: '90%', alignSelf: 'center' }} />
 
-      <Text style={[styles.title, { fontSize: 24 }]}>Family AI Financial Insights (All Children)</Text>
+      <Text style={[styles.title, { ...SEMANTIC_TYPOGRAPHY["type-display-medium"] }]}>Family AI Financial Insights (All Children)</Text>
 
       {/* Family-Wide AI Insights */}
       <View style={[styles.sectionCard]}>
@@ -371,7 +369,7 @@ export default function ParentsAnalyticsScreen() {
       {/* Error Display - Only show for actual data loading errors, not authentication issues */}
       {error && !error.includes('Family ID not available') && (
         <View style={styles.sectionCard}>
-          <Text style={{ color: themeColors.error, fontSize: 16 }}>
+          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.error }}>
             ⚠️ Error loading analytics: {error}
           </Text>
           <TouchableOpacity
@@ -717,7 +715,7 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
           }}>
             {/* Animated circular progress ring for chores */}
             <View style={{ alignItems: "center", marginHorizontal: 10 }}>
-              <Text style={{ fontWeight: 'bold', color: mainTextColor, marginBottom: 4 }}>Tasks Completed</Text>
+              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], fontWeight: 'bold', color: mainTextColor, marginBottom: MOBILE_LAYOUT.itemSpacing }}>Tasks Completed</Text>
               {/* Show proper progress or fallback if chore fields are all undefined */}
               {summary.assignedChoreCount === 0 ? (
                 <Text style={{ color: mutedTextColor }}>No assigned tasks found.</Text>
@@ -737,7 +735,7 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
             </View>
             {/* Animated circular progress ring for goals */}
             <View style={{ alignItems: "center", marginHorizontal: 10 }}>
-              <Text style={{ fontWeight: 'bold', color: mainTextColor, marginBottom: 4 }}>Goals Completed</Text>
+              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], fontWeight: 'bold', color: mainTextColor, marginBottom: MOBILE_LAYOUT.itemSpacing }}>Goals Completed</Text>
               <ProgressRing
                 percent={summary.goals > 0 ? summary.completedGoals / summary.goals : 0}
                 amount={`${summary.completedGoals}/${summary.goals}`}
@@ -750,7 +748,7 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
             </View>
             {/* Rewards Progress */}
             <View style={{ alignItems: "center", marginHorizontal: 10 }}>
-              <Text style={{ fontWeight: 'bold', color: mainTextColor, marginBottom: 4 }}>Rewards Claimed</Text>
+              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], fontWeight: 'bold', color: mainTextColor, marginBottom: MOBILE_LAYOUT.itemSpacing }}>Rewards Claimed</Text>
               <ProgressRing
                 percent={summary.rewardsCount > 0 ? summary.completedRewards / summary.rewardsCount : 0}
                 amount={`${summary.completedRewards}/${summary.rewardsCount}`}
@@ -764,7 +762,7 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
           </View>
 
           {/* Savings vs Spending Ratio */}
-          <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 4, marginTop: 10, color: mainTextColor }}>
+          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], fontWeight: "bold", marginBottom: MOBILE_LAYOUT.itemSpacing, marginTop: MOBILE_LAYOUT.sectionSpacing, color: mainTextColor }}>
             Savings vs Spending Ratio
           </Text>
           <View style={{
@@ -779,15 +777,15 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
           }}>
             {(saveJar?.totalDeposits === 0 && spendJar?.totalDeposits === 0) ? (
               (saveJar?.currentBalance === 0 && spendJar?.currentBalance === 0) ? (
-                <Text style={{ color: mutedTextColor, fontSize: 14 }}>
+                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: mutedTextColor }}>
                   No savings or spending data available yet.
                 </Text>
               ) : (
                 <>
-                  <Text style={{ color: mainTextColor, fontWeight: '600', fontSize: 20, marginBottom: 6 }}>
+                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-small"], color: mainTextColor, fontWeight: '600', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
                     {`₹${(saveJar?.currentBalance || 0).toLocaleString()} saved vs ₹${(spendJar?.currentBalance || 0).toLocaleString()} spent`}
                   </Text>
-                  <Text style={{ color: secondaryTextColor, fontSize: 15 }}>
+                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: secondaryTextColor }}>
                     {(saveJar?.currentBalance || 0) > 0
                       ? `Saved ${((saveJar?.currentBalance || 0) / (spendJar?.currentBalance || 1)).toFixed(2)}x as much as spent`
                       : `Spent ${((spendJar?.currentBalance || 0) / Math.max(1, saveJar?.currentBalance || 0)).toFixed(2)}x as much as saved`}
@@ -795,15 +793,15 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
                 </>
               )
             ) : spendJar?.totalDeposits === 0 ? (
-              <Text style={{ color: themeColors.success, fontWeight: 'bold', fontSize: 16 }}>
-                All earnings have been saved!<Text style={{ color: mainTextColor, fontWeight: '400', fontSize: 14 }}> (No spending yet)</Text>
+              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.success, fontWeight: 'bold' }}>
+                All earnings have been saved!<Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: mainTextColor, fontWeight: '400' }}> (No spending yet)</Text>
               </Text>
             ) : (
               <>
-                <Text style={{ color: mainTextColor, fontWeight: '600', fontSize: 20, marginBottom: 6 }}>
+                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-small"], color: mainTextColor, fontWeight: '600', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
                   {`₹${(saveJar?.totalDeposits || 0).toLocaleString()} saved vs ₹${(spendJar?.totalDeposits || 0).toLocaleString()} spent`}
                 </Text>
-                <Text style={{ color: secondaryTextColor, fontSize: 15 }}>
+                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: secondaryTextColor }}>
                   {(saveJar?.totalDeposits || 0) > 0
                     ? `Saved ${((saveJar?.totalDeposits || 0) / (spendJar?.totalDeposits || 1)).toFixed(2)}x as much as spent`
                     : `Spent ${((spendJar?.totalDeposits || 0) / Math.max(1, saveJar?.totalDeposits || 0)).toFixed(2)}x as much as saved`}
@@ -811,12 +809,12 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
               </>
             )}
           </View>
-          <Text style={{ color: mutedTextColor, fontSize: 12, marginTop: 8 }}>
+          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: mutedTextColor, marginTop: MOBILE_LAYOUT.itemSpacing }}>
             Child: {summary.name}
           </Text>
 
           {/* Real Allowances Summary */}
-          <Text style={{ fontWeight: "bold", fontSize: 16, marginTop: 18, marginBottom: 7, color: mainTextColor }}>
+          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], fontWeight: "bold", marginTop: MOBILE_LAYOUT.sectionSpacing, marginBottom: MOBILE_LAYOUT.itemSpacing, color: mainTextColor }}>
             Real Allowances Summary
           </Text>
           <View style={{
@@ -830,18 +828,18 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
             justifyContent: 'center'
           }}>
             {realAllowances.length === 0 ? (
-              <Text style={{ color: mutedTextColor, fontSize: 14 }}>
+              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: mutedTextColor }}>
                 No real allowances recorded yet.
               </Text>
             ) : (
               <>
-                <Text style={{ color: mainTextColor, fontWeight: '600', fontSize: 18, marginBottom: 6 }}>
+                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-small"], color: mainTextColor, fontWeight: '600', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
                   {realAllowances.length} allowance{realAllowances.length !== 1 ? 's' : ''} recorded
                 </Text>
-                <Text style={{ color: themeColors.success, fontSize: 16, fontWeight: 'bold' }}>
+                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.success, fontWeight: 'bold' }}>
                   Total: ₹{realAllowances.reduce((sum: number, allowance: any) => sum + allowance.amount, 0).toLocaleString()}
                 </Text>
-                <Text style={{ color: secondaryTextColor, fontSize: 14, marginTop: 4 }}>
+                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: secondaryTextColor, marginTop: MOBILE_LAYOUT.itemSpacing }}>
                   Most recent: {new Date(realAllowances[0]?.date).toLocaleDateString()}
                 </Text>
               </>
@@ -849,7 +847,7 @@ const AnalyticsOverview = ({ analyticsData, analyticsLoading, selectedChildId }:
           </View>
 
           {/* Pie Chart: Total Points by Pot */}
-          <Text style={{ fontWeight: "bold", fontSize: 16, marginTop: 18, marginBottom: 7, color: mainTextColor }}>
+          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], fontWeight: "bold", marginTop: MOBILE_LAYOUT.sectionSpacing, marginBottom: MOBILE_LAYOUT.itemSpacing, color: mainTextColor }}>
             Total Points by Pot
           </Text>
           <View style={{ alignItems: "center", justifyContent: "center" }}>
@@ -926,10 +924,10 @@ export function ProgressRing({
           strokeLinecap="round"
         />
       </Svg>
-      <Text style={{ fontWeight: 'bold', fontSize: 18, color: labelColor, marginBottom: 0 }}>
+      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-small"], color: labelColor, marginBottom: 0 }}>
         {amount}
       </Text>
-      <Text style={{ fontSize: 13, color: color, fontWeight: '600' }}>
+      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: color, fontWeight: '600' }}>
         {Math.round(percent * 100)}%
       </Text>
     </View>
@@ -1061,8 +1059,8 @@ function PieChartPointsByPot({
                 borderColor: themeColors.border,
               }}
             />
-            <Text style={{ color: themeColors.text, fontWeight: "600", fontSize: 13, minWidth: 62 }}>{item.name}</Text>
-            <Text style={{ color: themeColors.text, fontWeight: "700", fontSize: 14, marginLeft: 7 }}>
+            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.text, minWidth: 62 }}>{item.name}</Text>
+            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text, fontWeight: 'bold', marginLeft: MOBILE_LAYOUT.itemSpacing }}>
               ₹{item.population.toLocaleString()}
             </Text>
           </View>

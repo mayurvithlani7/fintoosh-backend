@@ -207,9 +207,26 @@ export default function ParentsRequestsScreen() {
       }
 
       showMessage(`Request ${approvalModal.approved ? 'approved' : 'denied'}.`, approvalModal.approved ? 'success' : 'info');
+
+      // OPTIMISTIC UPDATE: Update local state immediately
+      setRequests(prev =>
+        prev.map(req =>
+          req._id === approvalModal.request._id
+            ? {
+                ...req,
+                status: approvalModal.approved ? 'Approved' : 'Denied',
+                updatedAt: new Date().toISOString(),
+                actedAt: new Date().toISOString(),
+                actedBy: '', // Will be updated when refreshed
+                parentComment: approvalModal.comment.trim() || undefined
+              }
+            : req
+        )
+      );
+
       setApprovalModal({ visible: false, request: null, approved: false, comment: '' });
 
-      // Refresh the requests list immediately
+      // Refresh the requests list in background to sync with server
       loadRequests({ page: 1, reset: true });
     } catch (error: any) {
       showMessage(error?.message || 'Failed to update request. Please try again.', 'error');

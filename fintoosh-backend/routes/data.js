@@ -1815,6 +1815,9 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       return res.status(400).json({ message: 'Request has already been processed' });
     }
 
+    // VALIDATE ALL APPROVAL CONDITIONS BEFORE SETTING STATUS
+    let validationError = null;
+
     // Only allow messaging if status is changing from 'Pending'
     if (parentComment && parentComment.trim() && approval.status === 'Pending' && (status === 'Approved' || status === 'Denied')) {
       approval.messages.push({
@@ -1824,13 +1827,6 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         timestamp: new Date()
       });
     }
-
-    approval.status = status;
-    approval.updatedAt = new Date();
-    approval.actedBy = req.user.id;
-    approval.actedAt = new Date();
-
-    await approval.save();
 
     // Notify kid on parent action (approve/deny)
     if (status === 'Approved' || status === 'Denied') {
@@ -2260,6 +2256,14 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         );
       }
     }
+
+    // ONLY UPDATE STATUS AFTER ALL VALIDATIONS PASS
+    approval.status = status;
+    approval.updatedAt = new Date();
+    approval.actedBy = req.user.id;
+    approval.actedAt = new Date();
+
+    await approval.save();
 
     res.json(approval);
   } catch (error) {
