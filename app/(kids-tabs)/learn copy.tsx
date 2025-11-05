@@ -30,12 +30,13 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 16,
-    paddingHorizontal: 4
+    paddingHorizontal: 4,
   },
   title: {
     ...SEMANTIC_TYPOGRAPHY['type-display-medium'],
     marginTop: 8,
-    marginBottom: 16, color: themeColors.primary
+    marginBottom: 16,
+    color: themeColors.primary,
   },
   sectionCard: {
     backgroundColor: themeColors.card,
@@ -46,12 +47,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     width: "95%",
     maxWidth: 480,
     elevation: 2,
-    shadowColor: themeColors.border
+    shadowColor: themeColors.border,
   },
   sectionTitle: {
     ...SEMANTIC_TYPOGRAPHY['type-heading-large'],
     marginBottom: 8,
-    color: themeColors.text
+    color: themeColors.text,
   },
   lessonCard: {
     width: "45%",
@@ -68,7 +69,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderColor: themeColors.border,
     shadowColor: themeColors.border,
     shadowOpacity: 0.15,
-    shadowRadius: 2
+    shadowRadius: 2,
   },
   lessonCard2x2: {
     width: "48%",
@@ -83,22 +84,23 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderColor: themeColors.border,
     shadowColor: themeColors.border,
     shadowOpacity: 0.2,
-    shadowRadius: 3
+    shadowRadius: 3,
   },
   lessonIcon: {
-    ...SEMANTIC_TYPOGRAPHY["type-display-large"],
-    marginBottom: 7
+    fontSize: 35,
+    marginBottom: 7,
   },
   lessonTitle: {
-    ...SEMANTIC_TYPOGRAPHY['type-heading-small'],
+    fontWeight: "600",
+    fontSize: 15,
     textAlign: "center",
-    color: themeColors.text
+    color: themeColors.text,
   },
   modalContainer: {
     flex: 1,
     backgroundColor: themeColors.overlay || 'rgba(0,0,0,0.38)',
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
   },
   modalContent: {
     backgroundColor: themeColors.card,
@@ -108,63 +110,70 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     paddingBottom: 12,
     shadowColor: themeColors.border,
     shadowRadius: 8,
-    elevation: 7
+    elevation: 7,
   },
   modalTitle: {
     ...SEMANTIC_TYPOGRAPHY['type-heading-medium'],
     marginBottom: 9,
-    textAlign: "center", color: themeColors.primary
+    textAlign: "center",
+    color: themeColors.primary,
   },
   modalText: {
     ...SEMANTIC_TYPOGRAPHY['type-body'],
     textAlign: "center",
     marginBottom: 18,
-    color: themeColors.text
+    color: themeColors.text,
   },
   modalSubtitle: {
     ...SEMANTIC_TYPOGRAPHY['type-body-small'],
     textAlign: "center",
     marginBottom: 12,
     color: themeColors.textSecondary,
-    fontStyle: "italic"
+    fontStyle: "italic",
   },
   modalDescription: {
     ...SEMANTIC_TYPOGRAPHY['type-body-small'],
     textAlign: "center",
     marginBottom: 12,
-    color: themeColors.textSecondary
+    color: themeColors.textSecondary,
   },
   sectionHeader: {
-    ...SEMANTIC_TYPOGRAPHY['type-heading-small'], color: themeColors.primary,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: themeColors.primary,
     marginBottom: 8,
-    textAlign: "center"
+    textAlign: "center",
   },
   sectionDescription: {
     ...SEMANTIC_TYPOGRAPHY['type-body-small'],
     color: themeColors.textSecondary,
     textAlign: "center",
-    marginBottom: 16
+    marginBottom: 16,
   },
   cardTitle: {
     ...SEMANTIC_TYPOGRAPHY['type-heading-small'],
     color: themeColors.text,
-    marginBottom: 4
+    marginBottom: 4,
   },
   cardDescription: {
     ...SEMANTIC_TYPOGRAPHY['type-body-small'],
-    color: themeColors.textSecondary
+    color: themeColors.textSecondary,
   },
   accentText: {
-    color: themeColors.primary
+    color: themeColors.primary,
+    fontWeight: "bold",
   },
   successText: {
-    color: themeColors.success
+    color: themeColors.success,
+    fontWeight: "bold",
   },
   warningText: {
-    color: themeColors.warning
+    color: themeColors.warning,
+    fontWeight: "bold",
   },
   errorText: {
-    color: themeColors.error
+    color: themeColors.error,
+    fontWeight: "bold",
   },
   closeButton: {
     backgroundColor: themeColors.surface,
@@ -173,11 +182,11 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 21,
     borderRadius: 8,
-    alignSelf: "center"
+    alignSelf: "center",
   },
   closeButtonText: {
     ...SEMANTIC_TYPOGRAPHY['type-label'],
-    color: themeColors.text
+    color: themeColors.text,
   },
   quizOption: {
     borderRadius: 7,
@@ -187,28 +196,28 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: "center",
     backgroundColor: themeColors.surface,
     borderColor: themeColors.border,
-    borderWidth: 1
+    borderWidth: 1,
   },
   quizButton: {
     backgroundColor: themeColors.success + "22",
     borderRadius: 7,
     paddingHorizontal: 18,
     paddingVertical: 8,
-    marginRight: 10
+    marginRight: 10,
   },
   quizButtonText: {
     ...SEMANTIC_TYPOGRAPHY['type-label'],
-    color: themeColors.success
+    color: themeColors.success,
   },
   quizCloseButton: {
     backgroundColor: themeColors.warning + "33",
     paddingVertical: 7,
     paddingHorizontal: 17,
-    borderRadius: 8
+    borderRadius: 8,
   },
   quizCloseButtonText: {
     ...SEMANTIC_TYPOGRAPHY['type-label'],
-    color: themeColors.warning
+    color: themeColors.warning,
   },
   achievementSection: {
     backgroundColor: themeColors.surface,
@@ -216,16 +225,16 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: themeColors.border
+    borderColor: themeColors.border,
   },
   streakProgress: {
     alignItems: 'center',
-    marginTop: 12
+    marginTop: 12,
   },
   streakBadges: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 8
+    marginBottom: 8,
   },
   streakBadge: {
     width: 40,
@@ -235,21 +244,21 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: themeColors.border
+    borderColor: themeColors.border,
   },
   streakBadgeText: {
-    ...SEMANTIC_TYPOGRAPHY['type-caption']
+    ...SEMANTIC_TYPOGRAPHY['type-caption'],
   },
   quizStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 8
+    marginTop: 8,
   },
   quickAchievements: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginTop: 8
+    marginTop: 8,
   },
   quickBadge: {
     width: 80,
@@ -259,18 +268,18 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: themeColors.border
+    borderColor: themeColors.border,
   },
   quickBadgeIcon: {
-    ...SEMANTIC_TYPOGRAPHY["type-heading-large"],
-    marginBottom: 4
+    fontSize: 24,
+    marginBottom: 4,
   },
   quickBadgeTitle: {
     ...SEMANTIC_TYPOGRAPHY['type-caption-small'],
-    textAlign: 'center'
+    textAlign: 'center',
   },
   progressScroll: {
-    marginTop: 8
+    marginTop: 8,
   },
   progressCard: {
     width: 140,
@@ -280,38 +289,38 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginRight: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: themeColors.border
+    borderColor: themeColors.border,
   },
   progressIcon: {
-    ...SEMANTIC_TYPOGRAPHY["type-heading-medium"],
-    marginBottom: 4
+    fontSize: 20,
+    marginBottom: 4,
   },
   progressTitle: {
     ...SEMANTIC_TYPOGRAPHY['type-caption'],
     textAlign: 'center',
-    marginBottom: 8
+    marginBottom: 8,
   },
   progressBar: {
     width: '100%',
     height: 6,
     backgroundColor: themeColors.surface,
     borderRadius: 3,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3
+    borderRadius: 3,
   },
   progressText: {
     ...SEMANTIC_TYPOGRAPHY['type-caption-small'],
     marginTop: 4,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   completedGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginTop: 8
+    marginTop: 8,
   },
   completedBadge: {
     width: 60,
@@ -319,14 +328,16 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderRadius: 12,
     margin: 4,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   completedIcon: {
-    ...SEMANTIC_TYPOGRAPHY["type-heading-medium"],
-    marginBottom: 2
+    fontSize: 20,
+    marginBottom: 2,
   },
   completedTitle: {
-    ...SEMANTIC_TYPOGRAPHY["type-caption-small"], textAlign: "center"
+    fontSize: 8,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 
   completedBanner: {
@@ -334,19 +345,19 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: 16,
   },
   completedBannerText: {
     color: 'white',
-    ...SEMANTIC_TYPOGRAPHY['type-body']
+    ...SEMANTIC_TYPOGRAPHY['type-body'],
   },
   progressSection: {
-    marginBottom: 16
+    marginBottom: 16,
   },
   progressLabel: {
-    ...SEMANTIC_TYPOGRAPHY['type-body-small'],
+    fontSize: 14,
     textAlign: 'center',
-    marginBottom: 8
+    marginBottom: 8,
   },
   modalProgressBar: {
     width: '100%',
@@ -354,18 +365,18 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.surface,
     borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 8
+    marginBottom: 8,
   },
   modalProgressFill: {
     height: '100%',
-    borderRadius: 4
+    borderRadius: 4,
   },
   progressHint: {
     ...SEMANTIC_TYPOGRAPHY['type-caption'],
     textAlign: 'center',
-    fontStyle: 'italic'
-  }
-  });
+    fontStyle: 'italic',
+  },
+});
 
 export default function LearnScreen() {
   const { themeColors } = useTheme();
@@ -377,10 +388,10 @@ export default function LearnScreen() {
 
   // Tab configuration
   const tabs = [
-    { key: 'adventures', label: 'Adventures', icon: '🎯' },
-    { key: 'videos', label: 'Videos', icon: '🎥' },
-    { key: 'quiz', label: 'Quiz', icon: '🧠' },
-    { key: 'achievements', label: 'Achievements', icon: '🏆' }
+    { key: 'adventures', label: '🎯 Adventures', icon: '🎯' },
+    { key: 'videos', label: '🎥 Videos', icon: '🎥' },
+    { key: 'quiz', label: '🧠 Quiz', icon: '🧠' },
+    { key: 'achievements', label: '🏆 Achievements', icon: '🏆' }
   ];
 
   // Render content based on active tab
@@ -414,15 +425,14 @@ export default function LearnScreen() {
               minWidth: MOBILE_LAYOUT.minTouchTarget,
               minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
-              alignItems: 'center'
-  }}
+              alignItems: 'center',
+            }}
             onPress={() => router.push('/')}
             accessibilityRole="button"
             accessibilityLabel="Go back to home screen"
             accessibilityHint="Return to the main kids dashboard"
           >
-            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text
-  }}>⬅️ Back</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text, fontWeight: 'bold' }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{
@@ -434,15 +444,14 @@ export default function LearnScreen() {
               minWidth: MOBILE_LAYOUT.minTouchTarget,
               minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
-              alignItems: 'center'
-  }}
+              alignItems: 'center',
+            }}
             onPress={() => setHelpModalVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Help and information"
             accessibilityHint="Open help guide for learning about money"
           >
-            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card
-  }}>❓ Help</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
           </TouchableOpacity>
         </View>
         <View style={MOBILE_STYLES.center}>
@@ -458,8 +467,8 @@ export default function LearnScreen() {
         padding: 4,
         marginBottom: 20,
         elevation: 2,
-        shadowColor: themeColors.border
-  }}>
+        shadowColor: themeColors.border,
+      }}>
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -471,24 +480,16 @@ export default function LearnScreen() {
               borderRadius: 12,
               backgroundColor: activeTab === tab.key ? themeColors.primary : 'transparent',
               alignItems: 'center',
-              justifyContent: 'center'
             }}
             accessibilityRole="tab"
             accessibilityState={{ selected: activeTab === tab.key }}
             accessibilityLabel={tab.label}
           >
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-heading-large"],
-              color: activeTab === tab.key ? "white" : themeColors.text,
-              textAlign: "center",
-              marginBottom: 4
-            }}>
-              {tab.icon}
-            </Text>
-            <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
-              color: activeTab === tab.key ? "white" : themeColors.text,
-              textAlign: "center"
+              fontSize: 14,
+              fontWeight: activeTab === tab.key ? 'bold' : 'normal',
+              color: activeTab === tab.key ? 'white' : themeColors.text,
+              textAlign: 'center'
             }}>
               {tab.label}
             </Text>
@@ -516,8 +517,8 @@ export default function LearnScreen() {
               maxHeight: "80%",
               shadowColor: themeColors.border,
               shadowRadius: 10,
-              elevation: 10
-  }}>
+              elevation: 10,
+            }}>
               <Text style={{...styles.modalTitle, padding: 20, textAlign: 'center'}}>Oops! Something went wrong</Text>
               <Text style={{...styles.modalText, paddingHorizontal: 20, paddingBottom: 20}}>
                 We encountered an error loading this module. Please try again.
@@ -730,9 +731,9 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
 
       const response = await fetch(`${API_URL}/education/modules?${params}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
-  }
-  });
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -787,8 +788,8 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
 
       {/* Category Filter */}
       <View style={{ marginBottom: 12 }}>
-        <Text style={[SEMANTIC_TYPOGRAPHY['type-body-small'], { color: themeColors.textSecondary, marginBottom: 8, textAlign: 'center' }]}>
-          Choose Level:
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: themeColors.textSecondary, marginBottom: 8, textAlign: 'center' }}>
+          Choose Topic:
         </Text>
         <View style={{
           flexDirection: 'row',
@@ -814,11 +815,11 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
                   : themeColors.border,
                 minWidth: 70,
                 flex: 1,
-                maxWidth: 100
-  }}
+                maxWidth: 100,
+              }}
             >
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
+                fontSize: 11,
                 fontWeight: selectedCategory === category.key ? 'bold' : 'normal',
                 color: selectedCategory === category.key ? themeColors.primary : themeColors.text,
                 textAlign: 'center'
@@ -832,8 +833,8 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
 
       {/* Difficulty Filter */}
       <View style={{ marginBottom: 16 }}>
-        <Text style={[SEMANTIC_TYPOGRAPHY['type-body-small'], { color: themeColors.textSecondary, marginBottom: 8, textAlign: 'center' }]}>
-          Choose Topic:
+        <Text style={{ fontSize: 14, fontWeight: 'bold', color: themeColors.textSecondary, marginBottom: 8, textAlign: 'center' }}>
+          Choose Level:
         </Text>
         <View style={{
           flexDirection: 'row',
@@ -859,11 +860,11 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
                   : themeColors.border,
                 minWidth: 70,
                 flex: 1,
-                maxWidth: 100
-  }}
+                maxWidth: 100,
+              }}
             >
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
+                fontSize: 11,
                 fontWeight: selectedDifficulty === difficulty.key ? 'bold' : 'normal',
                 color: selectedDifficulty === difficulty.key ? themeColors.secondary : themeColors.text,
                 textAlign: 'center'
@@ -878,7 +879,7 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
       {/* Modules Grid */}
       {modules.length === 0 ? (
         <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.textSecondary, textAlign: 'center' }}>
+          <Text style={{ fontSize: 16, color: themeColors.textSecondary, textAlign: 'center' }}>
             No modules found for the selected filters.
             Try adjusting your category or difficulty preferences!
           </Text>
@@ -887,8 +888,8 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
         <View style={{
           flexDirection: "row",
           flexWrap: "wrap",
-          justifyContent: "center"
-  }}>
+          justifyContent: "center",
+        }}>
           {modules.map((module) => {
             const progress = module.progress;
             const isCompleted = progress?.status === 'completed';
@@ -929,14 +930,14 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
                     right: 8,
                     height: 4,
                     backgroundColor: themeColors.surface,
-                    borderRadius: 2
-  }}>
+                    borderRadius: 2,
+                  }}>
                     <View style={{
                       height: '100%',
                       width: `${progressPercent}%`,
                       backgroundColor: themeColors.primary,
-                      borderRadius: 2
-  }} />
+                      borderRadius: 2,
+                    }} />
                   </View>
                 )}
 
@@ -951,9 +952,9 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
                     width: 20,
                     height: 20,
                     alignItems: 'center',
-                    justifyContent: 'center'
-  }}>
-                    <Text style={{ color: 'white', ...SEMANTIC_TYPOGRAPHY["type-caption"] }}>✓</Text>
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{ color: 'white', fontSize: 12 }}>✓</Text>
                   </View>
                 )}
 
@@ -965,11 +966,14 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
                   backgroundColor: themeColors.surface + 'CC',
                   borderRadius: 8,
                   paddingHorizontal: 6,
-                  paddingVertical: 2
-  }}>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.textSecondary,
+                  paddingVertical: 2,
+                }}>
+                  <Text style={{
+                    fontSize: 10,
+                    fontWeight: 'bold',
+                    color: themeColors.textSecondary,
                     textTransform: 'capitalize'
-                   }}>
+                  }}>
                     {module.difficulty}
                   </Text>
                 </View>
@@ -988,11 +992,11 @@ function EducationModulesSection({ selectedModule, setSelectedModule }: { select
           paddingHorizontal: 20,
           alignItems: "center",
           marginTop: 16,
-          alignSelf: 'center'
-  }}
+          alignSelf: 'center',
+        }}
         onPress={loadModules}
       >
-        <Text style={{ color: themeColors.card }}>
+        <Text style={{ color: themeColors.card, fontWeight: "bold" }}>
           🔄 Refresh Modules
         </Text>
       </TouchableOpacity>
@@ -1053,19 +1057,19 @@ function VideoModal({ videoId, onClose }: { videoId: string; onClose: () => void
         justifyContent: "center",
         marginBottom: 16,
         borderWidth: 2,
-        borderColor: themeColors.primary
-  }}>
+        borderColor: themeColors.primary,
+      }}>
         <Text style={{ fontSize: 40 }}>🎬</Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.primary, marginTop: 8 }}>
+        <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.primary, marginTop: 8 }}>
           Video Coming Soon!
         </Text>
       </View>
 
-      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: "center", marginBottom: 12 }}>
+      <Text style={{ fontSize: 16, textAlign: "center", marginBottom: 12, color: themeColors.text }}>
         {video.description}
       </Text>
 
-      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: "center", marginBottom: 16, fontStyle: "italic" }}>
+      <Text style={{ fontSize: 15, textAlign: "center", marginBottom: 16, fontStyle: "italic", color: themeColors.textSecondary }}>
         {video.content}
       </Text>
 
@@ -1074,10 +1078,11 @@ function VideoModal({ videoId, onClose }: { videoId: string; onClose: () => void
         borderRadius: 12,
         padding: 12,
         marginBottom: 16,
-        width: "100%"
-  }}>
+        width: "100%",
+      }}>
         <Text style={{
-          ...SEMANTIC_TYPOGRAPHY["type-body"],
+          fontSize: 16,
+          fontWeight: "bold",
           color: themeColors.success,
           textAlign: "center",
           marginBottom: 4
@@ -1085,7 +1090,7 @@ function VideoModal({ videoId, onClose }: { videoId: string; onClose: () => void
           🎓 Key Lesson:
         </Text>
         <Text style={{
-          ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+          fontSize: 14,
           color: themeColors.success,
           textAlign: "center"
         }}>
@@ -1115,14 +1120,14 @@ function FinancialLessonsSection() {
         Animated.timing(bounceAnim, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true
-  }),
+          useNativeDriver: true,
+        }),
         Animated.timing(bounceAnim, {
           toValue: 0,
           duration: 1000,
-          useNativeDriver: true
-  })
-  ])
+          useNativeDriver: true,
+        }),
+      ])
     );
     bounce.start();
     return () => bounce.stop();
@@ -1144,7 +1149,8 @@ function FinancialLessonsSection() {
       id: "spending-detective",
       title: "🕵️ Detective Money Mystery!",
       subtitle: "Solve the spending puzzles!",
-      icon: "🕵️", color: themeColors.primary,
+      icon: "🕵️",
+      color: themeColors.primary,
       character: "Detective Penny Wise",
       story: "Follow clues to find the best deals and smart spending choices!",
       rewards: "🔍 Detective Badge + Mystery box surprise!"
@@ -1163,7 +1169,8 @@ function FinancialLessonsSection() {
       id: "money-garden",
       title: "💬 Teen Money Real Talk",
       subtitle: "Real financial scenarios!",
-      icon: "💬", color: themeColors.accent,
+      icon: "💬",
+      color: themeColors.accent,
       character: "Money Advisor",
       story: "Learn practical money skills for real teen life situations!",
       rewards: "🧠 Smart Money Skills + Real World Knowledge!"
@@ -1182,7 +1189,8 @@ function FinancialLessonsSection() {
       id: "quiz-champion",
       title: "👑 Quiz Champion Arena!",
       subtitle: "Battle with brain teasers!",
-      icon: "👑", color: themeColors.error,
+      icon: "👑",
+      color: themeColors.error,
       character: "King Brain Buster",
       story: "Enter the arena and become the ultimate money knowledge champion!",
       rewards: "👑 Crown of Knowledge + Victory celebration!"
@@ -1236,7 +1244,7 @@ function FinancialLessonsSection() {
 
         {!showResults ? (
           <>
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: "center", marginBottom: 20 }}>
+            <Text style={{ fontSize: 16, textAlign: "center", marginBottom: 20, color: themeColors.text }}>
               Experiment with compound interest! Enter your own numbers to see how your money grows! 🎩✨
             </Text>
 
@@ -1252,18 +1260,20 @@ function FinancialLessonsSection() {
                 borderWidth: 2,
                 borderColor: themeColors.primary + '44'
               }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.primary, marginRight: 10 }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.primary, marginRight: 10 }}>
                   💰 Starting Money:
                 </Text>
                 <TextInput
                   style={{
                     flex: 1,
-                    ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.primary,
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: themeColors.primary,
                     textAlign: "center",
                     paddingVertical: 4,
                     backgroundColor: themeColors.primary + '11',
-                    borderRadius: 8
-  }}
+                    borderRadius: 8,
+                  }}
                   value={principal}
                   onChangeText={(text) => {
                     // Only allow numbers and decimal point
@@ -1274,7 +1284,7 @@ function FinancialLessonsSection() {
                   placeholder="100"
                   placeholderTextColor={themeColors.textSecondary}
                 />
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.primary, marginLeft: 5 }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.primary, marginLeft: 5 }}>
                   ₹
                 </Text>
               </View>
@@ -1289,19 +1299,20 @@ function FinancialLessonsSection() {
                 borderWidth: 2,
                 borderColor: themeColors.secondary + '44'
               }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.secondary, marginRight: 10 }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.secondary, marginRight: 10 }}>
                   📊 Interest Rate:
                 </Text>
                 <TextInput
                   style={{
                     flex: 1,
-                    ...SEMANTIC_TYPOGRAPHY["type-body"],
+                    fontSize: 16,
+                    fontWeight: "bold",
                     color: themeColors.secondary,
                     textAlign: "center",
                     paddingVertical: 4,
                     backgroundColor: themeColors.secondary + '11',
-                    borderRadius: 8
-  }}
+                    borderRadius: 8,
+                  }}
                   value={rate}
                   onChangeText={(text) => {
                     // Only allow numbers and decimal point
@@ -1312,7 +1323,7 @@ function FinancialLessonsSection() {
                   placeholder="5"
                   placeholderTextColor={themeColors.textSecondary}
                 />
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.secondary, marginLeft: 5 }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.secondary, marginLeft: 5 }}>
                   %
                 </Text>
               </View>
@@ -1327,18 +1338,20 @@ function FinancialLessonsSection() {
                 borderWidth: 2,
                 borderColor: themeColors.accent + '44'
               }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.accent, marginRight: 10 }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.accent, marginRight: 10 }}>
                   ⏰ Time Period:
                 </Text>
                 <TextInput
                   style={{
                     flex: 1,
-                    ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.accent,
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: themeColors.accent,
                     textAlign: "center",
                     paddingVertical: 4,
                     backgroundColor: themeColors.accent + '11',
-                    borderRadius: 8
-  }}
+                    borderRadius: 8,
+                  }}
                   value={years}
                   onChangeText={(text) => {
                     // Only allow numbers
@@ -1349,7 +1362,7 @@ function FinancialLessonsSection() {
                   placeholder="5"
                   placeholderTextColor={themeColors.textSecondary}
                 />
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.accent, marginLeft: 5 }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.accent, marginLeft: 5 }}>
                   years
                 </Text>
               </View>
@@ -1365,13 +1378,13 @@ function FinancialLessonsSection() {
                 width: "100%",
                 alignItems: "center"
               }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.primary, marginBottom: 8 }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.primary, marginBottom: 8 }}>
                   📈 Quick Preview:
                 </Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text, textAlign: "center" }}>
-                  ₹{principalNum} at {rateNum}% for {yearsNum} years = <Text style={{ color: themeColors.success }}>₹{finalAmount}</Text>
+                <Text style={{ fontSize: 14, color: themeColors.text, textAlign: "center" }}>
+                  ₹{principalNum} at {rateNum}% for {yearsNum} years = <Text style={{ fontWeight: "bold", color: themeColors.success }}>₹{finalAmount}</Text>
                 </Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary, marginTop: 5 }}>
+                <Text style={{ fontSize: 12, color: themeColors.textSecondary, marginTop: 5 }}>
                   (Interest earned: ₹{interestEarned})
                 </Text>
               </View>
@@ -1387,12 +1400,13 @@ function FinancialLessonsSection() {
                 borderRadius: 25,
                 alignItems: "center",
                 marginBottom: 10,
-                elevation: (principalNum <= 0 || rateNum < 0 || yearsNum <= 0) ? 0 : 3
-  }}
+                elevation: (principalNum <= 0 || rateNum < 0 || yearsNum <= 0) ? 0 : 3,
+              }}
             >
               <Text style={{
                 color: (principalNum <= 0 || rateNum < 0 || yearsNum <= 0) ? themeColors.textSecondary : "white",
-                ...SEMANTIC_TYPOGRAPHY["type-body"]
+                fontWeight: "bold",
+                fontSize: 16
               }}>
                 🎩 Show Magic!
               </Text>
@@ -1408,26 +1422,26 @@ function FinancialLessonsSection() {
               alignItems: "center",
               borderWidth: 2,
               borderColor: themeColors.success,
-              width: "100%"
-  }}>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 10, color: themeColors.success }}>
+              width: "100%",
+            }}>
+              <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10, color: themeColors.success }}>
                 🎉 Amazing Results!
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: "center", marginBottom: 8, color: themeColors.text }}>
-                Started with: <Text style={{ color: themeColors.primary }}>₹{principalNum}</Text>
+              <Text style={{ fontSize: 16, textAlign: "center", marginBottom: 8, color: themeColors.text }}>
+                Started with: <Text style={{ fontWeight: "bold", color: themeColors.primary }}>₹{principalNum}</Text>
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: "center", marginBottom: 8, color: themeColors.text }}>
-                After {yearsNum} years: <Text style={{ color: themeColors.success }}>₹{finalAmount}</Text>
+              <Text style={{ fontSize: 16, textAlign: "center", marginBottom: 8, color: themeColors.text }}>
+                After {yearsNum} years: <Text style={{ fontWeight: "bold", color: themeColors.success }}>₹{finalAmount}</Text>
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: "center", marginBottom: 8, color: themeColors.text }}>
-                Interest earned: <Text style={{ color: themeColors.accent }}>₹{interestEarned}</Text>
+              <Text style={{ fontSize: 16, textAlign: "center", marginBottom: 8, color: themeColors.text }}>
+                Interest earned: <Text style={{ fontWeight: "bold", color: themeColors.accent }}>₹{interestEarned}</Text>
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: "center", color: themeColors.text }}>
-                Growth: <Text style={{ color: themeColors.warning }}>+{growthPercent}%</Text>
+              <Text style={{ fontSize: 16, textAlign: "center", color: themeColors.text }}>
+                Growth: <Text style={{ fontWeight: "bold", color: themeColors.warning }}>+{growthPercent}%</Text>
               </Text>
             </View>
 
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: "center", marginBottom: 20, color: themeColors.textSecondary, lineHeight: 20 }}>
+            <Text style={{ fontSize: 14, textAlign: "center", marginBottom: 20, color: themeColors.textSecondary, lineHeight: 20 }}>
               🎩 Compound interest means you earn "interest on interest"! The longer you save, the more your money grows. Start saving early to maximize the magic! ✨
             </Text>
 
@@ -1439,10 +1453,10 @@ function FinancialLessonsSection() {
                 paddingHorizontal: 20,
                 borderRadius: 20,
                 alignItems: "center",
-                marginBottom: 10
-  }}
+                marginBottom: 10,
+              }}
             >
-              <Text style={{ color: "white" }}>
+              <Text style={{ color: "white", fontWeight: "bold" }}>
                 🔄 Try Different Numbers
               </Text>
             </TouchableOpacity>
@@ -1506,19 +1520,19 @@ function FinancialLessonsSection() {
           justifyContent: "center",
           marginBottom: 16,
           borderWidth: 2,
-          borderColor: themeColors.primary
-  }}>
+          borderColor: themeColors.primary,
+        }}>
           <Text style={{ fontSize: 40 }}>🎬</Text>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.primary, marginTop: 8 }}>
+          <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.primary, marginTop: 8 }}>
             Video Coming Soon!
           </Text>
         </View>
 
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: "center", marginBottom: 12 }}>
+        <Text style={{ fontSize: 16, textAlign: "center", marginBottom: 12, color: themeColors.text }}>
           {video.description}
         </Text>
 
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: "center", marginBottom: 16, fontStyle: "italic" }}>
+        <Text style={{ fontSize: 15, textAlign: "center", marginBottom: 16, fontStyle: "italic", color: themeColors.textSecondary }}>
           {video.content}
         </Text>
 
@@ -1527,10 +1541,11 @@ function FinancialLessonsSection() {
           borderRadius: 12,
           padding: 12,
           marginBottom: 16,
-          width: "100%"
-  }}>
+          width: "100%",
+        }}>
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-body"],
+            fontSize: 16,
+            fontWeight: "bold",
             color: themeColors.success,
             textAlign: "center",
             marginBottom: 4
@@ -1538,7 +1553,7 @@ function FinancialLessonsSection() {
             🎓 Key Lesson:
           </Text>
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+            fontSize: 14,
             color: themeColors.success,
             textAlign: "center"
           }}>
@@ -1767,31 +1782,31 @@ function FinancialLessonsSection() {
             alignItems: "center",
             borderWidth: 2,
             borderColor: themeColors.primary,
-            width: "100%"
-  }}>
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-medium"], marginBottom: 10, color: themeColors.primary }}>
+            width: "100%",
+          }}>
+            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10, color: themeColors.primary }}>
               🏆 {finalRank}
             </Text>
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: "center", marginBottom: 15, color: themeColors.text }}>
+            <Text style={{ fontSize: 16, textAlign: "center", marginBottom: 15, color: themeColors.text }}>
               Congratulations, Detective! You've solved {score} out of {cases.length} money mysteries!
             </Text>
 
             <View style={{ flexDirection: "row", justifyContent: "space-around", width: "100%", marginBottom: 15 }}>
               <View style={{ alignItems: "center" }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: 5 }}>📊</Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.primary }}>
+                <Text style={{ fontSize: 24, marginBottom: 5 }}>📊</Text>
+                <Text style={{ fontSize: 14, fontWeight: "bold", color: themeColors.primary }}>
                   Score: {score}/{cases.length}
                 </Text>
               </View>
               <View style={{ alignItems: "center" }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: 5 }}>🔍</Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.secondary }}>
+                <Text style={{ fontSize: 24, marginBottom: 5 }}>🔍</Text>
+                <Text style={{ fontSize: 14, fontWeight: "bold", color: themeColors.secondary }}>
                   Cases: {completedCases}
                 </Text>
               </View>
               <View style={{ alignItems: "center" }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: 5 }}>💎</Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.accent }}>
+                <Text style={{ fontSize: 24, marginBottom: 5 }}>💎</Text>
+                <Text style={{ fontSize: 14, fontWeight: "bold", color: themeColors.accent }}>
                   Evidence: {evidence.length}
                 </Text>
               </View>
@@ -1799,7 +1814,7 @@ function FinancialLessonsSection() {
 
             {evidence.length > 0 && (
               <View style={{ marginTop: 15, width: "100%" }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 10, color: themeColors.success }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 10, color: themeColors.success }}>
                   🎯 Evidence Collected:
                 </Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }}>
@@ -1813,8 +1828,7 @@ function FinancialLessonsSection() {
                       borderWidth: 1,
                       borderColor: themeColors.success
                     }}>
-                      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.success
-  }}>
+                      <Text style={{ fontSize: 12, color: themeColors.success, fontWeight: "bold" }}>
                         {clue}
                       </Text>
                     </View>
@@ -1824,7 +1838,7 @@ function FinancialLessonsSection() {
             )}
           </View>
 
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: "center", marginBottom: 20, color: themeColors.textSecondary, lineHeight: 20 }}>
+          <Text style={{ fontSize: 14, textAlign: "center", marginBottom: 20, color: themeColors.textSecondary, lineHeight: 20 }}>
             🕵️ Remember: Being a money detective means always investigating smart spending choices, comparing prices, and planning ahead. Great work!
           </Text>
 
@@ -1836,10 +1850,10 @@ function FinancialLessonsSection() {
                 paddingVertical: 10,
                 paddingHorizontal: 15,
                 borderRadius: 20,
-                alignItems: "center"
-  }}
+                alignItems: "center",
+              }}
             >
-              <Text style={{ color: "white" }}>
+              <Text style={{ color: "white", fontWeight: "bold" }}>
                 🔄 New Investigation
               </Text>
             </TouchableOpacity>
@@ -1874,17 +1888,16 @@ function FinancialLessonsSection() {
             alignItems: "center",
             justifyContent: "center",
             elevation: 3,
-            zIndex: 10
-  }}
+            zIndex: 10,
+          }}
           accessibilityRole="button"
           accessibilityLabel="Close detective investigation"
         >
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text
-  }}>✕</Text>
+          <Text style={{ fontSize: 16, color: themeColors.text, fontWeight: "bold" }}>✕</Text>
         </TouchableOpacity>
 
         <Text style={[styles.modalTitle, {
-          ...SEMANTIC_TYPOGRAPHY["type-heading-medium"],
+          fontSize: Dimensions.get('window').width < 375 ? 18 : 20,
           marginBottom: 8
         }]}>
           {adventure.icon} Detective Money Mystery!
@@ -1899,25 +1912,30 @@ function FinancialLessonsSection() {
           backgroundColor: themeColors.surface,
           borderRadius: 8,
           padding: Dimensions.get('window').width < 375 ? 8 : 10,
-          elevation: 1
-  }}>
+          elevation: 1,
+        }}>
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.primary,
+            fontSize: Dimensions.get('window').width < 375 ? 12 : 14,
+            color: themeColors.primary,
+            fontWeight: "bold",
             flex: 1,
             textAlign: "center"
           }}>
             {detectiveRank.length > 10 ? detectiveRank.substring(0, 10) + "..." : detectiveRank}
           </Text>
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-caption"],
+            fontSize: Dimensions.get('window').width < 375 ? 12 : 14,
             color: themeColors.secondary,
+            fontWeight: "bold",
             flex: 1,
             textAlign: "center"
           }}>
             Case {currentCase + 1}/{cases.length}
           </Text>
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.accent,
+            fontSize: Dimensions.get('window').width < 375 ? 12 : 14,
+            color: themeColors.accent,
+            fontWeight: "bold",
             flex: 1,
             textAlign: "center"
           }}>
@@ -1934,8 +1952,8 @@ function FinancialLessonsSection() {
           width: "100%",
           borderWidth: 2,
           borderColor: themeColors.primary + '44',
-          elevation: 2
-  }}>
+          elevation: 2,
+        }}>
           <View style={{
             backgroundColor: themeColors.primary + '22',
             borderRadius: 8,
@@ -1944,22 +1962,26 @@ function FinancialLessonsSection() {
             alignSelf: "flex-start"
           }}>
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.primary
+              fontSize: Dimensions.get('window').width < 375 ? 10 : 12,
+              fontWeight: "bold",
+              color: themeColors.primary
             }}>
               {current.difficulty} • {current.category}
             </Text>
           </View>
 
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-body"],
-            marginBottom: 8, color: themeColors.primary,
+            fontSize: Dimensions.get('window').width < 375 ? 14 : 16,
+            fontWeight: "bold",
+            marginBottom: 8,
+            color: themeColors.primary,
             lineHeight: Dimensions.get('window').width < 375 ? 18 : 20
           }}>
             {current.title}
           </Text>
 
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+            fontSize: Dimensions.get('window').width < 375 ? 13 : 14,
             textAlign: "left",
             marginBottom: 12,
             color: themeColors.text,
@@ -1969,9 +1991,10 @@ function FinancialLessonsSection() {
           </Text>
 
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-body"],
+            fontSize: Dimensions.get('window').width < 375 ? 14 : 16,
             textAlign: "center",
             marginBottom: 12,
+            fontWeight: "bold",
             color: themeColors.warning,
             lineHeight: Dimensions.get('window').width < 375 ? 18 : 20
           }}>
@@ -1981,7 +2004,8 @@ function FinancialLessonsSection() {
 
         {/* Options */}
         <Text style={{
-          ...SEMANTIC_TYPOGRAPHY["type-body"],
+          fontSize: Dimensions.get('window').width < 375 ? 14 : 16,
+          fontWeight: "bold",
           marginBottom: 8,
           color: themeColors.text
         }}>
@@ -2006,13 +2030,14 @@ function FinancialLessonsSection() {
               borderColor: selected === index
                 ? (index === current.correct ? themeColors.success : themeColors.error)
                 : themeColors.border,
-              elevation: 1
-  }}
+              elevation: 1,
+            }}
           >
             <Text style={{
+              fontWeight: "bold",
               color: themeColors.text,
               textAlign: "center",
-              ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+              fontSize: Dimensions.get('window').width < 375 ? 13 : 14,
               lineHeight: Dimensions.get('window').width < 375 ? 16 : 18
             }}>
               {option}
@@ -2031,10 +2056,11 @@ function FinancialLessonsSection() {
               borderWidth: 2,
               borderColor: selected === current.correct ? themeColors.success : themeColors.warning,
               width: "100%",
-              elevation: 2
-  }}>
+              elevation: 2,
+            }}>
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-body"],
+                fontSize: Dimensions.get('window').width < 375 ? 14 : 16,
+                fontWeight: "bold",
                 color: selected === current.correct ? themeColors.success : themeColors.warning,
                 textAlign: "center",
                 marginBottom: 8
@@ -2051,7 +2077,8 @@ function FinancialLessonsSection() {
                   alignSelf: "center"
                 }}>
                   <Text style={{
-                    ...SEMANTIC_TYPOGRAPHY["type-caption"],
+                    fontSize: Dimensions.get('window').width < 375 ? 12 : 14,
+                    fontWeight: "bold",
                     color: themeColors.success
                   }}>
                     + {current.evidence}
@@ -2060,7 +2087,7 @@ function FinancialLessonsSection() {
               )}
 
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-caption"],
+                fontSize: Dimensions.get('window').width < 375 ? 12 : 14,
                 textAlign: "center",
                 color: themeColors.textSecondary,
                 lineHeight: Dimensions.get('window').width < 375 ? 16 : 20
@@ -2078,12 +2105,13 @@ function FinancialLessonsSection() {
                   paddingHorizontal: Dimensions.get('window').width < 375 ? 20 : 24,
                   borderRadius: 20,
                   alignItems: "center",
-                  elevation: 3
-  }}
+                  elevation: 3,
+                }}
               >
                 <Text style={{
                   color: "white",
-                  ...SEMANTIC_TYPOGRAPHY["type-body"]
+                  fontWeight: "bold",
+                  fontSize: Dimensions.get('window').width < 375 ? 14 : 16
                 }}>
                   Next Case 🔍
                 </Text>
@@ -2097,7 +2125,7 @@ function FinancialLessonsSection() {
                 onPress={onClose}
               >
                 <Text style={[styles.closeButtonText, {
-                  ...SEMANTIC_TYPOGRAPHY["type-body-small"]
+                  fontSize: Dimensions.get('window').width < 375 ? 13 : 14
                 }]}>
                   Complete Investigation
                 </Text>
@@ -2116,7 +2144,9 @@ function FinancialLessonsSection() {
             width: "100%"
           }}>
             <Text style={{
-              fontSize: Dimensions.get('window').width < 375 ? 11 : 12, color: themeColors.accent,
+              fontSize: Dimensions.get('window').width < 375 ? 11 : 12,
+              fontWeight: "bold",
+              color: themeColors.accent,
               textAlign: "center"
             }}>
               💎 Evidence Collected: {evidence.length} clues
@@ -2159,11 +2189,12 @@ function FinancialLessonsSection() {
               justifyContent: "center"
             }}
           >
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-small"], color: "white" }}>✕</Text>
+            <Text style={{ fontSize: 18, color: "white" }}>✕</Text>
           </TouchableOpacity>
 
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-heading-medium"],
+            fontSize: 20,
+            fontWeight: "bold",
             color: "white",
             textAlign: "center",
             marginBottom: 5
@@ -2172,7 +2203,7 @@ function FinancialLessonsSection() {
           </Text>
 
           <Text style={{
-            ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+            fontSize: 14,
             color: "white",
             opacity: 0.9,
             textAlign: "center"
@@ -2207,14 +2238,17 @@ function FinancialLessonsSection() {
             shadowRadius: 5
           }}>
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-heading-small"], color: themeColors.primary,
+              fontSize: 18,
+              fontWeight: "bold",
+              color: themeColors.primary,
               textAlign: "center",
               marginBottom: 10
             }}>
               💬 Welcome to Teen Money Real Talk!
             </Text>
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary,
+              fontSize: 14,
+              color: themeColors.textSecondary,
               textAlign: "center",
               lineHeight: 20
             }}>
@@ -2226,7 +2260,11 @@ function FinancialLessonsSection() {
           {/* Part-Time Job Money */}
           <View style={{ marginBottom: 25 }}>
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 15, textAlign: "center"
+              fontSize: 18,
+              fontWeight: "bold",
+              marginBottom: 15,
+              color: themeColors.text,
+              textAlign: "center"
             }}>
               💼 Part-Time Job Money
             </Text>
@@ -2245,21 +2283,20 @@ function FinancialLessonsSection() {
               shadowRadius: 3
             }}>
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginRight: 12 }}>🧑‍🍳</Text>
+                <Text style={{ fontSize: 28, marginRight: 12 }}>🧑‍🍳</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text }}>
+                  <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.text }}>
                     Fast Food Job: ₹200/hour
                   </Text>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.success
-  }}>
+                  <Text style={{ fontSize: 14, color: themeColors.success, fontWeight: "bold" }}>
                     4 hours/week = ₹800/month
                   </Text>
                 </View>
               </View>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20, marginBottom: 10 }}>
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20, marginBottom: 10 }}>
                 After taxes and transport: You keep about ₹600. Use it wisely!
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary, fontStyle: "italic" }}>
+              <Text style={{ fontSize: 12, color: themeColors.textSecondary, fontStyle: "italic" }}>
                 💡 Pro tip: Save 20% automatically before spending the rest
               </Text>
             </View>
@@ -2278,18 +2315,17 @@ function FinancialLessonsSection() {
               shadowRadius: 3
             }}>
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginRight: 12 }}>📱</Text>
+                <Text style={{ fontSize: 28, marginRight: 12 }}>📱</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text }}>
+                  <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.text }}>
                     New Phone Goal: ₹15,000
                   </Text>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.primary
-  }}>
+                  <Text style={{ fontSize: 14, color: themeColors.primary, fontWeight: "bold" }}>
                     At ₹600/month → 25 months!
                   </Text>
                 </View>
               </View>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20 }}>
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20 }}>
                 Two years of saving! But you'll have earned ₹15,000 total.
                 Is waiting worth it for the phone you really want?
               </Text>
@@ -2299,7 +2335,11 @@ function FinancialLessonsSection() {
           {/* Social Media Money */}
           <View style={{ marginBottom: 25 }}>
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 15, textAlign: "center"
+              fontSize: 18,
+              fontWeight: "bold",
+              marginBottom: 15,
+              color: themeColors.text,
+              textAlign: "center"
             }}>
               📱 Social Media Money
             </Text>
@@ -2317,22 +2357,21 @@ function FinancialLessonsSection() {
               shadowRadius: 3
             }}>
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginRight: 12 }}>🎮</Text>
+                <Text style={{ fontSize: 28, marginRight: 12 }}>🎮</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text }}>
+                  <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.text }}>
                     Gaming Streamer
                   </Text>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.secondary
-  }}>
+                  <Text style={{ fontSize: 14, color: themeColors.secondary, fontWeight: "bold" }}>
                     10,000 followers = ₹5,000-15,000/month
                   </Text>
                 </View>
               </View>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20, marginBottom: 10 }}>
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20, marginBottom: 10 }}>
                 But you need expensive gaming setup, consistent streaming, and building an audience first.
                 Most people lose money trying this!
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.warning, fontStyle: "italic" }}>
+              <Text style={{ fontSize: 12, color: themeColors.warning, fontStyle: "italic" }}>
                 ⚠️ Warning: Social media "jobs" usually cost more than they pay
               </Text>
             </View>
@@ -2350,18 +2389,17 @@ function FinancialLessonsSection() {
               shadowRadius: 3
             }}>
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginRight: 12 }}>🤝</Text>
+                <Text style={{ fontSize: 28, marginRight: 12 }}>🤝</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text }}>
+                  <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.text }}>
                     Brand Sponsorships
                   </Text>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.accent
-  }}>
+                  <Text style={{ fontSize: 14, color: themeColors.accent, fontWeight: "bold" }}>
                     Gaming companies pay ₹2,000-10,000 per post
                   </Text>
                 </View>
               </View>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20 }}>
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20 }}>
                 Real brands pay real money! But you need 50K+ genuine followers and consistent posting.
                 Fake followers don't fool anyone.
               </Text>
@@ -2371,7 +2409,11 @@ function FinancialLessonsSection() {
           {/* Online Shopping Smart */}
           <View style={{ marginBottom: 25 }}>
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 15, textAlign: "center"
+              fontSize: 18,
+              fontWeight: "bold",
+              marginBottom: 15,
+              color: themeColors.text,
+              textAlign: "center"
             }}>
               🛒 Online Shopping Smart
             </Text>
@@ -2389,21 +2431,20 @@ function FinancialLessonsSection() {
               shadowRadius: 3
             }}>
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginRight: 12 }}>👟</Text>
+                <Text style={{ fontSize: 28, marginRight: 12 }}>👟</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text }}>
+                  <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.text }}>
                     Sneakers: ₹3,000 (with coupon)
                   </Text>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.warning
-  }}>
+                  <Text style={{ fontSize: 14, color: themeColors.warning, fontWeight: "bold" }}>
                     Regular price: ₹4,500
                   </Text>
                 </View>
               </View>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20, marginBottom: 10 }}>
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20, marginBottom: 10 }}>
                 You save ₹1,500! But did you really need them? Compare with your savings goal.
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary, fontStyle: "italic" }}>
+              <Text style={{ fontSize: 12, color: themeColors.textSecondary, fontStyle: "italic" }}>
                 💡 Shopping hack: Set a 24-hour waiting period for big purchases
               </Text>
             </View>
@@ -2421,18 +2462,17 @@ function FinancialLessonsSection() {
               shadowRadius: 3
             }}>
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginRight: 12 }}>🎧</Text>
+                <Text style={{ fontSize: 28, marginRight: 12 }}>🎧</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text }}>
+                  <Text style={{ fontSize: 16, fontWeight: "bold", color: themeColors.text }}>
                     Wireless Earbuds: ₹8,000
                   </Text>
-                  <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.error
-  }}>
+                  <Text style={{ fontSize: 14, color: themeColors.error, fontWeight: "bold" }}>
                     EMI: ₹1,000/month for 8 months
                   </Text>
                 </View>
               </View>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20 }}>
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20 }}>
                 Total cost: ₹10,000+ with interest! That gaming console you wanted?
                 Gone for 8 months. Is it worth it?
               </Text>
@@ -2451,7 +2491,8 @@ function FinancialLessonsSection() {
             shadowRadius: 4
           }}>
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-body"],
+              fontSize: 16,
+              fontWeight: "bold",
               color: themeColors.success,
               textAlign: "center",
               marginBottom: 12
@@ -2460,17 +2501,17 @@ function FinancialLessonsSection() {
             </Text>
 
             <View style={{ marginBottom: 8 }}>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20, marginBottom: 8 }}>
-                • <Text style={{ color: themeColors.primary }}>UPI Payments:</Text> Free and instant, but keep UPI PIN secret
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20, marginBottom: 8 }}>
+                • <Text style={{ fontWeight: "bold", color: themeColors.primary }}>UPI Payments:</Text> Free and instant, but keep UPI PIN secret
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20, marginBottom: 8 }}>
-                • <Text style={{ color: themeColors.primary }}>Mobile Banking:</Text> Check balances daily, set spending limits
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20, marginBottom: 8 }}>
+                • <Text style={{ fontWeight: "bold", color: themeColors.primary }}>Mobile Banking:</Text> Check balances daily, set spending limits
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20, marginBottom: 8 }}>
-                • <Text style={{ color: themeColors.primary }}>Cashback Apps:</Text> Legit ones give 1-5%, avoid "too good to be true"
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20, marginBottom: 8 }}>
+                • <Text style={{ fontWeight: "bold", color: themeColors.primary }}>Cashback Apps:</Text> Legit ones give 1-5%, avoid "too good to be true"
               </Text>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, lineHeight: 20 }}>
-                • <Text style={{ color: themeColors.primary }}>Never Share:</Text> Card details, OTPs, or banking passwords
+              <Text style={{ fontSize: 14, color: themeColors.textSecondary, lineHeight: 20 }}>
+                • <Text style={{ fontWeight: "bold", color: themeColors.primary }}>Never Share:</Text> Card details, OTPs, or banking passwords
               </Text>
             </View>
           </View>
@@ -2487,7 +2528,9 @@ function FinancialLessonsSection() {
             shadowRadius: 4
           }}>
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.primary,
+              fontSize: 16,
+              fontWeight: "bold",
+              color: themeColors.primary,
               textAlign: "center",
               marginBottom: 12
             }}>
@@ -2495,7 +2538,8 @@ function FinancialLessonsSection() {
             </Text>
 
             <Text style={{
-              ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary,
+              fontSize: 14,
+              color: themeColors.textSecondary,
               textAlign: "center",
               lineHeight: 20,
               marginBottom: 15
@@ -2509,31 +2553,31 @@ function FinancialLessonsSection() {
               marginTop: 10
             }}>
               <View style={{ alignItems: "center", flex: 1 }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: 5 }}>🎮</Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.primary, textAlign: "center" }}>
+                <Text style={{ fontSize: 24, marginBottom: 5 }}>🎮</Text>
+                <Text style={{ fontSize: 12, fontWeight: "bold", color: themeColors.primary, textAlign: "center" }}>
                   Social Media
                 </Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.textSecondary, textAlign: "center" }}>
+                <Text style={{ fontSize: 10, color: themeColors.textSecondary, textAlign: "center" }}>
                   Fun but risky
                 </Text>
               </View>
 
               <View style={{ alignItems: "center", flex: 1 }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: 5 }}>💼</Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.success, textAlign: "center" }}>
+                <Text style={{ fontSize: 24, marginBottom: 5 }}>💼</Text>
+                <Text style={{ fontSize: 12, fontWeight: "bold", color: themeColors.success, textAlign: "center" }}>
                   Part-Time Work
                 </Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.textSecondary, textAlign: "center" }}>
+                <Text style={{ fontSize: 10, color: themeColors.textSecondary, textAlign: "center" }}>
                   Steady & reliable
                 </Text>
               </View>
 
               <View style={{ alignItems: "center", flex: 1 }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: 5 }}>🛒</Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.warning, textAlign: "center" }}>
+                <Text style={{ fontSize: 24, marginBottom: 5 }}>🛒</Text>
+                <Text style={{ fontSize: 12, fontWeight: "bold", color: themeColors.warning, textAlign: "center" }}>
                   Smart Shopping
                 </Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.textSecondary, textAlign: "center" }}>
+                <Text style={{ fontSize: 10, color: themeColors.textSecondary, textAlign: "center" }}>
                   Save on wants
                 </Text>
               </View>
@@ -2574,7 +2618,8 @@ function FinancialLessonsSection() {
           >
             <Text style={{
               color: "white",
-              ...SEMANTIC_TYPOGRAPHY["type-body"]
+              fontWeight: "bold",
+              fontSize: 16
             }}>
               💬 Finish Real Talk
             </Text>
@@ -2657,7 +2702,8 @@ function FinancialLessonsSection() {
         return {
           title: "✨ Kind Helper Fairy",
           message: "You've shown wonderful generosity! Your sparkles brought smiles to many faces. Keep practicing kindness and you'll become even more magical! 💫",
-          badge: "🎖️ Kindness Helper", color: themeColors.primary
+          badge: "🎖️ Kindness Helper",
+          color: themeColors.primary
         };
       } else {
         return {
@@ -2690,23 +2736,23 @@ function FinancialLessonsSection() {
             alignItems: "center",
             borderWidth: 2,
             borderColor: ending.color,
-            width: "100%"
-  }}>
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-medium"], marginBottom: 10, color: ending.color }}>
+            width: "100%",
+          }}>
+            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10, color: ending.color }}>
               {ending.badge}
             </Text>
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: "center", marginBottom: 15, color: themeColors.text }}>
+            <Text style={{ fontSize: 16, textAlign: "center", marginBottom: 15, color: themeColors.text }}>
               {ending.message}
             </Text>
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.primary }}>
+            <Text style={{ fontSize: 14, fontWeight: "bold", color: themeColors.primary }}>
               Final Sparkles: {magicSparkles} ✨
             </Text>
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.secondary }}>
+            <Text style={{ fontSize: 14, fontWeight: "bold", color: themeColors.secondary }}>
               Generosity Score: {generosityScore}/12 🌟
             </Text>
           </View>
 
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: "center", marginBottom: 20, color: themeColors.textSecondary, lineHeight: 20 }}>
+          <Text style={{ fontSize: 14, textAlign: "center", marginBottom: 20, color: themeColors.textSecondary, lineHeight: 20 }}>
             🧚 Remember: Giving creates magic! When you share kindness, joy multiplies and comes back to you. Every act of generosity makes the world a little brighter! ✨
           </Text>
 
@@ -2718,10 +2764,10 @@ function FinancialLessonsSection() {
                 paddingVertical: 10,
                 paddingHorizontal: 15,
                 borderRadius: 20,
-                alignItems: "center"
-  }}
+                alignItems: "center",
+              }}
             >
-              <Text style={{ color: "white" }}>
+              <Text style={{ color: "white", fontWeight: "bold" }}>
                 🔄 Try Again
               </Text>
             </TouchableOpacity>
@@ -2742,12 +2788,10 @@ function FinancialLessonsSection() {
 
         {/* Progress and Sparkles */}
         <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%", marginBottom: 15 }}>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.primary
-  }}>
+          <Text style={{ fontSize: 14, color: themeColors.primary, fontWeight: "bold" }}>
             Scene {currentScene + 1}/{scenes.length}
           </Text>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.secondary
-  }}>
+          <Text style={{ fontSize: 14, color: themeColors.secondary, fontWeight: "bold" }}>
             ✨ {magicSparkles} Sparkles
           </Text>
         </View>
@@ -2763,17 +2807,17 @@ function FinancialLessonsSection() {
           borderWidth: 2,
           borderColor: themeColors.primary + '44'
         }}>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 10, color: themeColors.primary }}>
+          <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10, color: themeColors.primary }}>
             {current.title}
           </Text>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-display-large"], marginBottom: 10 }}>{current.image}</Text>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: "center", marginBottom: 15, color: themeColors.text, lineHeight: 20 }}>
+          <Text style={{ fontSize: 32, marginBottom: 10 }}>{current.image}</Text>
+          <Text style={{ fontSize: 14, textAlign: "center", marginBottom: 15, color: themeColors.text, lineHeight: 20 }}>
             {current.story}
           </Text>
         </View>
 
         {/* Choices */}
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 10, color: themeColors.text }}>
+        <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 10, color: themeColors.text }}>
           What will you do?
         </Text>
 
@@ -2789,10 +2833,11 @@ function FinancialLessonsSection() {
               width: "100%",
               alignItems: "center",
               borderWidth: 2,
-              borderColor: choice.generous ? themeColors.success : themeColors.error
-  }}
+              borderColor: choice.generous ? themeColors.success : themeColors.error,
+            }}
           >
             <Text style={{
+              fontWeight: "bold",
               color: choice.generous ? themeColors.success : themeColors.error,
               textAlign: "center"
             }}>
@@ -2842,13 +2887,13 @@ function FinancialLessonsSection() {
             outputRange: [1, 1.05, 1]
           }) }]
         }}>
-          <Text style={[styles.modalTitle, { ...SEMANTIC_TYPOGRAPHY["type-heading-large"] }]}>{adventure.icon} {adventure.title}</Text>
+          <Text style={[styles.modalTitle, { fontSize: 24 }]}>{adventure.icon} {adventure.title}</Text>
         </Animated.View>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: "center", marginBottom: 8, color: themeColors.textSecondary }}>
+        <Text style={{ fontSize: 14, textAlign: "center", marginBottom: 8, color: themeColors.textSecondary }}>
           {adventure.subtitle}
         </Text>
         <Text style={styles.modalText}>{adventure.story}</Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: "center", marginTop: 12, color: themeColors.success }}>
+        <Text style={{ fontSize: 14, fontWeight: "bold", textAlign: "center", marginTop: 12, color: themeColors.success }}>
           {adventure.rewards}
         </Text>
         <TouchableOpacity
@@ -2894,7 +2939,7 @@ function FinancialLessonsSection() {
                 >
                   {adventure.title}
                 </Text>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.textSecondary, textAlign: 'center', marginTop: 2 }}>
+                <Text style={{ fontSize: 11, color: themeColors.textSecondary, textAlign: 'center', marginTop: 2 }}>
                   {adventure.subtitle}
                 </Text>
               </TouchableOpacity>
@@ -2983,7 +3028,7 @@ function VideoLearningSection({ setOpenLesson }: { setOpenLesson: (lesson: strin
       <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 12 }]}>
         🎥 Fun Learning Videos
       </Text>
-      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, textAlign: "center", marginBottom: 16 }}>
+      <Text style={{ fontSize: 14, color: themeColors.textSecondary, textAlign: "center", marginBottom: 16 }}>
         Watch these cool videos to learn about money in a fun way!
       </Text>
 
@@ -2999,8 +3044,8 @@ function VideoLearningSection({ setOpenLesson }: { setOpenLesson: (lesson: strin
               flexDirection: "row",
               alignItems: "center",
               elevation: 2,
-              shadowColor: themeColors.border
-  }}
+              shadowColor: themeColors.border,
+            }}
             onPress={() => {
               // Show video placeholder modal
               setOpenLesson(`video-${video.id}`);
@@ -3014,9 +3059,9 @@ function VideoLearningSection({ setOpenLesson }: { setOpenLesson: (lesson: strin
               borderRadius: 8,
               alignItems: "center",
               justifyContent: "center",
-              marginRight: 16
-  }}>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-large"] }}>{video.thumbnail}</Text>
+              marginRight: 16,
+            }}>
+              <Text style={{ fontSize: 24 }}>{video.thumbnail}</Text>
               <View style={{
                 position: "absolute",
                 bottom: 4,
@@ -3024,9 +3069,9 @@ function VideoLearningSection({ setOpenLesson }: { setOpenLesson: (lesson: strin
                 backgroundColor: themeColors.primary,
                 borderRadius: 4,
                 paddingHorizontal: 4,
-                paddingVertical: 2
-  }}>
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: "white" }}>
+                paddingVertical: 2,
+              }}>
+                <Text style={{ fontSize: 8, color: "white", fontWeight: "bold" }}>
                   {video.duration}
                 </Text>
               </View>
@@ -3035,12 +3080,16 @@ function VideoLearningSection({ setOpenLesson }: { setOpenLesson: (lesson: strin
             {/* Video Info */}
             <View style={{ flex: 1 }}>
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text, marginBottom: 4
+                fontSize: 16,
+                fontWeight: "bold",
+                color: themeColors.text,
+                marginBottom: 4
               }}>
                 {video.title}
               </Text>
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary,
+                fontSize: 12,
+                color: themeColors.textSecondary,
                 marginBottom: 6
               }}>
                 {video.description}
@@ -3050,10 +3099,12 @@ function VideoLearningSection({ setOpenLesson }: { setOpenLesson: (lesson: strin
                 borderRadius: 12,
                 paddingHorizontal: 8,
                 paddingVertical: 2,
-                alignSelf: "flex-start"
-  }}>
+                alignSelf: "flex-start",
+              }}>
                 <Text style={{
-                  ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.accent,
+                  fontSize: 10,
+                  fontWeight: "bold",
+                  color: themeColors.accent,
                   textTransform: "capitalize"
                 }}>
                   {video.category}
@@ -3068,16 +3119,17 @@ function VideoLearningSection({ setOpenLesson }: { setOpenLesson: (lesson: strin
               backgroundColor: themeColors.primary,
               borderRadius: 20,
               alignItems: "center",
-              justifyContent: "center"
-  }}>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: "white" }}>▶️</Text>
+              justifyContent: "center",
+            }}>
+              <Text style={{ fontSize: 16, color: "white" }}>▶️</Text>
             </View>
           </TouchableOpacity>
         ))}
       </View>
 
       <Text style={{
-        ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary,
+        fontSize: 14,
+        color: themeColors.textSecondary,
         textAlign: "center",
         marginTop: 16,
         fontStyle: "italic"
@@ -3110,7 +3162,8 @@ function QuizSection() {
       description: "Show off your saving skills!",
       icon: "🐷",
       questions: 6,
-      difficulty: "Medium", color: themeColors.primary
+      difficulty: "Medium",
+      color: themeColors.primary
     },
     {
       id: "spending-detective",
@@ -3142,7 +3195,7 @@ function QuizSection() {
       <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 12 }]}>
         🧠 Money Quizzes
       </Text>
-      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, textAlign: "center", marginBottom: 16 }}>
+      <Text style={{ fontSize: 14, color: themeColors.textSecondary, textAlign: "center", marginBottom: 16 }}>
         Challenge yourself and earn quiz badges! 🏆
       </Text>
 
@@ -3161,8 +3214,8 @@ function QuizSection() {
               elevation: 2,
               shadowColor: themeColors.border,
               borderLeftWidth: 4,
-              borderLeftColor: quiz.color
-  }}
+              borderLeftColor: quiz.color,
+            }}
             accessibilityRole="button"
             accessibilityLabel={`Start ${quiz.title}`}
             accessibilityHint={`Begin ${quiz.questions} question quiz`}
@@ -3175,42 +3228,50 @@ function QuizSection() {
               borderRadius: 30,
               alignItems: "center",
               justifyContent: "center",
-              marginRight: 16
-  }}>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-display-medium"] }}>{quiz.icon}</Text>
+              marginRight: 16,
+            }}>
+              <Text style={{ fontSize: 28 }}>{quiz.icon}</Text>
             </View>
 
             {/* Quiz Info */}
             <View style={{ flex: 1 }}>
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-heading-small"], color: themeColors.text, marginBottom: 4
+                fontSize: 18,
+                fontWeight: "bold",
+                color: themeColors.text,
+                marginBottom: 4
               }}>
                 {quiz.title}
               </Text>
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, marginBottom: 8
+                fontSize: 14,
+                color: themeColors.textSecondary,
+                marginBottom: 8
               }}>
                 {quiz.description}
               </Text>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <Text style={{
-                  ...SEMANTIC_TYPOGRAPHY["type-caption"],
+                  fontSize: 12,
                   backgroundColor: quiz.color + '44',
                   color: quiz.color,
                   paddingHorizontal: 8,
                   paddingVertical: 2,
                   borderRadius: 10,
-                  marginRight: 8
-  }}>
+                  fontWeight: "bold",
+                  marginRight: 8,
+                }}>
                   {quiz.questions} Questions
                 </Text>
                 <Text style={{
-                  ...SEMANTIC_TYPOGRAPHY["type-caption"],
-                  backgroundColor: themeColors.accent + '44', color: themeColors.accent,
+                  fontSize: 12,
+                  backgroundColor: themeColors.accent + '44',
+                  color: themeColors.accent,
                   paddingHorizontal: 8,
                   paddingVertical: 2,
-                  borderRadius: 10
-  }}>
+                  borderRadius: 10,
+                  fontWeight: "bold",
+                }}>
                   {quiz.difficulty}
                 </Text>
               </View>
@@ -3223,9 +3284,9 @@ function QuizSection() {
               backgroundColor: quiz.color,
               borderRadius: 25,
               alignItems: "center",
-              justifyContent: "center"
-  }}>
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-medium"], color: "white" }}>▶️</Text>
+              justifyContent: "center",
+            }}>
+              <Text style={{ fontSize: 20, color: "white" }}>▶️</Text>
             </View>
           </TouchableOpacity>
         ))}
@@ -3236,16 +3297,19 @@ function QuizSection() {
         borderRadius: 12,
         padding: 16,
         marginTop: 16,
-        alignItems: "center"
-  }}>
+        alignItems: "center",
+      }}>
         <Text style={{
-          ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.primary,
+          fontSize: 16,
+          fontWeight: "bold",
+          color: themeColors.primary,
           marginBottom: 8
         }}>
           🎯 Quiz Champion Tips
         </Text>
         <Text style={{
-          ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary,
+          fontSize: 14,
+          color: themeColors.textSecondary,
           textAlign: "center",
           lineHeight: 20
         }}>
@@ -3593,8 +3657,8 @@ function MyAchievementsSection() {
       {/* Daily Streak */}
       <View style={[styles.achievementSection, { backgroundColor: themeColors.surface }]}>
         <Text style={[styles.sectionHeader, { color: themeColors.primary }]}>🔥 Daily Streaks</Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text, marginBottom: 8 }}>
-          Current streak: <Text style={{ color: themeColors.accent }}>{dailyStreak} days</Text>
+        <Text style={{ fontSize: 16, color: themeColors.text, marginBottom: 8 }}>
+          Current streak: <Text style={{ fontWeight: 'bold', color: themeColors.accent }}>{dailyStreak} days</Text>
         </Text>
 
         <View style={styles.streakProgress}>
@@ -3613,7 +3677,7 @@ function MyAchievementsSection() {
               </View>
             ))}
           </View>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary, marginTop: 8 }}>
+          <Text style={{ fontSize: 12, color: themeColors.textSecondary, marginTop: 8 }}>
             {dailyStreak === 0 ? "Start your streak today!" :
              dailyStreak < 3 ? `${3 - dailyStreak} more days to 3-day badge!` :
              dailyStreak < 7 ? `${7 - dailyStreak} more days to Week Warrior!` :
@@ -3626,14 +3690,14 @@ function MyAchievementsSection() {
       <View style={[styles.achievementSection, { backgroundColor: themeColors.surface }]}>
         <Text style={[styles.sectionHeader, { color: themeColors.secondary }]}>🧠 Quiz Champion</Text>
         <View style={styles.quizStats}>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text }}>
-            Quizzes taken: <Text>{quizStats.totalQuizzes}</Text>
+          <Text style={{ fontSize: 14, color: themeColors.text }}>
+            Quizzes taken: <Text style={{ fontWeight: 'bold' }}>{quizStats.totalQuizzes}</Text>
           </Text>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text }}>
-            Best score: <Text>{quizStats.bestScore}%</Text>
+          <Text style={{ fontSize: 14, color: themeColors.text }}>
+            Best score: <Text style={{ fontWeight: 'bold' }}>{quizStats.bestScore}%</Text>
           </Text>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text }}>
-            Average: <Text>{quizStats.averageScore}%</Text>
+          <Text style={{ fontSize: 14, color: themeColors.text }}>
+            Average: <Text style={{ fontWeight: 'bold' }}>{quizStats.averageScore}%</Text>
           </Text>
         </View>
       </View>
@@ -3722,13 +3786,12 @@ function MyAchievementsSection() {
           paddingVertical: 10,
           paddingHorizontal: 20,
           alignItems: "center",
-          marginTop: 16
-  }}
+          marginTop: 16,
+        }}
         onPress={refreshAchievements}
         disabled={loading}
       >
-        <Text style={{ color: loading ? themeColors.textSecondary : themeColors.card
-  }}>
+        <Text style={{ color: loading ? themeColors.textSecondary : themeColors.card, fontWeight: "bold" }}>
           {loading ? "⏳ Refreshing..." : "🔄 Refresh Progress"}
         </Text>
       </TouchableOpacity>
@@ -3965,13 +4028,13 @@ function LessonQuizModal({ onClose, quizType }: { onClose: () => void; quizType?
   if (finished) {
     return (
       <View style={{ padding: 18, alignItems: "center" }}>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-medium"], marginBottom: 5 }}>🧠 Quiz Complete!</Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 12 }}>You scored {score} out of {questions.length}</Text>
+        <Text style={{ fontSize: 21, fontWeight: "bold", marginBottom: 5 }}>🧠 Quiz Complete!</Text>
+        <Text style={{ fontSize: 16, marginBottom: 12 }}>You scored {score} out of {questions.length}</Text>
         <TouchableOpacity onPress={restart} style={{ backgroundColor: themeColors.success + "22", borderRadius: 7, padding: 10, marginBottom: 7 }}>
           <Text style={{ fontWeight: "700", color: themeColors.success }}>Take Again</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onClose} style={{ backgroundColor: themeColors.warning + "33", paddingVertical: 7, paddingHorizontal: 19, borderRadius: 8 }}>
-          <Text style={{ color: themeColors.warning }}>Close</Text>
+          <Text style={{ fontWeight: "bold", color: themeColors.warning }}>Close</Text>
         </TouchableOpacity>
       </View>
     );
@@ -3983,7 +4046,7 @@ function LessonQuizModal({ onClose, quizType }: { onClose: () => void; quizType?
         <SuccessAnimation size={60} onComplete={() => setShowSuccessAnimation(false)} />
       )}
       <Text style={styles.modalTitle}>🧠 Financial Quiz</Text>
-      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 13, textAlign: "center" }}>
+      <Text style={{ fontSize: 16, marginBottom: 13, textAlign: "center", color: themeColors.text }}>
         {questions[step].q}
       </Text>
       {questions[step].options.map((option, i) => (
@@ -3995,8 +4058,8 @@ function LessonQuizModal({ onClose, quizType }: { onClose: () => void; quizType?
               ? i === questions[step].correct
                 ? themeColors.success + "33"
                 : themeColors.error + "22"
-              : themeColors.surface
-  }}
+              : themeColors.surface,
+          }}
           onPress={() => !showFeedback && handleSelect(i)}
           disabled={showFeedback}
         >
@@ -4006,6 +4069,7 @@ function LessonQuizModal({ onClose, quizType }: { onClose: () => void; quizType?
       {showFeedback && (
         <Text style={{
           marginTop: 4,
+          fontWeight: "bold",
           color: selected === questions[step].correct ? themeColors.success : themeColors.error
         }}>
           {selected === questions[step].correct ? "Correct!" : "Not quite!"} <Text style={{ fontWeight: "normal" }}>{questions[step].explanation}</Text>
@@ -4089,13 +4153,13 @@ function AssessmentModal({ onClose }: { onClose: () => void }) {
   if (finished) {
     return (
       <View style={{ padding: 18, alignItems: "center" }}>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-medium"], marginBottom: 5 }}>📋 Assessment Complete!</Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 12 }}>You scored {score} out of {questions.length}</Text>
+        <Text style={{ fontSize: 21, fontWeight: "bold", marginBottom: 5 }}>📋 Assessment Complete!</Text>
+        <Text style={{ fontSize: 16, marginBottom: 12 }}>You scored {score} out of {questions.length}</Text>
         <TouchableOpacity onPress={restart} style={{ backgroundColor: "#b3e4fd", borderRadius: 7, padding: 10, marginBottom: 7 }}>
           <Text style={{ fontWeight: "700", color: "#104166" }}>Try Again</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onClose} style={{ backgroundColor: "#b8efc9", paddingVertical: 8, paddingHorizontal: 19, borderRadius: 8 }}>
-          <Text style={{ color: "#175d36" }}>Close</Text>
+          <Text style={{ fontWeight: "bold", color: "#175d36" }}>Close</Text>
         </TouchableOpacity>
       </View>
     );
@@ -4103,7 +4167,7 @@ function AssessmentModal({ onClose }: { onClose: () => void }) {
   return (
     <View style={{ padding: 18, alignItems: "center" }}>
       <Text style={styles.modalTitle}>📋 Assessment</Text>
-      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 13, textAlign: "center" }}>
+      <Text style={{ fontSize: 16, marginBottom: 13, textAlign: "center" }}>
         {questions[step].q}
       </Text>
       {questions[step].options.map((option, i) => (
@@ -4115,8 +4179,8 @@ function AssessmentModal({ onClose }: { onClose: () => void }) {
               ? i === questions[step].correct
                 ? themeColors.success + "33"
                 : themeColors.error + "22"
-              : themeColors.surface
-  }}
+              : themeColors.surface,
+          }}
           onPress={() => !showFeedback && handleSelect(i)}
           disabled={showFeedback}
         >
@@ -4126,6 +4190,7 @@ function AssessmentModal({ onClose }: { onClose: () => void }) {
       {showFeedback && (
         <Text style={{
           marginTop: 4,
+          fontWeight: "bold",
           color: selected === questions[step].correct ? themeColors.success : themeColors.error
         }}>
           {selected === questions[step].correct ? "Correct!" : "Not quite!"} <Text style={{ fontWeight: "normal" }}>{questions[step].explanation}</Text>
@@ -4243,17 +4308,17 @@ function HowMyMoneyGrowsModal({ onClose }: { onClose: () => void }) {
         backgroundColor: themeColors.surface,
         padding: 9
       }}>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text }}>
+        <Text style={{ fontSize: 15, color: themeColors.text, fontWeight: "bold" }}>
           Starting Savings: <Text style={{ color: themeColors.primary }}>{savePoints} points</Text>
         </Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary }}>
+        <Text style={{ fontSize: 15, color: themeColors.textSecondary, fontWeight: "bold" }}>
           Interest Rate: <Text style={{ color: themeColors.primary }}>{rate}% per {freq}</Text>
         </Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary }}>
+        <Text style={{ fontSize: 15, color: themeColors.textSecondary, fontWeight: "bold" }}>
           Interest Applied To: <Text style={{ color: themeColors.primary }}>{interestRule.jar === "save" ? "Savings Pot" : interestRule.jar}</Text>
         </Text>
       </View>
-      <Text style={{ marginBottom: 4, textAlign: "center", color: themeColors.text }}>
+      <Text style={{ marginBottom: 4, textAlign: "center", fontWeight: "500", color: themeColors.text }}>
         Growth Projection ({periodLabel}s):
       </Text>
       <View style={{
@@ -4262,8 +4327,9 @@ function HowMyMoneyGrowsModal({ onClose }: { onClose: () => void }) {
       }}>
         {growth.map(row => (
           <Text key={row.period} style={{
-            ...SEMANTIC_TYPOGRAPHY["type-body-small"],
-            fontWeight: row.period === periods ? "bold" : "500", color: themeColors.primary,
+            fontSize: 15,
+            fontWeight: row.period === periods ? "bold" : "500",
+            color: themeColors.primary,
             marginBottom: 3
           }}>
             {periodLabel} {row.period}: {row.value} points
@@ -4271,7 +4337,7 @@ function HowMyMoneyGrowsModal({ onClose }: { onClose: () => void }) {
           </Text>
         ))}
       </View>
-      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], marginBottom: 13, textAlign: "center" }}>
+      <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginBottom: 13, textAlign: "center" }}>
         Keep saving! The more you save, the more your money can grow.
       </Text>
       <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -4418,7 +4484,7 @@ function SpendSmartReviewModal({ onClose }: { onClose: () => void }) {
       {!submitted ? (
         <>
           <Text style={styles.modalText}>
-            Think about your last purchase: <Text style={{ color: themeColors.primary }}>{purchaseName}</Text> for <Text style={{ color: themeColors.error }}>{recentPurchase.amount} points</Text>.
+            Think about your last purchase: <Text style={{ fontWeight: 'bold', color: themeColors.primary }}>{purchaseName}</Text> for <Text style={{ fontWeight: 'bold', color: themeColors.error }}>{recentPurchase.amount} points</Text>.
             Was it a **Need** or a **Want**?
           </Text>
           <TouchableOpacity
@@ -4455,7 +4521,7 @@ function SpendSmartReviewModal({ onClose }: { onClose: () => void }) {
       ) : (
         // Post-submission feedback
         <View style={{ alignItems: 'center' }}>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-heading-medium"], marginBottom: 10, color: themeColors.success }}>
+          <Text style={{ fontSize: 21, fontWeight: 'bold', marginBottom: 10, color: themeColors.success }}>
             Great job thinking about your spending!
           </Text>
           <Text style={styles.modalText}>

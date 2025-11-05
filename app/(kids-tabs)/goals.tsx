@@ -1,6 +1,7 @@
 import GoalTemplates from '@/components/GoalTemplates';
 import HelpModal from '@/components/HelpModal';
 import AnimatedCircularProgress from '@/components/animations/AnimatedCircularProgress';
+import { FONTS, TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
@@ -35,7 +36,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   title: {
-    ...MOBILE_STYLES.title,
+    ...TYPOGRAPHY.h2,
     color: themeColors.primary,
   },
   sectionCard: {
@@ -46,13 +47,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     width: MOBILE_LAYOUT.containerWidth,
   },
   sectionTitle: {
-    ...MOBILE_STYLES.body,
-    fontWeight: "600",
+    ...TYPOGRAPHY.h3,
     marginBottom: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.text,
   },
   placeholder: {
-    ...MOBILE_STYLES.body,
+    ...TYPOGRAPHY.bodySmall,
     color: themeColors.textSecondary,
     fontStyle: "italic",
     marginBottom: MOBILE_LAYOUT.itemSpacing,
@@ -61,7 +61,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   statusMessage: {
     ...MOBILE_STYLES.body,
-    fontWeight: "600",
+    fontFamily: FONTS.primary.semiBold,
     marginTop: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.success
   },
@@ -77,7 +77,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   refreshBtnText: {
     ...MOBILE_STYLES.caption,
     color: themeColors.card,
-    fontWeight: "bold",
+    fontFamily: FONTS.primary.bold,
   },
   refreshBtnTextDisabled: {
     ...MOBILE_STYLES.caption,
@@ -116,7 +116,7 @@ export default function GoalsScreen() {
             }}
             onPress={() => router.push('./')}
           >
-            <Text style={{ color: themeColors.text, fontWeight: 'bold', ...MOBILE_STYLES.caption }}>⬅️ Back</Text>
+            <Text style={{ ...TYPOGRAPHY.caption, color: themeColors.text, fontFamily: FONTS.primary.semiBold }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{
@@ -135,7 +135,7 @@ export default function GoalsScreen() {
             accessibilityLabel="Help and information"
             accessibilityHint="Double tap to open help guide for goals and rewards"
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', ...MOBILE_STYLES.caption }}>❓ Help</Text>
+            <Text style={{ ...TYPOGRAPHY.caption, color: themeColors.card, fontFamily: FONTS.primary.semiBold }}>❓ Help</Text>
           </TouchableOpacity>
         </View>
         <View style={MOBILE_STYLES.center}>
@@ -827,21 +827,21 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
         {/* Goal Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{
-              fontSize: 18,
-              fontWeight: 'bold',
-              color: themeColors.text,
-              marginBottom: 4
-            }} numberOfLines={2} ellipsizeMode="tail">
-              {g.name}
-            </Text>
-            <Text style={{
-              fontSize: 14,
-              color: statusColor,
-              fontWeight: '600'
-            }}>
-              {statusText}
-            </Text>
+              <Text style={{
+                ...TYPOGRAPHY.bodyLarge,
+                fontFamily: FONTS.primary.semiBold,
+                color: themeColors.text,
+                marginBottom: 4
+              }} numberOfLines={2} ellipsizeMode="tail">
+                {g.name}
+              </Text>
+              <Text style={{
+                ...TYPOGRAPHY.caption,
+                color: statusColor,
+                fontFamily: FONTS.primary.semiBold
+              }}>
+                {statusText}
+              </Text>
           </View>
 
           {/* Progress Circle */}
@@ -856,9 +856,9 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                 duration={1500}
               />
               <Text style={{
-                fontSize: 12,
+                ...TYPOGRAPHY.caption,
                 color: themeColors.primary,
-                fontWeight: 'bold',
+                fontFamily: FONTS.primary.semiBold,
                 marginTop: 4
               }}>
                 {Math.round((jarPoints / g.targetAmount) * 100)}%
@@ -871,27 +871,27 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
         <View style={{ marginBottom: 16 }}>
           {isCompleted ? (
             <Text style={{
-              fontSize: 16,
+              ...TYPOGRAPHY.body,
               color: themeColors.success,
-              fontWeight: '600',
+              fontFamily: FONTS.primary.semiBold,
               textAlign: 'center'
             }}>
               🎉 Target Reached!
             </Text>
           ) : isPending ? (
             <Text style={{
-              fontSize: 16,
+              ...TYPOGRAPHY.body,
               color: themeColors.warning,
-              fontWeight: '600',
+              fontFamily: FONTS.primary.semiBold,
               textAlign: 'center'
             }}>
               ⏳ Waiting for Parent Approval ({formatAmount(g.targetAmount)})
             </Text>
           ) : (
             <Text style={{
-              fontSize: 16,
+              ...TYPOGRAPHY.body,
               color: themeColors.text,
-              fontWeight: '600',
+              fontFamily: FONTS.primary.semiBold,
               textAlign: 'center'
             }}>
               {formatAmount(jarPoints)} / {formatAmount(g.targetAmount)} points
@@ -899,7 +899,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
           )}
           {isCompleted ? (
             <Text style={{
-              fontSize: 14,
+              ...TYPOGRAPHY.bodySmall,
               color: themeColors.success,
               textAlign: 'center',
               marginTop: 2,
@@ -909,7 +909,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
             </Text>
           ) : isPending ? (
             <Text style={{
-              fontSize: 14,
+              ...TYPOGRAPHY.bodySmall,
               color: themeColors.warning,
               textAlign: 'center',
               marginTop: 2,
@@ -922,7 +922,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
               {/* Only show total for active goals (not completed) */}
               {userData && !isCompleted && (
                 <Text style={{
-                  fontSize: 14,
+                  ...TYPOGRAPHY.bodySmall,
                   color: themeColors.textSecondary,
                   textAlign: 'center',
                   marginTop: 2
@@ -933,7 +933,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
               {/* Show available points when there are pending points */}
               {userData && (userData["pending" + g.jar.charAt(0).toUpperCase() + g.jar.slice(1) + "Points"] || 0) > 0 && (
                 <Text style={{
-                  fontSize: 12,
+                  ...TYPOGRAPHY.caption,
                   color: themeColors.textSecondary,
                   textAlign: 'center',
                   marginTop: 2
@@ -942,7 +942,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                 </Text>
               )}
               <Text style={{
-                fontSize: 14,
+                ...TYPOGRAPHY.bodySmall,
                 color: themeColors.textSecondary,
                 textAlign: 'center',
                 marginTop: 2
@@ -974,8 +974,8 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
             >
               <Text style={{
                 color: 'white',
-                fontSize: 16,
-                fontWeight: 'bold',
+                ...TYPOGRAPHY.body,
+                fontFamily: FONTS.primary.bold,
                 textAlign: 'center'
               }}>
                 {claiming === g._id ? '🎯 Claiming...' : '🎯 Claim Goal'}
@@ -999,8 +999,8 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
             >
               <Text style={{
                 color: 'white',
-                fontSize: 14,
-                fontWeight: 'bold'
+                ...TYPOGRAPHY.caption,
+                fontFamily: FONTS.primary.bold
               }}>
                 🗑️ Delete
               </Text>
@@ -1009,7 +1009,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
 
           {!canClaim && !isCompleted && !isPending && !isExpired && (
             <Text style={{
-              fontSize: 14,
+              ...TYPOGRAPHY.caption,
               color: themeColors.textSecondary,
               textAlign: 'center',
               marginTop: 8
@@ -1107,8 +1107,8 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                 paddingVertical: 2,
                 marginLeft: MOBILE_LAYOUT.itemSpacing
               }}>
-                <Text style={{ color: 'white', ...MOBILE_STYLES.caption, fontWeight: 'bold' }}>
-                  {goals.length}
+            <Text style={{ ...TYPOGRAPHY.caption, color: 'white', fontFamily: FONTS.primary.bold }}>
+              {goals.length}
                 </Text>
               </View>
             </View>
@@ -1141,7 +1141,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
               <Text style={{
                 ...MOBILE_STYLES.body,
                 color: tab === t ? 'white' : themeColors.text,
-                fontWeight: tab === t ? "bold" : "600",
+                fontFamily: tab === t ? FONTS.primary.bold : FONTS.primary.semiBold,
               }}>
                 {t === "Active" ? "⚡ Active Goals" : "🏆 Completed"}
               </Text>
@@ -1183,10 +1183,9 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                         paddingVertical: 60,
                         paddingHorizontal: 20,
                       }}>
-                        <Text style={{ fontSize: 72, marginBottom: 20 }}>🎯</Text>
+                        <Text style={{ ...TYPOGRAPHY.h1, fontSize: 72, marginBottom: 20 }}>🎯</Text>
                         <Text style={{
-                          fontSize: 22,
-                          fontWeight: 'bold',
+                          ...TYPOGRAPHY.h2,
                           color: themeColors.text,
                           marginBottom: 12,
                           textAlign: 'center'
@@ -1194,7 +1193,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                           Ready to Start Saving?
                         </Text>
                         <Text style={{
-                          fontSize: 16,
+                          ...TYPOGRAPHY.body,
                           color: themeColors.textSecondary,
                           textAlign: 'center',
                           marginBottom: 32,
@@ -1211,7 +1210,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                           alignItems: 'center',
                           elevation: 4,
                         }}>
-                          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginRight: 8 }}>
+                          <Text style={{ color: 'white', ...TYPOGRAPHY.bodyLarge, fontFamily: FONTS.primary.bold, marginRight: 8 }}>
                             🎯 Let's Create One!
                           </Text>
                         </TouchableOpacity>
@@ -1251,10 +1250,9 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                 paddingVertical: 60,
                 paddingHorizontal: 20,
               }}>
-                <Text style={{ fontSize: 72, marginBottom: 20 }}>🏆</Text>
+                <Text style={{ ...TYPOGRAPHY.h1, fontSize: 72, marginBottom: 20 }}>🏆</Text>
                 <Text style={{
-                  fontSize: 22,
-                  fontWeight: 'bold',
+                  ...TYPOGRAPHY.h2,
                   color: themeColors.text,
                   marginBottom: 12,
                   textAlign: 'center'
@@ -1262,7 +1260,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                   No Completed Goals Yet
                 </Text>
                 <Text style={{
-                  fontSize: 16,
+                  ...TYPOGRAPHY.body,
                   color: themeColors.textSecondary,
                   textAlign: 'center',
                   marginBottom: 32,
@@ -1299,7 +1297,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                   }}
                   onPress={() => setShowArchive(true)}
                 >
-                  <Text style={{ color: themeColors.primary, fontWeight: "600", fontSize: 16 }}>Show All Completed Goals</Text>
+                  <Text style={{ color: themeColors.primary, ...TYPOGRAPHY.body, fontFamily: FONTS.primary.semiBold }}>Show All Completed Goals</Text>
                 </TouchableOpacity>
               )}
               {completedArchived.length > 0 && showArchive && (
@@ -1318,7 +1316,7 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
                   }}
                   onPress={() => setShowArchive(false)}
                 >
-                  <Text style={{ color: themeColors.primary, fontWeight: "500", fontSize: 16 }}>Show Only Last 90 Days</Text>
+                  <Text style={{ color: themeColors.primary, ...TYPOGRAPHY.body, fontFamily: FONTS.primary.medium }}>Show Only Last 90 Days</Text>
                 </TouchableOpacity>
               )}
             </>

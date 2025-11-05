@@ -2,6 +2,7 @@ import AnimatedCircularProgress from '@/components/animations/AnimatedCircularPr
 import AnimatedCounter from '@/components/animations/AnimatedCounter';
 import HelpModal from '@/components/HelpModal';
 import { RupeeDenominations } from '@/components/RupeeDenominations';
+import { TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { InterestRuleType, useCurrency } from '@/utils/currencyContext';
@@ -144,16 +145,15 @@ const EnhancedJarCard = ({ jar, totalPoints, goals }: {
         paddingVertical: 8,
       }}>
         <Text style={{
-          fontSize: 25,
+          ...TYPOGRAPHY.h2,
           marginBottom: 3,
           zIndex: 2,
         }}>{jar.icon}</Text>
-        <AnimatedCounter value={jar.value} fontSize={22} />
+        <AnimatedCounter value={jar.value} fontSize={TYPOGRAPHY.h3.fontSize} />
         <Text style={{
-          fontWeight: "bold",
+          ...TYPOGRAPHY.label,
           marginBottom: 2,
-          color: themeColors.primary,
-          fontSize: 14,
+          color: '#FFFFFF', // White text for contrast on dark jar backgrounds
           textAlign: 'center',
         }}>{jar.label}</Text>
 
@@ -168,8 +168,7 @@ const EnhancedJarCard = ({ jar, totalPoints, goals }: {
             zIndex: 2,
           }}>
             <Text style={{
-              fontSize: 11,
-              fontWeight: 'bold',
+              ...TYPOGRAPHY.caption,
               textAlign: 'center',
               color: progressData.color,
             }}>
@@ -235,8 +234,7 @@ const TransferTimeline = ({ requests, router }: { requests: any[]; router: any }
       backgroundColor: themeColors.surface
     }}>
       <Text style={{
-        fontSize: 20,
-        fontWeight: "bold",
+        ...TYPOGRAPHY.h4,
         marginBottom: 16,
         textAlign: 'center',
         color: themeColors.primary
@@ -244,9 +242,9 @@ const TransferTimeline = ({ requests, router }: { requests: any[]; router: any }
 
       {requests.length === 0 ? (
         <Text style={{
+          ...TYPOGRAPHY.body,
           textAlign: 'center',
           color: themeColors.textSecondary,
-          fontSize: 16,
           fontStyle: 'italic'
         }}>
           No transfer requests yet. Try moving some points!
@@ -274,26 +272,24 @@ const TransferTimeline = ({ requests, router }: { requests: any[]; router: any }
                 justifyContent: 'center',
                 marginRight: 12
               }}>
-                <Text style={{ fontSize: 20 }}>{status.icon}</Text>
+                <Text style={{ ...TYPOGRAPHY.h4 }}>{status.icon}</Text>
               </View>
 
               <View style={{ flex: 1 }}>
                 <Text style={{
-                  fontSize: 16,
-                  fontWeight: 'bold',
+                  ...TYPOGRAPHY.body,
                   color: themeColors.text
                 }}>
                   Move {request.amount} points
                 </Text>
                 <Text style={{
-                  fontSize: 14,
-                  color: status.color,
-                  fontWeight: '600'
+                  ...TYPOGRAPHY.label,
+                  color: status.color
                 }}>
                   {status.text}
                 </Text>
                 <Text style={{
-                  fontSize: 12,
+                  ...TYPOGRAPHY.caption,
                   color: themeColors.textSecondary
                 }}>
                   {new Date(request.createdAt || request.date).toLocaleDateString()}
@@ -308,9 +304,8 @@ const TransferTimeline = ({ requests, router }: { requests: any[]; router: any }
                   paddingVertical: 4
                 }}>
                   <Text style={{
-                    color: themeColors.card,
-                    fontSize: 12,
-                    fontWeight: 'bold'
+                    ...TYPOGRAPHY.caption,
+                    color: themeColors.card
                   }}>Approved!</Text>
                 </View>
               )}
@@ -332,9 +327,8 @@ const TransferTimeline = ({ requests, router }: { requests: any[]; router: any }
           onPress={() => router.push('./requests')}
         >
           <Text style={{
-            color: themeColors.card,
-            fontSize: 16,
-            fontWeight: 'bold'
+            ...TYPOGRAPHY.button,
+            color: themeColors.card
           }}>View All Transfers →</Text>
         </TouchableOpacity>
       )}
@@ -425,8 +419,7 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
           <Text style={{
-            fontSize: 18,
-            fontWeight: "600",
+            ...TYPOGRAPHY.bodyLarge,
             marginBottom: expanded ? 16 : 0,
             color: themeColors.primary
           }}>
@@ -435,7 +428,7 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
 
           {!expanded && (
             <Text style={{
-              fontSize: 14,
+              ...TYPOGRAPHY.label,
               color: themeColors.textSecondary,
               marginTop: 4
             }}>
@@ -448,8 +441,7 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
               {/* Current vs Ideal Comparison - Simplified Bar Chart */}
               <View style={{ marginBottom: 16 }}>
                 <Text style={{
-                  fontSize: 14,
-                  fontWeight: "600",
+                  ...TYPOGRAPHY.label,
                   marginBottom: 12,
                   color: themeColors.text
                 }}>Your Current Balance:</Text>
@@ -461,43 +453,42 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
                       alignItems: 'center',
                       marginBottom: 6,
                     }}>
-                      <Text style={{
-                        fontSize: 18,
-                        marginRight: 8,
-                        width: 25,
-                        textAlign: 'center'
-                      }}>{jar.icon}</Text>
-                      <Text style={{
-                        fontSize: 13,
-                        flex: 1,
-                        color: themeColors.text
-                      }}>{jar.label.replace(' Pot', '')}</Text>
-                      <View style={{
-                        flex: 2,
-                        height: 6,
-                        backgroundColor: themeColors.border,
-                        borderRadius: 3,
-                        marginHorizontal: 8,
-                        overflow: 'hidden',
-                      }}>
-                        <View
-                          style={{
-                            height: '100%',
-                            width: `${percentage}%`,
-                            borderRadius: 3,
-                            backgroundColor: '#D2691E' // Orange/brown color for better visibility
-                          }}
-                        />
-                      </View>
-                      <Text style={{
-                        fontSize: 11,
-                        fontWeight: 'bold',
-                        width: 30,
-                        textAlign: 'right',
-                        color: themeColors.text
-                      }}>
-                        {Math.round(percentage)}%
-                      </Text>
+                <Text style={{
+                  ...TYPOGRAPHY.bodyLarge,
+                  marginRight: 8,
+                  width: 25,
+                  textAlign: 'center'
+                }}>{jar.icon}</Text>
+                <Text style={{
+                  ...TYPOGRAPHY.bodySmall,
+                  flex: 1,
+                  color: themeColors.text
+                }}>{jar.label.replace(' Pot', '')}</Text>
+                <View style={{
+                  flex: 2,
+                  height: 6,
+                  backgroundColor: themeColors.border,
+                  borderRadius: 3,
+                  marginHorizontal: 8,
+                  overflow: 'hidden',
+                }}>
+                  <View
+                    style={{
+                      height: '100%',
+                      width: `${percentage}%`,
+                      borderRadius: 3,
+                      backgroundColor: '#D2691E' // Orange/brown color for better visibility
+                    }}
+                  />
+                </View>
+                <Text style={{
+                  ...TYPOGRAPHY.caption,
+                  width: 30,
+                  textAlign: 'right',
+                  color: themeColors.text
+                }}>
+                  {Math.round(percentage)}%
+                </Text>
                     </View>
                   );
                 })}
@@ -507,8 +498,7 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
               {insights.recommendations.length > 0 && (
                 <View style={{ marginBottom: 16 }}>
                   <Text style={{
-                    fontSize: 14,
-                    fontWeight: "600",
+                    ...TYPOGRAPHY.label,
                     marginBottom: 8,
                     color: themeColors.text
                   }}>
@@ -529,12 +519,12 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
                       }}
                     >
                       <Text style={{
-                        fontSize: 20,
+                        ...TYPOGRAPHY.h4,
                         marginRight: 10,
                       }}>{rec.icon}</Text>
                       <Text style={{
                         flex: 1,
-                        fontSize: 13,
+                        ...TYPOGRAPHY.bodySmall,
                         color: themeColors.text
                       }}>
                         {rec.message}
@@ -567,8 +557,7 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
                   onPress={scrollToMovePoints}
                 >
                   <Text style={{
-                    fontSize: 13,
-                    fontWeight: 'bold',
+                    ...TYPOGRAPHY.bodySmall,
                     color: themeColors.card
                   }}>⚖️ Balance</Text>
                 </TouchableOpacity>
@@ -589,8 +578,7 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
                   onPress={() => router.push('./goals')}
                 >
                   <Text style={{
-                    fontSize: 13,
-                    fontWeight: 'bold',
+                    ...TYPOGRAPHY.bodySmall,
                     color: themeColors.card
                   }}>🎯 Goals</Text>
                 </TouchableOpacity>
@@ -598,7 +586,7 @@ const AllocationCoach = ({ jars, router, scrollToMovePoints, expanded, onToggle 
             </>
           )}
         </View>
-        <Text style={{ fontSize: 16, color: themeColors.primary, marginLeft: 8 }}>
+        <Text style={{ ...TYPOGRAPHY.body, color: themeColors.primary, marginLeft: 8 }}>
           {expanded ? '▲' : '▼'}
         </Text>
       </View>
@@ -615,7 +603,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   title: {
-    ...MOBILE_STYLES.title,
+    ...TYPOGRAPHY.h2,
     color: themeColors.primary,
     marginBottom: MOBILE_LAYOUT.sectionSpacing,
     marginTop: MOBILE_LAYOUT.itemSpacing,
@@ -628,8 +616,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     width: MOBILE_LAYOUT.containerWidth,
   },
   sectionTitle: {
-    ...MOBILE_STYLES.body,
-    fontWeight: "600",
+    ...TYPOGRAPHY.body,
     marginBottom: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.text,
   },
@@ -644,16 +631,14 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderColor: themeColors.border,
   },
   jarLabel: {
-    fontWeight: "bold",
+    ...TYPOGRAPHY.body,
     marginBottom: 2,
     color: '#F59E0B',
-    fontSize: 16,
   },
   jarPoints: {
-    fontWeight: "700",
-    fontSize: 21,
+    ...TYPOGRAPHY.h2,
     marginBottom: 1,
-    color: '#F59E0B',
+    color: '#FFFFFF', // White text for contrast on dark jar backgrounds
   },
   formRow: {
     flexDirection: "row",
@@ -663,17 +648,16 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   formGroup: { flex: 1, marginHorizontal: 4 },
   inputLabel: {
-    fontWeight: "500",
+    ...TYPOGRAPHY.label,
     marginBottom: 4,
     color: themeColors.text,
-    fontSize: 14,
   },
   input: {
     borderWidth: 1,
     borderColor: themeColors.border,
     borderRadius: 7,
     padding: 8,
-    fontSize: 16,
+    ...TYPOGRAPHY.body,
     marginBottom: 2,
     backgroundColor: themeColors.surface,
     color: themeColors.text,
@@ -684,131 +668,60 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderRadius: 7,
     borderColor: themeColors.border,
     borderWidth: 1,
-    fontSize: 16,
+    ...TYPOGRAPHY.body,
     padding: 8,
     marginTop: 1,
     backgroundColor: themeColors.surface,
     color: themeColors.text,
   } as any,
-  formBtn: { backgroundColor: themeColors.warning, padding: 14, borderRadius: 8, marginTop: 7, marginHorizontal: 4, alignSelf: "flex-end" },
-  formBtnText: { fontWeight: "700", color: themeColors.text, fontSize: 15 },
-  placeholder: { color: themeColors.textSecondary, fontStyle: "italic", fontSize: 15, marginBottom: 2, marginTop: 2, minHeight: 26 },
-  statusMessage: { fontSize: 15, fontWeight: "600", marginTop: 3, color: themeColors.success },
-  // Allocation Coach Styles
-  allocationCoach: {
-    borderRadius: 14,
-    marginBottom: 16,
-    padding: 18,
-    minWidth: 300,
-    width: "97%",
-    maxWidth: 520,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
+    formBtn: { backgroundColor: themeColors.warning, padding: 14, borderRadius: 8, marginTop: 7, marginHorizontal: 4, alignSelf: "flex-end" },
+    formBtnText: { ...TYPOGRAPHY.bodySmall, color: themeColors.text },
+  // Allocation Coach Styles (updated to use TYPOGRAPHY)
   coachTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    ...TYPOGRAPHY.bodyLarge,
     marginBottom: 16,
     textAlign: 'center',
   },
-  allocationChart: {
-    marginBottom: 16,
-  },
   chartTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    ...TYPOGRAPHY.label,
     marginBottom: 12,
     textAlign: 'center',
   },
-  chartRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
   jarEmoji: {
-    fontSize: 20,
+    ...TYPOGRAPHY.bodyLarge,
     marginRight: 8,
     width: 30,
     textAlign: 'center',
   },
   jarName: {
-    fontSize: 14,
+    ...TYPOGRAPHY.bodySmall,
     flex: 1,
   },
-  progressBar: {
-    flex: 2,
-    height: 8,
-    backgroundColor: themeColors.border,
-    borderRadius: 4,
-    marginHorizontal: 8,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
   percentage: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    ...TYPOGRAPHY.caption,
     width: 35,
     textAlign: 'right',
   },
-  recommendationsSection: {
-    marginBottom: 16,
-  },
   recommendationsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    ...TYPOGRAPHY.label,
     marginBottom: 8,
-  },
-  recommendationCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
   },
   recommendationIcon: {
-    fontSize: 24,
+    ...TYPOGRAPHY.h4,
     marginRight: 12,
   },
   recommendationText: {
+    ...TYPOGRAPHY.bodySmall,
     flex: 1,
-    fontSize: 14,
   },
   recommendationAction: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  quickActionBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    ...TYPOGRAPHY.bodySmall,
   },
   quickActionText: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...TYPOGRAPHY.bodySmall,
   },
+  placeholder: { color: themeColors.textSecondary, fontStyle: "italic", ...TYPOGRAPHY.bodySmall, marginBottom: 2, marginTop: 2, minHeight: 26 },
+  statusMessage: { ...TYPOGRAPHY.bodySmall, marginTop: 3, color: themeColors.success },
 });
 
 export default function MoneyJarsScreen() {
@@ -1049,8 +962,7 @@ function ExpandableBudgetSection({ expanded, onToggle, onBudgetCreated }: {
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
           <Text style={{
-            fontSize: 18,
-            fontWeight: "600",
+            ...TYPOGRAPHY.bodyLarge,
             marginBottom: expanded ? 16 : 0,
             color: themeColors.primary
           }}>
@@ -1059,7 +971,7 @@ function ExpandableBudgetSection({ expanded, onToggle, onBudgetCreated }: {
 
           {!expanded && (
             <Text style={{
-              fontSize: 14,
+              ...TYPOGRAPHY.label,
               color: themeColors.textSecondary,
               marginTop: 4
             }}>
@@ -1069,7 +981,7 @@ function ExpandableBudgetSection({ expanded, onToggle, onBudgetCreated }: {
 
           {expanded && <BudgetCreationSection onBudgetCreated={onBudgetCreated} />}
         </View>
-        <Text style={{ fontSize: 16, color: themeColors.primary, marginLeft: 8 }}>
+        <Text style={{ ...TYPOGRAPHY.body, color: themeColors.primary, marginLeft: 8 }}>
           {expanded ? '▲' : '▼'}
         </Text>
       </View>
@@ -1112,8 +1024,7 @@ function ExpandableCharitySection({ jars, expanded, onToggle, onDonationMade }: 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
           <Text style={{
-            fontSize: 18,
-            fontWeight: "600",
+            ...TYPOGRAPHY.bodyLarge,
             marginBottom: expanded ? 16 : 0,
             color: themeColors.secondary
           }}>
@@ -1122,7 +1033,7 @@ function ExpandableCharitySection({ jars, expanded, onToggle, onDonationMade }: 
 
           {!expanded && (
             <Text style={{
-              fontSize: 14,
+              ...TYPOGRAPHY.label,
               color: themeColors.textSecondary,
               marginTop: 4
             }}>
@@ -1132,7 +1043,7 @@ function ExpandableCharitySection({ jars, expanded, onToggle, onDonationMade }: 
 
           {expanded && <CharityDonationSection jars={jars} onDonationMade={onDonationMade} />}
         </View>
-        <Text style={{ fontSize: 16, color: themeColors.secondary, marginLeft: 8 }}>
+        <Text style={{ ...TYPOGRAPHY.body, color: themeColors.secondary, marginLeft: 8 }}>
           {expanded ? '▲' : '▼'}
         </Text>
       </View>
@@ -1253,29 +1164,26 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
       backgroundColor: themeColors.surface
     }}>
       <Text style={{
-        fontSize: 18,
-        fontWeight: "600",
+        ...TYPOGRAPHY.bodyLarge,
         marginBottom: 16,
         color: themeColors.primary,
         textAlign: 'center'
       }}>🎯 Create Money Budget</Text>
 
       <Text style={{
-        fontSize: 14,
+        ...TYPOGRAPHY.label,
         color: themeColors.textSecondary,
         textAlign: 'center',
-        marginBottom: 20,
-        lineHeight: 20
+        marginBottom: 20
       }}>
         Set spending limits to learn responsible money management! 🧠💰
       </Text>
 
       {/* Jar Selection */}
       <Text style={{
-        fontWeight: "600",
+        ...TYPOGRAPHY.label,
         marginBottom: 8,
-        color: themeColors.text,
-        fontSize: 14,
+        color: themeColors.text
       }}>Which pot should have a budget?</Text>
 
       <View style={{ marginBottom: 16 }}>
@@ -1294,24 +1202,23 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
             }}
             onPress={() => setJarKey(jar.key)}
           >
-            <Text style={{ fontSize: 24, marginRight: 12 }}>{jar.icon}</Text>
+            <Text style={{ ...TYPOGRAPHY.h2, marginRight: 12 }}>{jar.icon}</Text>
             <View style={{ flex: 1 }}>
               <Text style={{
-                fontSize: 16,
-                fontWeight: 'bold',
+                ...TYPOGRAPHY.body,
                 color: themeColors.text
               }}>
                 {jar.label}
               </Text>
               <Text style={{
-                fontSize: 12,
+                ...TYPOGRAPHY.caption,
                 color: themeColors.textSecondary
               }}>
                 {jar.description}
               </Text>
             </View>
             {jarKey === jar.key && (
-              <Text style={{ fontSize: 20, color: themeColors.primary }}>✓</Text>
+              <Text style={{ ...TYPOGRAPHY.h4, color: themeColors.primary }}>✓</Text>
             )}
           </TouchableOpacity>
         ))}
@@ -1320,10 +1227,9 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
       {/* Budget Amount */}
       <View style={{ marginBottom: 16 }}>
         <Text style={{
-          fontWeight: "600",
+          ...TYPOGRAPHY.label,
           marginBottom: 8,
-          color: themeColors.text,
-          fontSize: 14,
+          color: themeColors.text
         }}>Budget Amount (points):</Text>
         <TextInput
           style={{
@@ -1331,7 +1237,7 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
             borderColor: themeColors.border,
             borderRadius: 8,
             padding: 12,
-            fontSize: 16,
+            ...TYPOGRAPHY.body,
             backgroundColor: themeColors.surface,
             color: themeColors.text
           }}
@@ -1347,10 +1253,9 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
       {/* Budget Period */}
       <View style={{ marginBottom: 16 }}>
         <Text style={{
-          fontWeight: "600",
+          ...TYPOGRAPHY.label,
           marginBottom: 8,
-          color: themeColors.text,
-          fontSize: 14,
+          color: themeColors.text
         }}>Budget Period:</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {periodOptions.map((period) => (
@@ -1368,14 +1273,13 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
               onPress={() => setBudgetPeriod(period.key)}
             >
               <Text style={{
-                fontSize: 14,
-                fontWeight: 'bold',
+                ...TYPOGRAPHY.label,
                 color: budgetPeriod === period.key ? themeColors.secondary : themeColors.text
               }}>
                 {period.label}
               </Text>
               <Text style={{
-                fontSize: 10,
+                ...TYPOGRAPHY.caption,
                 color: themeColors.textSecondary,
                 textAlign: 'center'
               }}>
@@ -1389,10 +1293,9 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
       {/* Budget Note */}
       <View style={{ marginBottom: 20 }}>
         <Text style={{
-          fontWeight: "600",
+          ...TYPOGRAPHY.label,
           marginBottom: 8,
-          color: themeColors.text,
-          fontSize: 14,
+          color: themeColors.text
         }}>Why this budget? (Optional):</Text>
         <TextInput
           style={{
@@ -1400,7 +1303,7 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
             borderColor: themeColors.border,
             borderRadius: 8,
             padding: 12,
-            fontSize: 14,
+            ...TYPOGRAPHY.label,
             backgroundColor: themeColors.surface,
             color: themeColors.text,
             minHeight: 60,
@@ -1432,16 +1335,15 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
       >
         <Text style={{
           color: isCreating ? themeColors.textSecondary : themeColors.card,
-          fontSize: 16,
-          fontWeight: 'bold'
+          ...TYPOGRAPHY.button
         }}>
           {isCreating ? '⏳ Creating Budget...' : '🎯 Create Budget Plan'}
         </Text>
       </TouchableOpacity>
 
       <Text style={{
-        fontSize: 12,
-        color: themeColors.textSecondary,
+        ...TYPOGRAPHY.caption,
+        color: themeColors.textSecondary,  
         textAlign: 'center',
         marginTop: 12,
         fontStyle: 'italic'
@@ -1506,25 +1408,7 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
 
       const selectedCause = donationCauses.find(c => c.key === cause);
 
-      // Reserve points as pending (direct DB update to prevent race conditions)
-      const pendingField = `pending${fromJar.charAt(0).toUpperCase()}${fromJar.slice(1)}Points`;
-      const reserveResponse = await fetch(`${API_URL}/users/${user.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          [pendingField]: ((user as any)[pendingField] || 0) + amount
-        }),
-      });
-
-      if (!reserveResponse.ok) {
-        showMessage('Failed to reserve points for donation', 'error');
-        return;
-      }
-
-      // Create donation request for parent approval
+      // Create donation request for parent approval (let backend handle pending points)
       const requestData = {
         userId: user.id,
         type: 'donation',
@@ -1549,21 +1433,22 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
       });
 
       if (!response.ok) {
-        // If request creation fails, release the pending reservation
-        await fetch(`${API_URL}/users/${user.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            [pendingField]: ((user as any)[pendingField] || 0) - amount
-          }),
-        });
         const errorData = await response.json().catch(() => ({}));
         showMessage(errorData.message || 'Failed to submit donation request', 'error');
         return;
       }
+
+      // Update local state to show pending points immediately for better UX
+      setJars(jars.map(jar =>
+        jar.key === fromJar
+          ? {
+              ...jar,
+              value: jar.value - amount,
+              pendingValue: (jar.pendingValue || 0) + amount,
+              totalValue: jar.totalValue // totalValue remains the same until approved
+            }
+          : jar
+      ));
 
       // Update achievement for making a donation request
       try {
@@ -1604,29 +1489,26 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
       backgroundColor: themeColors.surface
     }}>
       <Text style={{
-        fontSize: 18,
-        fontWeight: "600",
+        ...TYPOGRAPHY.bodyLarge,
         marginBottom: 16,
         color: themeColors.secondary,
         textAlign: 'center'
       }}>❤️ Make a Donation</Text>
 
       <Text style={{
-        fontSize: 14,
+        ...TYPOGRAPHY.label,
         color: themeColors.textSecondary,
         textAlign: 'center',
-        marginBottom: 20,
-        lineHeight: 20
+        marginBottom: 20
       }}>
         Share your points to help others! Every donation makes a difference! 🌟
       </Text>
 
       {/* From Jar Selection */}
       <Text style={{
-        fontWeight: "600",
+        ...TYPOGRAPHY.label,
         marginBottom: 8,
-        color: themeColors.text,
-        fontSize: 14,
+        color: themeColors.text
       }}>Which pot to donate from?</Text>
 
       <View style={{ marginBottom: 16 }}>
@@ -1645,24 +1527,23 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
             }}
             onPress={() => setFromJar(jar.key)}
           >
-            <Text style={{ fontSize: 24, marginRight: 12 }}>{jar.icon}</Text>
+            <Text style={{ ...TYPOGRAPHY.h2, marginRight: 12 }}>{jar.icon}</Text>
             <View style={{ flex: 1 }}>
               <Text style={{
-                fontSize: 16,
-                fontWeight: 'bold',
+                ...TYPOGRAPHY.body,
                 color: themeColors.text
               }}>
                 {jar.label}
               </Text>
               <Text style={{
-                fontSize: 12,
+                ...TYPOGRAPHY.caption,
                 color: themeColors.textSecondary
               }}>
                 {jar.value} points available
               </Text>
             </View>
             {fromJar === jar.key && (
-              <Text style={{ fontSize: 20, color: themeColors.secondary }}>✓</Text>
+              <Text style={{ ...TYPOGRAPHY.h4, color: themeColors.secondary }}>✓</Text>
             )}
           </TouchableOpacity>
         ))}
@@ -1682,10 +1563,9 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
       {/* Donation Amount */}
       <View style={{ marginBottom: 16 }}>
         <Text style={{
-          fontWeight: "600",
+          ...TYPOGRAPHY.label,
           marginBottom: 8,
-          color: themeColors.text,
-          fontSize: 14,
+          color: themeColors.text
         }}>How many points to donate?</Text>
         <TextInput
           style={{
@@ -1693,7 +1573,7 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
             borderColor: themeColors.border,
             borderRadius: 8,
             padding: 12,
-            fontSize: 16,
+            ...TYPOGRAPHY.body,
             backgroundColor: themeColors.surface,
             color: themeColors.text
           }}
@@ -1709,10 +1589,9 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
       {/* Cause Selection */}
       <View style={{ marginBottom: 16 }}>
         <Text style={{
-          fontWeight: "600",
+          ...TYPOGRAPHY.label,
           marginBottom: 8,
-          color: themeColors.text,
-          fontSize: 14,
+          color: themeColors.text
         }}>What cause do you want to support?</Text>
 
         <View style={{ gap: 8 }}>
@@ -1729,14 +1608,13 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
               onPress={() => setCause(donationCause.key)}
             >
               <Text style={{
-                fontSize: 16,
-                fontWeight: 'bold',
+                ...TYPOGRAPHY.body,
                 color: themeColors.text
               }}>
                 {donationCause.label}
               </Text>
               <Text style={{
-                fontSize: 12,
+                ...TYPOGRAPHY.caption,
                 color: themeColors.textSecondary
               }}>
                 {donationCause.description}
@@ -1749,10 +1627,9 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
       {/* Donation Note */}
       <View style={{ marginBottom: 20 }}>
         <Text style={{
-          fontWeight: "600",
+          ...TYPOGRAPHY.label,
           marginBottom: 8,
-          color: themeColors.text,
-          fontSize: 14,
+          color: themeColors.text
         }}>Why are you donating? (Optional):</Text>
         <TextInput
           style={{
@@ -1760,7 +1637,7 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
             borderColor: themeColors.border,
             borderRadius: 8,
             padding: 12,
-            fontSize: 14,
+            ...TYPOGRAPHY.label,
             backgroundColor: themeColors.surface,
             color: themeColors.text,
             minHeight: 60,
@@ -1791,16 +1668,15 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
         disabled={isDonating || availableJars.length === 0}
       >
         <Text style={{
-          color: isDonating ? themeColors.textSecondary : themeColors.card,
-          fontSize: 16,
-          fontWeight: 'bold'
+          ...TYPOGRAPHY.button,
+          color: isDonating ? themeColors.textSecondary : themeColors.card
         }}>
           {isDonating ? '⏳ Making Donation...' : '❤️ Make Donation'}
         </Text>
       </TouchableOpacity>
 
       <Text style={{
-        fontSize: 12,
+        ...TYPOGRAPHY.caption,
         color: themeColors.textSecondary,
         textAlign: 'center',
         marginTop: 12,
@@ -1853,7 +1729,7 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
             accessibilityLabel="Go back to home screen"
             accessibilityHint="Double tap to return to the main dashboard"
           >
-            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text, fontWeight: 'bold' }}>⬅️ Back</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text }}>⬅️ Back</Text>
           </TouchableOpacity>
 
           <View style={MOBILE_STYLES.row}>
@@ -1901,7 +1777,7 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
 
         {/* Title Below Header */}
         <View style={{ alignItems: 'center', marginBottom: MOBILE_LAYOUT.itemSpacing * 3 }}>
-          <Text style={styles.title}>🏺 My Money Pots</Text>
+        <Text style={[styles.title, { color: themeColors.primary }]}>🏺 My Money Pots</Text>
         </View>
       </View>
 
@@ -1917,12 +1793,12 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
                 { backgroundColor: jar.color || themeColors.surface, borderColor: themeColors.border }
               ]}
             >
-              <Text style={{ fontSize: 25, marginBottom: 3 }}>{jar.icon}</Text>
+              <Text style={{ ...TYPOGRAPHY.h1, marginBottom: 3 }}>{jar.icon}</Text>
               <Text style={[styles.jarPoints]}>{formatAmount(jar.value)}</Text>
               <Text style={[styles.jarLabel]}>{jar.label}</Text>
               {jar.pendingValue > 0 && (
                 <View style={{
-                  backgroundColor: themeColors.warning + '20',
+                  backgroundColor: '#FFFFFF', // White background for contrast on dark jar backgrounds
                   borderRadius: 4,
                   paddingHorizontal: 6,
                   paddingVertical: 2,
@@ -1931,9 +1807,8 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
                   borderColor: themeColors.warning + '40'
                 }}>
                   <Text style={{
-                    fontSize: 10,
-                    color: themeColors.warning,
-                    fontWeight: '600',
+                    ...TYPOGRAPHY.caption,
+                    color: themeColors.warning, // Keep dark orange text
                     textAlign: 'center'
                   }}>
                     {formatAmount(jar.totalValue)} total, {formatAmount(jar.pendingValue)} pending
@@ -1946,13 +1821,12 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
               {jar.key === "save" && interestRule && (
                 <Text style={{
                   marginTop: 4,
-                  fontSize: 13,
-                  color: themeColors.success,
-                  backgroundColor: themeColors.success + "25",
+                  ...TYPOGRAPHY.bodySmall,
+                  color: themeColors.success, // Keep dark green text
+                  backgroundColor: '#FFFFFF', // White background for contrast on dark jar backgrounds
                   borderRadius: 5,
                   paddingHorizontal: 7,
-                  paddingVertical: 3,
-                  fontWeight: "600"
+                  paddingVertical: 3
                 }}>
                   🏦 Your points are earning!
                   {"\n"}
@@ -2355,15 +2229,6 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
         body: JSON.stringify(requestData),
       });
 
-      // Update savings achievement if moving to save jar
-      if (to === 'save' && response.ok) {
-        import('../../components/AchievementSystem').then(({ updateAchievementProgress }) => {
-          updateAchievementProgress('first-saver', amt);
-        }).catch(error => {
-          console.error('Error updating savings achievement:', error);
-        });
-      }
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         setStatus({ type: "error", msg: errorData.message || "Failed to submit request." });
@@ -2372,6 +2237,27 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
         setTo(originalTo);
         setNote(originalNote);
         return;
+      }
+
+      // Reserve points as pending immediately for race condition prevention
+      setJars(jars.map(jar =>
+        jar.key === from
+          ? {
+              ...jar,
+              value: jar.value - amt,
+              pendingValue: (jar.pendingValue || 0) + amt,
+              totalValue: jar.totalValue // totalValue remains the same until approved
+            }
+          : jar
+      ));
+
+      // Update savings achievement if moving to save jar
+      if (to === 'save' && response.ok) {
+        import('../../components/AchievementSystem').then(({ updateAchievementProgress }) => {
+          updateAchievementProgress('first-saver', amt);
+        }).catch(error => {
+          console.error('Error updating savings achievement:', error);
+        });
       }
 
       setStatus({ type: "ok", msg: "Request sent to parent for approval! ✅" });
@@ -2402,8 +2288,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
       shadowColor: themeColors.border,
     }]}>
       <Text style={{
-        fontSize: 20,
-        fontWeight: "600",
+        ...TYPOGRAPHY.h3,
         marginBottom: 8,
         color: themeColors.text,
       }}>Move Points Between Pots</Text>
@@ -2411,10 +2296,9 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
 
         <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
           <Text style={{
-            fontWeight: "500",
+            ...TYPOGRAPHY.label,
             marginBottom: 4,
-            color: themeColors.text,
-            fontSize: 14,
+            color: themeColors.text
           }}>Points to Move:</Text>
           <TextInput
             placeholder="Enter points"
@@ -2426,7 +2310,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
               borderColor: amountError ? themeColors.error : themeColors.border,
               borderRadius: 7,
               padding: 8,
-              fontSize: 16,
+              ...TYPOGRAPHY.body,
               marginBottom: 2,
               backgroundColor: themeColors.surface,
               color: themeColors.text,
@@ -2438,8 +2322,8 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
           />
           {amountError && (
             <Text style={{
+              ...TYPOGRAPHY.caption,
               color: themeColors.error,
-              fontSize: 12,
               marginTop: 2,
               textAlign: 'center'
             }}>
@@ -2450,10 +2334,9 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
 
         <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
           <Text style={{
-            fontWeight: "500",
+            ...TYPOGRAPHY.label,
             marginBottom: 4,
-            color: themeColors.text,
-            fontSize: 14,
+            color: themeColors.text
           }}>From Which Pot?</Text>
           <TouchableOpacity
             style={{
@@ -2471,24 +2354,23 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
             onPress={() => setFromDropdownVisible(true)}
           >
             <Text style={{
-              fontSize: 16,
+              ...TYPOGRAPHY.body,
               color: from ? themeColors.text : themeColors.textSecondary,
               flex: 1
             }}>
               {from ? `${jars.find(j => j.key === from)?.label} (${jars.find(j => j.key === from)?.value})` : 'Select Pot'}
             </Text>
             <Text style={{
-              fontSize: 16,
-              color: themeColors.primary,
-              fontWeight: 'bold'
+              ...TYPOGRAPHY.body,
+              color: themeColors.primary
             }}>
               ▼
             </Text>
           </TouchableOpacity>
           {fromError && (
             <Text style={{
+              ...TYPOGRAPHY.caption,
               color: themeColors.error,
-              fontSize: 12,
               marginTop: 2,
               textAlign: 'center'
             }}>
@@ -2499,10 +2381,9 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
 
         <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
           <Text style={{
-            fontWeight: "500",
+            ...TYPOGRAPHY.label,
             marginBottom: 4,
-            color: themeColors.text,
-            fontSize: 14,
+            color: themeColors.text
           }}>To Which Pot?</Text>
           <TouchableOpacity
             style={{
@@ -2520,24 +2401,23 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
             onPress={() => setToDropdownVisible(true)}
           >
             <Text style={{
-              fontSize: 16,
+              ...TYPOGRAPHY.body,
               color: to ? themeColors.text : themeColors.textSecondary,
               flex: 1
             }}>
               {to ? jars.find(j => j.key === to)?.label : 'Select Pot'}
             </Text>
             <Text style={{
-              fontSize: 16,
-              color: themeColors.primary,
-              fontWeight: 'bold'
+              ...TYPOGRAPHY.body,
+              color: themeColors.primary
             }}>
               ▼
             </Text>
           </TouchableOpacity>
           {toError && (
             <Text style={{
+              ...TYPOGRAPHY.caption,
               color: themeColors.error,
-              fontSize: 12,
               marginTop: 2,
               textAlign: 'center'
             }}>
@@ -2548,10 +2428,9 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
 
         <View style={{ width: "100%", maxWidth: 220, marginBottom: 7 }}>
           <Text style={{
-            fontWeight: "500",
+            ...TYPOGRAPHY.label,
             marginBottom: 4,
-            color: themeColors.text,
-            fontSize: 14,
+            color: themeColors.text
           }}>Note to Parent (Optional):</Text>
           <TextInput
             placeholder="Why do you want to move these points?"
@@ -2565,7 +2444,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
               borderColor: themeColors.border,
               borderRadius: 7,
               padding: 8,
-              fontSize: 16,
+              ...TYPOGRAPHY.body,
               marginBottom: 2,
               backgroundColor: themeColors.surface,
               color: themeColors.text,
@@ -2594,7 +2473,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
             accessibilityLabel="Submit point transfer request"
             accessibilityHint="Send request to parent to move points between money pots"
           >
-            <Text style={{ color: themeColors.warning, fontWeight: "bold", fontSize: 16 }}>
+            <Text style={{ color: themeColors.warning, ...TYPOGRAPHY.button }}>
               Ask to Move Points
             </Text>
           </TouchableOpacity>
@@ -2604,7 +2483,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
           <Text style={{
             marginTop: 7,
             color: status.type === "error" ? themeColors.error : themeColors.success,
-            fontWeight: "bold",
+            ...TYPOGRAPHY.label,
             textAlign: "center"
           }}
           accessibilityLabel={`${status.type === "error" ? "Error" : "Success"}: ${status.msg}`}
@@ -2664,7 +2543,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
                 }}
               >
                 <Text style={{
-                  fontSize: 16,
+                  ...TYPOGRAPHY.body,
                   color: themeColors.text
                 }}>
                   {jar.label} ({jar.value})
@@ -2724,7 +2603,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
                 }}
               >
                 <Text style={{
-                  fontSize: 16,
+                  ...TYPOGRAPHY.body,
                   color: themeColors.text
                 }}>
                   {jar.label}

@@ -139,104 +139,393 @@ export const Colors = {
   },
 };
 
-// Brand Typography Configuration
+// Premium Font Stack Configuration - Professional & Modern
 export const FONTS = {
-  // Primary: Modern, friendly, readable (Inter)
+  // Primary: Modern, professional, highly readable (Inter)
   primary: {
+    light: Platform.select({
+      ios: 'Inter-Light',
+      android: 'Inter-Light',
+      web: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      default: 'Inter-Light',
+    }),
     regular: Platform.select({
       ios: 'Inter-Regular',
       android: 'Inter-Regular',
-      web: 'Inter, system-ui, -apple-system, sans-serif',
+      web: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       default: 'Inter-Regular',
     }),
     medium: Platform.select({
       ios: 'Inter-Medium',
       android: 'Inter-Medium',
-      web: 'Inter, system-ui, -apple-system, sans-serif',
+      web: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       default: 'Inter-Medium',
     }),
     semiBold: Platform.select({
       ios: 'Inter-SemiBold',
       android: 'Inter-SemiBold',
-      web: 'Inter, system-ui, -apple-system, sans-serif',
+      web: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       default: 'Inter-SemiBold',
     }),
     bold: Platform.select({
       ios: 'Inter-Bold',
       android: 'Inter-Bold',
-      web: 'Inter, system-ui, -apple-system, sans-serif',
+      web: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       default: 'Inter-Bold',
+    }),
+    extraBold: Platform.select({
+      ios: 'Inter-ExtraBold',
+      android: 'Inter-ExtraBold',
+      web: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      default: 'Inter-ExtraBold',
     }),
   },
 
-  // Secondary: Warm, approachable (Nunito)
+  // Secondary: Premium display font (SF Pro Display - Apple's system font)
   secondary: {
+    regular: Platform.select({
+      ios: 'SF-Pro-Display-Regular',
+      android: 'SF-Pro-Display-Regular',
+      web: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      default: 'SF-Pro-Display-Regular',
+    }),
+    medium: Platform.select({
+      ios: 'SF-Pro-Display-Medium',
+      android: 'SF-Pro-Display-Medium',
+      web: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      default: 'SF-Pro-Display-Medium',
+    }),
+    semiBold: Platform.select({
+      ios: 'SF-Pro-Display-SemiBold',
+      android: 'SF-Pro-Display-SemiBold',
+      web: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      default: 'SF-Pro-Display-SemiBold',
+    }),
+    bold: Platform.select({
+      ios: 'SF-Pro-Display-Bold',
+      android: 'SF-Pro-Display-Bold',
+      web: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      default: 'SF-Pro-Display-Bold',
+    }),
+  },
+
+  // Accent: Modern geometric font (Poppins)
+  accent: {
+    light: Platform.select({
+      ios: 'Poppins-Light',
+      android: 'Poppins-Light',
+      web: 'Poppins, "Helvetica Neue", Helvetica, Arial, sans-serif',
+      default: 'Poppins-Light',
+    }),
+    regular: Platform.select({
+      ios: 'Poppins-Regular',
+      android: 'Poppins-Regular',
+      web: 'Poppins, "Helvetica Neue", Helvetica, Arial, sans-serif',
+      default: 'Poppins-Regular',
+    }),
+    medium: Platform.select({
+      ios: 'Poppins-Medium',
+      android: 'Poppins-Medium',
+      web: 'Poppins, "Helvetica Neue", Helvetica, Arial, sans-serif',
+      default: 'Poppins-Medium',
+    }),
+    semiBold: Platform.select({
+      ios: 'Poppins-SemiBold',
+      android: 'Poppins-SemiBold',
+      web: 'Poppins, "Helvetica Neue", Helvetica, Arial, sans-serif',
+      default: 'Poppins-SemiBold',
+    }),
+    bold: Platform.select({
+      ios: 'Poppins-Bold',
+      android: 'Poppins-Bold',
+      web: 'Poppins, "Helvetica Neue", Helvetica, Arial, sans-serif',
+      default: 'Poppins-Bold',
+    }),
+  },
+
+  // Tertiary: Warm, human, approachable (Nunito)
+  tertiary: {
     regular: Platform.select({
       ios: 'Nunito-Regular',
       android: 'Nunito-Regular',
-      web: 'Nunito, Georgia, serif',
+      web: 'Nunito, Georgia, "Times New Roman", serif',
       default: 'Nunito-Regular',
     }),
     medium: Platform.select({
       ios: 'Nunito-Medium',
       android: 'Nunito-Medium',
-      web: 'Nunito, Georgia, serif',
+      web: 'Nunito, Georgia, "Times New Roman", serif',
       default: 'Nunito-Medium',
     }),
     semiBold: Platform.select({
       ios: 'Nunito-SemiBold',
       android: 'Nunito-SemiBold',
-      web: 'Nunito, Georgia, serif',
+      web: 'Nunito, Georgia, "Times New Roman", serif',
       default: 'Nunito-SemiBold',
     }),
     bold: Platform.select({
       ios: 'Nunito-Bold',
       android: 'Nunito-Bold',
-      web: 'Nunito, Georgia, serif',
+      web: 'Nunito, Georgia, "Times New Roman", serif',
       default: 'Nunito-Bold',
     }),
   },
 
-  // Display: Fun, celebratory (Fredoka)
+  // Display: Fun, modern, distinctive (Fredoka) - for special elements
   display: {
     regular: Platform.select({
       ios: 'Fredoka-Regular',
       android: 'Fredoka-Regular',
-      web: 'Fredoka, cursive',
+      web: 'Fredoka, "Comic Sans MS", cursive',
       default: 'Fredoka-Regular',
     }),
     medium: Platform.select({
       ios: 'Fredoka-Medium',
       android: 'Fredoka-Medium',
-      web: 'Fredoka, cursive',
+      web: 'Fredoka, "Comic Sans MS", cursive',
       default: 'Fredoka-Medium',
     }),
     bold: Platform.select({
       ios: 'Fredoka-Bold',
       android: 'Fredoka-Bold',
-      web: 'Fredoka, cursive',
+      web: 'Fredoka, "Comic Sans MS", cursive',
       default: 'Fredoka-Bold',
     }),
   },
 };
 
-// Typography Scale
+// Typography Scale - Premium Hierarchy (Legacy - will be replaced by semantic tokens)
 export const TYPOGRAPHY = {
-  // Headlines
-  h1: { fontSize: 32, lineHeight: 40, fontFamily: FONTS.display.bold },
-  h2: { fontSize: 28, lineHeight: 36, fontFamily: FONTS.primary.bold },
+  // Headlines - SF Pro Display (premium feel)
+  h1: { fontSize: 32, lineHeight: 40, fontFamily: FONTS.secondary.bold }, // SF Pro Display Bold
+  h2: { fontSize: 28, lineHeight: 36, fontFamily: FONTS.secondary.bold }, // SF Pro Display Bold
+
+  // Subheadings - Inter SemiBold (modern)
   h3: { fontSize: 24, lineHeight: 32, fontFamily: FONTS.primary.semiBold },
   h4: { fontSize: 20, lineHeight: 28, fontFamily: FONTS.primary.semiBold },
 
-  // Body Text
+  // Body Text - Inter Regular/Medium (readable)
   bodyLarge: { fontSize: 18, lineHeight: 26, fontFamily: FONTS.primary.regular },
   body: { fontSize: 16, lineHeight: 24, fontFamily: FONTS.primary.regular },
-  bodySmall: { fontSize: 14, lineHeight: 20, fontFamily: FONTS.secondary.regular },
+  bodySmall: { fontSize: 14, lineHeight: 20, fontFamily: FONTS.primary.regular },
 
-  // Labels and UI
+  // Labels and UI - Inter Medium (clear)
   label: { fontSize: 14, lineHeight: 20, fontFamily: FONTS.primary.medium },
-  caption: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.secondary.medium },
+
+  // Captions - Inter Regular (subtle)
+  caption: { fontSize: 12, lineHeight: 16, fontFamily: FONTS.primary.regular },
+
+  // Buttons - Inter SemiBold
   button: { fontSize: 16, lineHeight: 24, fontFamily: FONTS.primary.semiBold },
+
+  // Special elements - Poppins for accent elements
+  accent: { fontSize: 16, lineHeight: 24, fontFamily: FONTS.accent.medium },
+};
+
+// New Semantic Typography Scale - Scalable Design System (Enhanced for Kids Learning)
+export const SEMANTIC_TYPOGRAPHY = {
+  // Display - Largest text for major headings (Kid-friendly, playful)
+  'type-display-large': {
+    semanticTokenName: 'type-display-large',
+    intendedUse: 'Main app screen titles and hero headings',
+    recommendedBaseFontSize: '32pt / 28sp',
+    recommendedFontWeight: 'Bold / 700',
+    fontSize: 32,
+    lineHeight: 40,
+    fontFamily: FONTS.display.bold // Fredoka for playful display
+  },
+  'type-display-medium': {
+    semanticTokenName: 'type-display-medium',
+    intendedUse: 'Secondary screen titles and major section headers',
+    recommendedBaseFontSize: '28pt / 24sp',
+    recommendedFontWeight: 'Bold / 700',
+    fontSize: 28,
+    lineHeight: 36,
+    fontFamily: FONTS.display.bold // Fredoka for kid-friendly headers
+  },
+
+  // Headings - Section and component titles (Clear hierarchy)
+  'type-heading-large': {
+    semanticTokenName: 'type-heading-large',
+    intendedUse: 'Primary section headings and card headers',
+    recommendedBaseFontSize: '24pt / 20sp',
+    recommendedFontWeight: 'Semibold / 600',
+    fontSize: 24,
+    lineHeight: 32,
+    fontFamily: FONTS.primary.semiBold // Inter for readability
+  },
+  'type-heading-medium': {
+    semanticTokenName: 'type-heading-medium',
+    intendedUse: 'Secondary section headings and component titles',
+    recommendedBaseFontSize: '20pt / 18sp',
+    recommendedFontWeight: 'Semibold / 600',
+    fontSize: 20,
+    lineHeight: 28,
+    fontFamily: FONTS.primary.semiBold
+  },
+  'type-heading-small': {
+    semanticTokenName: 'type-heading-small',
+    intendedUse: 'Tertiary headings and card titles',
+    recommendedBaseFontSize: '18pt / 16sp',
+    recommendedFontWeight: 'Semibold / 600',
+    fontSize: 18,
+    lineHeight: 26,
+    fontFamily: FONTS.primary.semiBold
+  },
+
+  // Body - Main content text (Optimized for children's reading)
+  'type-body-large': {
+    semanticTokenName: 'type-body-large',
+    intendedUse: 'Primary body text and descriptions',
+    recommendedBaseFontSize: '18pt / 16sp',
+    recommendedFontWeight: 'Regular / 400',
+    fontSize: 18,
+    lineHeight: 26,
+    fontFamily: FONTS.tertiary.regular // Nunito for warm, readable body text
+  },
+  'type-body': {
+    semanticTokenName: 'type-body',
+    intendedUse: 'Standard body text and content',
+    recommendedBaseFontSize: '16pt / 14sp',
+    recommendedFontWeight: 'Regular / 400',
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: FONTS.tertiary.regular
+  },
+  'type-body-small': {
+    semanticTokenName: 'type-body-small',
+    intendedUse: 'Secondary body text and supporting content',
+    recommendedBaseFontSize: '14pt / 12sp',
+    recommendedFontWeight: 'Regular / 400',
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: FONTS.tertiary.regular
+  },
+
+  // Labels - Interactive and UI elements (Clear and actionable)
+  'type-label-large': {
+    semanticTokenName: 'type-label-large',
+    intendedUse: 'Primary buttons and important labels',
+    recommendedBaseFontSize: '16pt / 14sp',
+    recommendedFontWeight: 'Semibold / 600',
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: FONTS.primary.semiBold
+  },
+  'type-label': {
+    semanticTokenName: 'type-label',
+    intendedUse: 'Standard buttons and form labels',
+    recommendedBaseFontSize: '14pt / 12sp',
+    recommendedFontWeight: 'Medium / 500',
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: FONTS.primary.medium
+  },
+  'type-label-small': {
+    semanticTokenName: 'type-label-small',
+    intendedUse: 'Secondary buttons and small labels',
+    recommendedBaseFontSize: '12pt / 11sp',
+    recommendedFontWeight: 'Medium / 500',
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: FONTS.primary.medium
+  },
+
+  // Captions - Subtle supporting text (Kid-accessible metadata)
+  'type-caption': {
+    semanticTokenName: 'type-caption',
+    intendedUse: 'Captions, metadata, and helper text',
+    recommendedBaseFontSize: '12pt / 10sp',
+    recommendedFontWeight: 'Regular / 400',
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: FONTS.primary.regular
+  },
+  'type-caption-small': {
+    semanticTokenName: 'type-caption-small',
+    intendedUse: 'Fine print and minimal supporting text',
+    recommendedBaseFontSize: '10pt / 9sp',
+    recommendedFontWeight: 'Regular / 400',
+    fontSize: 10,
+    lineHeight: 14,
+    fontFamily: FONTS.primary.regular
+  }
+};
+
+// Kids Section Typography - Friendly, Inviting, Highly Legible for Children
+// Uses Fredoka (display) for playful headings, Nunito (tertiary) for warm body text
+// Supports Dynamic Type scaling for accessibility
+export const KIDS_TYPOGRAPHY = {
+  // Main Title - Large, playful, attention-grabbing for kids
+  kidTitle: {
+    fontSize: 28, // Slightly larger for prominence
+    lineHeight: 36,
+    fontFamily: FONTS.display.bold, // Fredoka Bold - fun and distinctive
+    color: Colors.light.primary, // Primary brand color for high visibility
+    // Dynamic Type: scales with system font size
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.8,
+  },
+
+  // Game Card Headers - Clear, readable, inviting
+  gameCardHeader: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: FONTS.tertiary.semiBold, // Nunito SemiBold - warm and approachable
+    color: Colors.light.text, // Primary text color for readability
+    // Dynamic Type support
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.9,
+  },
+
+  // Instructions/Rules Text - Comfortable reading for kids
+  instructionsText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: FONTS.tertiary.regular, // Nunito Regular - warm and readable
+    color: Colors.light.textSecondary, // Secondary text for supporting content
+    // Dynamic Type support
+    adjustsFontSizeToFit: false, // Allow natural wrapping
+  },
+
+  // Modal Titles - Clear hierarchy in game modals
+  modalTitle: {
+    fontSize: 20,
+    lineHeight: 26,
+    fontFamily: FONTS.display.medium, // Fredoka Medium - playful but readable
+    color: Colors.light.success, // Success color for positive game context
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.85,
+  },
+
+  // Game Descriptions - Supporting text for game cards
+  gameDescription: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: FONTS.tertiary.regular,
+    color: Colors.light.textSecondary,
+    adjustsFontSizeToFit: false,
+  },
+
+  // Button Labels - Clear call-to-action text
+  buttonLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: FONTS.tertiary.medium, // Nunito Medium - slightly bolder for buttons
+    // Color will be set contextually (text for light buttons, card for dark buttons)
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.9,
+  },
+
+  // Coming Soon Labels - Subtle but visible
+  comingSoonLabel: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontFamily: FONTS.tertiary.bold,
+    color: '#af8111', // Warm brown for "coming soon" status
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.95,
+  },
 };
 
 // Legacy Fonts for backward compatibility

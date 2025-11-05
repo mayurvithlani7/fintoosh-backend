@@ -14,7 +14,6 @@ import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 
 import { goalSuggestions } from '@/constants/goalSuggestions';
-import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { useGlobalFeedback } from '@/utils/globalFeedbackContext';
 export default function ParentsGoalsScreen() {
@@ -542,7 +541,7 @@ export default function ParentsGoalsScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 0 }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
               👨‍👩‍👦 Select Child to View Goals
             </Text>
             <View style={[styles.countBadge, {
@@ -594,7 +593,7 @@ export default function ParentsGoalsScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
             Tap any child to view their individual goals and progress
           </Text>
         </View>
@@ -614,7 +613,7 @@ export default function ParentsGoalsScreen() {
           minWidth: 200,
           alignItems: 'center'
         }}>
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text }}>
+          <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
             👶 Viewing: {children[0].name}
           </Text>
         </View>
@@ -631,7 +630,7 @@ export default function ParentsGoalsScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 0 }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
               🎯 Goals Summary
             </Text>
             <TouchableOpacity
@@ -643,7 +642,7 @@ export default function ParentsGoalsScreen() {
               onPress={onRefresh}
               disabled={refreshing}
             >
-              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.card }}>
+              <Text style={{ fontSize: 14, color: themeColors.card }}>
                 {refreshing ? '⏳' : '↻'}
               </Text>
             </TouchableOpacity>
@@ -668,8 +667,8 @@ export default function ParentsGoalsScreen() {
               </Text>
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>
-              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🏆 Total</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.primary }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text, fontWeight: 'bold' }]}>🏆 Total</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary, fontWeight: 'bold' }]}>
                 {goals.length}
               </Text>
             </View>
@@ -689,7 +688,7 @@ export default function ParentsGoalsScreen() {
           alignItems: 'center',
           paddingVertical: 24
         }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 12 }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 12 }]}>
             👶 No Children Linked Yet
           </Text>
           <Text style={[styles.placeholder, { color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20 }]}>
@@ -708,7 +707,7 @@ export default function ParentsGoalsScreen() {
             }}
             onPress={() => router.push('/addChild')}
           >
-            <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body"] }}>
+            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 16 }}>
               Add Your First Child
             </Text>
           </TouchableOpacity>
@@ -802,7 +801,7 @@ export default function ParentsGoalsScreen() {
 
         {/* Goal Name Suggestions */}
         <View style={styles.suggestionsContainer}>
-          <Text style={[styles.inputLabel, { ...SEMANTIC_TYPOGRAPHY["type-caption"], marginBottom: 8 }]}>Goal Ideas:</Text>
+          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Goal Ideas:</Text>
           <View style={styles.suggestionsGrid}>
             {goalSuggestions.slice(0, 12).map((suggestion) => (
               <TouchableOpacity
@@ -821,7 +820,7 @@ export default function ParentsGoalsScreen() {
 
         {/* Quick Preset Goal Amounts */}
         <View style={styles.presetContainer}>
-          <Text style={[styles.inputLabel, { ...SEMANTIC_TYPOGRAPHY["type-caption"], marginBottom: 8 }]}>Quick Amounts:</Text>
+          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
           <View style={styles.presetRow}>
             {['100', '250', '500', '1000'].map((amount) => (
               <TouchableOpacity
@@ -882,18 +881,18 @@ export default function ParentsGoalsScreen() {
         <Text style={styles.inputLabel}>Target Date (Optional)</Text>
         {Platform.OS === "web" ? (
           <View style={{ width: '100%' }}>
-              <input
-                style={{
-                  width: '100%',
-                  padding: 8,
-                  borderRadius: 7,
-                  border: `1px solid ${themeColors.border}`,
-                  backgroundColor: themeColors.surface,
-                  color: themeColors.text,
-                  marginBottom: 2,
-                  boxSizing: 'border-box',
-                  ...SEMANTIC_TYPOGRAPHY["type-body"],
-                }}
+            <input
+              style={{
+                width: '100%',
+                padding: 8,
+                borderRadius: 7,
+                border: `1px solid ${themeColors.border}`,
+                fontSize: 16,
+                backgroundColor: themeColors.surface,
+                color: themeColors.text,
+                marginBottom: 2,
+                boxSizing: 'border-box',
+              }}
               type="date"
               min={new Date().toISOString().split("T")[0]}
               value={deadline}
@@ -907,10 +906,10 @@ export default function ParentsGoalsScreen() {
               onPress={() => setShowDatePicker(true)}
               activeOpacity={0.75}
             >
-              <Text style={{ color: deadline ? themeColors.text : themeColors.textSecondary, ...SEMANTIC_TYPOGRAPHY["type-body"] }}>
+              <Text style={{ color: deadline ? themeColors.text : themeColors.textSecondary, fontSize: 16 }}>
                 {deadline ? deadline : 'Set target date'}
               </Text>
-              <Text style={{ marginLeft: 8, ...SEMANTIC_TYPOGRAPHY["type-heading-small"] }}>📅</Text>
+              <Text style={{ marginLeft: 8, fontSize: 18 }}>📅</Text>
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
@@ -1012,7 +1011,7 @@ export default function ParentsGoalsScreen() {
                 marginHorizontal: 6
               }}
             >
-              <Text style={{ color: goalsTab === tab ? themeColors.card : themeColors.text, fontWeight: goalsTab === tab ? 'bold' : '600', ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>
+              <Text style={{ color: goalsTab === tab ? themeColors.card : themeColors.text, fontWeight: goalsTab === tab ? 'bold' : '600', fontSize: 15 }}>
                 {tab}
               </Text>
             </TouchableOpacity>
@@ -1072,14 +1071,14 @@ export default function ParentsGoalsScreen() {
                     }}
                   >
                     <Text style={{ marginBottom: 4 }}>
-                      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text }}>{g.name}</Text>
+                      <Text style={{ fontWeight: 'bold', color: themeColors.text, fontSize: 16 }}>{g.name}</Text>
                     </Text>
                     {g.description && (
-                      <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, marginBottom: 6 }}>
+                      <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginBottom: 6 }}>
                         {g.description}
                       </Text>
                     )}
-                    <Text style={{ color: themeColors.textSecondary, ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 6 }}>
+                    <Text style={{ color: themeColors.textSecondary, fontSize: 14, marginBottom: 6 }}>
                       Target: {g.targetAmount} points in {jarOptions.find(j => j.value === g.jar)?.label || g.jar}
                     </Text>
 
@@ -1087,10 +1086,10 @@ export default function ParentsGoalsScreen() {
                     {g.status === 'active' && g.currentPoints && (
                       <View style={{ marginBottom: 8 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.textSecondary }}>
+                          <Text style={{ fontSize: 12, color: themeColors.textSecondary, fontWeight: '600' }}>
                             Progress
                           </Text>
-                          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.text }}>
+                          <Text style={{ fontSize: 12, color: themeColors.text, fontWeight: '600' }}>
                             {(() => {
                               const jarPoints = g.jar === 'current' ? g.currentPoints.current :
                                                g.jar === 'save' ? g.currentPoints.save :
@@ -1134,11 +1133,11 @@ export default function ParentsGoalsScreen() {
                       </View>
                     )}
                     {g.deadline && (
-                      <Text style={{ color: themeColors.textSecondary, ...SEMANTIC_TYPOGRAPHY["type-caption-small"], marginTop: 2 }}>
+                      <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
                         Deadline: {new Date(g.deadline).toLocaleDateString()}
                       </Text>
                     )}
-                    <Text style={{ color: themeColors.textSecondary, ...SEMANTIC_TYPOGRAPHY["type-caption-small"], marginTop: 2 }}>
+                    <Text style={{ color: themeColors.textSecondary, fontSize: 12, marginTop: 2 }}>
                       Status: {g.status} • Created: {new Date(g.createdAt).toLocaleDateString()}
                     </Text>
                     {g.status === 'active' && (
@@ -1162,7 +1161,7 @@ export default function ParentsGoalsScreen() {
                             scrollViewRef.current?.scrollTo({ x: 0, y: 400, animated: true });
                           }}
                         >
-                          <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-caption-small"] }}>✏️ Edit</Text>
+                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>✏️ Edit</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={{
@@ -1174,7 +1173,7 @@ export default function ParentsGoalsScreen() {
                           }}
                           onPress={() => handleDeleteGoal(g._id, g.name)}
                         >
-                          <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-caption-small"] }}>🗑️ Delete</Text>
+                          <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 12 }}>🗑️ Delete</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -1182,7 +1181,8 @@ export default function ParentsGoalsScreen() {
                       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                         <Text style={{
                           color: themeColors.warning,
-                          ...SEMANTIC_TYPOGRAPHY["type-caption"],
+                          fontWeight: 'bold',
+                          fontSize: 13,
                           backgroundColor: themeColors.surface,
                           paddingVertical: 7,
                           paddingHorizontal: 14,
@@ -1207,7 +1207,7 @@ export default function ParentsGoalsScreen() {
                     }}
                     onPress={() => setShowAllCompleted(true)}
                   >
-                    <Text style={{ color: themeColors.primary, ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>Show All Completed Goals</Text>
+                    <Text style={{ color: themeColors.primary, fontWeight: '500' }}>Show All Completed Goals</Text>
                   </TouchableOpacity>
                 )}
                 {goalsTab === 'Completed' && showAllCompleted && (
@@ -1222,7 +1222,7 @@ export default function ParentsGoalsScreen() {
                     }}
                     onPress={() => setShowAllCompleted(false)}
                   >
-                    <Text style={{ color: themeColors.primary, ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>Show Only Last 90 Days</Text>
+                    <Text style={{ color: themeColors.primary, fontWeight: '500' }}>Show Only Last 90 Days</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1422,18 +1422,18 @@ export default function ParentsGoalsScreen() {
 const createStyles = (themeColors: any) => StyleSheet.create({
   scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
   sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
-  sectionTitle: { ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: 12, color: themeColors.text },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
   formRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   formGroup: { flex: 1, marginHorizontal: 6 },
-  inputLabel: { marginBottom: 4, color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
-  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body"] },
+  inputLabel: { fontWeight: '500', marginBottom: 4, color: themeColors.text, fontSize: 15 },
+  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
   formBtn: { backgroundColor: themeColors.primary, padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
-  formBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
-  validation: { color: themeColors.error, ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginTop: 4 },
-  statusMessage: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.success, marginTop: 4 },
-  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', paddingVertical: 20 },
+  formBtnText: { fontWeight: '700', color: themeColors.card, fontSize: 15 },
+  validation: { color: themeColors.error, fontSize: 15, marginTop: 4 },
+  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success, marginTop: 4 },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
   childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
   childButton: {
     backgroundColor: themeColors.surface,
@@ -1447,7 +1447,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   childButtonSelected: { backgroundColor: themeColors.primary },
-  childButtonText: { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
+  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
   childButtonTextSelected: { color: themeColors.card },
   // Child selector styles for enhanced design
   countBadge: {
@@ -1527,7 +1527,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   refreshBtnText: {
     color: themeColors.card,
-    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+    fontSize: 14,
   },
   summaryGrid: {
     flexDirection: 'row',
@@ -1549,18 +1549,20 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     shadowRadius: 2,
   },
   summaryLabel: {
-    ...SEMANTIC_TYPOGRAPHY["type-caption"],
+    fontSize: 14,
+    fontWeight: '600',
     textAlign: 'center',
     marginBottom: 4,
   },
   summaryValue: {
-    ...SEMANTIC_TYPOGRAPHY["type-heading-large"],
+    fontSize: 20,
+    fontWeight: 'bold',
     textAlign: 'center',
   },
   jarSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: 8, marginBottom: 8 },
   jarButton: { backgroundColor: themeColors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, margin: 2, minWidth: 60, alignItems: 'center' },
   jarButtonSelected: { backgroundColor: themeColors.secondary },
-  jarButtonText: { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-caption-small"] },
+  jarButtonText: { color: themeColors.text, fontSize: 12, fontWeight: '600' },
   jarButtonTextSelected: { color: themeColors.card },
   cancelBtn: {
     backgroundColor: themeColors.surface,
@@ -1571,8 +1573,9 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: {
+    fontWeight: '700',
     color: themeColors.text,
-    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+    fontSize: 15,
   },
   templateBtn: {
     backgroundColor: themeColors.secondary,
@@ -1583,16 +1586,17 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   },
   templateBtnText: {
     color: themeColors.card,
-    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
+    fontWeight: '600',
+    fontSize: 12,
   },
   presetContainer: { marginTop: 16, marginBottom: 8 },
   presetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   presetBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 6, marginHorizontal: 2, alignItems: 'center', minWidth: 50 },
-  presetBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-caption"] },
+  presetBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
   suggestionsContainer: { marginTop: 16, marginBottom: 8 },
   suggestionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   suggestionBtn: { flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 6, marginHorizontal: 2, marginVertical: 4, alignItems: 'center', minWidth: 70, maxWidth: 120 },
-  suggestionBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-caption-small"], textAlign: 'center' },
+  suggestionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 12, textAlign: 'center' },
   // Complete form styles
   formSection: {
     marginBottom: 20,
@@ -1601,7 +1605,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderBottomColor: themeColors.border + '40',
   },
   sectionSubtitle: {
-    ...SEMANTIC_TYPOGRAPHY["type-body"],
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 12,
     color: themeColors.primary,
   },
@@ -1665,11 +1670,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     flex: 1,
   },
   heroTitle: {
-    ...SEMANTIC_TYPOGRAPHY["type-heading-large"],
+    fontSize: 20,
+    fontWeight: 'bold',
     marginBottom: 4,
   },
   heroSubtitle: {
-    ...SEMANTIC_TYPOGRAPHY["type-caption"],
+    fontSize: 14,
     lineHeight: 20,
   },
   bannerTemplateBtn: {
@@ -1679,13 +1685,15 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   bannerTemplateText: {
-    ...SEMANTIC_TYPOGRAPHY["type-caption"],
+    fontSize: 14,
+    fontWeight: '600',
   },
   formTitleContainer: {
     marginBottom: 16,
   },
   formTitle: {
-    ...SEMANTIC_TYPOGRAPHY["type-body"],
+    fontSize: 18,
+    fontWeight: 'bold',
     color: themeColors.text,
     textAlign: 'center',
   },
@@ -1697,7 +1705,8 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginBottom: 20,
   },
   headerTitle: {
-    ...SEMANTIC_TYPOGRAPHY["type-heading-large"],
+    fontSize: 22,
+    fontWeight: 'bold',
     color: themeColors.primary,
   },
 });

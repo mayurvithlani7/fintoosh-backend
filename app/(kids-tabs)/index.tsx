@@ -23,6 +23,7 @@ import {
 } from "react-native";
 
 import SwipeNavigator from '@/components/SwipeNavigator';
+import { TYPOGRAPHY } from '@/constants/theme';
 import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 
 // Smart Empty States with Action Prompts
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: MOBILE_LAYOUT.containerPadding,
   },
   title: {
-    ...MOBILE_STYLES.title,
+    ...TYPOGRAPHY.h2,
     marginBottom: MOBILE_LAYOUT.sectionSpacing,
     marginTop: MOBILE_LAYOUT.itemSpacing,
     // color moved to dynamicStyles
@@ -334,13 +335,12 @@ const styles = StyleSheet.create({
     // borderColor moved to dynamicStyles
   },
   jarLabel: {
-    fontWeight: "bold",
+    ...TYPOGRAPHY.body,
     marginBottom: MOBILE_LAYOUT.itemSpacing,
     // color moved to dynamicStyles
-    ...MOBILE_STYLES.body,
   },
   jarPoints: {
-    ...MOBILE_STYLES.title,
+    ...TYPOGRAPHY.h1,
     marginBottom: MOBILE_LAYOUT.itemSpacing,
     // color moved to dynamicStyles
   },
@@ -863,17 +863,17 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
       fontSize: 48,
       marginBottom: MOBILE_LAYOUT.itemSpacing * 2,
     },
-    emptyTitle: {
-      ...MOBILE_STYLES.subtitle,
-      fontWeight: 'bold',
-      marginBottom: MOBILE_LAYOUT.itemSpacing,
-      textAlign: 'center',
-    },
-    emptyMessage: {
-      ...MOBILE_STYLES.body,
-      textAlign: 'center',
-      marginBottom: MOBILE_LAYOUT.sectionSpacing,
-    },
+  emptyTitle: {
+    ...TYPOGRAPHY.h3,
+    fontWeight: 'bold',
+    marginBottom: MOBILE_LAYOUT.itemSpacing,
+    textAlign: 'center',
+  },
+  emptyMessage: {
+    ...TYPOGRAPHY.body,
+    textAlign: 'center',
+    marginBottom: MOBILE_LAYOUT.sectionSpacing,
+  },
     emptyActionButton: {
       paddingHorizontal: MOBILE_LAYOUT.cardPadding * 2,
       paddingVertical: MOBILE_LAYOUT.itemSpacing,

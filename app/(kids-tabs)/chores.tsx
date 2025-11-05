@@ -1,5 +1,6 @@
 import HelpModal from '@/components/HelpModal';
 import AnimatedCircularProgress from '@/components/animations/AnimatedCircularProgress';
+import { TYPOGRAPHY } from '@/constants/theme';
 import { API_URL } from '@/utils/config';
 import { handleApiError } from '@/utils/errorHandler';
 import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
@@ -27,7 +28,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   title: {
-    ...MOBILE_STYLES.title,
+    ...TYPOGRAPHY.h2,
     color: themeColors.primary,
     marginBottom: MOBILE_LAYOUT.sectionSpacing,
     marginTop: MOBILE_LAYOUT.itemSpacing,
@@ -40,13 +41,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     width: MOBILE_LAYOUT.containerWidth,
   },
   sectionTitle: {
-    ...MOBILE_STYLES.body,
-    fontWeight: "600",
+    ...TYPOGRAPHY.h3,
     marginBottom: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.text,
   },
   placeholder: {
-    ...MOBILE_STYLES.body,
+    ...TYPOGRAPHY.bodySmall,
     color: themeColors.textSecondary,
     fontStyle: "italic",
     marginBottom: MOBILE_LAYOUT.itemSpacing,

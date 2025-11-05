@@ -1,4 +1,5 @@
 import HelpModal from '@/components/HelpModal';
+import { TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
@@ -26,7 +27,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.background,
   },
   title: {
-    ...MOBILE_STYLES.title,
+    ...TYPOGRAPHY.h2,
     color: themeColors.primary,
     marginBottom: MOBILE_LAYOUT.sectionSpacing,
     marginTop: MOBILE_LAYOUT.itemSpacing,
@@ -39,13 +40,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     width: MOBILE_LAYOUT.containerWidth,
   },
   sectionTitle: {
-    ...MOBILE_STYLES.body,
-    fontWeight: "600",
+    ...TYPOGRAPHY.h3,
     marginBottom: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.text,
   },
   placeholder: {
-    ...MOBILE_STYLES.body,
+    ...TYPOGRAPHY.bodySmall,
     color: themeColors.textSecondary,
     fontStyle: "italic",
     marginBottom: MOBILE_LAYOUT.itemSpacing,
@@ -53,8 +53,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     minHeight: 26
   },
   statusMessage: {
-    ...MOBILE_STYLES.body,
-    fontWeight: "600",
+    ...TYPOGRAPHY.body,
     marginTop: MOBILE_LAYOUT.itemSpacing,
     color: themeColors.success
   },
@@ -68,13 +67,14 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.surface,
   },
   refreshBtnText: {
-    ...MOBILE_STYLES.caption,
+    ...TYPOGRAPHY.caption,
     color: themeColors.card,
-    fontWeight: "bold",
+    fontFamily: TYPOGRAPHY.caption.fontFamily,
   },
   refreshBtnTextDisabled: {
-    ...MOBILE_STYLES.caption,
+    ...TYPOGRAPHY.caption,
     color: themeColors.textSecondary,
+    fontFamily: TYPOGRAPHY.caption.fontFamily,
   },
 });
 
@@ -108,7 +108,7 @@ export default function GiftsScreen() {
             accessibilityLabel="Go back to home screen"
             accessibilityHint="Double tap to return to the main dashboard"
           >
-            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text, fontWeight: 'bold' }}>⬅️ Back</Text>
+            <Text style={{ ...TYPOGRAPHY.button, color: themeColors.text, fontFamily: TYPOGRAPHY.button.fontFamily }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{
@@ -127,7 +127,7 @@ export default function GiftsScreen() {
             accessibilityLabel="Help and information"
             accessibilityHint="Double tap to open help guide for gifts and rewards"
           >
-            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
+            <Text style={{ ...TYPOGRAPHY.button, color: themeColors.card, fontFamily: TYPOGRAPHY.button.fontFamily }}>❓ Help</Text>
           </TouchableOpacity>
         </View>
         <View style={MOBILE_STYLES.center}>
@@ -442,39 +442,41 @@ function GiftsSection() {
         accessibilityLabel={`Gift: ${reward.name}. Cost: ${formatAmount(reward.cost)} points. Status: ${statusConfig.text}.`}
         accessibilityHint={canClaim ? 'Double tap to claim this gift' : reward.purchased ? 'This gift has been claimed' : hasPending ? 'Waiting for parent approval' : 'You need more points to claim this gift'}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <Text style={{ fontSize: 24, marginRight: 12 }}>{statusConfig.icon}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={{ ...TYPOGRAPHY.bodyLarge, marginRight: 12, fontFamily: TYPOGRAPHY.bodyLarge.fontFamily }}>{statusConfig.icon}</Text>
           <View style={{ flex: 1 }}>
             <Text style={{
-              fontSize: 18,
-              fontWeight: "bold",
+              ...TYPOGRAPHY.bodyLarge,
               color: themeColors.text,
-              marginBottom: 4
+              marginBottom: 4,
+              fontFamily: TYPOGRAPHY.bodyLarge.fontFamily,
             }} numberOfLines={1} ellipsizeMode="tail">
               {reward.name}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{
-                fontSize: 16,
-                fontWeight: "bold",
+                ...TYPOGRAPHY.body,
                 color: themeColors.primary,
-                marginRight: 8
+                marginRight: 8,
+                fontFamily: TYPOGRAPHY.body.fontFamily,
               }}>
                 💰 {formatAmount(reward.cost)} points
               </Text>
               {/* Only show total for available gifts (not claimed) */}
               {userData && !reward.purchased && (
                 <Text style={{
-                  fontSize: 14,
-                  color: themeColors.textSecondary
+                  ...TYPOGRAPHY.bodySmall,
+                  color: themeColors.textSecondary,
+                  fontFamily: TYPOGRAPHY.bodySmall.fontFamily,
                 }}>
                   (Total: {formatAmount(userData.currentPoints || 0)}{(userData.pendingCurrentPoints || 0) > 0 ? `, ${userData.pendingCurrentPoints} pending` : ''})
                 </Text>
               )}
               {userData && (userData.pendingCurrentPoints || 0) > 0 && (
                 <Text style={{
-                  fontSize: 12,
+                  ...TYPOGRAPHY.caption,
                   color: themeColors.textSecondary,
+                  fontFamily: TYPOGRAPHY.caption.fontFamily,
                   marginTop: 2
                 }}>
                   Available: {formatAmount((userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0))}
@@ -495,11 +497,11 @@ function GiftsSection() {
             flexDirection: 'row',
             justifyContent: 'center'
           }}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>🎉</Text>
+            <Text style={{ ...TYPOGRAPHY.body, marginRight: 8, fontFamily: TYPOGRAPHY.body.fontFamily }}>🎉</Text>
             <Text style={{
+              ...TYPOGRAPHY.button,
               color: 'white',
-              fontWeight: "bold",
-              fontSize: 16
+              fontFamily: TYPOGRAPHY.button.fontFamily,
             }}>
               {statusConfig.text}
             </Text>
@@ -516,20 +518,20 @@ function GiftsSection() {
               justifyContent: 'center',
               marginBottom: 8
             }}>
-              <Text style={{ fontSize: 16, marginRight: 8 }}>⏳</Text>
+              <Text style={{ ...TYPOGRAPHY.body, marginRight: 8, fontFamily: TYPOGRAPHY.body.fontFamily }}>⏳</Text>
               <Text style={{
+                ...TYPOGRAPHY.button,
                 color: 'white',
-                fontWeight: "bold",
-                fontSize: 16
+                fontFamily: TYPOGRAPHY.button.fontFamily,
               }}>
                 Waiting for Parent Approval
               </Text>
             </View>
             <Text style={{
-              fontSize: 14,
+              ...TYPOGRAPHY.bodySmall,
               color: themeColors.warning,
               textAlign: 'center',
-              fontWeight: '500'
+              fontFamily: TYPOGRAPHY.bodySmall.fontFamily,
             }}>
               Your parent will review and approve your gift claim! 🎁👨‍👩‍👧‍👦
             </Text>
@@ -557,11 +559,11 @@ function GiftsSection() {
             accessibilityHint="Double tap to submit gift claim request to parent"
             accessibilityState={{ disabled: claiming === reward._id }}
           >
-            <Text style={{ fontSize: 18, marginRight: 8 }}>🎁</Text>
+            <Text style={{ ...TYPOGRAPHY.bodyLarge, marginRight: 8, fontFamily: TYPOGRAPHY.bodyLarge.fontFamily }}>🎁</Text>
             <Text style={{
+              ...TYPOGRAPHY.button,
               color: 'white',
-              fontWeight: "bold",
-              fontSize: 16
+              fontFamily: TYPOGRAPHY.button.fontFamily,
             }}>
               {claiming === reward._id ? "Claiming..." : statusConfig.text}
             </Text>
@@ -578,11 +580,11 @@ function GiftsSection() {
             borderWidth: 1,
             borderColor: themeColors.border
           }}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>💪</Text>
+            <Text style={{ ...TYPOGRAPHY.body, marginRight: 8, fontFamily: TYPOGRAPHY.body.fontFamily }}>💪</Text>
             <Text style={{
+              ...TYPOGRAPHY.button,
               color: themeColors.textSecondary,
-              fontWeight: "bold",
-              fontSize: 16
+              fontFamily: TYPOGRAPHY.button.fontFamily,
             }}>
               {statusConfig.text}
             </Text>
@@ -733,7 +735,7 @@ function GiftsSection() {
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0, fontSize: 20 }]}>🎁 My Gifts</Text>
+              <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0, fontFamily: TYPOGRAPHY.h3.fontFamily }]}>🎁 My Gifts</Text>
               <View style={{
                 backgroundColor: themeColors.primary,
                 borderRadius: 10,
@@ -741,7 +743,11 @@ function GiftsSection() {
                 paddingVertical: 2,
                 marginLeft: 8
               }}>
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                <Text style={{
+                  ...TYPOGRAPHY.caption,
+                  color: 'white',
+                  fontFamily: TYPOGRAPHY.caption.fontFamily,
+                }}>
                   {rewards.length}
                 </Text>
               </View>
@@ -755,7 +761,7 @@ function GiftsSection() {
               accessibilityHint="Double tap to reload your available gifts"
               accessibilityState={{ disabled: refreshing }}
             >
-              <Text style={{ fontSize: 14, color: themeColors.card }}>
+              <Text style={{ ...TYPOGRAPHY.caption, color: themeColors.card, fontFamily: TYPOGRAPHY.caption.fontFamily }}>
                 {refreshing ? '⏳' : '↻'}
               </Text>
             </TouchableOpacity>
@@ -802,9 +808,9 @@ function GiftsSection() {
                 accessibilityState={{ selected: rewardsTab === t }}
               >
                 <Text style={{
+                  ...TYPOGRAPHY.body,
                   color: rewardsTab === t ? themeColors.card : themeColors.text,
-                  fontWeight: rewardsTab === t ? "bold" : "600",
-                  fontSize: 15
+                  fontFamily: rewardsTab === t ? TYPOGRAPHY.button.fontFamily : TYPOGRAPHY.body.fontFamily,
                 }}>
                   {t === "Available" ? "🎯 Ready to Win!" : "🏆 My Treasures!"}
                 </Text>
@@ -849,22 +855,23 @@ function GiftsSection() {
                     paddingVertical: 60,
                     paddingHorizontal: 20,
                   }}>
-                    <Text style={{ fontSize: 72, marginBottom: 20 }}>🎁</Text>
+                    <Text style={{ ...TYPOGRAPHY.h1, fontSize: TYPOGRAPHY.h1.fontSize * 2.25, marginBottom: 20, fontFamily: TYPOGRAPHY.h1.fontFamily }}>🎁</Text>
                     <Text style={{
-                      fontSize: 22,
-                      fontWeight: 'bold',
+                      ...TYPOGRAPHY.h4,
                       color: themeColors.text,
                       marginBottom: 12,
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      fontFamily: TYPOGRAPHY.h4.fontFamily,
                     }}>
                       No Gifts Available Yet
                     </Text>
                     <Text style={{
-                      fontSize: 16,
+                      ...TYPOGRAPHY.body,
                       color: themeColors.textSecondary,
                       textAlign: 'center',
                       marginBottom: 32,
-                      lineHeight: 24
+                      fontFamily: TYPOGRAPHY.body.fontFamily,
+                      lineHeight: TYPOGRAPHY.body.lineHeight,
                     }}>
                       Keep earning points and more magical gifts will appear! 🌟
                     </Text>
@@ -891,22 +898,23 @@ function GiftsSection() {
                   paddingVertical: 60,
                   paddingHorizontal: 20,
                 }}>
-                  <Text style={{ fontSize: 72, marginBottom: 20 }}>🏆</Text>
+                  <Text style={{ ...TYPOGRAPHY.h1, fontSize: TYPOGRAPHY.h1.fontSize * 2.25, marginBottom: 20, fontFamily: TYPOGRAPHY.h1.fontFamily }}>🏆</Text>
                   <Text style={{
-                    fontSize: 22,
-                    fontWeight: 'bold',
+                    ...TYPOGRAPHY.h4,
                     color: themeColors.text,
                     marginBottom: 12,
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    fontFamily: TYPOGRAPHY.h4.fontFamily,
                   }}>
                     No Claimed Gifts Yet
                   </Text>
                   <Text style={{
-                    fontSize: 16,
+                    ...TYPOGRAPHY.body,
                     color: themeColors.textSecondary,
                     textAlign: 'center',
                     marginBottom: 32,
-                    lineHeight: 24
+                    fontFamily: TYPOGRAPHY.body.fontFamily,
+                    lineHeight: TYPOGRAPHY.body.lineHeight,
                   }}>
                     Claim your first gift to see your treasures here! 💎
                   </Text>
@@ -940,7 +948,11 @@ function GiftsSection() {
                     }}
                     onPress={() => setShowRewardsArchive(true)}
                   >
-                    <Text style={{ color: themeColors.primary, fontWeight: "600", fontSize: 16 }}>Show All Claimed Gifts</Text>
+                    <Text style={{
+                      ...TYPOGRAPHY.button,
+                      color: themeColors.primary,
+                      fontFamily: TYPOGRAPHY.button.fontFamily,
+                    }}>Show All Claimed Gifts</Text>
                   </TouchableOpacity>
                 )}
                 {claimedArchived.length > 0 && showRewardsArchive && (
@@ -959,7 +971,11 @@ function GiftsSection() {
                     }}
                     onPress={() => setShowRewardsArchive(false)}
                   >
-                    <Text style={{ color: themeColors.primary, fontWeight: "500", fontSize: 16 }}>Show Only Last 90 Days</Text>
+                    <Text style={{
+                      ...TYPOGRAPHY.button,
+                      color: themeColors.primary,
+                      fontFamily: TYPOGRAPHY.button.fontFamily,
+                    }}>Show Only Last 90 Days</Text>
                   </TouchableOpacity>
                 )}
               </>

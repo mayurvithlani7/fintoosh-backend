@@ -1,4 +1,5 @@
 import HelpModal from '@/components/HelpModal';
+import { KIDS_TYPOGRAPHY, TYPOGRAPHY } from '@/constants/theme';
 import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { useTheme } from "@/utils/themeContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -275,7 +276,7 @@ export default function GamesSection() {
               accessibilityLabel="Go back to home"
               accessibilityHint="Return to the main kids dashboard"
             >
-              <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text, fontWeight: 'bold' }}>⬅️ Back</Text>
+              <Text style={[styles.buttonLabel, { color: themeColors.text }]}>⬅️ Back</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
@@ -294,11 +295,11 @@ export default function GamesSection() {
               accessibilityLabel="Help and information"
               accessibilityHint="Open help guide for money games"
             >
-              <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
+              <Text style={[styles.buttonLabel, { color: themeColors.card }]}>❓ Help</Text>
             </TouchableOpacity>
           </View>
           <View style={MOBILE_STYLES.center}>
-            <Text style={[styles.title, { color: themeColors.primary }]}>🎮 Play Money Games</Text>
+            <Text style={styles.title}>🎮 Play Money Games</Text>
           </View>
         </View>
 
@@ -317,8 +318,8 @@ export default function GamesSection() {
                 color={game.comingSoon ? "#bbb" : "#509925"}
                 style={{ marginBottom: 6 }}
               />
-              <Text style={styles.title}>{game.title}</Text>
-              <Text style={styles.description}>{game.description}</Text>
+              <Text style={styles.gameCardTitle}>{game.title}</Text>
+              <Text style={styles.gameDescription}>{game.description}</Text>
               {game.comingSoon && (
                 <View style={styles.comingSoon}>
                   <Text style={styles.comingSoonText}>Coming Soon</Text>
@@ -724,14 +725,18 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: theme?.surface || "#edeef3",
   },
   title: {
-    fontSize: 18,
-    fontWeight: "600",
+    ...KIDS_TYPOGRAPHY.kidTitle,
+    color: theme?.text || "#275c4d",
+    textAlign: "center",
+  },
+  gameCardTitle: {
+    ...KIDS_TYPOGRAPHY.gameCardHeader,
     color: theme?.text || "#275c4d",
     marginBottom: 4,
     textAlign: "center",
   },
-  description: {
-    fontSize: 13,
+  gameDescription: {
+    ...KIDS_TYPOGRAPHY.gameDescription,
     color: theme?.textSecondary || "#4e4e4e",
     marginBottom: 7,
     textAlign: "center",
@@ -744,9 +749,12 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: theme?.accent || "#f5d365",
   },
   comingSoonText: {
+    ...KIDS_TYPOGRAPHY.comingSoonLabel,
     color: theme?.text || "#af8111",
-    fontWeight: "bold",
-    fontSize: 13,
+    textAlign: "center"
+  },
+  buttonLabel: {
+    ...KIDS_TYPOGRAPHY.buttonLabel,
     textAlign: "center"
   },
   modalBackdrop: {
@@ -768,8 +776,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: "space-between",
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    ...KIDS_TYPOGRAPHY.modalTitle,
     color: theme?.success || "#30797a",
     flex: 1,
     flexWrap: "wrap"
@@ -786,8 +793,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     padding: 24,
   },
   placeholderText: {
+    ...TYPOGRAPHY.bodySmall,
     color: theme?.textSecondary || "#9d9d9d",
-    fontSize: 15,
     marginTop: 8,
     marginBottom: 13,
     textAlign: "center"

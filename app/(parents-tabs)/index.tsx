@@ -5,6 +5,7 @@ import { ActionSuggestions } from '@/components/ui/ActionSuggestions';
 import { EnhancedEmptyState } from '@/components/ui/EnhancedEmptyState';
 import { InterestMotivator } from '@/components/ui/InterestMotivator';
 import SkeletonJar from '@/components/ui/SkeletonJar';
+import { TYPOGRAPHY } from '@/constants/theme';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
 import { useDataCache } from '@/utils/dataCacheContext';
@@ -412,7 +413,7 @@ export default function ParentsOverviewScreen() {
           minWidth: 200,
           alignItems: 'center'
         }}>
-          <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
+          <Text style={{ ...TYPOGRAPHY.label, color: themeColors.text, fontWeight: '600' }}>
             👶 Viewing: {childData.name}
           </Text>
         </View>
@@ -532,7 +533,7 @@ export default function ParentsOverviewScreen() {
             </ScrollView>
           )}
 
-          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+          <Text style={{ ...TYPOGRAPHY.caption, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
             Currently viewing: {childData?.name || 'No child selected'} • Tap any child above to switch{familyChildren.length > 3 ? ' • Use dropdown for more options' : ''}
           </Text>
         </View>
@@ -1269,11 +1270,11 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   navRow: { flexDirection: 'row', alignSelf: 'center', marginBottom: 12 },
   navBtn: { backgroundColor: themeColors.secondary, borderRadius: 8, marginHorizontal: 4, paddingVertical: 8, paddingHorizontal: 16 },
   navBtnText: { color: themeColors.card, fontWeight: 'bold', fontSize: 16 },
-  title: { fontSize: 35, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  title: { ...TYPOGRAPHY.h1, marginBottom: 22, marginTop: 6, color: themeColors.primary },
   sectionCard: { backgroundColor: themeColors.card, borderRadius: 12, marginBottom: 12, padding: 12, minWidth: 320, width: '97%', maxWidth: 450, elevation: 1, shadowColor: themeColors.border }, // Reduced bulk and maxWidth
   actionCard: { backgroundColor: themeColors.card, borderRadius: 12, marginBottom: 12, padding: 12, minWidth: 320, width: '97%', maxWidth: 450, elevation: 2, borderWidth: 1, borderColor: themeColors.primary, shadowColor: themeColors.border }, // Reduced bulk and maxWidth
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8, color: themeColors.text },
-  placeholder: { fontStyle: 'italic', fontSize: 15, marginBottom: 1, marginTop: 2, minHeight: 26, color: themeColors.textSecondary },
+  sectionTitle: { ...TYPOGRAPHY.h3, marginBottom: 8, color: themeColors.text },
+  placeholder: { ...TYPOGRAPHY.bodySmall, fontStyle: 'italic', marginBottom: 1, marginTop: 2, minHeight: 26, color: themeColors.textSecondary },
   quickActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   quickBtn: {
     padding: 16,          // Increased from 12 to meet 48dp accessibility
@@ -1284,11 +1285,11 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickBtnText: { fontWeight: '700', fontSize: 15 },
+  quickBtnText: { ...TYPOGRAPHY.bodySmall, fontWeight: '700' },
   jarsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 10 },
   jar: { borderRadius: 14, padding: 18, minWidth: 80, alignItems: 'center', elevation: 2, shadowColor: themeColors.shadow || '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
-  jarLabel: { fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
-  jarValue: { fontSize: 18, fontWeight: 'bold' },
+  jarLabel: { ...TYPOGRAPHY.label, fontWeight: 'bold', marginBottom: 4 },
+  jarValue: { ...TYPOGRAPHY.bodyLarge, fontWeight: 'bold' },
   // Empty state styles
   emptyContainer: {
     alignItems: 'center',

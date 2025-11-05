@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import HelpModal from '@/components/HelpModal';
+import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { createTransaction, fetchFamilyChildren, fetchTransactions, fetchUser, patchUserPoints } from '@/utils/api';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { getAuthToken } from '@/utils/secureStorage';
@@ -117,7 +118,8 @@ export default function ParentsPointsScreen() {
       const token = await getAuthToken();
       const selectedChild = children.find(child => child.id === selectedChildId);
 
-      if (selectedChild) {
+      if (selectedChild && token) {
+        // @ts-ignore - fetchUser expects token to be string | undefined but token can be null
         const childUserData = await fetchUser(selectedChild.id, token);
 
         if (childUserData) {
@@ -132,8 +134,8 @@ export default function ParentsPointsScreen() {
             pendingSavePoints: childUserData.pendingSavePoints || 0,
             pendingSpendPoints: childUserData.pendingSpendPoints || 0,
             pendingDonatePoints: childUserData.pendingDonatePoints || 0,
-            pendingInvestPoints: childUserData.pendingInvestPoints || 0,
-          });
+            pendingInvestPoints: childUserData.pendingInvestPoints || 0
+  });
 
           // Fetch recent transactions for the child
           try {
@@ -314,11 +316,12 @@ export default function ParentsPointsScreen() {
               minWidth: MOBILE_LAYOUT.minTouchTarget,
               minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
-              alignItems: 'center',
-            }}
+              alignItems: 'center'
+  }}
             onPress={() => setHelpModalVisible(true)}
           >
-            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.card
+  }}>❓ Help</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -336,7 +339,7 @@ export default function ParentsPointsScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 0 }]}>
               👨‍👩‍👦 Select Child to View
             </Text>
             <View style={[styles.countBadge, {
@@ -360,8 +363,8 @@ export default function ParentsPointsScreen() {
                   styles.childCard,
                   {
                     backgroundColor: selectedChildId === child.id ? themeColors.primary : themeColors.card,
-                    borderColor: selectedChildId === child.id ? themeColors.primary : themeColors.border,
-                  }
+                    borderColor: selectedChildId === child.id ? themeColors.primary : themeColors.border
+  }
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel={`Select ${child.name} - ${selectedChildId === child.id ? 'currently selected' : 'tap to select'}`}
@@ -388,7 +391,7 @@ export default function ParentsPointsScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <Text style={{ fontSize: 13, color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
+          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary, marginTop: 8, textAlign: 'center' }}>
             Tap any child to view their individual progress and manage their account
           </Text>
         </View>
@@ -408,7 +411,8 @@ export default function ParentsPointsScreen() {
           minWidth: 200,
           alignItems: 'center'
         }}>
-          <Text style={{ fontSize: 14, color: themeColors.text, fontWeight: '600' }}>
+          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text
+  }}>
             👶 Viewing: {children[0].name}
           </Text>
         </View>
@@ -426,7 +430,7 @@ export default function ParentsPointsScreen() {
           alignItems: 'center',
           paddingVertical: 24
         }]}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 12 }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 12 }]}>
             👶 No Children Linked Yet
           </Text>
           <Text style={[styles.placeholder, { color: themeColors.textSecondary, textAlign: 'center', marginBottom: 20 }]}>
@@ -441,11 +445,11 @@ export default function ParentsPointsScreen() {
               borderRadius: 12,
               paddingHorizontal: 24,
               paddingVertical: 12,
-              elevation: 2,
-            }}
+              elevation: 2
+  }}
             onPress={() => router.push('/addChild' as any)}
           >
-            <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 16 }}>
+            <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body"] }}>
               Add Your First Child
             </Text>
           </TouchableOpacity>
@@ -463,7 +467,7 @@ export default function ParentsPointsScreen() {
           marginBottom: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-heading-small"], marginBottom: 0 }]}>
               💰 {childData.name}'s Points Summary
             </Text>
             <TouchableOpacity
@@ -475,7 +479,7 @@ export default function ParentsPointsScreen() {
               onPress={onRefresh}
               disabled={refreshing}
             >
-              <Text style={{ fontSize: 14, color: themeColors.card }}>
+              <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.card }}>
                 {refreshing ? '⏳' : '↻'}
               </Text>
             </TouchableOpacity>
@@ -487,9 +491,23 @@ export default function ParentsPointsScreen() {
                 {(childData.currentPoints || 0) - (childData.pendingCurrentPoints || 0)}
               </Text>
               {(childData.pendingCurrentPoints || 0) > 0 && (
-                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
-                  {childData.currentPoints} total, {childData.pendingCurrentPoints} pending
-                </Text>
+                <View style={{
+                  backgroundColor: '#FFFFFF', // White background for contrast on dark jar backgrounds
+                  borderRadius: 4,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  marginTop: 2,
+                  borderWidth: 1,
+                  borderColor: themeColors.warning + '40'
+                }}>
+                  <Text style={{
+                    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
+                    color: themeColors.warning, // Dark orange text for contrast
+                    textAlign: 'center'
+                  }}>
+                    {childData.currentPoints} total, {childData.pendingCurrentPoints} pending
+                  </Text>
+                </View>
               )}
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
@@ -498,9 +516,23 @@ export default function ParentsPointsScreen() {
                 {(childData.savePoints || 0) - (childData.pendingSavePoints || 0)}
               </Text>
               {(childData.pendingSavePoints || 0) > 0 && (
-                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
-                  {childData.savePoints} total, {childData.pendingSavePoints} pending
-                </Text>
+                <View style={{
+                  backgroundColor: '#FFFFFF', // White background for contrast on dark jar backgrounds
+                  borderRadius: 4,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  marginTop: 2,
+                  borderWidth: 1,
+                  borderColor: themeColors.warning + '40'
+                }}>
+                  <Text style={{
+                    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
+                    color: themeColors.warning, // Dark orange text for contrast
+                    textAlign: 'center'
+                  }}>
+                    {childData.savePoints} total, {childData.pendingSavePoints} pending
+                  </Text>
+                </View>
               )}
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
@@ -509,7 +541,7 @@ export default function ParentsPointsScreen() {
                 {(childData.spendPoints || 0) - (childData.pendingSpendPoints || 0)}
               </Text>
               {(childData.pendingSpendPoints || 0) > 0 && (
-                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
                   {childData.spendPoints} total, {childData.pendingSpendPoints} pending
                 </Text>
               )}
@@ -520,7 +552,7 @@ export default function ParentsPointsScreen() {
                 {(childData.donatePoints || 0) - (childData.pendingDonatePoints || 0)}
               </Text>
               {(childData.pendingDonatePoints || 0) > 0 && (
-                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
                   {childData.donatePoints} total, {childData.pendingDonatePoints} pending
                 </Text>
               )}
@@ -531,14 +563,16 @@ export default function ParentsPointsScreen() {
                 {(childData.investPoints || 0) - (childData.pendingInvestPoints || 0)}
               </Text>
               {(childData.pendingInvestPoints || 0) > 0 && (
-                <Text style={{ fontSize: 10, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
                   {childData.investPoints} total, {childData.pendingInvestPoints} pending
                 </Text>
               )}
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>
-              <Text style={[styles.summaryLabel, { color: themeColors.text, fontWeight: 'bold' }]}>🏆 Total</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.primary, fontWeight: 'bold' }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text
+  }]}>🏆 Total</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary
+  }]}>
                 {(childData.currentPoints || 0) + (childData.savePoints || 0) + (childData.spendPoints || 0) + (childData.donatePoints || 0) + (childData.investPoints || 0)}
               </Text>
             </View>
@@ -574,12 +608,12 @@ export default function ParentsPointsScreen() {
                     borderRadius: 7,
                     borderColor: themeColors.border,
                     borderWidth: 1,
-                    fontSize: 16,
+                    ...SEMANTIC_TYPOGRAPHY["type-body"],
                     padding: 8,
                     marginTop: 2,
                     backgroundColor: themeColors.surface,
-                    color: themeColors.text,
-                  }}
+                    color: themeColors.text
+  }}
                   value={toJar}
                   onChange={e => setToJar(e.target.value as any)}
                 >
@@ -613,17 +647,16 @@ export default function ParentsPointsScreen() {
                   onPress={openDropdown}
                 >
                   <Text style={{
-                    fontSize: 16,
+                    ...SEMANTIC_TYPOGRAPHY["type-body"],
                     color: themeColors.text || '#000',
                     flex: 1
                   }}>
                     {selectedJarLabel}
                   </Text>
                   <Text style={{
-                    fontSize: 16,
-                    color: themeColors.primary,
-                    fontWeight: 'bold'
-                  }}>
+                    ...SEMANTIC_TYPOGRAPHY["type-body"],
+                    color: themeColors.primary
+  }}>
                     ▼
                   </Text>
                 </TouchableOpacity>
@@ -634,7 +667,7 @@ export default function ParentsPointsScreen() {
 
         {/* Quick Preset Buttons */}
         <View style={styles.presetContainer}>
-          <Text style={[styles.inputLabel, { fontSize: 14, marginBottom: 8 }]}>Quick Amounts:</Text>
+          <Text style={[styles.inputLabel, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 8 }]}>Quick Amounts:</Text>
           <View style={styles.presetRow}>
             <TouchableOpacity
               accessibilityRole="button"
@@ -725,15 +758,14 @@ export default function ParentsPointsScreen() {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{
-                        fontSize: 14,
-                        fontWeight: '600',
+                        ...SEMANTIC_TYPOGRAPHY["type-body-small"],
                         color: themeColors.text,
                         marginBottom: 2
                       }}>
                         {isPositive ? '+' : ''}{Math.abs(transaction.amount)} points
                       </Text>
                       <Text style={{
-                        fontSize: 12,
+                        ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
                         color: themeColors.textSecondary
                       }}>
                         {jarName} • {displayDate}
@@ -794,7 +826,7 @@ export default function ParentsPointsScreen() {
                 onPress={() => handleJarSelect(option.value)}
               >
                 <Text style={{
-                  fontSize: 16,
+                  ...SEMANTIC_TYPOGRAPHY["type-body"],
                   color: themeColors.text
                 }}>
                   {option.label}
@@ -910,25 +942,25 @@ export default function ParentsPointsScreen() {
 const createStyles = (themeColors: any) => StyleSheet.create({
   scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  title: { ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginBottom: 22, marginTop: 6, color: themeColors.primary },
   sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
-  inputLabel: { fontWeight: '500', marginBottom: 4, color: themeColors.text, fontSize: 15 },
-  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, fontSize: 16, marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
+  sectionTitle: { fontSize: 20, marginBottom: 12, color: themeColors.text },
+  inputLabel: { marginBottom: 4, color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
+  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   actionBtn: { flex: 1, backgroundColor: themeColors.primary, padding: 12, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
-  actionBtnText: { fontWeight: '700', color: themeColors.card, fontSize: 16 },
-  validation: { color: themeColors.error, fontSize: 15 },
-  statusMessage: { fontSize: 15, fontWeight: '600', color: themeColors.success },
-  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, marginBottom: 1, marginTop: 2, minHeight: 26 },
+  actionBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body"] },
+  validation: { color: themeColors.error, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
+  statusMessage: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.success },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 1, marginTop: 2, minHeight: 26 },
   jarsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 10 },
   jar: { borderRadius: 14, padding: 18, minWidth: 80, alignItems: 'center', elevation: 2, shadowColor: themeColors.border, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
-  jarLabel: { fontWeight: 'bold', fontSize: 14, marginBottom: 4 },
-  jarValue: { fontSize: 18, fontWeight: 'bold' },
+  jarLabel: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginBottom: 4 },
+  jarValue: { ...SEMANTIC_TYPOGRAPHY["type-heading-small"] },
   presetContainer: { marginTop: 16, marginBottom: 8 },
   presetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   presetBtn: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 6, marginHorizontal: 2, alignItems: 'center', minWidth: 50 },
-  presetBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
+  presetBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
   childSelector: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 },
   childButton: {
     backgroundColor: themeColors.surface,
@@ -939,10 +971,11 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     minWidth: 80,
     maxWidth: 180,
     alignItems: 'center',
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   childButtonSelected: { backgroundColor: themeColors.primary },
-  childButtonText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
+  childButtonText: { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body-small"]
+  },
   childButtonTextSelected: { color: themeColors.card },
   // Child selector styles for enhanced design
   countBadge: {
@@ -950,18 +983,17 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     height: 24,
     borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   countText: {
     color: themeColors.card,
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   childrenScroll: {
-    marginTop: 8,
+    marginTop: 8
   },
   childrenScrollContent: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 4
   },
   childCard: {
     width: 90,
@@ -975,7 +1007,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     shadowColor: themeColors.shadow || '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowRadius: 2
   },
   childAvatar: {
     width: 50,
@@ -984,16 +1016,14 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     backgroundColor: themeColors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: 4
   },
   childAvatarText: {
     fontSize: 20,
-    fontWeight: 'bold',
   },
   childName: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
+    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
+    textAlign: 'center'
   },
   selectedIndicator: {
     position: 'absolute',
@@ -1004,12 +1034,11 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderRadius: 12,
     backgroundColor: themeColors.success,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
   selectedCheckmark: {
     color: themeColors.card,
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
   },
   // Points summary dashboard
   refreshBtn: {
@@ -1018,13 +1047,13 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 1,
+    elevation: 1
   },
   summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 8
   },
   summaryItem: {
     flex: 1,
@@ -1037,17 +1066,15 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     shadowColor: themeColors.shadow || '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowRadius: 2
   },
   summaryLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 4
   },
   summaryValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-});
+    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
+    textAlign: 'center'
+  }
+  });

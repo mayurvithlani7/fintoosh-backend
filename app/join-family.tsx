@@ -1,3 +1,4 @@
+import { TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { useTheme } from '@/utils/themeContext';
@@ -372,17 +373,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#fffbed',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '900',
+    ...TYPOGRAPHY.h1,
     letterSpacing: 0.5,
     color: '#FFD700',
     textAlign: 'center',
     marginBottom: 3,
   },
   headerSubtitle: {
-    fontSize: 16,
+    ...TYPOGRAPHY.h3,
     color: '#FF6B6B',
-    fontWeight: '700',
     textAlign: 'center'
   },
   outer: {

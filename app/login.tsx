@@ -1,3 +1,4 @@
+import { TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { MOBILE_LAYOUT } from '@/utils/mobileLayout';
 import { clearAllAuthData, saveAuthToken, saveUserData } from '@/utils/secureStorage';
@@ -382,27 +383,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#fffbed',
   },
   heroTitle: {
-    fontSize: 33,
-    fontWeight: '900',
+    ...TYPOGRAPHY.h1,
     letterSpacing: 0.5,
     color: '#FFD700',
     textAlign: 'center',
     marginBottom: 3,
   },
   heroTagline: {
-    fontSize: 16,
+    ...TYPOGRAPHY.h3,
     color: '#FF6B6B',
-    fontWeight: '700',
     marginBottom: 11,
     textAlign: 'center'
   },
   heroStory: {
-    fontSize: 14.7,
+    ...TYPOGRAPHY.bodySmall,
     color: '#E6E6FA',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 4,
-    fontWeight: '500'
   },
 
   outer: {
@@ -430,16 +428,14 @@ const styles = StyleSheet.create({
     borderColor: '#D0D7E4'
   },
   welcomeTitle: {
-    fontWeight: '800',
-    fontSize: 16,
+    ...TYPOGRAPHY.label,
     letterSpacing: 0.8,
     color: TEXT_DARK,
     marginBottom: 2,
     textAlign: 'center',
   },
   title: {
-    fontSize: 26,
-    fontWeight: '900',
+    ...TYPOGRAPHY.h1,
     marginBottom: 6,
     color: PRIMARY,
     textAlign: 'center',
@@ -447,8 +443,7 @@ const styles = StyleSheet.create({
   },
 
   slogan: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...TYPOGRAPHY.body,
     color: SUCCESS_GREEN,
     marginBottom: 24,
     textAlign: 'center'
@@ -457,8 +452,7 @@ const styles = StyleSheet.create({
   // --- INPUTS ---
   inputGroup: { width: '100%', marginBottom: 13 },
   inputLabel: {
-    fontSize: 15,
-    marginBottom: 6,
+    ...TYPOGRAPHY.body,
     fontWeight: '700',
     color: PRIMARY,
     marginLeft: 6,
@@ -468,7 +462,7 @@ const styles = StyleSheet.create({
     borderColor: '#D0D7E4',
     borderRadius: 14,
     padding: 14,
-    fontSize: 16,
+    ...TYPOGRAPHY.body,
     backgroundColor: '#F7F9FC',
     color: TEXT_DARK
   },
@@ -502,8 +496,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: TEXT_DARK,
-    fontSize: 16.5,
-    fontWeight: '900'
+    ...TYPOGRAPHY.button
   },
   backButtonText: {
     color: '#444',
@@ -512,8 +505,7 @@ const styles = StyleSheet.create({
   // --- MESSAGES & LINKS ---
   statusMessage: {
     marginTop: 15,
-    fontSize: 15,
-    fontWeight: '700',
+    ...TYPOGRAPHY.body,
     textAlign: 'center'
   },
   error: { color: ERROR_RED },
@@ -525,12 +517,12 @@ const styles = StyleSheet.create({
     marginTop: 27
   },
   signupPromptText: {
-    fontSize: 15,
+    ...TYPOGRAPHY.body,
     color: TEXT_DARK,
     fontWeight: '400'
   },
   signupLink: {
-    fontSize: 15,
+    ...TYPOGRAPHY.body,
     color: PRIMARY,
     fontWeight: 'bold',
     textDecorationLine: 'underline',
@@ -561,16 +553,14 @@ const styles = StyleSheet.create({
     elevation: 4
   },
   userTypeText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...TYPOGRAPHY.body,
     color: '#888'
   },
   userTypeTextActive: {
     color: '#FFF'
   },
   childLoginTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...TYPOGRAPHY.body,
     color: TEXT_DARK,
     marginBottom: 20,
     textAlign: 'center'
@@ -600,23 +590,21 @@ const styles = StyleSheet.create({
     elevation: 4
   },
   toggleText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...TYPOGRAPHY.body,
     color: '#888'
   },
   toggleTextActive: {
     color: '#FFF'
   },
   resendText: {
-    fontSize: 14,
+    ...TYPOGRAPHY.caption,
     color: '#666',
     textAlign: 'center',
     marginTop: 12
   },
   resendLink: {
-    fontSize: 14,
+    ...TYPOGRAPHY.caption,
     color: PRIMARY,
-    fontWeight: '600',
     textAlign: 'center',
     marginTop: 12,
     textDecorationLine: 'underline'
@@ -627,16 +615,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   forgotPasswordLink: {
-    fontSize: 14,
+    ...TYPOGRAPHY.caption,
     color: PRIMARY,
-    fontWeight: '600',
     textDecorationLine: 'underline'
   },
 
   // --- CAROUSEL STYLES ---
   carouselHeader: {
-    fontSize: 18,
-    fontWeight: '800',
+    ...TYPOGRAPHY.h3,
     color: TEXT_DARK,
     marginTop: 27,
     marginBottom: 10,
@@ -678,13 +664,12 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   featureTitle: {
-    fontSize: 18,
-    fontWeight: '900',
+    ...TYPOGRAPHY.h4,
     color: PRIMARY,
     marginBottom: 5,
   },
   featureDescription: {
-    fontSize: 15,
+    ...TYPOGRAPHY.body,
     color: '#666',
     lineHeight: 22,
   },

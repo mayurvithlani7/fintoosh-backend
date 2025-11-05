@@ -1,6 +1,5 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
-import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -54,19 +53,19 @@ export default function ParentsRequestsScreen() {
     loadingMore: false,
     refreshing: false,
     filter: 'pending',
-    searchQuery: ''
+    searchQuery: '',
   });
   const [requestCounts, setRequestCounts] = useState({
     pending: 0,
     approved: 0,
-    denied: 0
+    denied: 0,
   });
   const [paginationMeta, setPaginationMeta] = useState<any | null>(null);
   const [approvalModal, setApprovalModal] = useState({
     visible: false,
     request: null as any,
     approved: false,
-    comment: ''
+    comment: '',
   });
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [errorState, setErrorState] = useState<{
@@ -97,8 +96,8 @@ export default function ParentsRequestsScreen() {
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
 
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-  });
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) throw new Error('Failed to load requests');
 
       const json = await response.json();
@@ -147,13 +146,13 @@ export default function ParentsRequestsScreen() {
         ...prev,
         loading: false,
         loadingMore: false,
-        refreshing: false
-  }));
+        refreshing: false,
+      }));
       setErrorState({
         type: 'network',
         message: error?.message || 'Failed to load requests.',
-        retryAction: () => loadRequests({ page: 1, reset: true })
-  });
+        retryAction: () => loadRequests({ page: 1, reset: true }),
+      });
     }
   };
 
@@ -183,8 +182,8 @@ export default function ParentsRequestsScreen() {
       }
 
       const body: any = {
-        status: approvalModal.approved ? 'Approved' : 'Denied'
-  };
+        status: approvalModal.approved ? 'Approved' : 'Denied',
+      };
       if (approvalModal.comment.trim()) {
         body.parentComment = approvalModal.comment.trim();
       }
@@ -193,10 +192,10 @@ export default function ParentsRequestsScreen() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-  },
-        body: JSON.stringify(body)
-  });
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
       if (!response.ok) {
         let errorMessage = 'Failed to update request';
         try {
@@ -250,8 +249,8 @@ export default function ParentsRequestsScreen() {
     const counts = {
       pending: requests.filter(r => r.status === 'Pending').length,
       approved: requests.filter(r => r.status === 'Approved' && new Date(r.createdAt) >= archiveThreshold).length,
-      denied: requests.filter(r => r.status === 'Denied' && new Date(r.createdAt) >= archiveThreshold).length
-  };
+      denied: requests.filter(r => r.status === 'Denied' && new Date(r.createdAt) >= archiveThreshold).length,
+    };
     setRequestCounts(counts);
   }, [requests, archiveThreshold]);
 
@@ -306,7 +305,8 @@ export default function ParentsRequestsScreen() {
               borderColor: themeColors.border
             }}>
               <Text style={[styles.requestText, {
-                ...SEMANTIC_TYPOGRAPHY["type-body"],
+                fontWeight: 'bold',
+                fontSize: 16,
                 textAlign: 'center',
                 marginBottom: 12,
                 color: themeColors.primary
@@ -315,10 +315,10 @@ export default function ParentsRequestsScreen() {
               </Text>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <View style={{ flex: 1, alignItems: 'center' }}>
-                  <Text style={[styles.requestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', marginBottom: 4 }]}>
+                  <Text style={[styles.requestText, { fontSize: 14, textAlign: 'center', marginBottom: 4 }]}>
                     <Text style={styles.boldText}>From:</Text>
                   </Text>
-                  <Text style={[styles.requestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', marginBottom: 4 }]}>
+                  <Text style={[styles.requestText, { fontSize: 14, textAlign: 'center', marginBottom: 4 }]}>
                     {request.from === 'current' ? 'Pocket Money' :
                       request.from === 'save' ? 'Savings Pot' :
                         request.from === 'spend' ? 'Spending Pot' :
@@ -327,8 +327,9 @@ export default function ParentsRequestsScreen() {
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={[styles.requestText, {
-                      ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+                      fontSize: 14,
                       textAlign: 'center',
+                      fontWeight: 'bold',
                       marginRight: 4
                     }]}>
                       {request.fromBalance} → {request.fromBalance - request.amount}
@@ -338,9 +339,9 @@ export default function ParentsRequestsScreen() {
                       const newBalance = request.fromBalance - request.amount;
                       const currentAmount = request.fromBalance;
                       if (newBalance < 0) {
-                        return <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>🚨</Text>; // Negative balance risk
+                        return <Text style={{ fontSize: 14 }}>🚨</Text>; // Negative balance risk
                       } else if (newBalance < currentAmount * 0.2) {
-                        return <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>⚠️</Text>; // Low balance warning (below 20%)
+                        return <Text style={{ fontSize: 14 }}>⚠️</Text>; // Low balance warning (below 20%)
                       }
                       return null;
                     })()}
@@ -352,10 +353,10 @@ export default function ParentsRequestsScreen() {
                   marginHorizontal: 12
                 }} />
                 <View style={{ flex: 1, alignItems: 'center' }}>
-                  <Text style={[styles.requestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', marginBottom: 4 }]}>
+                  <Text style={[styles.requestText, { fontSize: 14, textAlign: 'center', marginBottom: 4 }]}>
                     <Text style={styles.boldText}>To:</Text>
                   </Text>
-                  <Text style={[styles.requestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', marginBottom: 4 }]}>
+                  <Text style={[styles.requestText, { fontSize: 14, textAlign: 'center', marginBottom: 4 }]}>
                     {request.to === 'current' ? 'Pocket Money' :
                       request.to === 'save' ? 'Savings Pot' :
                         request.to === 'spend' ? 'Spending Pot' :
@@ -363,10 +364,11 @@ export default function ParentsRequestsScreen() {
                             request.to === 'invest' ? 'Grow Money Pot' : request.to}
                   </Text>
                   <Text style={[styles.requestText, {
-                    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+                    fontSize: 14,
                     textAlign: 'center',
-                    color: themeColors.success
-  }]}>
+                    color: themeColors.success,
+                    fontWeight: 'bold'
+                  }]}>
                     {request.toBalance} → {request.toBalance + request.amount}
                   </Text>
                 </View>
@@ -378,7 +380,7 @@ export default function ParentsRequestsScreen() {
                 if (newBalance < 0 || newBalance < request.fromBalance * 0.2) {
                   return (
                     <Text style={[styles.requestText, {
-                      ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
+                      fontSize: 12,
                       fontStyle: 'italic',
                       color: themeColors.textSecondary,
                       textAlign: 'center',
@@ -414,7 +416,7 @@ export default function ParentsRequestsScreen() {
                     }]}
                     onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
                   >
-                    <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>✓ Approve</Text>
+                    <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>✓ Approve</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[{
@@ -428,7 +430,7 @@ export default function ParentsRequestsScreen() {
                     }]}
                     onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
                   >
-                    <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>✗ Deny</Text>
+                    <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>✗ Deny</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -461,7 +463,8 @@ export default function ParentsRequestsScreen() {
               borderColor: themeColors.border
             }}>
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+                fontSize: 14,
+                fontWeight: 'bold',
                 color: themeColors.primary,
                 textAlign: 'center',
                 marginBottom: 6
@@ -469,7 +472,7 @@ export default function ParentsRequestsScreen() {
                 💰 Available Balance Check
               </Text>
               <Text style={{
-                ...SEMANTIC_TYPOGRAPHY["type-caption"],
+                fontSize: 13,
                 color: themeColors.textSecondary,
                 textAlign: 'center',
                 fontStyle: 'italic'
@@ -494,7 +497,7 @@ export default function ParentsRequestsScreen() {
       {/* Messages */}
       {(request.messages && request.messages.length > 0) || request.status === 'Pending' ? (
         <View style={styles.messagesContainer}>
-          <Text style={[styles.sectionTitle, { ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 8 }]}>Messages:</Text>
+          <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 8 }]}>Messages:</Text>
           {request.messages && request.messages.length > 0 ? (
             request.messages.map(
               (
@@ -560,12 +563,12 @@ export default function ParentsRequestsScreen() {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${token}`
-  },
+                      'Authorization': `Bearer ${token}`,
+                    },
                     body: JSON.stringify({
-                      text: approvalModal.comment.trim()
-  })
-  });
+                      text: approvalModal.comment.trim(),
+                    }),
+                  });
                   if (!response.ok) throw new Error('Failed to send message');
                   const newMessage = await response.json();
                   setRequests(prev =>
@@ -582,7 +585,7 @@ export default function ParentsRequestsScreen() {
                 }
               }}
             >
-              <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>Send</Text>
+              <Text style={{ color: themeColors.card, fontWeight: '600', fontSize: 14 }}>Send</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -621,8 +624,8 @@ export default function ParentsRequestsScreen() {
                 request.status === 'Denied' ? themeColors.error + '20' : themeColors.surface,
             color:
               request.status === 'Approved' ? themeColors.success :
-                request.status === 'Denied' ? themeColors.error : themeColors.textSecondary
-  }]}>
+                request.status === 'Denied' ? themeColors.error : themeColors.textSecondary,
+          }]}>
             {request.status === 'Approved' ? '✅' : request.status === 'Denied' ? '❌' : '⏳'} {request.status}
           </Text>
           <Text style={[styles.timestampText, { color: themeColors.textSecondary }]}>
@@ -651,12 +654,12 @@ export default function ParentsRequestsScreen() {
               justifyContent: 'center',
               alignItems: 'center',
               elevation: 1,
-              marginRight: 8
-  }}
+              marginRight: 8,
+            }}
             onPress={onRefresh}
             disabled={pagination.refreshing}
           >
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.card }}>
+            <Text style={{ fontSize: 16, color: themeColors.card }}>
               {pagination.refreshing ? '⏳' : '↻'}
             </Text>
           </TouchableOpacity>
@@ -671,11 +674,11 @@ export default function ParentsRequestsScreen() {
               height: 40,
               justifyContent: 'center',
               alignItems: 'center',
-              elevation: 1
-  }}
+              elevation: 1,
+            }}
             onPress={() => setHelpModalVisible(true)}
           >
-            <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body"] }}>❓</Text>
+            <Text style={{ color: themeColors.card, fontSize: 16 }}>❓</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -740,7 +743,7 @@ export default function ParentsRequestsScreen() {
       </View>
 
       {/* Pull-to-refresh and FlatList for Requests */}
-      <FlatList
+<FlatList
         data={displayedRequests}
         keyExtractor={(item, index) => `${item._id}-${index}`}
         renderItem={renderRequestCard}
@@ -804,12 +807,12 @@ export default function ParentsRequestsScreen() {
                 )}
                 {approvalModal.request.type === 'move-points' && approvalModal.request.fromBalance !== undefined && approvalModal.request.toBalance !== undefined && (
                   <View style={{ marginTop: 12, padding: 10, backgroundColor: '#f0f8ff', borderRadius: 8 }}>
-                    <Text style={[styles.modalRequestText, { marginBottom: 8, textAlign: 'center' }]}>
+                    <Text style={[styles.modalRequestText, { fontWeight: 'bold', marginBottom: 8, textAlign: 'center' }]}>
                       Before & After Summary
                     </Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.modalRequestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center' }]}>
+                        <Text style={[styles.modalRequestText, { fontSize: 14, textAlign: 'center' }]}>
                           <Text style={styles.boldText}>From: </Text>
                           {approvalModal.request.from === 'current' ? 'Pocket Money' :
                             approvalModal.request.from === 'save' ? 'Savings Pot' :
@@ -817,12 +820,12 @@ export default function ParentsRequestsScreen() {
                                 approvalModal.request.from === 'donate' ? 'Help Others Pot' :
                                   approvalModal.request.from === 'invest' ? 'Grow Money Pot' : approvalModal.request.from}
                         </Text>
-                        <Text style={[styles.modalRequestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', color: '#d32f2f' }]}>
+                        <Text style={[styles.modalRequestText, { fontSize: 14, textAlign: 'center', color: '#d32f2f' }]}>
                           {approvalModal.request.fromBalance} → {approvalModal.request.fromBalance - approvalModal.request.amount}
                         </Text>
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.modalRequestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center' }]}>
+                        <Text style={[styles.modalRequestText, { fontSize: 14, textAlign: 'center' }]}>
                           <Text style={styles.boldText}>To: </Text>
                           {approvalModal.request.to === 'current' ? 'Pocket Money' :
                             approvalModal.request.to === 'save' ? 'Savings Pot' :
@@ -830,7 +833,7 @@ export default function ParentsRequestsScreen() {
                                 approvalModal.request.to === 'donate' ? 'Help Others Pot' :
                                   approvalModal.request.to === 'invest' ? 'Grow Money Pot' : approvalModal.request.to}
                         </Text>
-                        <Text style={[styles.modalRequestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', color: '#2e7d32' }]}>
+                        <Text style={[styles.modalRequestText, { fontSize: 14, textAlign: 'center', color: '#2e7d32' }]}>
                           {approvalModal.request.toBalance} → {approvalModal.request.toBalance + approvalModal.request.amount}
                         </Text>
                       </View>
@@ -1038,43 +1041,42 @@ export default function ParentsRequestsScreen() {
 const createStyles = (themeColors: any) => StyleSheet.create({
   scroll: { backgroundColor: themeColors.background },
   container: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 },
-  title: { ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginBottom: 22, marginTop: 6, color: themeColors.primary },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 22, marginTop: 6, color: themeColors.primary },
   sectionCard: { backgroundColor: themeColors.card, borderRadius: 16, marginBottom: 16, padding: 16, minWidth: 320, width: '97%', maxWidth: 520, elevation: 3, shadowColor: themeColors.border },
-  sectionTitle: { ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: 12, color: themeColors.text },
-  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', paddingVertical: 20 },
-  requestText: { ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 8, color: themeColors.text },
-  boldText: { color: themeColors.primary },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, color: themeColors.text },
+  placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', fontSize: 15, textAlign: 'center', paddingVertical: 20 },
+  requestText: { fontSize: 16, marginBottom: 8, color: themeColors.text },
+  boldText: { fontWeight: '600', color: themeColors.primary },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   actionBtn: { flex: 1, padding: 12, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
-  actionBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body"] },
+  actionBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
   approveBtn: { backgroundColor: themeColors.success },
-  approveBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body"] },
+  approveBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
   denyBtn: { backgroundColor: themeColors.error },
-  denyBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body"] },
+  denyBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
   feedbackCard: { backgroundColor: themeColors.success + '22', borderRadius: 8, padding: 12, marginTop: 10, minWidth: 320, width: '97%', maxWidth: 520 },
-  feedbackText: { color: themeColors.success, ...SEMANTIC_TYPOGRAPHY["type-body"], textAlign: 'center' },
+  feedbackText: { color: themeColors.success, fontSize: 16, fontWeight: '600', textAlign: 'center' },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 2 },
   filterBtn: { backgroundColor: themeColors.surface, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, margin: 4, minWidth: 80, alignItems: 'center' },
   filterBtnActive: { backgroundColor: themeColors.primary },
-  filterBtnText: { color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body-small"]
-  },
+  filterBtnText: { color: themeColors.text, fontSize: 14, fontWeight: '600' },
   filterBtnTextActive: { color: themeColors.card },
   searchInput: {
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    ...SEMANTIC_TYPOGRAPHY["type-body"],
+    fontSize: 16,
     marginBottom: 16,
     backgroundColor: themeColors.surface,
     borderColor: themeColors.border,
-    color: themeColors.text
+    color: themeColors.text,
   },
   filterChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 8
+    marginBottom: 8,
   },
   chip: {
     paddingHorizontal: 12,
@@ -1084,52 +1086,53 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 1,
-    backgroundColor: themeColors.surface
+    backgroundColor: themeColors.surface,
   },
   chipText: {
-    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+    fontSize: 14,
+    fontWeight: '600',
     textAlign: 'center',
-    color: themeColors.text
+    color: themeColors.text,
   },
   messagesContainer: { marginTop: 12, marginBottom: 8 },
   messageBubble: { padding: 10, borderRadius: 12, marginBottom: 8, maxWidth: '80%' },
   childMessage: { backgroundColor: themeColors.surface, alignSelf: 'flex-start' },
   parentMessage: { backgroundColor: themeColors.secondary, alignSelf: 'flex-end' },
-  messageText: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.text },
-  messageTime: { ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.textSecondary, marginTop: 4, textAlign: 'right' },
+  messageText: { fontSize: 14, color: themeColors.text },
+  messageTime: { fontSize: 10, color: themeColors.textSecondary, marginTop: 4, textAlign: 'right' },
   modalOverlay: { flex: 1, backgroundColor: themeColors.overlay || 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { backgroundColor: themeColors.card, borderRadius: 16, padding: 20, width: '90%', maxWidth: 400 },
-  modalTitle: { ...SEMANTIC_TYPOGRAPHY["type-heading-large"], textAlign: 'center', marginBottom: 16, color: themeColors.primary },
+  modalTitle: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 16, color: themeColors.primary },
   modalRequestSummary: { backgroundColor: themeColors.surface, padding: 12, borderRadius: 8, marginBottom: 16 },
-  modalRequestText: { ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 6, color: themeColors.text },
-  modalLabel: { ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 8, color: themeColors.text },
+  modalRequestText: { fontSize: 16, marginBottom: 6, color: themeColors.text },
+  modalLabel: { fontSize: 16, fontWeight: '600', marginBottom: 8, color: themeColors.text },
   commentInput: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 8, padding: 12, minHeight: 80, textAlignVertical: 'top', marginBottom: 16, backgroundColor: themeColors.surface, color: themeColors.text },
   modalButtons: { flexDirection: 'row', justifyContent: 'space-between' },
   modalBtn: { flex: 1, padding: 12, borderRadius: 8, marginHorizontal: 4, alignItems: 'center' },
-  modalBtnText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body"] },
+  modalBtnText: { color: themeColors.card, fontWeight: '600', fontSize: 16 },
   cancelBtn: { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border },
-  cancelBtnText: { color: themeColors.text
-  },
+  cancelBtnText: { color: themeColors.text, fontWeight: '600' },
   messageInputContainer: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 8, gap: 8 },
-  messageInput: { flex: 1, borderWidth: 1, borderColor: themeColors.border, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, ...SEMANTIC_TYPOGRAPHY["type-body"], maxHeight: 100, textAlignVertical: 'top', backgroundColor: themeColors.surface, color: themeColors.text },
+  messageInput: { flex: 1, borderWidth: 1, borderColor: themeColors.border, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100, textAlignVertical: 'top', backgroundColor: themeColors.surface, color: themeColors.text },
   sendButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, minWidth: 60, alignItems: 'center', backgroundColor: themeColors.primary },
-  sendButtonText: { color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
+  sendButtonText: { color: themeColors.card, fontWeight: '600', fontSize: 14 },
   errorContainer: {
     alignItems: 'center',
-    paddingVertical: 20
+    paddingVertical: 20,
   },
   errorTitle: {
-    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
+    fontSize: 18,
+    fontWeight: '600',
     marginBottom: 8,
     textAlign: 'center',
-    color: themeColors.error
+    color: themeColors.error,
   },
   errorMessage: {
-    ...SEMANTIC_TYPOGRAPHY["type-body"],
+    fontSize: 16,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 22,
-    color: themeColors.text
+    color: themeColors.text,
   },
   retryButton: {
     paddingHorizontal: 24,
@@ -1137,27 +1140,29 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderRadius: 8,
     minWidth: 120,
     alignItems: 'center',
-    backgroundColor: themeColors.primary
+    backgroundColor: themeColors.primary,
   },
   retryButtonText: {
     color: themeColors.card,
-    ...SEMANTIC_TYPOGRAPHY["type-body"],
+    fontSize: 16,
+    fontWeight: '600',
   },
   childNameBadge: {
-    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+    fontSize: 14,
+    fontWeight: '600',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   // Quick actions for pending requests
   quickActionsContainer: {
-    marginTop: 12
+    marginTop: 12,
   },
   quickActionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8
+    marginBottom: 8,
   },
   quickActionBtn: {
     flex: 1,
@@ -1166,13 +1171,16 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderRadius: 12,
     marginHorizontal: 4,
     alignItems: 'center',
-    elevation: 2
+    elevation: 2,
   },
   quickActionEmoji: {
-    ...SEMANTIC_TYPOGRAPHY["type-heading-small"],
-    marginBottom: 4
+    fontSize: 18,
+    marginBottom: 4,
   },
-  quickActionText: { ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   messageActionBtn: {
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -1180,25 +1188,29 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     alignSelf: 'center',
-    elevation: 1
+    elevation: 1,
   },
-  messageActionText: { ...SEMANTIC_TYPOGRAPHY["type-body-small"] },
+  messageActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   // Status display for approved/denied requests
   statusContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12
+    marginTop: 12,
   },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
-    textAlign: 'center'
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   timestampText: {
-    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
-    color: themeColors.textSecondary
-  }
-  });
+    fontSize: 12,
+    color: themeColors.textSecondary,
+  },
+});

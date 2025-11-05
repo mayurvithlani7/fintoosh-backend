@@ -1,5 +1,6 @@
 import AchievementSystem from "@/components/AchievementSystem";
 import HelpModal from "@/components/HelpModal";
+import { SEMANTIC_TYPOGRAPHY } from "@/constants/theme";
 import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { useTheme } from "@/utils/themeContext";
 import { useRouter } from "expo-router";
@@ -10,16 +11,15 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   container: {
     alignItems: "center",
     paddingVertical: 16,
-    paddingHorizontal: 4,
+    paddingHorizontal: 4
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    ...SEMANTIC_TYPOGRAPHY["type-display-medium"],
     marginBottom: 22,
     marginTop: 6,
-    color: themeColors.primary,
-  },
-});
+    color: themeColors.primary
+  }
+  });
 
 export default function AchievementsScreen() {
   const { themeColors } = useTheme();
@@ -41,14 +41,15 @@ export default function AchievementsScreen() {
               minWidth: MOBILE_LAYOUT.minTouchTarget,
               minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
-              alignItems: 'center',
-            }}
+              alignItems: 'center'
+  }}
             onPress={() => router.push('./')}
             accessibilityRole="button"
             accessibilityLabel="Go back to home"
             accessibilityHint="Return to the main kids dashboard"
           >
-            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text, fontWeight: 'bold' }}>⬅️ Back</Text>
+            <Text style={{ ...MOBILE_STYLES.body, color: themeColors.text
+  }}>⬅️ Back</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{
@@ -60,8 +61,8 @@ export default function AchievementsScreen() {
               minWidth: MOBILE_LAYOUT.minTouchTarget,
               minHeight: MOBILE_LAYOUT.minTouchTarget,
               justifyContent: 'center',
-              alignItems: 'center',
-            }}
+              alignItems: 'center'
+  }}
             onPress={() => setHelpModalVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Help and information"
@@ -71,8 +72,7 @@ export default function AchievementsScreen() {
               style={{
                 ...MOBILE_STYLES.body,
                 color: themeColors.card,
-                fontWeight: "bold",
-              }}
+  }}
             >
               ❓ Help
             </Text>
@@ -95,8 +95,8 @@ export default function AchievementsScreen() {
         maxWidth: 520,
         alignSelf: 'center',
         elevation: 2,
-        shadowColor: themeColors.border,
-      }}>
+        shadowColor: themeColors.border
+  }}>
         <AchievementSystem />
       </View>
 
@@ -111,64 +111,64 @@ export default function AchievementsScreen() {
               {
                 type: "text",
                 text: "Achievements are special badges you earn for completing cool tasks, learning new things, or showing good behavior!",
-                icon: "🏅",
-              },
+                icon: "🏅"
+  },
               {
                 type: "bullet",
-                text: "Finish certain chores or learning tasks to unlock achievements",
-              },
+                text: "Finish certain chores or learning tasks to unlock achievements"
+  },
               {
                 type: "bullet",
-                text: "Some achievements are secret until you earn them",
-              },
+                text: "Some achievements are secret until you earn them"
+  },
               {
                 type: "highlight",
                 text: "Achievements help track your progress and celebrate your successes!",
-                icon: "🥳",
-              },
-            ],
-          },
+                icon: "🥳"
+  }
+  ]
+  },
           {
             title: "How to Earn Achievements",
             content: [
               {
                 type: "bullet",
-                text: "Complete special milestones in chores, games, or learning sections",
-              },
+                text: "Complete special milestones in chores, games, or learning sections"
+  },
               {
                 type: "bullet",
-                text: "Sometimes you'll need to do a task more than once",
-              },
+                text: "Sometimes you'll need to do a task more than once"
+  },
               {
                 type: "bullet",
-                text: "Your achievements appear automatically when you unlock them",
-              },
-            ],
-          },
+                text: "Your achievements appear automatically when you unlock them"
+  }
+  ]
+  },
           {
             title: "Why Achievements Matter",
             content: [
               {
                 type: "text",
                 text: "Achievements show how much you've learned and grown!",
-                icon: "🌟",
-              },
+                icon: "🌟"
+  },
               {
                 type: "bullet",
-                text: "See your progress over time",
-              },
+                text: "See your progress over time"
+  },
               {
                 type: "bullet",
-                text: "Motivates you to try new things",
-              },
+                text: "Motivates you to try new things"
+  },
               {
                 type: "highlight",
                 text: "Collect them all to become a Super Star!",
-                icon: "🚀",
-              },
-            ],
-          },
-        ]}
+                icon: "🚀"
+  }
+  ]
+  }
+  ]}
       />
     </ScrollView>
   );

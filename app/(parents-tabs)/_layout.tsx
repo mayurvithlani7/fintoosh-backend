@@ -4,6 +4,7 @@ import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 
 import ThemeToggle from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { TYPOGRAPHY } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchNotifications } from '@/utils/api';
 import { useNavigation } from '@/utils/navigationContext';
@@ -50,8 +51,7 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
       alignItems: 'center',
     },
     leftMenuTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
+      ...TYPOGRAPHY.h3,
       color: themeColors.text,
     },
     leftMenuItem: {
@@ -61,8 +61,7 @@ function HamburgerMenu({ isVisible, onClose, themeColors, router }: {
       borderBottomColor: themeColors.border,
     },
     leftMenuItemText: {
-      fontSize: 16,
-      fontWeight: '600',
+      ...TYPOGRAPHY.body,
       marginLeft: 15,
       color: themeColors.text,
     },

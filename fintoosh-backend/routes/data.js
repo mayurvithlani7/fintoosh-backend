@@ -1718,6 +1718,31 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
       }
     }
 
+    // For move-points requests, reserve points from the source jar
+    if ((req.body.type === 'move-points' || req.body.type === 'points-move') && req.body.from) {
+      const fromJar = req.body.from;
+      const pointsField = fromJar + 'Points';
+      const pendingField = 'pending' + fromJar.charAt(0).toUpperCase() + fromJar.slice(1) + 'Points';
+      const availablePoints = (childUser[pointsField] || 0) - (childUser[pendingField] || 0);
+
+      if (availablePoints < req.body.amount) {
+        res.status(400).json({ message: `Not enough available points in ${fromJar} jar to move.` });
+        return;
+      }
+
+      // Atomically reserve points from source jar
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: childUser._id },
+        { $inc: { [pendingField]: req.body.amount } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        res.status(500).json({ message: 'Failed to reserve points for transfer.' });
+        return;
+      }
+    }
+
     // For chore requests, update chore status to pending
     if (req.body.type === 'chore' && req.body.choreId) {
       const Chore = require('../models/Chore');
@@ -1826,21 +1851,47 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
     // If approved, process the request
     if (status === 'Approved' && (approval.type === 'move-points' || approval.type === 'points-move')) {
       const user = await User.findOne({ id: approval.childId });
-      if (user && approval.from && approval.to && user[approval.from + 'Points'] !== undefined && user[approval.to + 'Points'] !== undefined && user[approval.from + 'Points'] >= approval.amount) {
-        user[approval.from + 'Points'] -= approval.amount;
-        user[approval.to + 'Points'] += approval.amount;
-        const txn = new Transaction({
-          type: 'points-move',
-          description: `Moved ${approval.amount} points from ${approval.from} to ${approval.to} (Parent Approved Request)`,
-          amount: approval.amount,
-          user: user._id,
-          fromJar: approval.from, // ✅ ADD: Required for analytics growth calculations
-          toJar: approval.to,     // ✅ ADD: Required for analytics growth calculations
-          date: new Date().toLocaleString(),
-        });
-        await txn.save();
-        user.transactions.unshift(txn._id);
-        await user.save();
+      if (user && approval.from && approval.to && user[approval.from + 'Points'] !== undefined && user[approval.to + 'Points'] !== undefined) {
+        // Check available points (actual - pending)
+        const fromJar = approval.from;
+        const toJar = approval.to;
+        const pointsField = fromJar + 'Points';
+        const pendingField = 'pending' + fromJar.charAt(0).toUpperCase() + fromJar.slice(1) + 'Points';
+        const availablePoints = (user[pointsField] || 0) - (user[pendingField] || 0);
+
+        if (availablePoints >= approval.amount) {
+          // Atomically deduct from both actual and pending points
+          const updatedUser = await User.findOneAndUpdate(
+            { _id: user._id },
+            {
+              $inc: {
+                [pointsField]: -approval.amount,
+                [pendingField]: -approval.amount,
+                [toJar + 'Points']: approval.amount
+              }
+            },
+            { new: true }
+          );
+
+          if (!updatedUser) {
+            return res.status(500).json({ message: 'Failed to update points for transfer approval.' });
+          }
+
+          const txn = new Transaction({
+            type: 'points-move',
+            description: `Moved ${approval.amount} points from ${approval.from} to ${approval.to} (Parent Approved Request)`,
+            amount: approval.amount,
+            user: user._id,
+            fromJar: approval.from, // ✅ ADD: Required for analytics growth calculations
+            toJar: approval.to,     // ✅ ADD: Required for analytics growth calculations
+            date: new Date().toLocaleString(),
+          });
+          await txn.save();
+          updatedUser.transactions.unshift(txn._id);
+          await updatedUser.save();
+        } else {
+          return res.status(400).json({ message: 'Not enough available points in source jar for transfer (some points may be pending for other requests).' });
+        }
       }
     }
 
@@ -2186,6 +2237,19 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
 
     // If denied and donation, refund pending points
     if (status === 'Denied' && approval.type === 'donation') {
+      const childUser = await User.findOne({ id: approval.childId });
+      if (childUser && approval.from) {
+        const pendingField = 'pending' + approval.from.charAt(0).toUpperCase() + approval.from.slice(1) + 'Points';
+        await User.findOneAndUpdate(
+          { _id: childUser._id },
+          { $inc: { [pendingField]: -approval.amount } },
+          { new: true }
+        );
+      }
+    }
+
+    // If denied and point transfer, refund pending points
+    if (status === 'Denied' && (approval.type === 'move-points' || approval.type === 'points-move')) {
       const childUser = await User.findOne({ id: approval.childId });
       if (childUser && approval.from) {
         const pendingField = 'pending' + approval.from.charAt(0).toUpperCase() + approval.from.slice(1) + 'Points';
