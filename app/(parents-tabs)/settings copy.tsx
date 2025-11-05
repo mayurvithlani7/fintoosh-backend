@@ -1,10 +1,8 @@
 import BackButton from '@/components/BackButton';
 import HelpModal from '@/components/HelpModal';
-import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { API_URL } from '@/utils/config';
 import { useCurrency } from '@/utils/currencyContext';
-import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { Picker } from "@react-native-picker/picker";
@@ -24,21 +22,111 @@ import {
 } from "react-native";
 
 const createStyles = (themeColors: any) => StyleSheet.create({
-  container: { ...MOBILE_STYLES.scrollContent, alignItems: 'center' },
-  title: { ...SEMANTIC_TYPOGRAPHY["type-display-medium"], marginBottom: MOBILE_LAYOUT.sectionSpacing, marginTop: MOBILE_LAYOUT.itemSpacing, color: themeColors.primary },
-  sectionCard: { ...MOBILE_STYLES.card, minWidth: 300, width: '97%', maxWidth: 520, elevation: 2, backgroundColor: themeColors.card, shadowColor: themeColors.border },
-  sectionTitle: { ...SEMANTIC_TYPOGRAPHY["type-heading-large"], marginBottom: MOBILE_LAYOUT.itemSpacing, color: themeColors.text },
-  inputLabel: { fontWeight: '500', marginBottom: MOBILE_LAYOUT.itemSpacing, color: themeColors.text, ...SEMANTIC_TYPOGRAPHY["type-body"] },
-  input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: MOBILE_LAYOUT.borderRadius, padding: MOBILE_LAYOUT.cardPadding, ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: MOBILE_LAYOUT.itemSpacing, backgroundColor: themeColors.surface, color: themeColors.text },
-  inputWithPlaceholder: { borderWidth: 1, borderColor: themeColors.border, borderRadius: MOBILE_LAYOUT.borderRadius, padding: MOBILE_LAYOUT.cardPadding, ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: MOBILE_LAYOUT.itemSpacing, backgroundColor: themeColors.surface, color: themeColors.text },
-  pickerContainer: { borderWidth: 1, borderColor: themeColors.border, borderRadius: MOBILE_LAYOUT.borderRadius, marginBottom: MOBILE_LAYOUT.itemSpacing, backgroundColor: themeColors.surface },
-  checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: MOBILE_LAYOUT.itemSpacing },
-  checkbox: { width: MOBILE_LAYOUT.minTouchTarget, height: MOBILE_LAYOUT.minTouchTarget, borderWidth: 2, borderColor: themeColors.border, borderRadius: 4, marginRight: MOBILE_LAYOUT.itemSpacing, justifyContent: 'center', alignItems: 'center' },
-  checkboxChecked: { backgroundColor: themeColors.primary },
-  checkboxText: { ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.text },
-  saveButton: { backgroundColor: themeColors.primary, paddingVertical: MOBILE_LAYOUT.itemSpacing, paddingHorizontal: MOBILE_LAYOUT.cardPadding, borderRadius: MOBILE_LAYOUT.borderRadius, alignItems: 'center', marginTop: MOBILE_LAYOUT.itemSpacing },
-  saveButtonText: { ...SEMANTIC_TYPOGRAPHY["type-body"], color: themeColors.card, fontWeight: 'bold' },
-  statusMessage: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], fontWeight: '600', marginTop: MOBILE_LAYOUT.itemSpacing, color: themeColors.success, textAlign: 'center' },
+  container: {
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    backgroundColor: themeColors.background,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 22,
+    marginTop: 6,
+    color: themeColors.primary,
+  },
+  sectionCard: {
+    backgroundColor: themeColors.card,
+    borderRadius: 14,
+    marginBottom: 16,
+    padding: 18,
+    minWidth: 300,
+    width: "97%",
+    maxWidth: 520,
+    elevation: 2,
+    shadowColor: themeColors.border,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 12,
+    color: themeColors.text,
+  },
+  inputLabel: {
+    fontWeight: "500",
+    marginBottom: 6,
+    color: themeColors.text,
+    fontSize: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 7,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 12,
+    backgroundColor: themeColors.surface,
+    color: themeColors.text,
+  },
+  inputWithPlaceholder: {
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 7,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 12,
+    backgroundColor: themeColors.surface,
+    color: themeColors.text,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: themeColors.border,
+    borderRadius: 7,
+    marginBottom: 12,
+    backgroundColor: themeColors.surface,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: themeColors.border,
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: themeColors.primary,
+  },
+  checkboxText: {
+    fontSize: 16,
+    color: themeColors.text,
+  },
+  saveButton: {
+    backgroundColor: themeColors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  saveButtonText: {
+    color: themeColors.card,
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  statusMessage: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginTop: 10,
+    color: themeColors.success,
+    textAlign: "center",
+  },
   radioRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -60,7 +148,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     borderColor: themeColors.primary,
   },
   radioText: {
-    ...SEMANTIC_TYPOGRAPHY["type-body"],
+    fontSize: 16,
     fontWeight: '600',
     color: themeColors.text,
   },
@@ -126,7 +214,7 @@ function ParentAutomationRulesSection({ themeColors }: { themeColors: any }) {
   return (
     <View style={styles.sectionCard}>
       <Text style={styles.sectionTitle}>🤖 Automation Rules (Auto-Approval)</Text>
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.textSecondary, marginBottom: MOBILE_LAYOUT.itemSpacing, lineHeight: 20 }}>
+      <Text style={{ fontSize: 14, color: themeColors.textSecondary, marginBottom: 14, lineHeight: 20 }}>
         Parents can set point-based rules to automatically approve low-value requests.
       </Text>
       <View style={{ marginBottom: 14 }}>
@@ -139,7 +227,7 @@ function ParentAutomationRulesSection({ themeColors }: { themeColors: any }) {
           style={styles.inputWithPlaceholder}
           placeholderTextColor={themeColors.textSecondary}
         />
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary }}>Example: Enter 50 to auto-approve all chores worth 50 points or less.</Text>
+        <Text style={{ fontSize: 13, color: themeColors.textSecondary }}>Example: Enter 50 to auto-approve all chores worth 50 points or less.</Text>
       </View>
       <View style={{ marginBottom: 14 }}>
         <Text style={styles.inputLabel}>Reward Claims: Auto-approve all rewards under</Text>
@@ -151,7 +239,7 @@ function ParentAutomationRulesSection({ themeColors }: { themeColors: any }) {
           style={styles.inputWithPlaceholder}
           placeholderTextColor={themeColors.textSecondary}
         />
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary }}>Example: Enter 20 to auto-approve reward redemptions that cost 20 points or less.</Text>
+        <Text style={{ fontSize: 13, color: themeColors.textSecondary }}>Example: Enter 20 to auto-approve reward redemptions that cost 20 points or less.</Text>
       </View>
       <View style={{ marginBottom: 18 }}>
         <Text style={styles.inputLabel}>Point Moves: Auto-approve moves less than</Text>
@@ -162,7 +250,7 @@ function ParentAutomationRulesSection({ themeColors }: { themeColors: any }) {
           placeholder="Points (e.g., 10)"
           style={styles.input}
         />
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: themeColors.textSecondary }}>Example: Enter 10 to auto-approve point transfers between jars below 10 points.</Text>
+        <Text style={{ fontSize: 13, color: themeColors.textSecondary }}>Example: Enter 10 to auto-approve point transfers between jars below 10 points.</Text>
       </View>
       <TouchableOpacity
         style={[styles.saveButton, saving && { opacity: 0.6 }]}
@@ -801,7 +889,7 @@ export default function ParentSettingsScreen() {
           accessibilityLabel="Help and information"
           accessibilityHint="Open help guide for family settings"
         >
-          <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.card, fontWeight: 'bold' }}>❓ Help</Text>
+          <Text style={{ color: themeColors.card, fontWeight: 'bold', fontSize: 14 }}>❓ Help</Text>
         </TouchableOpacity>
       </View>
       <Text style={styles.title}>⚙️ Family Settings</Text>
@@ -846,7 +934,7 @@ export default function ParentSettingsScreen() {
               onPress={() => setSelectedShowDenominations(!selectedShowDenominations)}
             >
               <View style={[styles.checkbox, selectedShowDenominations && styles.checkboxChecked]}>
-                {selectedShowDenominations && <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: 'white' }}>✓</Text>}
+                {selectedShowDenominations && <Text style={{ color: 'white', fontSize: 14 }}>✓</Text>}
               </View>
               <Text style={styles.checkboxText}>Show rupee denomination breakdown</Text>
             </TouchableOpacity>
@@ -872,7 +960,7 @@ export default function ParentSettingsScreen() {
 
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>🤖 Point Automation</Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: "#666", marginBottom: MOBILE_LAYOUT.sectionSpacing, lineHeight: 20 }}>
+        <Text style={{ fontSize: 14, color: "#666", marginBottom: 16, lineHeight: 20 }}>
           Set default percentages for how chore points are automatically distributed across money jars.
           Total must equal 100%.
         </Text>
@@ -930,7 +1018,7 @@ export default function ParentSettingsScreen() {
           </View>
         </View>
 
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: "#666", textAlign: 'center', marginBottom: MOBILE_LAYOUT.itemSpacing }}>
+        <Text style={{ fontSize: 14, color: "#666", textAlign: 'center', marginBottom: 12 }}>
           Total: {Object.values(selectedDefaultSplit).reduce((sum, val) => sum + (parseInt(val) || 0), 0)}%
         </Text>
 
@@ -954,7 +1042,7 @@ export default function ParentSettingsScreen() {
       {/* --- Savings Interest/Bonus Feature Section --- */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>🏦 Savings Interest/Bonus</Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: "#666", marginBottom: MOBILE_LAYOUT.sectionSpacing, lineHeight: 20 }}>
+        <Text style={{ fontSize: 14, color: "#666", marginBottom: 18, lineHeight: 20 }}>
           Reward your child for saving! Set up an automatic interest/bonus system to help their savings jar grow over time.
         </Text>
         <View style={{ marginBottom: 12 }}>
@@ -996,9 +1084,9 @@ export default function ParentSettingsScreen() {
             editable={false}
             style={[styles.input, { backgroundColor: "#edeff2", color: "#888" }]}
           />
-            <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: "#888" }}>
-              (Interest will only be applied to the Saving Pot)
-            </Text>
+          <Text style={{ fontSize: 13, color: "#888" }}>
+            (Interest will only be applied to the Saving Pot)
+          </Text>
         </View>
         <TouchableOpacity
           style={[styles.saveButton, savingInterest && { opacity: 0.6 }]}
@@ -1023,8 +1111,8 @@ export default function ParentSettingsScreen() {
       {(Platform.OS === 'web' || Platform.OS === 'android') && (
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>👨‍👩‍👧‍👦 Family Caregiver Management</Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: "#666", marginBottom: MOBILE_LAYOUT.sectionSpacing, lineHeight: 20 }}>
-          Reward your child for saving! Set up an automatic interest/bonus system to help their savings jar grow over time.
+        <Text style={{ fontSize: 14, color: "#666", marginBottom: 18, lineHeight: 20 }}>
+          Manage additional caregivers who can help supervise and approve your children's activities. Share family codes to invite spouses, grandparents, or other trusted adults.
         </Text>
 
         <TouchableOpacity
@@ -1151,7 +1239,7 @@ export default function ParentSettingsScreen() {
           <Text style={styles.saveButtonText}>👥 View Family Caregivers</Text>
         </TouchableOpacity>
 
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: "#888", marginTop: MOBILE_LAYOUT.sectionSpacing, lineHeight: 18 }}>
+        <Text style={{ fontSize: 13, color: "#888", marginTop: 16, lineHeight: 18 }}>
           🔐 <Text style={{ fontWeight: 'bold' }}>Security:</Text> Family codes are unique and secure. Each caregiver gets full access to approve children's requests.{'\n'}
           👨‍👩‍👧‍👦 <Text style={{ fontWeight: 'bold' }}>Permissions:</Text> All caregivers can create/manage children, approve requests, and view family data.
         </Text>
@@ -1161,7 +1249,7 @@ export default function ParentSettingsScreen() {
       {/* --- Child Account Management Section --- */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>👨‍👩‍👧 Child Account Management</Text>
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: "#666", marginBottom: MOBILE_LAYOUT.sectionSpacing, lineHeight: 20 }}>
+        <Text style={{ fontSize: 14, color: "#666", marginBottom: 18, lineHeight: 20 }}>
           Manage your child's account settings and security. As the parent and gatekeeper, you have full control over account recovery.
         </Text>
 
@@ -1206,7 +1294,7 @@ export default function ParentSettingsScreen() {
           <Text style={styles.saveButtonText}>🔧 Fix Parent-Child Relationships</Text>
         </TouchableOpacity>
 
-        <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption"], color: "#888", marginTop: MOBILE_LAYOUT.itemSpacing, lineHeight: 18 }}>
+        <Text style={{ fontSize: 13, color: "#888", marginTop: 12, lineHeight: 18 }}>
           🔐 <Text style={{ fontWeight: 'bold' }}>Security Feature:</Text> Requires your parent password for verification before any child account changes.{'\n'}
           🔧 <Text style={{ fontWeight: 'bold' }}>Fix Relationships:</Text> Updates all children in your family to have the correct parent linkage.
         </Text>

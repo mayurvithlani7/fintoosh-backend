@@ -85,14 +85,14 @@
             "./assets/fonts/Fredoka-Bold.ttf"
           ]
         }
-      ],
-      "expo-video"
+      ]
     ],
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "0efc0d70-a8d1-4b53-819c-0020d24b9196"
+        "projectId": "749948db-673c-41b7-a30f-8fae58203b4d"
       }
-    }
+    },
+    "owner": "mayurvithlani7"
   }
 }

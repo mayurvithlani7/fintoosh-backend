@@ -1043,15 +1043,30 @@ router.get('/family-code', auth, async (req, res) => {
 
 /**
  * Join Family using Family Code
- * Allows new parent accounts to join existing families
+ * Allows new caregiver accounts to join existing families
  */
 router.post('/join-family-code', async (req, res) => {
   try {
-    const { familyCode, name, email, password, mobileNumber } = req.body;
+    const { familyCode, name, email, password, mobileNumber, relationship } = req.body;
 
     if (!familyCode || !name || !email || !password || !mobileNumber) {
       return res.status(400).json({
         message: 'Family code, name, email, password, and mobile number are required'
+      });
+    }
+
+    // REQUIRE relationship selection for better UX and data completeness
+    if (!relationship) {
+      return res.status(400).json({
+        message: 'Please select your relationship to the children (required for proper family labeling)'
+      });
+    }
+
+    // Validate relationship enum
+    const validRelationships = ['mother', 'father', 'grandmother', 'grandfather', 'step-mother', 'step-father', 'aunt', 'uncle', 'guardian', 'other'];
+    if (!validRelationships.includes(relationship)) {
+      return res.status(400).json({
+        message: 'Invalid relationship selection'
       });
     }
 
@@ -1088,7 +1103,8 @@ router.post('/join-family-code', async (req, res) => {
       email,
       mobileNumber,
       password,
-      role: 'parent',
+      role: 'parent',  // All caregivers get parent permissions
+      relationship: relationship || 'caregiver',  // Store relationship for display
       caregivers: [{ userId, role: 'parent' }]
     });
 

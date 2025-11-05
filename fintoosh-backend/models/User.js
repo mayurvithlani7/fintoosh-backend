@@ -84,6 +84,9 @@ const userSchema = new mongoose.Schema({
   // Brute force protection fields
   loginAttempts: { type: Number, default: 0 },
   lockoutUntil: { type: Date, default: null },
+  // Child PIN brute force protection
+  pinAttempts: { type: Number, default: 0 },
+  pinLockoutUntil: { type: Date, default: null },
   // Teaching milestones gamification
   badges: [{
     milestoneType: { type: String, required: true },

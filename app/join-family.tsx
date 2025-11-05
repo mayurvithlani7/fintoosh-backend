@@ -79,6 +79,11 @@ export default function JoinFamilyScreen() {
       return false;
     }
 
+    if (!relationship.trim()) {
+      showMessage('Please select your relationship to the children', 'error');
+      return false;
+    }
+
     return true;
   };
 
@@ -99,7 +104,7 @@ export default function JoinFamilyScreen() {
           email: email.trim().toLowerCase(),
           password: password,
           mobileNumber: mobileNumber.trim(),
-          relationship: relationship.trim() || undefined
+          relationship: relationship.trim()
         }),
       });
 
@@ -270,7 +275,7 @@ export default function JoinFamilyScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Relationship to Children (Optional)</Text>
+                <Text style={styles.inputLabel}>Relationship to Children *</Text>
                 <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={relationship}

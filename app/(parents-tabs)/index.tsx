@@ -431,7 +431,7 @@ export default function ParentsOverviewScreen() {
           marginTop: 12
         }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text, fontSize: 18, marginBottom: 0 }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.text, marginBottom: 0 }]}>
               👨‍👩‍👦 Select Child to View
             </Text>
             <View style={[styles.selectedIndicator, {

@@ -25,6 +25,15 @@ const {
   validateMessage
 } = require('../middleware/validation');
 
+// Import atomic transaction utilities
+const {
+  atomicPointTransfer,
+  atomicReservePoints,
+  atomicApproveReservedPoints,
+  atomicReleaseReservedPoints,
+  atomicModifyPoints
+} = require('../utils/atomicTransactions');
+
 // Role-based rate limiting for authenticated users
 const createRoleBasedLimiter = (role) => {
   const limits = {
@@ -203,24 +212,39 @@ router.get('/users/children', auth, requireParent, async (req, res) => {
   }
 });
 
-// User routes
-router.get('/users/:id', async (req, res) => {
+// User routes - SECURE: Add auth and familyId enforcement
+router.get('/users/:id', auth, async (req, res) => {
   try {
-    console.log('[DEBUG] /users/:id - Fetching user:', req.params.id);
+    console.log('[SECURE] /users/:id - Fetching user:', req.params.id, 'by user:', req.user.id);
 
-    // First get raw user data to see what's in database
-    const rawUser = await User.findOne({ id: req.params.id }).select('-password');
-    console.log('[DEBUG] Raw user data from DB:', {
-      id: rawUser?.id,
-      name: rawUser?.name,
-      role: rawUser?.role,
-      hasCaregivers: !!(rawUser?.caregivers),
-      caregivers: rawUser?.caregivers,
-      parentId: rawUser?.parentId,
-      familyId: rawUser?.familyId
-    });
+    // SECURITY: Find target user first to check authorization
+    const targetUser = await User.findOne({ id: req.params.id }).select('-password');
+    if (!targetUser) {
+      console.log('[SECURE] User not found for id:', req.params.id);
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-    // Now populate related data
+    // SECURITY: Only allow access within same family OR self-access
+    if (req.user.role === 'parent' && req.user.familyId !== targetUser.familyId) {
+      console.log('[SECURE] Parent access denied - different family:', {
+        requesterFamilyId: req.user.familyId,
+        targetFamilyId: targetUser.familyId
+      });
+      return res.status(403).json({ message: 'Not authorized to access this user' });
+    }
+
+    // SECURITY: Non-parents can only access their own data
+    if (req.user.role !== 'parent' && req.user.id !== req.params.id) {
+      console.log('[SECURE] Non-parent access denied for other user:', {
+        requesterId: req.user.id,
+        targetId: req.params.id
+      });
+      return res.status(403).json({ message: 'Not authorized to access other users' });
+    }
+
+    console.log('[SECURE] Access granted for user:', req.params.id);
+
+    // Now populate related data for authorized access
     const user = await User.findOne({ id: req.params.id })
       .populate('goals')
       .populate('chores')
@@ -229,36 +253,21 @@ router.get('/users/:id', async (req, res) => {
       .populate('caregivers')  // Include caregivers for multi-parent support
       .select('-password');
 
-    console.log('[DEBUG] User data after populate:', {
-      id: user?.id,
-      hasCaregivers: !!(user?.caregivers),
-      caregiversLength: user?.caregivers?.length,
-      caregivers: user?.caregivers,
-      parentId: user?.parentId
-    });
-
-    if (!user) {
-      console.log('[DEBUG] User not found for id:', req.params.id);
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    console.log('[DEBUG] Sending user response with caregivers:', !!user.caregivers);
+    console.log('[SECURE] Sending user response with caregivers:', !!user.caregivers);
     res.json(user);
   } catch (error) {
-    console.error('[DEBUG] Error fetching user:', error);
+    console.error('[SECURE] Error fetching user:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-// Get family children
+// Get family children - SECURITY FIX: Enforce familyId isolation
 router.get('/users', auth, async (req, res) => {
   try {
-    const { familyId, role } = req.query;
-    let query = {};
+    const { role } = req.query;
 
-    if (familyId) {
-      query.familyId = familyId;
-    }
+    // SECURITY: Always enforce familyId to prevent data leaks between families
+    const query = { familyId: req.user.familyId };
 
     if (role) {
       query.role = role;
@@ -267,22 +276,54 @@ router.get('/users', auth, async (req, res) => {
     const users = await User.find(query).select('-password');
     res.json(users);
   } catch (error) {
+    console.error('Error fetching users:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-router.patch('/users/:id', async (req, res) => {
+router.patch('/users/:id', auth, async (req, res) => {
   try {
-    const update = { ...req.body, updatedAt: new Date() };
+    // SECURITY: Find target user first to check authorization
+    const targetUser = await User.findOne({ id: req.params.id });
+    if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+    // SECURITY: Only allow updates within same family OR self-updates
+    if (req.user.role === 'parent' && req.user.familyId !== targetUser.familyId) {
+      return res.status(403).json({ message: 'Not authorized to update users outside your family' });
+    }
+    if (req.user.role !== 'parent' && req.user.id !== req.params.id) {
+      return res.status(403).json({ message: 'Not authorized to update other users' });
+    }
+
+    // SECURITY: Prevent role escalation - only system can change roles
+    // Allow only safe fields that users can update
+    const allowedFields = [
+      'name', 'email', 'preferences', 'defaultSplit', 'currency',
+      'conversionRate', 'showDenominations', 'autoApprovalRules'
+    ];
+
+    const filteredUpdate = {};
+    Object.keys(req.body).forEach(key => {
+      if (allowedFields.includes(key)) {
+        filteredUpdate[key] = req.body[key];
+      } else {
+        console.warn(`SECURITY: Attempted to update forbidden field '${key}' by user ${req.user.id}`);
+      }
+    });
+
+    // Add timestamp
+    filteredUpdate.updatedAt = new Date();
+
     const user = await User.findOneAndUpdate(
       { id: req.params.id },
-      update,
+      filteredUpdate,
       { new: true }
     ).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
+
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to patch user', error });
+    console.error('Error updating user:', error);
+    res.status(500).json({ message: 'Failed to patch user', error: error.message });
   }
 });
 
@@ -517,21 +558,20 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
       if (!reward.available) return res.status(400).json({ message: 'Reward is not available for claiming.' });
       if (reward.purchased) return res.status(400).json({ message: 'Reward already claimed.' });
 
-      // Atomically check and reserve points in pendingCurrentPoints
-      const availablePoints = (rewardOwner.currentPoints || 0) - (rewardOwner.pendingCurrentPoints || 0);
-      if (availablePoints < reward.cost) {
-        return res.status(400).json({ message: 'Not enough points to claim this reward.' });
-      }
-
-      // Atomically increment pendingCurrentPoints
-      const updatedUser = await User.findOneAndUpdate(
-        { _id: rewardOwner._id },
-        { $inc: { pendingCurrentPoints: reward.cost } },
-        { new: true }
-      );
-
-      if (!updatedUser) {
-        return res.status(500).json({ message: 'Failed to reserve points for reward claim.' });
+      // ATOMIC: Reserve points for reward claim using atomic transaction
+      let reservedResult;
+      try {
+        reservedResult = await atomicReservePoints(
+          rewardOwner._id,
+          'current',
+          reward.cost,
+          {
+            description: `Reserved points for reward claim: "${reward.name}"`,
+            type: 'reward-reservation'
+          }
+        );
+      } catch (error) {
+        return res.status(400).json({ message: error.message || 'Failed to reserve points for reward claim.' });
       }
 
       // --- AUTO-APPROVAL LOGIC for reward claims ---
@@ -559,55 +599,49 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
 
       if (typeof rewardClaimMax === 'number' && rewardClaimMax >= 0 && reward.cost <= rewardClaimMax) {
         // Auto-approve immediately - deduct from both current and pending points atomically
-        const updatedUser = await User.findOneAndUpdate(
-          { _id: rewardOwner._id },
-          {
-            $inc: {
-              currentPoints: -reward.cost,
-              pendingCurrentPoints: -reward.cost
+        try {
+          const approvedResult = await atomicApproveReservedPoints(
+            rewardOwner._id,
+            'current',
+            reward.cost,
+            {
+              description: `Auto-approved reward purchase: "${reward.name}"`,
+              type: 'reward-purchase'
             }
-          },
-          { new: true }
-        );
+          );
 
-        if (!updatedUser) {
-          return res.status(500).json({ message: 'Failed to update points for auto-approved reward.' });
+          reward.available = false;
+          reward.purchased = true;
+          reward.approvedAt = new Date();
+          reward.purchasedAt = new Date();
+          await reward.save();
+
+          // Create notification
+          await Notification.create({
+            familyId: rewardOwner.familyId,
+            userId: rewardOwner.id,
+            type: 'reward_auto_approved',
+            message: `Your reward "${reward.name}" was auto-approved!`,
+            referenceId: reward._id,
+            isRead: false
+          });
+
+          autoApproved = true;
+          autoApprovalStatusMessage = 'Reward auto-approved (below parent threshold).';
+          const updatedReward = await Reward.findById(reward._id);
+          res.status(200).json({ message: autoApprovalStatusMessage, reward: updatedReward, autoApproved: true });
+          return;
+        } catch (error) {
+          // If auto-approval fails, rollback the reservation
+          try {
+            await atomicReleaseReservedPoints(rewardOwner._id, 'current', reward.cost, {
+              description: 'Released reservation due to auto-approval failure'
+            });
+          } catch (rollbackError) {
+            console.error('Failed to rollback reservation:', rollbackError);
+          }
+          return res.status(500).json({ message: 'Auto-approval failed. Please try again.' });
         }
-
-        reward.available = false;
-        reward.purchased = true;
-        reward.approvedAt = new Date();
-        reward.purchasedAt = new Date();
-        await reward.save();
-
-        // Create transaction
-        const txn = new Transaction({
-          type: 'reward-purchase',
-          description: `Bought "${reward.name}"`,
-          amount: -reward.cost,
-          user: rewardOwner._id,
-          date: new Date().toLocaleString(),
-        });
-        await txn.save();
-        rewardOwner.transactions = rewardOwner.transactions || [];
-        rewardOwner.transactions.unshift(txn._id);
-        await rewardOwner.save();
-
-        // Optionally create notification...
-        await Notification.create({
-          familyId: rewardOwner.familyId,
-          userId: rewardOwner.id,
-          type: 'reward_auto_approved',
-          message: `Your reward "${reward.name}" was auto-approved!`,
-          referenceId: reward._id,
-          isRead: false
-        });
-
-        autoApproved = true;
-        autoApprovalStatusMessage = 'Reward auto-approved (below parent threshold).';
-        const updatedReward = await Reward.findById(reward._id);
-        res.status(200).json({ message: autoApprovalStatusMessage, reward: updatedReward, autoApproved: true });
-        return;
       }
       // --- End AUTO-APPROVAL logic ---
 
@@ -620,20 +654,40 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
         status: 'Pending'
       });
       if (existing) {
+        // Release the reserved points since we can't proceed
+        try {
+          await atomicReleaseReservedPoints(rewardOwner._id, 'current', reward.cost, {
+            description: 'Released reservation - duplicate request'
+          });
+        } catch (rollbackError) {
+          console.error('Failed to rollback reservation:', rollbackError);
+        }
         return res.status(400).json({ message: 'A reward approval request is already pending for this reward.' });
       }
 
-      // Correct logic: always update available to false, purchased to false, status to pending and save
+      // Mark reward as pending approval
       reward.available = false;
       reward.purchased = false;
-      reward.status = 'pending'; // Mark reward as pending approval
+      reward.status = 'pending';
       await reward.save();
+
       // Reload and send updated reward after save
       const updatedReward = await Reward.findById(reward._id);
 
       // Create approval request - use first caregiver as primary approver
       const primaryCaregiver = rewardOwner.caregivers && rewardOwner.caregivers.length > 0 ? rewardOwner.caregivers[0] : null;
-      if (!primaryCaregiver) return res.status(400).json({ message: 'No caregiver found for user.' });
+      if (!primaryCaregiver) {
+        // Release the reserved points since we can't proceed
+        try {
+          await atomicReleaseReservedPoints(rewardOwner._id, 'current', reward.cost, {
+            description: 'Released reservation - no caregiver found'
+          });
+        } catch (rollbackError) {
+          console.error('Failed to rollback reservation:', rollbackError);
+        }
+        return res.status(400).json({ message: 'No caregiver found for user.' });
+      }
+
       const approvalRequest = new ApprovalRequest({
         familyId: rewardOwner.familyId,
         childId: rewardOwner.id,
@@ -1846,48 +1900,33 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
 
     // If approved, process the request
     if (status === 'Approved' && (approval.type === 'move-points' || approval.type === 'points-move')) {
-      const user = await User.findOne({ id: approval.childId });
-      if (user && approval.from && approval.to && user[approval.from + 'Points'] !== undefined && user[approval.to + 'Points'] !== undefined) {
-        // Check available points (actual - pending)
-        const fromJar = approval.from;
-        const toJar = approval.to;
-        const pointsField = fromJar + 'Points';
-        const pendingField = 'pending' + fromJar.charAt(0).toUpperCase() + fromJar.slice(1) + 'Points';
-        const availablePoints = (user[pointsField] || 0) - (user[pendingField] || 0);
-
-        if (availablePoints >= approval.amount) {
-          // Atomically deduct from both actual and pending points
-          const updatedUser = await User.findOneAndUpdate(
-            { _id: user._id },
-            {
-              $inc: {
-                [pointsField]: -approval.amount,
-                [pendingField]: -approval.amount,
-                [toJar + 'Points']: approval.amount
-              }
-            },
-            { new: true }
-          );
-
-          if (!updatedUser) {
-            return res.status(500).json({ message: 'Failed to update points for transfer approval.' });
-          }
-
-          const txn = new Transaction({
+      try {
+        // ATOMIC: Approve the reserved points transfer
+        const result = await atomicApproveReservedPoints(
+          approval.childId,
+          approval.from,
+          approval.amount,
+          {
             type: 'points-move',
             description: `Moved ${approval.amount} points from ${approval.from} to ${approval.to} (Parent Approved Request)`,
-            amount: approval.amount,
-            user: user._id,
-            fromJar: approval.from, // ✅ ADD: Required for analytics growth calculations
-            toJar: approval.to,     // ✅ ADD: Required for analytics growth calculations
-            date: new Date().toLocaleString(),
-          });
-          await txn.save();
-          updatedUser.transactions.unshift(txn._id);
-          await updatedUser.save();
-        } else {
-          return res.status(400).json({ message: 'Not enough available points in source jar for transfer (some points may be pending for other requests).' });
-        }
+            fromJar: approval.from,
+            toJar: approval.to
+          }
+        );
+
+        // ATOMIC: Add points to destination jar
+        await atomicModifyPoints(
+          approval.childId,
+          approval.to,
+          approval.amount,
+          {
+            type: 'points-move',
+            description: `Received ${approval.amount} points in ${approval.to} jar (Parent Approved Transfer)`,
+            toJar: approval.to
+          }
+        );
+      } catch (error) {
+        return res.status(400).json({ message: error.message || 'Failed to approve points transfer.' });
       }
     }
 
@@ -1909,55 +1948,36 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
     }
 
     if (status === 'Approved' && approval.type === 'reward') {
-      const user = await User.findOne({ id: approval.childId });
-      const RewardModel = require('../models/Reward');
-      if (user) {
-        // Deduct from both pendingCurrentPoints and currentPoints atomically
-        const rewardDoc = approval.rewardId
-          ? await RewardModel.findById(approval.rewardId)
-          : await RewardModel.findOne({ name: approval.name, user: user._id });
-        const cost = approval.amount;
-        if ((user.currentPoints || 0) < cost) {
-          return res.status(400).json({ message: 'Not enough points to fulfill this reward request at approval time.' });
-        }
-
-        // Atomically deduct from both pending and actual points
-        const updatedUser = await User.findOneAndUpdate(
-          { _id: user._id },
+      try {
+        // ATOMIC: Approve reserved points for reward purchase
+        const result = await atomicApproveReservedPoints(
+          approval.childId,
+          'current',
+          approval.amount,
           {
-            $inc: {
-              currentPoints: -cost,
-              pendingCurrentPoints: -cost
-            }
-          },
-          { new: true }
+            type: 'reward-purchase',
+            description: `Bought "${approval.name}"`,
+            reference: approval.rewardId
+          }
         );
 
-        if (!updatedUser) {
-          return res.status(500).json({ message: 'Failed to update points for reward approval.' });
-        }
-
-        const txn = new Transaction({
-          type: 'reward-purchase',
-          description: `Bought "${approval.name}"`,
-          amount: -cost,
-          user: user._id,
-          date: new Date().toLocaleString(),
-        });
-        await txn.save();
-        updatedUser.transactions.unshift(txn._id);
-        await updatedUser.save();
-
         // Update reward fulfillment and status
+        const RewardModel = require('../models/Reward');
+        const rewardDoc = approval.rewardId
+          ? await RewardModel.findById(approval.rewardId)
+          : await RewardModel.findOne({ name: approval.name, user: result.user._id });
+
         if (rewardDoc) {
           rewardDoc.completed = true;
           rewardDoc.approved = true;
           rewardDoc.approvedAt = new Date();
           rewardDoc.purchased = true;
           rewardDoc.purchasedAt = new Date();
-          rewardDoc.status = 'claimed'; // Update status to claimed
+          rewardDoc.status = 'claimed';
           await rewardDoc.save();
         }
+      } catch (error) {
+        return res.status(400).json({ message: error.message || 'Failed to approve reward purchase.' });
       }
     }
 
@@ -2114,67 +2134,41 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
 
     // If approved and goal-completion, check points, deduct, set goal status to 'completed'
     if (status === 'Approved' && approval.type === 'goal-completion') {
-      const Goal = require('../models/Goal');
-      const User = require('../models/User');
-      if (approval.goalId) {
+      try {
+        const Goal = require('../models/Goal');
         const goal = await Goal.findById(approval.goalId);
         if (goal) {
-          // Find child user
-          const user = await User.findOne({ id: approval.childId });
-          if (user) {
-            // Determine which jar is required and how much
-            const jar = goal.jar;
-            const pointsField = jar + "Points";
-            const pendingField = 'pending' + jar.charAt(0).toUpperCase() + jar.slice(1) + 'Points';
-            const target = goal.targetAmount || approval.amount || 0;
-            if (!user[pointsField] || user[pointsField] < target) {
-              // Reset goal status back to 'active' so child can try again
-              goal.status = 'active';
-              await goal.save();
+          const target = goal.targetAmount || approval.amount || 0;
 
-              return res.status(400).json({
-                message: `Not enough points in ${jar} jar for goal completion. The child needs ${target - (user[pointsField] || 0)} more points. Goal has been reset to active status.`
-              });
-            }
-
-            // Atomically deduct from both pending and actual points
-            const updatedUser = await User.findOneAndUpdate(
-              { _id: user._id },
-              {
-                $inc: {
-                  [pointsField]: -target,
-                  [pendingField]: -target
-                }
-              },
-              { new: true }
-            );
-
-            if (!updatedUser) {
-              return res.status(500).json({ message: 'Failed to update points for goal approval.' });
-            }
-
-            goal.status = 'completed'; // Mark as completed/claimed
-            goal.achieved = true;
-            goal.achievedAt = new Date();
-            goal.updatedAt = new Date();
-            await goal.save();
-
-            // Create transaction for goal completion
-            const txn = new Transaction({
+          // ATOMIC: Approve reserved points for goal completion
+          const result = await atomicApproveReservedPoints(
+            approval.childId,
+            goal.jar,
+            target,
+            {
               type: 'goal-completion',
-              description: `Parent approved goal "${goal.name}" completion, ${target} points from ${jar}`,
-              amount: -target,
-              user: user._id,
-              toJar: jar,
-              reference: goal._id,
-              date: new Date().toLocaleString()
-            });
-            await txn.save();
-            updatedUser.transactions = updatedUser.transactions || [];
-            updatedUser.transactions.unshift(txn._id);
-            await updatedUser.save();
-          }
+              description: `Parent approved goal "${goal.name}" completion, ${target} points from ${goal.jar}`,
+              reference: goal._id
+            }
+          );
+
+          goal.status = 'completed'; // Mark as completed/claimed
+          goal.achieved = true;
+          goal.achievedAt = new Date();
+          goal.updatedAt = new Date();
+          await goal.save();
         }
+      } catch (error) {
+        const Goal = require('../models/Goal');
+        const goal = await Goal.findById(approval.goalId);
+        if (goal) {
+          // Reset goal status back to 'active' so child can try again
+          goal.status = 'active';
+          await goal.save();
+        }
+        return res.status(400).json({
+          message: error.message || 'Failed to approve goal completion.'
+        });
       }
     }
     // If denied and reward, reset reward availability and status, and refund pending points
