@@ -13,6 +13,11 @@ const {
   validatePassword,
   validateMessage
 } = require('../middleware/validation');
+const {
+  childPinBruteForceProtection,
+  handleFailedPinAttempt,
+  resetPinAttempts
+} = require('../middleware/childPinProtection');
 
 const router = express.Router();
 
@@ -503,67 +508,34 @@ router.post('/create-child', auth, sanitizeInput, async (req, res) => {
 /**
  * Child login with username and PIN (with brute force protection)
  */
-router.post('/child-login', async (req, res) => {
+router.post('/child-login', childPinBruteForceProtection, async (req, res) => {
   try {
-    const { username, pin } = req.body;
-    const MAX_ATTEMPTS = 5;
-    const LOCKOUT_MINUTES = 5;
-
-    if (!username || !pin) {
-      return res.status(400).json({ message: 'Username and PIN are required' });
-    }
-
-    // Find child by username
-    const user = await User.findOne({ username, role: 'child' });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Check if account is deactivated
-    if (user.status === 'deactivated') {
-      return res.status(403).json({
-        message: 'This account has been deactivated. Please contact support or reactivate your account.',
-        requiresReactivation: true
-      });
-    }
-
-    // Check lockout: If lockoutUntil is in the future, reject the login attempt
-    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
-      const remainingMinutes = Math.ceil((user.lockoutUntil - new Date()) / (1000 * 60));
-      return res.status(403).json({
-        message: `Account is temporarily locked due to too many failed attempts. Try again in ${remainingMinutes} minute(s).`,
-        lockoutRemaining: remainingMinutes
-      });
-    }
+    const user = req.targetUser;
+    const { pin } = req.body;
 
     // Check PIN using hashed password comparison
     const isPinValid = await user.comparePassword(pin);
-    if (!isPinValid) {
-      // Failed attempt: Increment loginAttempts
-      user.loginAttempts += 1;
 
-      // If it reaches MAX_ATTEMPTS, set lockoutUntil
-      if (user.loginAttempts >= MAX_ATTEMPTS) {
-        user.lockoutUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
-        await user.save();
-        const remainingMinutes = Math.ceil((user.lockoutUntil - new Date()) / (1000 * 60));
+    if (!isPinValid) {
+      // Handle failed PIN attempt with proper logging and lockout
+      const result = await handleFailedPinAttempt(user);
+
+      if (result.isLocked) {
         return res.status(403).json({
-          message: `Too many failed attempts. Account locked for ${LOCKOUT_MINUTES} minutes.`,
-          lockoutRemaining: remainingMinutes
+          message: `Too many failed attempts. Account locked for ${result.lockoutMinutes} minutes.`,
+          lockoutRemaining: result.lockoutMinutes,
+          isLocked: true
         });
       }
 
-      await user.save();
       return res.status(401).json({
-        message: 'Invalid credentials',
-        attemptsRemaining: MAX_ATTEMPTS - user.loginAttempts
+        message: 'Invalid PIN',
+        attemptsRemaining: result.attemptsRemaining
       });
     }
 
-    // Successful attempt: Reset loginAttempts to 0 and set lockoutUntil to null
-    user.loginAttempts = 0;
-    user.lockoutUntil = null;
-    await user.save();
+    // Successful login: Reset PIN attempt counters
+    await resetPinAttempts(user);
 
     // Generate JWT token
     const token = jwt.sign(
@@ -572,12 +544,14 @@ router.post('/child-login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // Remove password from response
+    // Remove sensitive data from response
     const userResponse = user.toObject();
     delete userResponse.password;
     delete userResponse.pin;
-    delete userResponse.loginAttempts;
-    delete userResponse.lockoutUntil;
+    delete userResponse.pinAttempts;
+    delete userResponse.pinLockoutUntil;
+
+    console.log(`[PIN SECURITY] Successful login for child: ${user.username}`);
 
     res.json({
       user: userResponse,
@@ -585,8 +559,8 @@ router.post('/child-login', async (req, res) => {
       message: 'Login successful'
     });
   } catch (error) {
-    console.error('Child login error:', error);
-    res.status(400).json({ message: error.message });
+    console.error('[PIN SECURITY] Child login error:', error);
+    res.status(500).json({ message: 'Authentication service temporarily unavailable' });
   }
 });
 

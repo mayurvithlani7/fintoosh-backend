@@ -472,28 +472,45 @@ router.patch('/users/:userId/settings', auth, async (req, res) => {
   }
 });
 
-// Reward routes
+// Reward routes with pagination
 router.get('/rewards/:userId', auth, async (req, res) => {
   try {
     // Find user by custom ID to get MongoDB ObjectId
     const user = await User.findOne({ id: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    // Show all rewards, not just available, so PENDING and CLAIMED can be displayed
-    const rewards = await Reward.find({
-      user: user._id,
-      $or: [
-        { createdAt: { $gte: thirtyDaysAgo } },
-        { approvedAt: { $gte: thirtyDaysAgo } },
-        { purchasedAt: { $gte: thirtyDaysAgo } },
-        { updatedAt: { $gte: thirtyDaysAgo } }
-      ]
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100); // Max 100 per page
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination metadata
+    const totalRewards = await Reward.countDocuments({ user: user._id });
+
+    // Get paginated rewards - show all rewards (not just recent) for complete history
+    const rewards = await Reward.find({ user: user._id })
+      .sort({ createdAt: -1 }) // Newest first
+      .skip(skip)
+      .limit(limit)
+      .select('name cost description category available purchased approved approvedAt purchasedAt status createdAt updatedAt');
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalRewards / limit);
+
+    res.json({
+      rewards,
+      pagination: {
+        page,
+        limit,
+        total: totalRewards,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
     });
-    res.json(rewards);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching rewards:', error);
+    res.status(500).json({ message: 'Failed to fetch rewards' });
   }
 });
 
@@ -1212,28 +1229,45 @@ router.delete('/goals/:goalId', auth, async (req, res) => {
   }
 });
 
-// Chore routes
+// Chore routes with pagination
 router.get('/chores/:childId', auth, async (req, res) => {
   try {
     // Find user by custom ID to get MongoDB ObjectId
     const user = await User.findOne({ id: req.params.childId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const chores = await Chore.find({
-      user: user._id,
-      $or: [
-        { createdAt: { $gte: thirtyDaysAgo } },
-        { completedAt: { $gte: thirtyDaysAgo } },
-        { approvedAt: { $gte: thirtyDaysAgo } },
-        { updatedAt: { $gte: thirtyDaysAgo } }
-      ]
-    });
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100); // Max 100 per page
+    const skip = (page - 1) * limit;
 
-    res.json(chores);
+    // Get total count for pagination metadata
+    const totalChores = await Chore.countDocuments({ user: user._id });
+
+    // Get paginated chores
+    const chores = await Chore.find({ user: user._id })
+      .sort({ createdAt: -1 }) // Newest first
+      .skip(skip)
+      .limit(limit)
+      .select('name points description frequency completed completedAt approved approvedAt status createdAt updatedAt');
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalChores / limit);
+
+    res.json({
+      chores,
+      pagination: {
+        page,
+        limit,
+        total: totalChores,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching chores:', error);
+    res.status(500).json({ message: 'Failed to fetch chores' });
   }
 });
 
