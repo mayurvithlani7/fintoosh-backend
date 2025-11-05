@@ -1846,6 +1846,31 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
       }
     }
 
+    // For donation requests, reserve points from the source jar
+    if (req.body.type === 'donation' && req.body.from) {
+      const fromJar = req.body.from;
+      const pointsField = fromJar + 'Points';
+      const pendingField = 'pending' + fromJar.charAt(0).toUpperCase() + fromJar.slice(1) + 'Points';
+      const availablePoints = (childUser[pointsField] || 0) - (childUser[pendingField] || 0);
+
+      if (availablePoints < req.body.amount) {
+        res.status(400).json({ message: `Not enough available points in ${fromJar} jar to donate.` });
+        return;
+      }
+
+      // Atomically reserve points from source jar
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: childUser._id },
+        { $inc: { [pendingField]: req.body.amount } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        res.status(500).json({ message: 'Failed to reserve points for donation.' });
+        return;
+      }
+    }
+
     // For chore requests, update chore status to pending
     if (req.body.type === 'chore' && req.body.choreId) {
       const Chore = require('../models/Chore');
