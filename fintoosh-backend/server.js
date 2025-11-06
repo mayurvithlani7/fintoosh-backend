@@ -165,9 +165,9 @@ logger.info('MongoDB connection configuration', {
 });
 
 // Force loading of ledger models to create collections
-require('../models/LedgerAccount');
-require('../models/LedgerEntry');
-require('../models/LedgerTransaction');
+//require('../models/LedgerAccount');
+//require('../models/LedgerEntry');
+//require('../models/LedgerTransaction');
 
 // MongoDB connection - Use secure defaults for production, permissive options only for local dev
 const connectionOptions = isLocalConnection ? {
