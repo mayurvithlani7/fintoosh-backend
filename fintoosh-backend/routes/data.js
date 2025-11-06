@@ -3928,6 +3928,7 @@ router.patch('/real-allowances/:allowanceId', auth, requireParent, sanitizeInput
 router.delete('/real-allowances/:allowanceId', auth, requireParent, async (req, res) => {
   try {
     const { allowanceId } = req.params;
+    const { reason } = req.body;
 
     const allowance = await RealAllowance.findById(allowanceId);
     if (!allowance) {
@@ -3939,10 +3940,52 @@ router.delete('/real-allowances/:allowanceId', auth, requireParent, async (req, 
       return res.status(403).json({ message: 'Not authorized to delete this record' });
     }
 
-    await RealAllowance.findByIdAndDelete(allowanceId);
-    res.json({ message: 'Real allowance record deleted successfully' });
+    // Soft delete with audit trail
+    await allowance.softDelete(
+      req.user.id,
+      reason || 'Parent deleted allowance record',
+      {
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        endpoint: req.originalUrl
+      }
+    );
+
+    res.json({
+      message: 'Real allowance record deleted successfully',
+      retentionExpiry: allowance.retentionExpiry
+    });
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete real allowance record', error: error.message });
+  }
+});
+
+// Restore deleted real allowance (admin/parent only)
+router.post('/real-allowances/:allowanceId/restore', auth, requireParent, async (req, res) => {
+  try {
+    const { allowanceId } = req.params;
+    const { reason } = req.body;
+
+    // Find deleted allowance
+    const allowance = await RealAllowance.findOne({
+      _id: allowanceId,
+      familyId: req.user.familyId,
+      isDeleted: true
+    });
+
+    if (!allowance) {
+      return res.status(404).json({ message: 'Deleted allowance record not found' });
+    }
+
+    // Restore with audit trail
+    await allowance.restore(
+      req.user.id,
+      reason || 'Parent restored allowance record'
+    );
+
+    res.json({ message: 'Real allowance record restored successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to restore real allowance record', error: error.message });
   }
 });
 

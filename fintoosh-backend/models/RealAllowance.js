@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const softDeletePlugin = require('../models/plugins/softDelete');
 
 // Real Allowance model for logging actual cash/digital allowances given to children
 const realAllowanceSchema = new mongoose.Schema({
@@ -47,6 +48,11 @@ const realAllowanceSchema = new mongoose.Schema({
     enum: ['Allowance', 'Reward', 'Gift', 'Extra', 'Other'],
     default: 'Allowance'
   },
+  // Ledger integration
+  ledgerTransactionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'LedgerTransaction'
+  }, // Links to corresponding ledger transaction
   createdAt: {
     type: Date,
     default: Date.now
@@ -57,9 +63,15 @@ const realAllowanceSchema = new mongoose.Schema({
   }
 });
 
+// Apply soft delete plugin with 7-year retention for financial records
+realAllowanceSchema.plugin(softDeletePlugin, {
+  retentionPeriods: { 'RealAllowance': 2555 } // 7 years for financial compliance
+});
+
 // Indexes for efficient queries
 realAllowanceSchema.index({ familyId: 1, childId: 1, date: -1 });
 realAllowanceSchema.index({ parentId: 1, createdAt: -1 });
+realAllowanceSchema.index({ ledgerTransactionId: 1 });
 
 // Update timestamp on save
 realAllowanceSchema.pre('save', function(next) {
