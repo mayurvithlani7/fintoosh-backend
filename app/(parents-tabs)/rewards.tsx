@@ -145,16 +145,21 @@ export default function ParentsRewardsScreen() {
         setLoading(false);
         return;
       }
-      const data: Reward[] = await fetchRewards(childId, token as any);
+      const rewardsResponse = await fetchRewards(childId, token as any);
+      // Extract rewards array from paginated response
+      const data: Reward[] = rewardsResponse.rewards || [];
+      // Ensure it's an array
+      const safeRewardsData = Array.isArray(data) ? data : [];
+
       // Security: Validate rewards belong to this family
       const { getUser } = await import('@/utils/secureStorage');
       const parentProfile = await getUser();
       if (parentProfile) {
         const allowedChildIds = children.map(c => c.id);
         if (
-          data &&
-          data.length > 0 &&
-          data.some(
+          safeRewardsData &&
+          safeRewardsData.length > 0 &&
+          safeRewardsData.some(
             r =>
               typeof (r as any).childId !== 'undefined' &&
               (typeof (r as any).childId === 'object'
@@ -171,7 +176,7 @@ export default function ParentsRewardsScreen() {
           return;
         }
       }
-      setRewards(data);
+      setRewards(safeRewardsData);
     } catch (err: any) {
       showMessage('Failed to load rewards.', 'error');
       setRewards([]);

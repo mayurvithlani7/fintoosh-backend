@@ -18,7 +18,7 @@ const DreamBoard = require('../models/DreamBoard');
 const RealAllowance = require('../models/RealAllowance');
 const Notification = require('../models/Notification');
 const { calculateNextDueDate } = require('../scripts/recurringTasksJob');
-const { auth, requireParent } = require('../middleware/auth');
+const { auth, requireParent, requireSelfOrParent } = require('../middleware/auth');
 const {
   sanitizeInput,
   validateFinancialData,
@@ -89,7 +89,7 @@ const expensiveOperationLimiter = rateLimit({
 });
 
 // Transaction routes
-router.get('/transactions/:userId', auth, roleBasedLimiter, async (req, res) => {
+router.get('/transactions/:userId', auth, roleBasedLimiter, requireSelfOrParent('userId'), async (req, res) => {
   try {
     const user = await User.findOne({ id: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -484,7 +484,7 @@ router.patch('/users/:userId/settings', auth, async (req, res) => {
 });
 
 // Reward routes with pagination
-router.get('/rewards/:userId', auth, async (req, res) => {
+router.get('/rewards/:userId', auth, requireSelfOrParent('userId'), async (req, res) => {
   try {
     // Find user by custom ID to get MongoDB ObjectId
     const user = await User.findOne({ id: req.params.userId });
@@ -954,7 +954,7 @@ router.get('/goal-templates', auth, async (req, res) => {
 });
 
 // Goal routes
-router.get('/goals/:childId', auth, async (req, res) => {
+router.get('/goals/:childId', auth, requireSelfOrParent('childId'), async (req, res) => {
   try {
     // Support lookup by MongoDB _id or custom user id
     let user;
@@ -1245,7 +1245,7 @@ router.delete('/goals/:goalId', auth, async (req, res) => {
 });
 
 // Chore routes with pagination
-router.get('/chores/:childId', auth, async (req, res) => {
+router.get('/chores/:childId', auth, requireSelfOrParent('childId'), async (req, res) => {
   try {
     // Find user by custom ID to get MongoDB ObjectId
     const user = await User.findOne({ id: req.params.childId });
@@ -2429,7 +2429,7 @@ router.post('/requests/:requestId/messages', auth, validateMessage, async (req, 
 });
 
 // Achievement routes
-router.get('/achievements/:userId', auth, async (req, res) => {
+router.get('/achievements/:userId', auth, requireSelfOrParent('userId'), async (req, res) => {
   try {
     // Find user by custom ID to get MongoDB ObjectId
     const user = await User.findOne({ id: req.params.userId });
@@ -2443,7 +2443,7 @@ router.get('/achievements/:userId', auth, async (req, res) => {
   }
 });
 
-router.post('/achievements/:userId/initialize', auth, async (req, res) => {
+router.post('/achievements/:userId/initialize', auth, requireSelfOrParent('userId'), async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await User.findOne({ id: userId });
@@ -2521,7 +2521,7 @@ router.patch('/achievements/:achievementId/progress', auth, async (req, res) => 
   }
 });
 
-router.post('/achievements/:userId/streak', auth, async (req, res) => {
+router.post('/achievements/:userId/streak', auth, requireSelfOrParent('userId'), async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await User.findOne({ id: userId });
@@ -2550,7 +2550,7 @@ router.post('/achievements/:userId/streak', auth, async (req, res) => {
   }
 });
 
-router.post('/achievements/:userId/check-milestones', auth, async (req, res) => {
+router.post('/achievements/:userId/check-milestones', auth, requireSelfOrParent('userId'), async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await User.findOne({ id: userId });

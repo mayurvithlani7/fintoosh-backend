@@ -30,6 +30,8 @@ interface DataCacheContextType {
   fetchChores: (force?: boolean) => Promise<void>;
   fetchRequests: (force?: boolean) => Promise<void>;
   fetchGoals: (force?: boolean) => Promise<void>;
+  // Update cached child data (for optimistic updates)
+  updateChildData: (updates: Partial<any>) => void;
   // Returns true if the specified slice is stale (older than cacheTime, in seconds)
   isDataStale: (slice: keyof DataCacheContextType['lastFetched'], cacheTime?: number) => boolean;
   CACHE_TIME_DEFAULT: number;
@@ -231,6 +233,11 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [isDataStale]);
 
+  // Update cached child data (for optimistic updates)
+  const updateChildData = useCallback((updates: Partial<any>) => {
+    setChildData((prev: any) => prev ? { ...prev, ...updates } : null);
+  }, []);
+
   // Reset function: clears all cache state and fetch status
   const resetDataCache = useCallback(() => {
     setChildData(null);
@@ -264,6 +271,7 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     fetchChores,
     fetchRequests,
     fetchGoals,
+    updateChildData,
     isDataStale,
     CACHE_TIME_DEFAULT,
     resetDataCache,

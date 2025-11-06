@@ -390,19 +390,23 @@ export default function ParentsChoresScreen() {
       });
 
       if (response.ok) {
-        const choresData = await response.json();
+        const choresResponse = await response.json();
+        // Extract chores array from paginated response
+        const choresData = choresResponse.chores || [];
+        // Ensure it's an array
+        const safeChoresData = Array.isArray(choresData) ? choresData : [];
         // Security check: chores must belong to selectedChild
         if (
-          choresData &&
-          choresData.length > 0 &&
-          choresData.some((c: any) => (c.childId && c.childId !== selectedChild))
+          safeChoresData &&
+          safeChoresData.length > 0 &&
+          safeChoresData.some((c: any) => (c.childId && c.childId !== selectedChild))
         ) {
           const { clearSensitiveAppData } = await import('@/utils/secureStorage');
           await clearSensitiveAppData();
           if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
           return;
         }
-        setChores(choresData);
+        setChores(safeChoresData);
         setLastRefreshed(Date.now());
       }
     } catch (error) {
@@ -769,22 +773,22 @@ export default function ParentsChoresScreen() {
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text }]}>📋 To Do</Text>
               <Text style={[styles.summaryValue, { color: themeColors.primary }]}>
-                {chores.filter(c => !isChoreDone(c)).length}
+                {chores.filter(c => c.status === 'active' || c.status === 'pending' && !c.completed).length}
               </Text>
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text }]}>⏳ Pending</Text>
               <Text style={[styles.summaryValue, { color: themeColors.warning }]}>
-                {chores.filter(c => c.status === 'pending' || (c.completed && !c.approved)).length}
+                {chores.filter(c => c.status === 'pending').length}
               </Text>
             </View>
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text }]}>✅ Completed</Text>
               <Text style={[styles.summaryValue, { color: themeColors.success }]}>
-                {chores.filter(c => isChoreDone(c)).length}
+                {chores.filter(c => c.status === 'completed' || (c.completed && c.approved)).length}
               </Text>
             </View>
-            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>  
+            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>
               <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🏆 Total</Text>
               <Text style={[styles.summaryValue, { color: themeColors.primary }]}>
                 {chores.length}
@@ -1213,20 +1217,24 @@ export default function ParentsChoresScreen() {
     return new Date();
   }
 
+            console.log('DEBUG: choresTab =', choresTab);
             if (choresTab === 'To Do') {
-            filteredChores = chores.filter(c => !isChoreDone(c)).sort((a, b) =>
-              getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime()
-            );
+              filteredChores = chores.filter(c => c.status === 'active' || c.status === 'pending');
+              console.log('DEBUG: After filtering -', filteredChores.length, 'tasks');
+              console.log('DEBUG: filteredChores =', filteredChores.map(c => ({id: c._id, name: c.name, status: c.status, completed: c.completed, approved: c.approved})));
+              filteredChores = filteredChores.sort((a, b) =>
+                getChoreCompletedDate(b).getTime() - getChoreCompletedDate(a).getTime()
+              );
             } else {
-              // "Done": last 90 days
+              // "Done": completed chores (last 90 days by default)
               const now = new Date();
               const ninetyDaysAgo = new Date(now);
               ninetyDaysAgo.setDate(now.getDate() - 90);
               const filteredRecent = chores.filter(c =>
-                isChoreDone(c) && new Date(c.createdAt) >= ninetyDaysAgo
+                c.status === 'completed' && new Date(c.createdAt) >= ninetyDaysAgo
               );
               const filteredArchived = chores.filter(c =>
-                isChoreDone(c) && new Date(c.createdAt) < ninetyDaysAgo
+                c.status === 'completed' && new Date(c.createdAt) < ninetyDaysAgo
               );
               filteredChores = filteredRecent;
               showArchiveButton = filteredArchived.length > 0;
@@ -1276,7 +1284,7 @@ export default function ParentsChoresScreen() {
                     <Text style={[SEMANTIC_TYPOGRAPHY["type-caption-small"], { color: '#666', marginTop: 2 }]}>
                       Status: {c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : ((c.completed && c.approved) ? 'Completed' : c.completed ? 'Pending Approval' : 'Active')} • Created: {new Date(c.createdAt).toLocaleDateString()}
                     </Text>
-                    {/* Parent controls: edit/delete for active, pending indicator, nothing for completed/approved */}
+                    {/* Parent controls: edit/delete for active, pending indicator for pending, nothing for completed/approved */}
                     {c.status === 'active' ? (
                       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 }}>
                         <TouchableOpacity

@@ -11,7 +11,6 @@ import { Picker } from "@react-native-picker/picker";
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -20,7 +19,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 const createStyles = (themeColors: any) => StyleSheet.create({
@@ -464,9 +463,9 @@ export default function ParentSettingsScreen() {
         setConfirmChildPin('');
         setChildManagementModalVisible(false);
         setTimeout(() => setChildManagementMessage(''), 3000);
-      } else {
-        setChildManagementMessage(data.message || 'Failed to reset PIN. Please try again.');
-      }
+              } else {
+                showMessage('Network error. Please try again.', 'error');
+              }
     } catch (error) {
       console.error('Error resetting PIN:', error);
       setChildManagementMessage('Network error. Please try again.');
@@ -551,7 +550,7 @@ export default function ParentSettingsScreen() {
       const currentUser = await getUser();
 
       if (!token || !currentUser) {
-        Alert.alert('Error', 'Not authenticated. Please login again.');
+        showMessage('Not authenticated. Please login again.', 'error');
         return;
       }
 
@@ -615,7 +614,7 @@ export default function ParentSettingsScreen() {
     } catch (error) {
       console.error('Error fetching caregivers for management:', error);
       setCaregivers([]);
-      Alert.alert('Error', 'Network error. Please try again.');
+      showMessage('Network error. Please try again.', 'error');
     }
   }, []);
 
@@ -1036,7 +1035,7 @@ export default function ParentSettingsScreen() {
               const token = await getAuthToken();
               console.log('[SETTINGS] Token retrieved:', token ? 'YES' : 'NO');
               if (!token) {
-                Alert.alert('Error', 'Not authenticated. Please login again.');
+                showMessage('Not authenticated. Please login again.', 'error');
                 return;
               }
 
@@ -1064,12 +1063,12 @@ export default function ParentSettingsScreen() {
                 } catch (parseError) {
                   console.log('[SETTINGS] Could not parse error response:', parseError);
                 }
-                Alert.alert('Error', errorMessage);
+                showMessage(errorMessage, 'error');
               }
             } catch (error) {
               console.error('[SETTINGS] Error generating family code:', error);
               const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-              Alert.alert('Error', `Network error: ${errorMessage}. Please try again.`);
+              showMessage(`Network error: ${errorMessage}. Please try again.`, 'error');
             }
           }}
         >
@@ -1101,7 +1100,7 @@ export default function ParentSettingsScreen() {
               console.log('[SETTINGS] Current user:', currentUser ? { id: currentUser.id, familyId: currentUser.familyId } : 'NULL');
 
               if (!token || !currentUser) {
-                Alert.alert('Error', 'Not authenticated. Please login again.');
+                showMessage('Not authenticated. Please login again.', 'error');
                 return;
               }
 
@@ -1125,11 +1124,7 @@ export default function ParentSettingsScreen() {
                 const caregiverNames = caregivers.map((c: any) => c.name).join(', ');
                 console.log('[SETTINGS] Caregiver names:', caregiverNames);
 
-                Alert.alert(
-                  'Family Caregivers',
-                  `Current caregivers in your family: ${caregiverNames}`,
-                  [{ text: 'OK' }]
-                );
+                showMessage(`Current caregivers in your family: ${caregiverNames}`, 'success');
               } else {
                 let errorMessage = 'Failed to load caregiver information.';
                 try {
@@ -1139,12 +1134,12 @@ export default function ParentSettingsScreen() {
                 } catch (parseError) {
                   console.log('[SETTINGS] Could not parse caregivers error response:', parseError);
                 }
-                Alert.alert('Error', errorMessage);
+                showMessage(errorMessage, 'error');
               }
             } catch (error) {
               console.error('[SETTINGS] Error loading caregivers:', error);
               const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-              Alert.alert('Error', `Network error: ${errorMessage}. Please try again.`);
+              showMessage(`Network error: ${errorMessage}. Please try again.`, 'error');
             }
           }}
         >
@@ -1178,7 +1173,7 @@ export default function ParentSettingsScreen() {
             try {
               const token = await getAuthToken();
               if (!token) {
-                Alert.alert('Error', 'Not authenticated. Please login again.');
+                showMessage('Not authenticated. Please login again.', 'error');
                 return;
               }
 
@@ -1193,13 +1188,13 @@ export default function ParentSettingsScreen() {
               const data = await response.json();
 
               if (response.ok) {
-                Alert.alert('Success', `Parent-child relationships fixed! Updated ${data.updatedChildren} children.`);
+              showMessage(`Parent-child relationships fixed! Updated ${data.updatedChildren} children.`, 'success');
               } else {
-                Alert.alert('Error', data.message || 'Failed to fix relationships.');
+                showMessage(data.message || 'Failed to fix relationships.', 'error');
               }
             } catch (error) {
               console.error('Error fixing relationships:', error);
-              Alert.alert('Error', 'Network error. Please try again.');
+              showMessage('Network error. Please try again.', 'error');
             }
           }}
         >

@@ -14,7 +14,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -801,7 +800,8 @@ export default function MoneyJarsScreen() {
       if (!response.ok) {
         console.log('🔄 Money Jars: API call failed with status:', response.status);
         if (showErrors) {
-          await handleApiError(response, { showError: (msg) => Alert.alert('Error', msg), feature: 'Money Jars - User Data' });
+          const { showMessage } = useCenteredMessage();
+          await handleApiError(response, { showError: (msg) => showMessage(msg, 'error'), feature: 'Money Jars - User Data' });
         }
         return;
       }
@@ -2073,11 +2073,11 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
   onRequestSubmitted?: () => void
 }) {
   const { themeColors } = useTheme();
+  const { showMessage } = useCenteredMessage();
   const [amount, setAmount] = React.useState("");
   const [from, setFrom] = React.useState("");
   const [to, setTo] = React.useState("");
   const [note, setNote] = React.useState("");
-  const [status, setStatus] = React.useState<{ type: "error" | "ok"; msg: string } | null>(null);
 
   // Dropdown modal states
   const [fromDropdownVisible, setFromDropdownVisible] = React.useState(false);
@@ -2182,14 +2182,14 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
     const toValid = validateToJar(to, from);
 
     if (!amountValid || !fromValid || !toValid) {
-      setStatus({ type: "error", msg: "Please fix the errors above before submitting." });
+      showMessage("Please fix the errors above before submitting.", "error");
       return;
     }
 
     const amt = Number(amount);
     const fromJar = jars.find(j => j.key === from);
     if (!fromJar || fromJar.value < amt) {
-      setStatus({ type: "error", msg: "Not enough points in selected pot." });
+      showMessage("Not enough points in selected pot.", "error");
       return;
     }
 
@@ -2202,14 +2202,13 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
     setFrom("");
     setTo("");
     setNote("");
-    setStatus({ type: "ok", msg: "Sending request..." });
 
     try {
       const token = await getAuthToken();
       const user = await getUserData();
 
       if (!token || !user) {
-        setStatus({ type: "error", msg: "Not authenticated. Please login again." });
+        showMessage("Not authenticated. Please login again.", "error");
         setAmount(originalAmount);
         setFrom(originalFrom);
         setTo(originalTo);
@@ -2247,7 +2246,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        setStatus({ type: "error", msg: errorData.message || "Failed to submit request." });
+        showMessage(errorData.message || "Failed to submit request.", "error");
         setAmount(originalAmount);
         setFrom(originalFrom);
         setTo(originalTo);
@@ -2276,14 +2275,13 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
         });
       }
 
-      setStatus({ type: "ok", msg: "Request sent to parent for approval! ✅" });
+      showMessage("Request sent to parent for approval! ✅", "success");
       // Refresh the transfer requests list
       onRequestSubmitted?.();
-      setTimeout(() => setStatus(null), 3000);
 
     } catch (error) {
       console.error('Error submitting move points request:', error);
-      setStatus({ type: "error", msg: "Network error. Please try again." });
+      showMessage("Network error. Please try again.", "error");
       setAmount(originalAmount);
       setFrom(originalFrom);
       setTo(originalTo);
@@ -2494,19 +2492,6 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
             </Text>
           </TouchableOpacity>
         </View>
-
-        {status && (
-          <Text style={{
-            marginTop: 7,
-            color: status.type === "error" ? themeColors.error : themeColors.success,
-            ...TYPOGRAPHY.label,
-            textAlign: "center"
-          }}
-          accessibilityLabel={`${status.type === "error" ? "Error" : "Success"}: ${status.msg}`}
-          >
-            {status.msg}
-          </Text>
-        )}
 
       </View>
 

@@ -54,4 +54,39 @@ const requireChild = (req, res, next) => {
   next();
 };
 
-module.exports = { auth, requireParent, requireChild };
+/**
+ * Middleware to ensure children can only access their own data,
+ * while parents can access any child's data in their family.
+ * @param {string} targetIdParam - The parameter name containing the target user ID (e.g., 'childId', 'userId')
+ */
+const requireSelfOrParent = (targetIdParam) => {
+  return async (req, res, next) => {
+    const targetId = req.params[targetIdParam];
+
+    if (req.user.role === 'parent') {
+      // Parents can access any child's data in their family
+      // The actual family check will be done in the route handler
+      return next();
+    }
+
+    if (req.user.role === 'child') {
+      // Children can only access their own data
+      if (req.user.id !== targetId) {
+        console.log('[requireSelfOrParent] Child cross-access blocked:', {
+          requesterId: req.user.id,
+          targetId: targetId,
+          endpoint: req.originalUrl
+        });
+        return res.status(403).json({
+          message: 'Children can only access their own data'
+        });
+      }
+      return next();
+    }
+
+    // Invalid role
+    return res.status(403).json({ message: 'Invalid user role' });
+  };
+};
+
+module.exports = { auth, requireParent, requireChild, requireSelfOrParent };

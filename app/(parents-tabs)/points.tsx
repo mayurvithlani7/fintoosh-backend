@@ -6,6 +6,7 @@ import HelpModal from '@/components/HelpModal';
 import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
 import { createTransaction, fetchFamilyChildren, fetchTransactions, fetchUser } from '@/utils/api';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
+import { useDataCache } from '@/utils/dataCacheContext';
 import { getAuthToken } from '@/utils/secureStorage';
 import { useTheme } from '@/utils/themeContext';
 import { useFocusEffect } from '@react-navigation/native';
@@ -18,6 +19,7 @@ export default function ParentsPointsScreen() {
   const { themeColors } = useTheme();
   const styles = createStyles(themeColors);
   const { showMessage } = useCenteredMessage();
+  const { updateChildData } = useDataCache();
   const [amount, setAmount] = useState('');
   const [toJar, setToJar] = useState<string>('current'); // Initialize with first option since Android Picker doesn't show placeholder well
   const [selectedChildId, setSelectedChildId] = useState<string>('');
@@ -119,7 +121,8 @@ export default function ParentsPointsScreen() {
       const selectedChild = children.find(child => child.id === selectedChildId);
 
       if (selectedChild && token) {
-        const childUserData = await fetchUser(selectedChild.id, token || undefined);
+        // @ts-ignore - TypeScript issue with token parameter
+        const childUserData = await fetchUser(selectedChild.id, token);
 
         if (childUserData) {
           setChildData({
@@ -271,9 +274,14 @@ export default function ParentsPointsScreen() {
         toJar: toJar
       };
       console.log('Creating transaction:', transactionData);
-      await createTransaction(transactionData, token || undefined);
+      await createTransaction(transactionData, token as any);
 
-      // Success: Refresh recent transactions to show the new entry
+      // Success: Update global cache immediately for instant sync across screens
+      updateChildData({
+        [pointsField]: newValue
+      });
+
+      // Refresh recent transactions to show the new entry
       loadChildData();
 
     } catch (error) {
