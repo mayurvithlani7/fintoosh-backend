@@ -5,6 +5,15 @@ const rateLimit = require('express-rate-limit');
 const logger = require('./utils/logger');
 require('dotenv').config();
 
+// 🔒 CRITICAL SECURITY: Validate JWT secret at startup
+if (!process.env.JWT_SECRET) {
+  console.error('❌ CRITICAL SECURITY ERROR: JWT_SECRET environment variable not configured!');
+  console.error('🔒 SECURITY REQUIREMENT: JWT_SECRET must be set for secure authentication.');
+  console.error('💡 SOLUTION: Set JWT_SECRET in your environment variables (.env file)');
+  console.error('⚠️  APPLICATION CANNOT START WITHOUT PROPER JWT CONFIGURATION');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -156,9 +165,9 @@ logger.info('MongoDB connection configuration', {
 });
 
 // Force loading of ledger models to create collections
-require('./models/LedgerAccount');
-require('./models/LedgerEntry');
-require('./models/LedgerTransaction');
+require('../models/LedgerAccount');
+require('../models/LedgerEntry');
+require('../models/LedgerTransaction');
 
 // MongoDB connection - Use secure defaults for production, permissive options only for local dev
 const connectionOptions = isLocalConnection ? {

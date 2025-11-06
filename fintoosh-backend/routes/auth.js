@@ -105,10 +105,10 @@ router.post('/register', sanitizeInput, validateUserInput, validateMobileNumber,
       userData.caregivers = [{ userId: finalParentId, role: 'parent' }];
     }
 
-    // Only set username/pin for children
+    // Only set username for children (PIN stored hashed in password field)
     if (role === 'child') {
       userData.username = username || null;
-      userData.pin = pin || null;
+      // userData.pin = pin || null; // ❌ REMOVED: No longer store PIN in plaintext
     }
 
     const user = new User(userData);
@@ -118,7 +118,7 @@ router.post('/register', sanitizeInput, validateUserInput, validateMobileNumber,
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, email: user.email, role: user.role, familyId: user.familyId },
-      process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -208,7 +208,7 @@ router.post('/login', loginLimiter, sanitizeInput, async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, email: user.email, role: user.role, familyId: user.familyId },
-      process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -416,7 +416,7 @@ router.post('/verify-otp', async (req, res) => {
     // Generate JWT token for login
     const token = jwt.sign(
       { userId: user._id, email: user.email, role: user.role, familyId: user.familyId },
-      process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -475,12 +475,12 @@ router.post('/create-child', auth, sanitizeInput, async (req, res) => {
       name,
       email: `${username}@child.local`, // Dummy email for child
       mobileNumber: req.user.mobileNumber, // Use parent's mobile for child
-      password: pin, // PIN as password for simplicity
+      password: pin, // PIN as password for simplicity (gets hashed by pre-save hook)
       role: 'child',
       parentId: req.user.id, // Keep for backward compatibility
       caregivers: [{ userId: req.user.id, role: 'parent' }], // Set caregivers array
       username,
-      pin,
+      // pin: pin, // ❌ REMOVED: No longer store PIN in plaintext for security
       isFirstTimeUser: true
     });
 
@@ -536,7 +536,7 @@ router.post('/child-login', childPinBruteForceProtection, async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username, role: user.role, familyId: user.familyId },
-      process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -727,8 +727,9 @@ router.post('/reset-child-pin', auth, async (req, res) => {
       return res.status(404).json({ message: 'Child not found or access denied' });
     }
 
-    // Update child's PIN
-    child.pin = newPin;
+    // Update child's password (PIN is stored hashed in password field)
+    child.password = newPin; // Gets hashed by pre-save hook
+    // child.pin = newPin; // ❌ REMOVED: No longer store PIN in plaintext
     await child.save();
 
     res.json({ message: 'Child PIN reset successfully' });
@@ -1089,7 +1090,7 @@ router.post('/join-family-code', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: caregiver._id, email: caregiver.email, role: caregiver.role, familyId: caregiver.familyId },
-      process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 

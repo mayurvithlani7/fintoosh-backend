@@ -94,6 +94,11 @@ router.get('/transactions/:userId', auth, roleBasedLimiter, requireSelfOrParent(
     const user = await User.findOne({ id: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // SECURITY: Enforce familyId check for parent access
+    if (req.user.role === 'parent' && user.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to access transactions for users outside your family' });
+    }
+
     // Pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
@@ -489,6 +494,11 @@ router.get('/rewards/:userId', auth, requireSelfOrParent('userId'), async (req, 
     // Find user by custom ID to get MongoDB ObjectId
     const user = await User.findOne({ id: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // SECURITY: Enforce familyId check for parent access
+    if (req.user.role === 'parent' && user.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to access rewards for users outside your family' });
+    }
 
     // Pagination parameters
     const page = parseInt(req.query.page) || 1;
@@ -968,6 +978,11 @@ router.get('/goals/:childId', auth, requireSelfOrParent('childId'), async (req, 
     }
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // SECURITY: Enforce familyId check for parent access
+    if (req.user.role === 'parent' && user.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to access goals for users outside your family' });
+    }
+
     // Pagination, filtering, archiving
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 20, 100);
@@ -1250,6 +1265,11 @@ router.get('/chores/:childId', auth, requireSelfOrParent('childId'), async (req,
     // Find user by custom ID to get MongoDB ObjectId
     const user = await User.findOne({ id: req.params.childId });
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // SECURITY: Enforce familyId check for parent access
+    if (req.user.role === 'parent' && user.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to access chores for users outside your family' });
+    }
 
     // Pagination parameters
     const page = parseInt(req.query.page) || 1;
@@ -2435,6 +2455,11 @@ router.get('/achievements/:userId', auth, requireSelfOrParent('userId'), async (
     const user = await User.findOne({ id: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // SECURITY: Enforce familyId check for parent access
+    if (req.user.role === 'parent' && user.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to access achievements for users outside your family' });
+    }
+
     const achievements = await Achievement.find({ user: user._id })
       .sort({ completed: 1, createdAt: -1 });
     res.json(achievements);
@@ -2448,6 +2473,11 @@ router.post('/achievements/:userId/initialize', auth, requireSelfOrParent('userI
     const userId = req.params.userId;
     const user = await User.findOne({ id: userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // SECURITY: Enforce familyId check for parent access
+    if (req.user.role === 'parent' && user.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to initialize achievements for users outside your family' });
+    }
 
     // Create default achievements
     const defaultAchievements = [
@@ -2527,6 +2557,11 @@ router.post('/achievements/:userId/streak', auth, requireSelfOrParent('userId'),
     const user = await User.findOne({ id: userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // SECURITY: Enforce familyId check for parent access
+    if (req.user.role === 'parent' && user.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to update streak for users outside your family' });
+    }
+
     // Find or create learning streak achievement
     const achievement = await Achievement.getOrCreate(
       user._id,
@@ -2555,6 +2590,11 @@ router.post('/achievements/:userId/check-milestones', auth, requireSelfOrParent(
     const userId = req.params.userId;
     const user = await User.findOne({ id: userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // SECURITY: Enforce familyId check for parent access
+    if (req.user.role === 'parent' && user.familyId !== req.user.familyId) {
+      return res.status(403).json({ message: 'Not authorized to check milestones for users outside your family' });
+    }
 
     // Check various milestones
     const totalPoints = (user.currentPoints || 0) + (user.savePoints || 0) +
@@ -3315,7 +3355,7 @@ function ensureUserString(arr, key = 'user') {
   if (!Array.isArray(arr)) return arr;
   return arr.map(obj => {
     if (obj && obj[key] && typeof obj[key] !== 'string') {
-      return { ...obj, [key]: obj[key].toString() };
+      return { ...obj, [key]: String(obj[key]) };
     }
     return obj;
   });
