@@ -2,7 +2,7 @@ import { MOBILE_LAYOUT, MOBILE_STYLES } from '@/utils/mobileLayout';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import BackButton from '@/components/BackButton';
 import GoalTemplates from '@/components/GoalTemplates';
@@ -1019,7 +1019,10 @@ export default function ParentsGoalsScreen() {
           ))}
         </View>
         {loading ? (
-          <Text style={styles.placeholder}>Loading goals...</Text>
+          <View style={[styles.sectionCard, { alignItems: 'center', justifyContent: 'center', minHeight: 120 }]}>
+            <ActivityIndicator size="large" color={themeColors.primary} />
+            <Text style={[styles.placeholder, { marginTop: 12 }]}>Loading goals...</Text>
+          </View>
         ) : (
           (() => {
             let filteredGoals;

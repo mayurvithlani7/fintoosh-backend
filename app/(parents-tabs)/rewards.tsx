@@ -723,7 +723,12 @@ export default function ParentsRewardsScreen() {
           ))}
         </View>
 
-        {loading && <ActivityIndicator size="small" color={themeColors.primary} />}
+        {loading && (
+          <View style={[styles.sectionCard, { alignItems: 'center', justifyContent: 'center', minHeight: 120 }]}>
+            <ActivityIndicator size="large" color={themeColors.primary} />
+            <Text style={[styles.placeholder, { marginTop: 12 }]}>Loading rewards...</Text>
+          </View>
+        )}
 
         {(() => {
           // Memoized filtered rewards calculation

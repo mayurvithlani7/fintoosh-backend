@@ -9,7 +9,7 @@ import { useStaleDataWarning } from '@/utils/useStaleDataWarning';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from 'react';
-import { Animated, Dimensions, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Mobile-Optimized Status Indicator Component
 const StatusIndicator = ({ status, createdAt, themeColors }: {
@@ -533,7 +533,7 @@ export default function KidsRequestsScreen() {
   const router = useRouter();
 
   // Load requests when component mounts or filter/search changes
-  const loadRequests = async (opts?: { page?: number; reset?: boolean }) => {
+  const loadRequests = useCallback(async (opts?: { page?: number; reset?: boolean }) => {
     const page = opts?.page || 1;
     const reset = opts?.reset || false;
 
@@ -587,7 +587,7 @@ export default function KidsRequestsScreen() {
         refreshing: false
       }));
     }
-  };
+  }, [showMessage]);
 
   useEffect(() => {
     loadRequests({ page: 1, reset: true });
@@ -872,8 +872,9 @@ export default function KidsRequestsScreen() {
       </View>
 
       {pagination.loading ? (
-        <View style={styles.sectionCard}>
-          <Text style={styles.placeholder}>Loading your requests...</Text>
+        <View style={[styles.sectionCard, { alignItems: 'center', justifyContent: 'center', minHeight: 120 }]}>
+          <ActivityIndicator size="large" color={themeColors.primary} />
+          <Text style={[styles.placeholder, { marginTop: 12 }]}>Loading your requests...</Text>
         </View>
       ) : (
         filteredRequests.length === 0 ? (
