@@ -3536,7 +3536,7 @@ router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async
       realAllowances,
       user: familyUser,
       familyMembers: familyMembers.map(m => ({
-        _id: m._id,
+        _id: m._id.toString(),
         id: m.id,
         name: m.name,
         role: m.role,
