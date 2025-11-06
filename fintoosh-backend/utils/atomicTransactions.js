@@ -290,11 +290,71 @@ async function atomicModifyPoints(userId, jar, amount, transactionData = {}) {
   });
 }
 
+/**
+ * Atomic points award with jar splitting (unified helper for common operations)
+ * Handles point distribution across multiple jars based on split configuration
+ * @param {string} userId - User ID (custom or ObjectId)
+ * @param {number} totalAmount - Total points to award
+ * @param {Object} splitConfig - Split configuration { current: 40, save: 30, spend: 15, donate: 10, invest: 5 }
+ * @param {Object} transactionData - Additional transaction data
+ * @returns {Promise} - Result with user and array of transactions
+ */
+async function atomicAwardPointsWithSplit(userId, totalAmount, splitConfig, transactionData = {}) {
+  const userObjectId = await resolveUserObjectId(userId);
+
+  return executeFinancialTransaction(async (session) => {
+    const validJars = ['current', 'save', 'spend', 'donate', 'invest'];
+    const updates = {};
+    const transactions = [];
+
+    // Calculate points for each jar and prepare updates
+    for (const [jar, percentage] of Object.entries(splitConfig)) {
+      if (percentage > 0 && validJars.includes(jar)) {
+        const pointsForJar = Math.round((totalAmount * percentage) / 100);
+        if (pointsForJar > 0) {
+          const pointsField = `${jar}Points`;
+          updates[pointsField] = (updates[pointsField] || 0) + pointsForJar;
+
+          // Create transaction for this jar
+          transactions.push({
+            type: transactionData.type || 'points-awarded',
+            description: `${transactionData.description || 'Points awarded'} - ${pointsForJar} points to ${jar} jar`,
+            amount: pointsForJar,
+            toJar: jar,
+            user: userObjectId,
+            ...transactionData
+          });
+        }
+      }
+    }
+
+    // Atomic update of all jar points
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: userObjectId },
+      { $inc: updates },
+      { session, new: true }
+    );
+
+    if (!updatedUser) {
+      throw new Error('Failed to award points with split');
+    }
+
+    // Create all transaction records atomically
+    const createdTransactions = await Transaction.create(transactions, { session });
+
+    return {
+      user: updatedUser,
+      transactions: createdTransactions
+    };
+  });
+}
+
 module.exports = {
   executeFinancialTransaction,
   atomicPointTransfer,
   atomicReservePoints,
   atomicApproveReservedPoints,
   atomicReleaseReservedPoints,
-  atomicModifyPoints
+  atomicModifyPoints,
+  atomicAwardPointsWithSplit
 };

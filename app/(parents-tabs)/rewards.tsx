@@ -47,6 +47,14 @@ export default function ParentsRewardsScreen() {
   const [showAllClaimed, setShowAllClaimed] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
+
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<{
+    rewardName?: string;
+    pointsCost?: string;
+    description?: string;
+    childId?: string;
+  }>({});
   const scrollViewRef = React.useRef<ScrollView>(null);
   const formSectionRef = React.useRef<View>(null);
 
@@ -185,11 +193,80 @@ export default function ParentsRewardsScreen() {
     }
   }
 
+  // Validation function
+  const validateRewardForm = (): boolean => {
+    const errors: typeof validationErrors = {};
+
+    // Validate reward name
+    const trimmedName = rewardName.trim();
+    if (!trimmedName) {
+      errors.rewardName = 'Reward name is required';
+    } else if (trimmedName.length < 2) {
+      errors.rewardName = 'Reward name must be at least 2 characters';
+    } else if (trimmedName.length > 100) {
+      errors.rewardName = 'Reward name must be less than 100 characters';
+    }
+
+    // Validate points cost
+    const trimmedCost = pointsCost.trim();
+    if (!trimmedCost) {
+      errors.pointsCost = 'Points cost is required';
+    } else {
+      const costNum = Number(trimmedCost);
+      if (isNaN(costNum)) {
+        errors.pointsCost = 'Points cost must be a valid number';
+      } else if (costNum <= 0) {
+        errors.pointsCost = 'Points cost must be greater than 0';
+      } else if (costNum > 10000) {
+        errors.pointsCost = 'Points cost cannot exceed 10,000';
+      }
+    }
+
+    // Validate description (optional but check length if provided)
+    const trimmedDescription = description.trim();
+    if (trimmedDescription && trimmedDescription.length > 500) {
+      errors.description = 'Description must be less than 500 characters';
+    }
+
+    // Validate child selection
+    if (!selectedChildId) {
+      errors.childId = 'Please select a child';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Clear validation errors when inputs change
+  React.useEffect(() => {
+    if (validationErrors.rewardName && rewardName.trim()) {
+      setValidationErrors(prev => ({ ...prev, rewardName: undefined }));
+    }
+  }, [rewardName, validationErrors.rewardName]);
+
+  React.useEffect(() => {
+    if (validationErrors.pointsCost && pointsCost.trim()) {
+      setValidationErrors(prev => ({ ...prev, pointsCost: undefined }));
+    }
+  }, [pointsCost, validationErrors.pointsCost]);
+
+  React.useEffect(() => {
+    if (validationErrors.description && description.trim().length <= 500) {
+      setValidationErrors(prev => ({ ...prev, description: undefined }));
+    }
+  }, [description, validationErrors.description]);
+
   async function handleAddReward() {
-    if (!rewardName.trim() || !pointsCost.trim() || isNaN(Number(pointsCost)) || Number(pointsCost) <= 0) {
-      showMessage('Please fill out all fields and enter a valid points cost (>0).', 'error');
+    // Validate form before submission
+    if (!validateRewardForm()) {
+      // Show first validation error as message
+      const firstError = Object.values(validationErrors).find(error => error);
+      if (firstError) {
+        showMessage(firstError, 'error');
+      }
       return;
     }
+
     setLoading(true);
     try {
       const token = await getAuthToken();
@@ -201,7 +278,7 @@ export default function ParentsRewardsScreen() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
             name: rewardName.trim(),
@@ -215,7 +292,7 @@ export default function ParentsRewardsScreen() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
             childId: selectedChildId,
@@ -234,10 +311,13 @@ export default function ParentsRewardsScreen() {
 
       showMessage(editingReward ? 'Reward updated successfully!' : 'Reward added for your child.', 'success');
 
+      // Clear form and validation errors
       setRewardName('');
       setPointsCost('');
       setDescription('');
+      setValidationErrors({});
       setEditingReward(null);
+
       // Find selected child for correct id on fetchRewards
       const selectedChild = children.find(child => child.id === selectedChildId);
       if (selectedChild) {
@@ -446,23 +526,37 @@ export default function ParentsRewardsScreen() {
             <TextInput
               accessibilityLabel="Reward name"
               accessibilityHint="Enter the name of the reward for your child"
-              style={[styles.input, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
+              style={[styles.input, {
+                backgroundColor: themeColors.surface,
+                color: themeColors.text,
+                borderColor: validationErrors.rewardName ? themeColors.error : themeColors.border
+              }]}
               placeholder="e.g. New Book"
               placeholderTextColor={themeColors.textSecondary}
               value={rewardName}
               onChangeText={setRewardName}
             />
+            {validationErrors.rewardName && (
+              <Text style={[styles.validation, { color: themeColors.error }]}>{validationErrors.rewardName}</Text>
+            )}
           </View>
           <View style={{ marginBottom: 12 }}>
             <Text style={[styles.inputLabel, { color: themeColors.text }]}>Points Cost</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: themeColors.surface, color: themeColors.text, borderColor: themeColors.border }]}
+              style={[styles.input, {
+                backgroundColor: themeColors.surface,
+                color: themeColors.text,
+                borderColor: validationErrors.pointsCost ? themeColors.error : themeColors.border
+              }]}
               placeholder="e.g. 100"
               placeholderTextColor={themeColors.textSecondary}
               keyboardType="numeric"
               value={pointsCost}
               onChangeText={setPointsCost}
             />
+            {validationErrors.pointsCost && (
+              <Text style={[styles.validation, { color: themeColors.error }]}>{validationErrors.pointsCost}</Text>
+            )}
           </View>
 
           {/* Quick Preset Points */}
@@ -1128,7 +1222,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   input: { borderWidth: 1, borderColor: themeColors.border, borderRadius: 7, padding: 8, ...SEMANTIC_TYPOGRAPHY["type-body"], marginBottom: 2, backgroundColor: themeColors.surface, color: themeColors.text },
   formBtn: { backgroundColor: themeColors.primary, padding: 10, borderRadius: 8, marginTop: 3, marginHorizontal: 6, alignItems: 'center' },
   formBtnText: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.card },
-  validation: { color: themeColors.error, ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginTop: 4 },
+  validation: { color: themeColors.error, ...SEMANTIC_TYPOGRAPHY["type-body-small"], marginTop: 4, marginBottom: 4 },
   statusMessage: { ...SEMANTIC_TYPOGRAPHY["type-body-small"], color: themeColors.success, marginTop: 4 },
   placeholder: { color: themeColors.textSecondary, fontStyle: 'italic', ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', paddingVertical: 20 },
   childPickerRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },

@@ -31,7 +31,8 @@ const {
   atomicReservePoints,
   atomicApproveReservedPoints,
   atomicReleaseReservedPoints,
-  atomicModifyPoints
+  atomicModifyPoints,
+  atomicAwardPointsWithSplit
 } = require('../utils/atomicTransactions');
 
 // Role-based rate limiting for authenticated users
@@ -1640,59 +1641,51 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
     if (type === 'chore' && typeof req.body.amount === 'number') {
       const choreClaimMax = autoApprovalRules.choreClaimMax;
       if (typeof choreClaimMax === 'number' && choreClaimMax >= 0 && req.body.amount <= choreClaimMax) {
-        // Instantly fulfill as approved
-        // 1. Add points to jars (defaultSplit if set)
+        // Instantly fulfill as approved using atomic operations
         const amount = req.body.amount;
         const split = childUser.defaultSplit || { current: 100, save: 0, spend: 0, donate: 0, invest: 0 };
-        const jarFieldMap = {
-          current: 'currentPoints',
-          save: 'savePoints',
-          spend: 'spendPoints',
-          donate: 'donatePoints',
-          invest: 'investPoints'
-        };
-        for (const [jar, pct] of Object.entries(split)) {
-          if (pct > 0) {
-            const awarded = Math.round((amount * pct) / 100);
-            if (awarded > 0 && jarFieldMap[jar]) {
-              childUser[jarFieldMap[jar]] = (childUser[jarFieldMap[jar]] || 0) + awarded;
-              // Create transaction for this jar
-              const txn = new Transaction({
-                type: 'chore-completed',
-                description: `Auto-approved chore - ${awarded} points to ${jar} jar`,
-                amount: awarded,
-                toJar: jar,
-                user: childUser._id,
-                date: new Date().toLocaleString()
-              });
-              txn.save(); // No need to await all
-              childUser.transactions = childUser.transactions || [];
-              childUser.transactions.unshift(txn._id);
+
+        try {
+          // ATOMIC: Award points with jar split
+          const result = await atomicAwardPointsWithSplit(
+            childUser._id,
+            amount,
+            split,
+            {
+              type: 'chore-completed',
+              description: `Auto-approved chore completion for ${amount} points`,
+              reference: req.body.choreId
+            }
+          );
+
+          // Update referenced Chore doc as approved
+          if (req.body.choreId) {
+            const Chore = require('../models/Chore');
+            const chore = await Chore.findById(req.body.choreId);
+            if (chore) {
+              chore.completed = true;
+              chore.approved = true;
+              chore.approvedAt = new Date();
+              await chore.save();
             }
           }
+
+          // Notify child
+          await Notification.create({
+            familyId: childUser.familyId,
+            userId: userId,
+            type: 'chore_auto_approved',
+            message: `Your chore claim for ${amount} points was auto-approved!`,
+            isRead: false
+          });
+
+          res.status(200).json({ message: "Chore auto-approved!", autoApproved: true });
+          return;
+        } catch (error) {
+          console.error('Failed to auto-approve chore:', error);
+          res.status(500).json({ message: 'Failed to auto-approve chore. Please try again.' });
+          return;
         }
-        await childUser.save();
-        // Optionally, update referenced Chore doc as approved
-        if (req.body.choreId) {
-          const Chore = require('../models/Chore');
-          const chore = await Chore.findById(req.body.choreId);
-          if (chore) {
-            chore.completed = true;
-            chore.approved = true;
-            chore.approvedAt = new Date();
-            await chore.save();
-          }
-        }
-        // Notify child
-        await Notification.create({
-          familyId: childUser.familyId,
-          userId: userId,
-          type: 'chore_auto_approved',
-          message: `Your chore claim for ${amount} points was auto-approved!`,
-          isRead: false
-        });
-        res.status(200).json({ message: "Chore auto-approved!", autoApproved: true });
-        return;
       }
     }
 
@@ -1707,48 +1700,44 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
           return;
         }
         const jar = goal.jar || "current";
-        const pointsField = jar + "Points";
         const amount = req.body.amount;
-        if (typeof childUser[pointsField] !== "number" || childUser[pointsField] < amount) {
-          res.status(400).json({ message: `Not enough points in ${jar} jar to claim goal.` });
+
+        try {
+          // ATOMIC: Deduct points from goal jar
+          await atomicModifyPoints(
+            childUser._id,
+            jar,
+            -amount,
+            {
+              type: 'goal-completion',
+              description: `Auto-approved goal "${goal.name}" completion, ${amount} points from ${jar}`,
+              reference: goal._id
+            }
+          );
+
+          // Update goal status
+          goal.status = 'completed';
+          goal.achieved = true;
+          goal.achievedAt = new Date();
+          goal.updatedAt = new Date();
+          await goal.save();
+
+          // Notify child
+          await Notification.create({
+            familyId: childUser.familyId,
+            userId: userId,
+            type: 'goal_auto_approved',
+            message: `Your goal claim for "${goal.name}" was auto-approved!`,
+            isRead: false
+          });
+
+          res.status(200).json({ message: "Goal claim auto-approved!", autoApproved: true });
+          return;
+        } catch (error) {
+          console.error('Failed to auto-approve goal:', error);
+          res.status(500).json({ message: 'Failed to auto-approve goal. Please try again.' });
           return;
         }
-
-        // Deduct points and complete goal
-        childUser[pointsField] -= amount;
-        await childUser.save();
-
-        goal.status = 'completed';
-        goal.achieved = true;
-        goal.achievedAt = new Date();
-        goal.updatedAt = new Date();
-        await goal.save();
-
-        // Record transaction
-        const txn = new Transaction({
-          type: 'goal-completion',
-          description: `Auto-approved goal "${goal.name}" completion, ${amount} points from ${jar}`,
-          amount: -amount,
-          user: childUser._id,
-          toJar: jar,
-          reference: goal._id,
-          date: new Date().toLocaleString()
-        });
-        await txn.save();
-        childUser.transactions = childUser.transactions || [];
-        childUser.transactions.unshift(txn._id);
-        await childUser.save();
-
-        // Notify child
-        await Notification.create({
-          familyId: childUser.familyId,
-          userId: userId,
-          type: 'goal_auto_approved',
-          message: `Your goal claim for "${goal.name}" was auto-approved!`,
-          isRead: false
-        });
-        res.status(200).json({ message: "Goal claim auto-approved!", autoApproved: true });
-        return;
       }
     }
 
@@ -1756,37 +1745,26 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
     if ((type === 'move-points' || type === 'points-move') && typeof req.body.amount === 'number') {
       const pointMoveMax = autoApprovalRules.pointMoveMax;
       console.log('[AUTO-APPROVE:MovePoints] Incoming:', {
-        type, amount: req.body.amount, pointMoveMax, from: req.body.from, to: req.body.to,
-        userPoints: {
-          current: childUser.currentPoints,
-          save: childUser.savePoints,
-          spend: childUser.spendPoints,
-          donate: childUser.donatePoints,
-          invest: childUser.investPoints
-        }
+        type, amount: req.body.amount, pointMoveMax, from: req.body.from, to: req.body.to
       });
       if (typeof pointMoveMax === 'number' && pointMoveMax >= 0 && req.body.amount <= pointMoveMax) {
-        // Instantly transfer points (assuming req.body.from, req.body.to)
+        // Instantly transfer points using atomic operations
         const from = req.body.from, to = req.body.to, amount = req.body.amount;
-        const fromField = from + 'Points', toField = to + 'Points';
-        console.log('[AUTO-APPROVE:MovePoints] Field resolution:', { fromField, toField });
-        if (childUser[fromField] !== undefined && childUser[toField] !== undefined && childUser[fromField] >= amount) {
-          console.log('[AUTO-APPROVE:MovePoints] Success branch for auto-approval.');
-          childUser[fromField] -= amount;
-          childUser[toField] += amount;
-          await childUser.save();
-          // Create transaction
-          const txn = new Transaction({
-            type: 'points-move',
-            description: `Auto-approved points move: ${amount} from ${from} to ${to}`,
-            amount: amount,
-            user: childUser._id,
-            date: new Date().toLocaleString()
-          });
-          await txn.save();
-          childUser.transactions = childUser.transactions || [];
-          childUser.transactions.unshift(txn._id);
-          await childUser.save();
+        console.log('[AUTO-APPROVE:MovePoints] Field resolution:', { from, to, amount });
+
+        try {
+          // ATOMIC: Transfer points between jars
+          await atomicPointTransfer(
+            childUser._id,
+            from,
+            to,
+            amount,
+            {
+              type: 'points-move',
+              description: `Auto-approved points move: ${amount} from ${from} to ${to}`
+            }
+          );
+
           // Notify child
           await Notification.create({
             familyId: childUser.familyId,
@@ -1795,12 +1773,13 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
             message: `Your move of ${amount} points from ${from} to ${to} was auto-approved!`,
             isRead: false
           });
+
           res.status(200).json({ message: "Point move auto-approved!", autoApproved: true });
           return;
-        } else {
-          console.log('[AUTO-APPROVE:MovePoints] Not enough points or field mismatch:', {
-            fromVal: childUser[fromField], toVal: childUser[toField],
-          });
+        } catch (error) {
+          console.error('Failed to auto-approve point move:', error);
+          res.status(500).json({ message: 'Failed to auto-approve point move. Please try again.' });
+          return;
         }
       } else {
         console.log('[AUTO-APPROVE:MovePoints] Did not meet threshold for auto-approval.');

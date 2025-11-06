@@ -772,6 +772,16 @@ export default function ParentTransactionHistoryScreen() {
     loadTransactions();
   }, []);
 
+  // Guard: Reset selectedChildId if selected child no longer exists
+  useEffect(() => {
+    if (selectedChildId !== 'all') {
+      const childExists = children.some(child => child.id === selectedChildId);
+      if (!childExists) {
+        setSelectedChildId('all');
+      }
+    }
+  }, [children, selectedChildId]);
+
   // Filtering logic
   const filtered = transactions.filter(tx => {
     // Child filter

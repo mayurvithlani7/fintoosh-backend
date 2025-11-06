@@ -330,6 +330,7 @@ export default function ParentsChoresScreen() {
       const token = await getAuthToken();
       if (!token) {
         console.log('No token available for loading children');
+        showMessage('Authentication required. Please log in again.', 'error');
         return;
       }
 
@@ -339,6 +340,7 @@ export default function ParentsChoresScreen() {
       const currentUser = await getUserData();
       if (!currentUser) {
         console.log('No user data in storage');
+        showMessage('User session expired. Please log in again.', 'error');
         return;
       }
       const familyId = currentUser.familyId;
@@ -363,11 +365,44 @@ export default function ParentsChoresScreen() {
         }
       } else {
         console.error('Failed to load children, status:', response.status);
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
+        let errorMessage = 'Failed to load children.';
+
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (parseError) {
+          const errorText = await response.text();
+          console.error('Error response text:', errorText);
+        }
+
+        // Handle specific HTTP status codes
+        if (response.status === 401) {
+          errorMessage = 'Authentication expired. Please log in again.';
+        } else if (response.status === 403) {
+          errorMessage = 'Access denied. Please check your permissions.';
+        } else if (response.status === 404) {
+          errorMessage = 'Family information not found.';
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+
+        showMessage(errorMessage, 'error');
       }
     } catch (err) {
       console.error('Error loading children:', err);
+
+      // Handle network and other errors
+      let errorMessage = 'Failed to load children. Please check your connection and try again.';
+
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (err instanceof Error && err.message) {
+        errorMessage = `Error: ${err.message}`;
+      }
+
+      showMessage(errorMessage, 'error');
     }
   };
 
@@ -381,6 +416,7 @@ export default function ParentsChoresScreen() {
       setLoading(true);
       const token = await getAuthToken();
       if (!token) {
+        showMessage('Authentication required. Please log in again.', 'error');
         setRefreshing(false);
         return;
       }
@@ -408,9 +444,46 @@ export default function ParentsChoresScreen() {
         }
         setChores(safeChoresData);
         setLastRefreshed(Date.now());
+      } else {
+        console.error('Failed to load chores, status:', response.status);
+        let errorMessage = 'Failed to load tasks.';
+
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (parseError) {
+          const errorText = await response.text();
+          console.error('Error response text:', errorText);
+        }
+
+        // Handle specific HTTP status codes
+        if (response.status === 401) {
+          errorMessage = 'Authentication expired. Please log in again.';
+        } else if (response.status === 403) {
+          errorMessage = 'Access denied. Please check your permissions.';
+        } else if (response.status === 404) {
+          errorMessage = 'Child not found or tasks not available.';
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+
+        showMessage(errorMessage, 'error');
       }
     } catch (error) {
       console.error('Error loading chores:', error);
+
+      // Handle network and other errors
+      let errorMessage = 'Failed to load tasks. Please check your connection and try again.';
+
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error instanceof Error && error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+
+      showMessage(errorMessage, 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);

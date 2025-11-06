@@ -512,30 +512,44 @@ export default function KidsRequestsScreen() {
   const isMobile = screenWidth < 400;
   const [showStaleWarning, markRefreshed] = useStaleDataWarning();
   const [requests, setRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'pending' | 'approved' | 'denied' | 'all'>('pending');
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    hasNextPage: true,
+    loading: true,
+    loadingMore: false,
+    refreshing: false,
+    filter: 'pending',
+    searchQuery: ''
+  });
+  const [requestCounts, setRequestCounts] = useState({
+    pending: 0,
+    approved: 0,
+    denied: 0
+  });
+  const [paginationMeta, setPaginationMeta] = useState<any | null>(null);
   const [showArchive, setShowArchive] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [messageInput, setMessageInput] = useState<{ [key: string]: string }>({});
-  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
-  useEffect(() => { loadRequests(); }, []);
-  useFocusEffect(useCallback(() => { loadRequests(); }, []));
+  // Load requests when component mounts or filter/search changes
+  const loadRequests = async (opts?: { page?: number; reset?: boolean }) => {
+    const page = opts?.page || 1;
+    const reset = opts?.reset || false;
 
-  const loadRequests = async () => {
     try {
+      if (reset) setPagination((prev) => ({ ...prev, loading: true, currentPage: 1, hasNextPage: true }));
+      else if (page === 1) setPagination((prev) => ({ ...prev, loading: true, loadingMore: false, refreshing: false }));
+      else setPagination((prev) => ({ ...prev, loadingMore: true }));
+
       const token = await getAuthToken();
       const user = await getUserData();
 
-      console.log('🔄 Requests: Token exists:', !!token, 'User exists:', !!user);
-
       if (!token || !user) {
-        console.log('🔄 Requests: Missing token or user data');
         showMessage('Not authenticated. Please login again.', 'error');
         return;
       }
+
       const userId = user.id;
       const response = await fetch(`${API_URL}/requests/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (!response.ok) throw new Error('Failed to load requests');
@@ -551,21 +565,55 @@ export default function KidsRequestsScreen() {
         createdAt: req.createdAt,
         messages: req.messages || []
       }));
-      setRequests(transformedRequests);
-      // markRefreshed(); // Commented out due to typing issues
+
+      setRequests((prev) =>
+        reset || page === 1 ? transformedRequests : [...prev, ...transformedRequests.filter((r: any) => !prev.some((old) => old.id === r.id))]
+      );
+      setPagination((prev) => ({
+        ...prev,
+        loading: false,
+        loadingMore: false,
+        hasNextPage: false, // Since we load all at once for now, no pagination
+        currentPage: 1,
+        refreshing: false,
+      }));
     } catch (error) {
       console.error('Error loading requests:', error);
       showMessage('Failed to load requests. Please try again.', 'error');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setPagination((prev) => ({
+        ...prev,
+        loading: false,
+        loadingMore: false,
+        refreshing: false
+      }));
     }
   };
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadRequests();
+  useEffect(() => {
+    loadRequests({ page: 1, reset: true });
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadRequests({ page: 1, reset: true });
+    }, [])
+  );
+
+  const onRefresh = useCallback(() => {
+    setPagination((prev) => ({ ...prev, refreshing: true }));
+    loadRequests({ page: 1, reset: true });
+  }, []);
+
+  // Filter change handler
+  const handleFilterChange = (newFilter: 'pending' | 'approved' | 'denied' | 'all') => {
+    setPagination((prev) => ({ ...prev, filter: newFilter, currentPage: 1, hasNextPage: true }));
+    setShowArchive(false);
+  };
+
+  // Search handler
+  const handleSearchChange = (text: string) => {
+    setPagination((prev) => ({ ...prev, searchQuery: text }));
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -665,6 +713,16 @@ export default function KidsRequestsScreen() {
     }
   };
 
+  // Calculate request counts for filter chips
+  React.useEffect(() => {
+    const counts = {
+      pending: requests.filter(r => r.status === 'Pending').length,
+      approved: requests.filter(r => r.status === 'Approved').length,
+      denied: requests.filter(r => r.status === 'Denied').length
+    };
+    setRequestCounts(counts);
+  }, [requests]);
+
   // Filtering logic inspired by the parent's screen
   const now = new Date();
   const ninetyDaysAgo = new Date(now);
@@ -672,22 +730,22 @@ export default function KidsRequestsScreen() {
   let baseRequests: typeof requests = [];
   let showArchiveButton = false;
 
-  if (filter === "approved" || filter === "denied") {
-    const statusLabel = filter === "approved" ? "Approved" : "Denied";
+  if (pagination.filter === "approved" || pagination.filter === "denied") {
+    const statusLabel = pagination.filter === "approved" ? "Approved" : "Denied";
     const recent = requests.filter(r => r.status === statusLabel && new Date(r.createdAt) >= ninetyDaysAgo);
     const archived = requests.filter(r => r.status === statusLabel && new Date(r.createdAt) < ninetyDaysAgo);
     baseRequests = showArchive ? [...recent, ...archived] : recent;
     showArchiveButton = archived.length > 0;
-  } else if (filter === "pending") {
+  } else if (pagination.filter === "pending") {
     baseRequests = requests.filter(r => r.status === "Pending");
   } else {
     baseRequests = requests;
   }
   // Apply search filter
   const searchedRequests = baseRequests.filter(req =>
-    searchQuery === '' ||
-    req.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    req.type.toLowerCase().includes(searchQuery.toLowerCase())
+    pagination.searchQuery === '' ||
+    req.name.toLowerCase().includes(pagination.searchQuery.toLowerCase()) ||
+    req.type.toLowerCase().includes(pagination.searchQuery.toLowerCase())
   );
   const filteredRequests = searchedRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -701,7 +759,7 @@ export default function KidsRequestsScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.container}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={pagination.refreshing} onRefresh={onRefresh} />
         }
         keyboardShouldPersistTaps="handled"
       >
@@ -753,34 +811,34 @@ export default function KidsRequestsScreen() {
           style={styles.searchInput}
           placeholder="Search by request type or name..."
           placeholderTextColor={themeColors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
+          value={pagination.searchQuery}
+          onChangeText={handleSearchChange}
         />
         <View style={styles.filterChips}>
           {[
-            { key: 'pending', label: 'Pending', count: requests.filter(r => r.status === 'Pending').length },
-            { key: 'approved', label: 'Approved', count: requests.filter(r => r.status === 'Approved').length },
-            { key: 'denied', label: 'Denied', count: requests.filter(r => r.status === 'Denied').length },
+            { key: 'pending', label: 'Pending', count: requestCounts.pending },
+            { key: 'approved', label: 'Approved', count: requestCounts.approved },
+            { key: 'denied', label: 'Denied', count: requestCounts.denied },
             { key: 'all', label: 'All', count: requests.length }
           ].map(({ key, label, count }) => (
             <TouchableOpacity
               key={key}
               style={[
                 styles.chip,
-                { backgroundColor: filter === key ? themeColors.accent : themeColors.surface }
+                { backgroundColor: pagination.filter === key ? themeColors.accent : themeColors.surface }
               ]}
-              onPress={() => { setFilter(key as any); setShowArchive(false); }}
+              onPress={() => handleFilterChange(key as any)}
             >
               <Text style={{
-                color: filter === key ? themeColors.card : themeColors.text,
-                fontWeight: filter === key ? 'bold' : '600',
+                color: pagination.filter === key ? themeColors.card : themeColors.text,
+                fontWeight: pagination.filter === key ? 'bold' : '600',
                 ...SEMANTIC_TYPOGRAPHY["type-body-small"]
   }}>
                 {label} ({count})
               </Text>
             </TouchableOpacity>
           ))}
-          {(filter === "approved" || filter === "denied") && showArchiveButton && (
+          {(pagination.filter === "approved" || pagination.filter === "denied") && showArchiveButton && (
             <TouchableOpacity
               style={[
                 styles.chip,
@@ -805,15 +863,15 @@ export default function KidsRequestsScreen() {
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: themeColors.primary, alignSelf: 'center', minWidth: 200 }]}
           onPress={onRefresh}
-          disabled={refreshing}
+          disabled={pagination.refreshing}
         >
           <Text style={[styles.actionBtnText, { color: themeColors.card }]}>
-            {refreshing ? 'Refreshing...' : '🔄 Refresh Requests'}
+            {pagination.refreshing ? 'Refreshing...' : '🔄 Refresh Requests'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {pagination.loading ? (
         <View style={styles.sectionCard}>
           <Text style={styles.placeholder}>Loading your requests...</Text>
         </View>
@@ -821,11 +879,11 @@ export default function KidsRequestsScreen() {
         filteredRequests.length === 0 ? (
           <View style={styles.sectionCard}>
             <Text style={styles.placeholder}>
-              {filter === "approved"
+              {pagination.filter === "approved"
                 ? showArchive ? "No approved requests found." : "No approved requests in the past 90 days."
-                : filter === "denied"
+                : pagination.filter === "denied"
                   ? showArchive ? "No denied requests found." : "No denied requests in the past 90 days."
-                  : searchQuery ? `No ${filter.toLowerCase()} requests match "${searchQuery}".` : `No ${filter.toLowerCase()} requests.`}
+                  : pagination.searchQuery ? `No ${pagination.filter.toLowerCase()} requests match "${pagination.searchQuery}".` : `No ${pagination.filter.toLowerCase()} requests.`}
             </Text>
           </View>
         ) : (
@@ -918,7 +976,7 @@ export default function KidsRequestsScreen() {
               </View>
             ))}
             {/* Archive toggle for approved/denied */}
-            {(filter === "approved" || filter === "denied") && showArchiveButton && !showArchive && (
+            {(pagination.filter === "approved" || pagination.filter === "denied") && showArchiveButton && !showArchive && (
               <TouchableOpacity
                 style={{
                   marginTop: 12,
@@ -932,11 +990,11 @@ export default function KidsRequestsScreen() {
               >
                 <Text style={{ color: themeColors.primary
   }}>
-                  Show All {filter === "approved" ? "Approved" : "Denied"} Requests
+                  Show All {pagination.filter === "approved" ? "Approved" : "Denied"} Requests
                 </Text>
               </TouchableOpacity>
             )}
-            {(filter === "approved" || filter === "denied") && showArchiveButton && showArchive && (
+            {(pagination.filter === "approved" || pagination.filter === "denied") && showArchiveButton && showArchive && (
               <TouchableOpacity
                 style={{
                   marginTop: 10,
