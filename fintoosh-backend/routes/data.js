@@ -3324,23 +3324,16 @@ function ensureUserString(arr, key = 'user') {
 router.get('/analytics/family/:familyId', auth, expensiveOperationLimiter, async (req, res) => {
   console.log('[ANALYTICS ROUTE] Request for familyId:', req.params.familyId, 'Query params:', req.query);
   try {
-    const { familyId } = req.params;
+    // SECURITY: Ignore client-provided familyId, use JWT-authenticated familyId only
+    const familyId = req.user.familyId;
     const { startDate, endDate } = req.query;
 
-    // Use the authenticated user's familyId instead of the parameter for security
-    const userFamilyId = req.user.familyId;
-
-    // Verify user has access to this family
-    if (userFamilyId !== familyId) {
-      return res.status(403).json({ message: 'Not authorized to view analytics for this family' });
-    }
-
     // Get all family members
-    console.log('Analytics - REQUEST familyId:', familyId, 'USER familyId:', userFamilyId, 'USER id:', req.user.id, 'USER role:', req.user.role);
+    console.log('Analytics - REQUEST familyId:', req.params.familyId, 'USER familyId:', familyId, 'USER id:', req.user.id, 'USER role:', req.user.role);
 
     // Try different query approaches to debug
     console.log('Analytics - Executing User.find({ familyId }) query...');
-    let familyMembers = await User.find({ familyId: userFamilyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit familyId');
+    let familyMembers = await User.find({ familyId: familyId }).select('_id id name role currentPoints savePoints spendPoints donatePoints investPoints defaultSplit familyId');
     console.log('Analytics - Found familyMembers count:', familyMembers.length);
     if (familyMembers.length > 0) {
       console.log('Analytics - First family member:', { id: familyMembers[0].id, name: familyMembers[0].name, familyId: familyMembers[0].familyId });
@@ -3668,30 +3661,22 @@ router.post('/batch', auth, async (req, res) => {
 
           case 'children':
             console.log('[BATCH API] Fetching children data');
-            // For children endpoint, we need familyId from the request body
-            const { familyId } = req.body;
-            if (!familyId) {
-              errors.push({
-                endpoint: 'children',
-                error: 'familyId is required for children endpoint'
-              });
-              break;
-            }
+            // SECURITY: Ignore client-provided familyId, use JWT-authenticated familyId only
+            const familyId = req.user.familyId;
 
             // Only allow parents to fetch children data for their family
-            if (req.user.role === 'parent' && req.user.familyId !== familyId) {
+            if (req.user.role === 'parent') {
+              const children = await User.find({
+                familyId: req.user.familyId,
+                role: 'child'
+              }).select('-password');
+              results.children = children;
+            } else {
               errors.push({
                 endpoint: 'children',
-                error: 'Not authorized to access children data for this family'
+                error: 'Only parents can access children data'
               });
-              break;
             }
-
-            const children = await User.find({
-              familyId,
-              role: 'child'
-            }).select('-password');
-            results.children = children;
             break;
 
           default:
@@ -3839,7 +3824,7 @@ router.get('/real-allowances', auth, requireParent, async (req, res) => {
 
 router.post('/real-allowances', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
-    const { childId, amount, currency, date, method, note, category } = req.body;
+    const { childId, amount, currency, date, method, note, category, jarType } = req.body;
 
     // Validate required fields
     if (!childId || !amount) {
@@ -3857,6 +3842,7 @@ router.post('/real-allowances', auth, requireParent, sanitizeInput, async (req, 
       return res.status(400).json({ message: 'Amount must be between 0.01 and 100,000' });
     }
 
+    // Save the real allowance record
     const realAllowance = new RealAllowance({
       familyId: req.user.familyId,
       childId,
@@ -3870,6 +3856,32 @@ router.post('/real-allowances', auth, requireParent, sanitizeInput, async (req, 
     });
 
     const savedAllowance = await realAllowance.save();
+
+    // LEDGER INTEGRATION: Create double-entry transaction for real allowance
+    try {
+      const LedgerTransaction = require('../models/LedgerTransaction');
+
+      // Create allowance transaction: Parent Capital (debit) → Child Jar (credit)
+      const targetJar = jarType || 'current'; // Default to current/pocket money
+      await LedgerTransaction.createAllowanceTransaction({
+        familyId: req.user.familyId,
+        allowanceId: savedAllowance._id,
+        childId,
+        parentId: req.user.id,
+        amount: parseFloat(amount),
+        currency: currency || 'INR',
+        method: method || 'Cash',
+        jarType: targetJar,
+        description: `${method} allowance: ₹${amount} to ${child.name}'s ${targetJar} jar`
+      });
+
+      console.log(`[LEDGER] Created allowance transaction: ${savedAllowance._id} for ₹${amount} to ${child.name}`);
+
+    } catch (ledgerError) {
+      console.error('[LEDGER] Failed to create allowance transaction:', ledgerError);
+      // Don't fail the entire request - allowance was saved, just log the ledger error
+    }
+
     res.status(201).json(savedAllowance);
   } catch (error) {
     res.status(400).json({ message: error.message });
