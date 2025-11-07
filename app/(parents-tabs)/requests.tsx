@@ -239,6 +239,9 @@ export default function ParentsRequestsScreen() {
       // Refresh the requests list in background to sync with server
       loadRequests({ page: 1, reset: true });
     } catch (error: any) {
+      // Close modal first so error message is visible
+      setApprovalModal({ visible: false, request: null, approved: false, comment: '' });
+
       showMessage(error?.message || 'Failed to update request. Please try again.', 'error');
     }
   };

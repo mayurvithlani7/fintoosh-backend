@@ -32,22 +32,22 @@
         "output": "static",
         "favicon": "./assets/images/favicon.png"
       },
-      "plugins": [
-        "expo-router",
-        [
-          "expo-splash-screen",
-          {
-            "image": "./assets/images/Fintoosh.png",
-            "imageWidth": 200,
-            "resizeMode": "contain",
-            "backgroundColor": "#ffffff",
-            "dark": {
-              "backgroundColor": "#000000"
-            }
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/Fintoosh.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
           }
-        ],
-        "expo-secure-store"
+        }
       ],
+      "expo-secure-store"
+    ],
       "experiments": {
         "typedRoutes": true,
         "reactCompiler": true
@@ -55,38 +55,7 @@
       "runtimeVersion": "1.0.0",
       "package": "com.fintoosh.app"
     },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./assets/fonts/Inter-Light.ttf",
-            "./assets/fonts/Inter-Regular.ttf",
-            "./assets/fonts/Inter-Medium.ttf",
-            "./assets/fonts/Inter-SemiBold.ttf",
-            "./assets/fonts/Inter-Bold.ttf",
-            "./assets/fonts/Inter-ExtraBold.ttf",
-            "./assets/fonts/SF-Pro-Display-Regular.ttf",
-            "./assets/fonts/SF-Pro-Display-Medium.ttf",
-            "./assets/fonts/SF-Pro-Display-SemiBold.ttf",
-            "./assets/fonts/SF-Pro-Display-Bold.ttf",
-            "./assets/fonts/Poppins-Light.ttf",
-            "./assets/fonts/Poppins-Regular.ttf",
-            "./assets/fonts/Poppins-Medium.ttf",
-            "./assets/fonts/Poppins-SemiBold.ttf",
-            "./assets/fonts/Poppins-Bold.ttf",
-            "./assets/fonts/Nunito-Regular.ttf",
-            "./assets/fonts/Nunito-Medium.ttf",
-            "./assets/fonts/Nunito-SemiBold.ttf",
-            "./assets/fonts/Nunito-Bold.ttf",
-            "./assets/fonts/Fredoka-Regular.ttf",
-            "./assets/fonts/Fredoka-Medium.ttf",
-            "./assets/fonts/Fredoka-Bold.ttf"
-          ]
-        }
-      ]
-    ],
+
     "extra": {
       "router": {},
       "eas": {

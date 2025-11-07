@@ -821,22 +821,41 @@ const loadStoredData = async () => {
 
         // Validate child exists in available children
         // Handle both object and string childId formats
-        const discussionChildId = typeof discussion.childId === 'object' && discussion.childId?._id
-          ? discussion.childId._id
-          : discussion.childId;
-        const childExists = availableChildren.some(child => child.id === discussionChildId);
-        console.log('👶 DEBUG: Child validation - discussion childId:', discussion.childId, 'extracted ID:', discussionChildId, 'exists in availableChildren:', childExists);
+        let discussionChildId = discussion.childId;
+
+        // If childId is an object (from database), extract the _id
+        if (typeof discussion.childId === 'object' && discussion.childId?._id) {
+          discussionChildId = discussion.childId._id;
+        }
+
+        // Find the child in availableChildren that matches either by client ID or database _id
+        const matchingChild = availableChildren.find(child => {
+          // Check if discussionChildId matches the child's id directly (client-side ID)
+          if (child.id === discussionChildId) return true;
+
+          // If discussionChildId is a MongoDB ObjectId, check if it matches any child's database ID
+          // This handles the case where discussions were saved with database ObjectIds
+          return child._id === discussionChildId;
+        });
+
+        const childExists = !!matchingChild;
+        console.log('👶 DEBUG: Child validation - discussion childId:', discussion.childId, 'extracted ID:', discussionChildId, 'found matching child:', !!matchingChild, 'child ID:', matchingChild?.id);
 
         if (!childExists) {
           console.error('🚫 DEBUG: Child not found in availableChildren! Skipping this discussion.');
-          console.error('🚫 DEBUG: Available children IDs:', availableChildren.map(c => c.id));
+          console.error('🚫 DEBUG: Available children IDs:', availableChildren.map((c: any) => ({ id: c.id, _id: c._id })));
+          console.error('🚫 DEBUG: Discussion childId:', discussionChildId);
           continue; // Skip this discussion
         }
+
+        // Use the correct client-side child ID for the API call
+        const correctChildId = matchingChild!.id;
 
         const requestBody = {
           ...discussion,
           familyId: currentUser.familyId,
-          parentId: currentUser.id
+          parentId: currentUser.id,
+          childId: correctChildId // Use the validated client-side child ID
         };
 
         console.log('📤 DEBUG: Final request body:', JSON.stringify(requestBody, null, 2));

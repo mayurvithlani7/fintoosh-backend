@@ -1720,6 +1720,22 @@ router.get('/requests', auth, requireParent, async (req, res) => {
       userName: usersById[req.childId] || 'Unknown User'
     }));
 
+    // Calculate totals by status for the family
+    const totals = {
+      pending: await ApprovalRequest.countDocuments({
+        familyId: req.user.familyId,
+        status: 'Pending'
+      }),
+      approved: await ApprovalRequest.countDocuments({
+        familyId: req.user.familyId,
+        status: 'Approved'
+      }),
+      denied: await ApprovalRequest.countDocuments({
+        familyId: req.user.familyId,
+        status: 'Denied'
+      })
+    };
+
     res.json({
       requests: enriched,
       pagination: {
@@ -1729,7 +1745,8 @@ router.get('/requests', auth, requireParent, async (req, res) => {
         hasNextPage: page < Math.ceil(totalRequests / limit),
         hasPrevPage: page > 1,
         limit
-      }
+      },
+      totals
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
