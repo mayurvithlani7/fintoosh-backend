@@ -1132,14 +1132,15 @@ router.post('/requests', auth, async (req, res) => {
             if (awarded > 0 && jarFieldMap[jar]) {
               childUser[jarFieldMap[jar]] = (childUser[jarFieldMap[jar]] || 0) + awarded;
               // Create transaction for this jar
-              const txn = new Transaction({
-                type: 'chore-completed',
-                description: `Auto-approved chore - ${awarded} points to ${jar} jar`,
-                amount: awarded,
-                toJar: jar,
-                user: childUser._id,
-                date: new Date().toLocaleString()
-              });
+        const txn = new Transaction({
+          type: 'chore-completed',
+          description: `Auto-approved chore - ${awarded} points to ${jar} jar`,
+          amount: awarded,
+          toJar: jar,
+          user: childUser._id,
+          familyId: childUser.familyId,
+          date: new Date().toLocaleString()
+        });
               txn.save(); // No need to await all
               childUser.transactions = childUser.transactions || [];
               childUser.transactions.unshift(txn._id);
