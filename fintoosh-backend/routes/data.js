@@ -2268,18 +2268,18 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
 
         const actualPoints = childUser[currentPointsField] || 0;
         const pendingPoints = childUser[pendingCurrentField] || 0;
-        const availablePoints = actualPoints - pendingPoints;
 
         console.log('DEBUG: Reward validation:', {
           actualPoints,
           pendingPoints,
-          availablePoints,
+          totalPoints: actualPoints + pendingPoints,
           requiredAmount: approval.amount
         });
 
-        if (availablePoints < approval.amount) {
+        // Verify that pending reservation exists for this reward
+        if (pendingPoints < approval.amount) {
           return res.status(400).json({
-            message: `Insufficient points in current jar for reward purchase. Available: ${availablePoints}, Required: ${approval.amount}. Some points may be reserved for other pending requests.`
+            message: `Insufficient pending points for reward approval. Reserved: ${pendingPoints}, Required: ${approval.amount}. The reward reservation may have expired or been invalidated.`
           });
         }
 
