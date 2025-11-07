@@ -476,7 +476,7 @@ export async function patchUserPoints(userId, patchFields, token = null) {
 }
 
 // --- Transactions ---
-export async function createTransaction(transactionData, token = null) {
+export async function createTransaction(transactionData, token) {
   try {
     const headers = {
       "Content-Type": "application/json",

@@ -121,8 +121,7 @@ export default function ParentsPointsScreen() {
       const selectedChild = children.find(child => child.id === selectedChildId);
 
       if (selectedChild && token) {
-        // @ts-ignore - TypeScript issue with token parameter
-        const childUserData = await fetchUser(selectedChild.id, token);
+        const childUserData = await fetchUser(selectedChild.id, token as any);
 
         if (childUserData) {
           setChildData({
@@ -271,10 +270,11 @@ export default function ParentsPointsScreen() {
         type: 'parent-points-adjustment',
         description: `Parent ${isAdd ? 'added' : 'subtracted'} ${changeAmount} points ${isAdd ? 'to' : 'from'} ${toJar} jar`,
         amount: isAdd ? changeAmount : -changeAmount,
-        toJar: toJar
+        ...(isAdd ? { toJar: toJar } : { fromJar: toJar }) // Use toJar for additions, fromJar for subtractions
       };
       console.log('Creating transaction:', transactionData);
-      await createTransaction(transactionData, token as any);
+      // @ts-ignore - TypeScript issue with token parameter type
+      await createTransaction(transactionData, token);
 
       // Success: Update global cache immediately for instant sync across screens
       updateChildData({
@@ -752,7 +752,7 @@ export default function ParentsPointsScreen() {
           <View style={{ gap: 8 }}>
             {recentTransactions.map((transaction, index) => {
               const isPositive = transaction.amount > 0;
-              const jarName = jarOptions.find(jar => jar.value === transaction.toJar)?.label || 'Unknown Pot';
+              const jarName = jarOptions.find(jar => jar.value === (transaction.toJar || transaction.fromJar))?.label || 'Unknown Pot';
               const date = transaction.date || transaction.createdAt;
               const displayDate = date ? new Date(date).toLocaleDateString() : 'Unknown';
 

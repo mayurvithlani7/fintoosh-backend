@@ -80,8 +80,28 @@ router.post('/transactions', auth, requireParent, async (req, res) => {
     const saved = await transaction.save();
     console.log('DEBUG: Transaction saved:', saved._id);
 
-    // Update user's points based on toJar (but not for parent manual adjustments)
-    if (saved.toJar && saved.type !== 'parent-points-adjustment') {
+    // Update user's points based on transaction type and jar
+    if (saved.type === 'parent-points-adjustment') {
+      // For parent manual adjustments, update the specified jar
+      const jarFieldMap = {
+        current: 'currentPoints',
+        save: 'savePoints',
+        spend: 'spendPoints',
+        donate: 'donatePoints',
+        invest: 'investPoints'
+      };
+
+      // Check both toJar (for additions) and fromJar (for subtractions)
+      const targetJar = saved.toJar || saved.fromJar;
+      if (targetJar) {
+        const fieldName = jarFieldMap[targetJar];
+        if (fieldName) {
+          user[fieldName] = (user[fieldName] || 0) + saved.amount;
+          console.log(`DEBUG: Parent adjustment: ${saved.amount > 0 ? 'added' : 'subtracted'} ${Math.abs(saved.amount)} points ${saved.amount > 0 ? 'to' : 'from'} ${targetJar} jar (${fieldName}) for user ${user.id}`);
+        }
+      }
+    } else if (saved.toJar) {
+      // For other transaction types, update based on toJar
       const jarFieldMap = {
         current: 'currentPoints',
         save: 'savePoints',
