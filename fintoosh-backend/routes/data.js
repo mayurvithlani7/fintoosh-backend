@@ -2093,10 +2093,14 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
     // If approved, process the request
     if (status === 'Approved' && (approval.type === 'move-points' || approval.type === 'points-move')) {
       try {
+        console.log('DEBUG: Starting move-points approval for approval:', approval._id);
+        console.log('DEBUG: Move-points details:', { from: approval.from, to: approval.to, amount: approval.amount });
+
         // ATOMIC: Approve the reserved points transfer
-        const result = await atomicApproveReservedPoints(
+        const approveResult = await atomicApproveReservedPoints(
           approval.childId,
-          approval.from,
+          approval.familyId, // Fixed: familyId parameter
+          approval.from,     // Fixed: jar parameter
           approval.amount,
           {
             type: 'points-move',
@@ -2105,11 +2109,13 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
             toJar: approval.to
           }
         );
+        console.log('DEBUG: atomicApproveReservedPoints completed successfully');
 
         // ATOMIC: Add points to destination jar
-        await atomicModifyPoints(
+        const modifyResult = await atomicModifyPoints(
           approval.childId,
-          approval.to,
+          approval.familyId, // Fixed: familyId parameter
+          approval.to,       // Fixed: jar parameter
           approval.amount,
           {
             type: 'points-move',
@@ -2117,7 +2123,9 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
             toJar: approval.to
           }
         );
+        console.log('DEBUG: atomicModifyPoints completed successfully');
       } catch (error) {
+        console.log('DEBUG: Move-points approval failed:', error);
         return res.status(400).json({ message: error.message || 'Failed to approve points transfer.' });
       }
     }
@@ -2279,39 +2287,84 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
 
     // If approved and donation, move points from selected jar to donate jar
     if (status === 'Approved' && approval.type === 'donation') {
+      console.log('DEBUG: Starting donation approval for approval:', approval._id);
+      console.log('DEBUG: Donation details:', { from: approval.from, amount: approval.amount, cause: approval.cause });
+
       const user = await User.findOne({ id: approval.childId });
+      console.log('DEBUG: Found user for donation:', user ? { id: user.id, _id: user._id } : 'USER NOT FOUND');
+
       if (user && approval.from && user[approval.from + 'Points'] !== undefined) {
+        console.log('DEBUG: User has points field for from jar:', approval.from + 'Points');
+
         // Check available points (actual - pending)
         const actualPoints = user[approval.from + 'Points'] || 0;
-        const pendingPoints = user['pending' + approval.from.charAt(0).toUpperCase() + approval.from.slice(1) + 'Points'] || 0;
+        const pendingField = 'pending' + approval.from.charAt(0).toUpperCase() + approval.from.slice(1) + 'Points';
+        const pendingPoints = user[pendingField] || 0;
         const availablePoints = actualPoints - pendingPoints;
 
+        console.log('DEBUG: Points calculation:', {
+          actualPoints,
+          pendingPoints,
+          availablePoints,
+          requiredAmount: approval.amount,
+          sufficient: availablePoints >= approval.amount
+        });
+
         if (availablePoints >= approval.amount) {
+          console.log('DEBUG: Sufficient points available, proceeding with donation');
+
           // Move points from source jar to donate jar
           user[approval.from + 'Points'] -= approval.amount;
           user.donatePoints = (user.donatePoints || 0) + approval.amount;
           // Clear the pending reservation
-          user['pending' + approval.from.charAt(0).toUpperCase() + approval.from.slice(1) + 'Points'] -= approval.amount;
+          user[pendingField] -= approval.amount;
+
+          console.log('DEBUG: Updated user points:', {
+            fromJar: approval.from + 'Points',
+            newFromAmount: user[approval.from + 'Points'],
+            newDonateAmount: user.donatePoints,
+            pendingField,
+            newPendingAmount: user[pendingField]
+          });
+
           await user.save();
+          console.log('DEBUG: User saved successfully after points update');
 
           // Create transaction for donation
-          const txn = new Transaction({
+          const txnData = {
             type: 'donation-approved',
-            description: `Donation approved: ${approval.amount} points to ${approval.cause} from ${approval.from}`,
+            description: `Donation approved: ${approval.amount} points to ${approval.cause || 'charity'} from ${approval.from}`,
             amount: -approval.amount,
             user: user._id,
+            familyId: approval.familyId, // Explicitly set familyId
             fromJar: approval.from,
             toJar: 'donate',
             date: new Date().toLocaleString(),
-          });
+          };
+
+          console.log('DEBUG: Creating donation transaction with data:', JSON.stringify(txnData, null, 2));
+
+          const txn = new Transaction(txnData);
+          console.log('DEBUG: Transaction created, about to save...');
+
           await txn.save();
+          console.log('DEBUG: Donation transaction saved successfully, _id:', txn._id);
+
           user.transactions = user.transactions || [];
           user.transactions.unshift(txn._id);
           await user.save();
+          console.log('DEBUG: User saved with transaction reference');
+
         } else {
+          console.log('DEBUG: Insufficient points for donation, returning error');
           return res.status(400).json({ message: 'Not enough available points in selected jar for donation (some points may be pending for other requests).' });
         }
       } else {
+        console.log('DEBUG: Invalid donation setup:', {
+          userExists: !!user,
+          fromJar: approval.from,
+          hasPointsField: user && approval.from ? user[approval.from + 'Points'] !== undefined : false
+        });
         return res.status(400).json({ message: 'Invalid jar selection for donation.' });
       }
     }
