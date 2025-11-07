@@ -820,13 +820,30 @@ export default function ParentsRequestsScreen() {
                   </Text>
                 )}
                 {approvalModal.request.type === 'move-points' && approvalModal.request.fromBalance !== undefined && approvalModal.request.toBalance !== undefined && (
-                  <View style={{ marginTop: 12, padding: 10, backgroundColor: '#f0f8ff', borderRadius: 8 }}>
-                    <Text style={[styles.modalRequestText, { marginBottom: 8, textAlign: 'center' }]}>
-                      Before & After Summary
+                  <View style={{
+                    marginTop: 12,
+                    padding: 12,
+                    backgroundColor: themeColors.surface,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: themeColors.border
+                  }}>
+                    <Text style={[styles.modalRequestText, {
+                      marginBottom: 8,
+                      textAlign: 'center',
+                      color: themeColors.primary,
+                      ...SEMANTIC_TYPOGRAPHY["type-body"]
+                    }]}>
+                      📊 Before & After Summary
                     </Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.modalRequestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center' }]}>
+                      <View style={{ flex: 1, alignItems: 'center' }}>
+                        <Text style={[styles.modalRequestText, {
+                          ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+                          textAlign: 'center',
+                          marginBottom: 4,
+                          color: themeColors.text
+                        }]}>
                           <Text style={styles.boldText}>From: </Text>
                           {approvalModal.request.from === 'current' ? 'Pocket Money' :
                             approvalModal.request.from === 'save' ? 'Savings Pot' :
@@ -834,12 +851,26 @@ export default function ParentsRequestsScreen() {
                                 approvalModal.request.from === 'donate' ? 'Help Others Pot' :
                                   approvalModal.request.from === 'invest' ? 'Grow Money Pot' : approvalModal.request.from}
                         </Text>
-                        <Text style={[styles.modalRequestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', color: '#d32f2f' }]}>
+                        <Text style={[styles.modalRequestText, {
+                          ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+                          textAlign: 'center',
+                          color: themeColors.error
+                        }]}>
                           {approvalModal.request.fromBalance} → {approvalModal.request.fromBalance - approvalModal.request.amount}
                         </Text>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.modalRequestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center' }]}>
+                      <View style={{
+                        width: 1,
+                        backgroundColor: themeColors.border,
+                        marginHorizontal: 8
+                      }} />
+                      <View style={{ flex: 1, alignItems: 'center' }}>
+                        <Text style={[styles.modalRequestText, {
+                          ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+                          textAlign: 'center',
+                          marginBottom: 4,
+                          color: themeColors.text
+                        }]}>
                           <Text style={styles.boldText}>To: </Text>
                           {approvalModal.request.to === 'current' ? 'Pocket Money' :
                             approvalModal.request.to === 'save' ? 'Savings Pot' :
@@ -847,7 +878,11 @@ export default function ParentsRequestsScreen() {
                                 approvalModal.request.to === 'donate' ? 'Help Others Pot' :
                                   approvalModal.request.to === 'invest' ? 'Grow Money Pot' : approvalModal.request.to}
                         </Text>
-                        <Text style={[styles.modalRequestText, { ...SEMANTIC_TYPOGRAPHY["type-body-small"], textAlign: 'center', color: '#2e7d32' }]}>
+                        <Text style={[styles.modalRequestText, {
+                          ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+                          textAlign: 'center',
+                          color: themeColors.success
+                        }]}>
                           {approvalModal.request.toBalance} → {approvalModal.request.toBalance + approvalModal.request.amount}
                         </Text>
                       </View>
