@@ -22,6 +22,11 @@ const approvalRequestSchema = new mongoose.Schema({
   actedBy: { type: String },                      // Last parent id who acted
   actedAt: { type: Date },
   // For messaging:
+  // Budget-specific fields for budget-create requests
+  budgetJar: { type: String, enum: ['current', 'save', 'spend', 'donate', 'invest'] },
+  budgetAmount: { type: Number },
+  budgetPeriod: { type: String, enum: ['weekly', 'monthly', 'yearly'] },
+
   messages: [{
     sender: { type: String, required: true },     // 'child' or 'parent'
     userId: { type: String, required: true },     // actual user id

@@ -27,21 +27,23 @@ export default function ParentsRequestsScreen() {
   const { showMessage } = useCenteredMessage();
   const styles = createStyles(themeColors);
 
-  // Function to get user-friendly request type display name
+  // Function to get user-friendly request type display name (short for mobile)
   const getRequestTypeDisplay = (type: string) => {
     switch (type) {
       case 'chore':
-        return 'Chore Completion';
+        return 'Chore';
       case 'goal-completion':
-        return 'Goal Achievement';
+        return 'Goal';
       case 'reward':
-        return 'Reward Purchase';
+        return 'Reward';
       case 'move-points':
-        return 'Point Transfer';
+        return 'Transfer';
       case 'points':
-        return 'Points Request';
-      case 'points-move':
-        return 'Points Transfer';
+        return 'Points';
+      case 'budget-create':
+        return 'Budget';
+      case 'donation':
+        return 'Donation';
       default:
         return type.charAt(0).toUpperCase() + type.slice(1).replace(/-/g, ' ');
     }
@@ -305,7 +307,7 @@ export default function ParentsRequestsScreen() {
   const renderRequestCard = ({ item: request }: { item: any }) => (
     <View style={[styles.sectionCard, { alignSelf: 'center', width: '97%', maxWidth: 520, minWidth: 320 }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Text style={styles.sectionTitle}>{getRequestTypeDisplay(request.type)} Request</Text>
+        <Text style={styles.sectionTitle}>{getRequestTypeDisplay(request.type)}</Text>
         <Text style={[styles.childNameBadge, { backgroundColor: themeColors.primary + '20', color: themeColors.primary }]}>
           {request.childName || request.userName || 'Unknown Child'}
         </Text>

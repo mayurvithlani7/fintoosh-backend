@@ -1116,7 +1116,7 @@ function BudgetCreationSection({ onBudgetCreated }: { onBudgetCreated: () => voi
       const requestData = {
         userId: user.id,
         type: 'budget-create',
-        name: `Create ${budgetPeriod} budget for ${jarOptions.find(j => j.key === jarKey)?.label}`,
+        name: `Budget for ${jarOptions.find(j => j.key === jarKey)?.label}`,
         amount: amount,
         jar: jarKey,
         period: budgetPeriod,
@@ -1428,7 +1428,7 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
       const requestData = {
         userId: user.id,
         type: 'donation',
-        name: `Donate ${amount} points to ${selectedCause?.label}`,
+        name: `Donate ${amount} points`,
         amount: amount,
         from: fromJar,
         to: 'donate', // Points will be moved to donate jar for actual donation
@@ -2235,7 +2235,7 @@ function MovePointsSection({ jars, setJars, onRequestSubmitted }: {
       const requestData: any = {
         userId: userId,
         type: 'move-points',
-        name: `Move ${amt} points from ${fromJar.label} to ${toJar?.label}`,
+        name: `Transfer ${amt} points`,
         amount: amt,
         from: from,
         to: to,

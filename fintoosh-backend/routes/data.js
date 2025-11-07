@@ -411,7 +411,7 @@ router.patch('/users/:id', auth, async (req, res) => {
     // Allow only safe fields that users can update
     const allowedFields = [
       'name', 'email', 'preferences', 'defaultSplit', 'currency',
-      'conversionRate', 'showDenominations', 'autoApprovalRules'
+      'conversionRate', 'showDenominations', 'autoApprovalRules', 'isFirstTimeUser'
     ];
 
     const filteredUpdate = {};

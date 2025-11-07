@@ -52,11 +52,7 @@ const createStyles = (themeColors: any) => StyleSheet.create({
     marginTop: MOBILE_LAYOUT.itemSpacing,
     minHeight: 26
   },
-  statusMessage: {
-    ...TYPOGRAPHY.body,
-    marginTop: MOBILE_LAYOUT.itemSpacing,
-    color: themeColors.success
-  },
+
   refreshBtn: {
     ...MOBILE_STYLES.primaryButton,
     backgroundColor: themeColors.primary,
@@ -226,7 +222,6 @@ function GiftsSection() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [claiming, setClaiming] = useState<string | null>(null);
-  const [msg, setMsg] = useState("");
   // Tabs/filter for rewards
   const [rewardsTab, setRewardsTab] = useState<'Available' | 'Claimed'>('Available');
   const [showRewardsArchive, setShowRewardsArchive] = useState(false);
@@ -677,8 +672,9 @@ function GiftsSection() {
           }
         }
       } catch {}
-      setMsg("Gift claim submitted for parent approval.");
-      setTimeout(() => setMsg(""), 5000);
+
+      // Show success message using centered message system
+      showMessage('Gift claim request sent to parent! 🎁', 'success');
 
     } catch (error) {
       console.error('Error claiming reward:', error);
@@ -988,7 +984,6 @@ function GiftsSection() {
             );
           })()}
 
-          {msg ? <Text style={styles.statusMessage}>{msg}</Text> : null}
         </ScrollView>
       </View>
     </View>
