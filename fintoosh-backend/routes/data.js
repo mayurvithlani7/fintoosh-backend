@@ -193,7 +193,9 @@ router.get('/transactions/:userId', auth, roleBasedLimiter, requireSelfOrParent(
 
 router.post('/transactions', auth, requireParent, sanitizeInput, validateFinancialData, async (req, res) => {
   try {
+    console.log('DEBUG BACKEND: Received transaction request body:', JSON.stringify(req.body, null, 2));
     const { userId, type, description, amount, fromJar, toJar, reference } = req.body;
+    console.log('DEBUG BACKEND: Destructured values:', { userId, type, description, amount, fromJar, toJar, reference });
     console.log('DEBUG: Creating transaction', { userId, type, amount, reqUserId: req.user.id, reqUserRole: req.user.role });
 
     const user = await User.findOne({ id: userId });
@@ -1127,14 +1129,13 @@ router.get('/goals/:childId', auth, requireSelfOrParent('childId'), async (req, 
       // Add current points from the child who owns this goal for progress calculation
       const childUser = await User.findById(goal.user);
       if (childUser) {
-        // MIGRATION: Use new unified pots object instead of deprecated jar fields
-        const pots = childUser.pots || {};
+        // Use actual jar fields from user model for progress calculation
         goal._doc.currentPoints = {
-          current: pots.available || 0,  // pots.available replaces currentPoints
-          save: pots.save || 0,         // pots.save replaces savePoints
-          spend: pots.spend || 0,       // pots.spend replaces spendPoints
-          donate: pots.donate || 0,     // pots.donate replaces donatePoints
-          invest: pots.invest || 0      // pots.invest replaces investPoints
+          current: childUser.currentPoints || 0,
+          save: childUser.savePoints || 0,
+          spend: childUser.spendPoints || 0,
+          donate: childUser.donatePoints || 0,
+          invest: childUser.investPoints || 0
         };
       }
 
