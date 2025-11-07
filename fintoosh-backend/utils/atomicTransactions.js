@@ -102,7 +102,7 @@ async function atomicPointTransfer(userId, familyId, fromJar, toJar, amount, tra
       toJar: toJar,
       user: userObjectId,
       familyId: familyId,
-      ...transactionData
+      reference: transactionData.reference // Only spread the reference field if present
     }], { session });
 
     return {
@@ -145,13 +145,13 @@ async function atomicReservePoints(userId, familyId, jar, amount, transactionDat
 
     // Create transaction record atomically
     const transaction = await Transaction.create([{
-      type: transactionData.type || 'points-reserved',
-      description: transactionData.description || `Reserved ${amount} points from ${jar} jar`,
-      amount: -amount, // Negative for reservation
-      fromJar: jar,
+      type: transactionData.type || 'points-awarded',
+      description: transactionData.description || `Awarded ${Math.abs(amount)} points to ${jar} jar`,
+      amount: amount,
+      [amount > 0 ? 'toJar' : 'fromJar']: jar,
       user: userObjectId,
       familyId: familyId,
-      ...transactionData
+      reference: transactionData.reference // Only spread the reference field if present
     }], { session });
 
     return {
@@ -200,7 +200,7 @@ async function atomicApproveReservedPoints(userId, familyId, jar, amount, transa
       fromJar: jar,
       user: userObjectId,
       familyId: familyId,
-      ...transactionData
+      reference: transactionData.reference // Only spread the reference field if present
     }], { session });
 
     return {
@@ -245,7 +245,7 @@ async function atomicReleaseReservedPoints(userId, familyId, jar, amount, transa
       toJar: jar,
       user: userObjectId,
       familyId: familyId,
-      ...transactionData
+      reference: transactionData.reference // Only spread the reference field if present
     }], { session });
 
     return {
@@ -290,7 +290,7 @@ async function atomicModifyPoints(userId, familyId, jar, amount, transactionData
       [amount > 0 ? 'toJar' : 'fromJar']: jar,
       user: userObjectId,
       familyId: familyId,
-      ...transactionData
+      reference: transactionData.reference // Only spread the reference field if present
     }], { session });
 
     return {

@@ -274,6 +274,7 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
         // ALL point additions to jars (including parent-points-adjustment) (ATOMIC)
         await atomicModifyPoints(
           user._id,
+          user.familyId,
           saved.toJar,
           saved.amount,
           {
