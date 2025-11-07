@@ -1,4 +1,3 @@
-import { API_URL } from '@/utils/config';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -13,6 +12,88 @@ const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  // Retry logic for server errors
+  const attemptLoginWithRetry = async (maxRetries = 2, baseDelay = 1000): Promise<{response: Response, data: any}> => {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        setIsRetrying(attempt > 0);
+
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/child-login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: username.trim(),
+            pin: pin.trim(),
+          }),
+        });
+
+        let data;
+        const contentType = response.headers.get('content-type');
+
+        // Check if response is HTML (indicates server error page)
+        if (contentType && contentType.includes('text/html')) {
+          if (attempt < maxRetries) {
+            console.warn(`[CHILDLOGIN] Server error on attempt ${attempt + 1}, retrying...`);
+            await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempt)));
+            continue; // Retry
+          }
+          console.error('[CHILDLOGIN] Server returned HTML after all retries - likely server error');
+          throw new Error('Server temporarily unavailable. Please try again in a few minutes.');
+        }
+
+        try {
+          const responseText = await response.text();
+
+          // Additional check for HTML content in response body
+          if (responseText.trim().startsWith('<')) {
+            if (attempt < maxRetries) {
+              console.warn(`[CHILDLOGIN] HTML response on attempt ${attempt + 1}, retrying...`);
+              await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempt)));
+              continue; // Retry
+            }
+            console.error('[CHILDLOGIN] Response body starts with HTML tag after all retries - server error page');
+            throw new Error('Server temporarily unavailable. Please try again in a few minutes.');
+          }
+
+          // Try to parse as JSON
+          data = JSON.parse(responseText);
+        } catch (err) {
+          if (err instanceof Error && err.message.includes('Server temporarily unavailable')) {
+            throw err; // Re-throw our custom server error
+          }
+          console.error('[CHILDLOGIN] Error parsing JSON response:', err);
+          data = { message: 'Invalid server response. Please try again.' };
+        }
+
+        // If we get here, we have valid JSON data
+        return { response, data };
+
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        if (lastError.message.includes('Server temporarily unavailable')) {
+          throw lastError; // Don't retry server errors
+        }
+
+        if (attempt === maxRetries) {
+          throw lastError; // Last attempt failed
+        }
+
+        // Wait before retrying (exponential backoff)
+        console.warn(`[CHILDLOGIN] Attempt ${attempt + 1} failed, retrying in ${baseDelay * Math.pow(2, attempt)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, baseDelay * Math.pow(2, attempt)));
+      }
+    }
+
+    // This should never be reached, but TypeScript needs it
+    throw lastError || new Error('Login failed after all retries');
+  };
 
   const handleChildLogin = async () => {
     if (!username.trim() || !pin.trim()) {
@@ -21,33 +102,11 @@ const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
     }
 
     try {
-      setStatusMessage('Logging in...');
+      setStatusMessage(isRetrying ? 'Retrying login...' : 'Logging in...');
+      setIsRetrying(false);
 
-      // console.log('[CHILDLOGIN] API_URL:', API_URL);
-      // console.log('[CHILDLOGIN] Sending login request:', {
-      //   url: `${API_URL}/auth/child-login`,
-      //   username: username.trim(),
-      //   pin: pin.trim(),
-      // });
-
-      const response = await fetch(`${API_URL}/auth/child-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          pin: pin.trim(),
-        }),
-      });
-
-      let data;
-      try {
-        data = await response.json();
-      } catch (err) {
-        console.error('[CHILDLOGIN] Error parsing response:', err);
-        data = { message: 'Request failed' };
-      }
+      // Use retry logic for login attempts
+      const { response, data } = await attemptLoginWithRetry();
 
       if (!response.ok) {
         if (data.requiresReactivation) {
@@ -77,10 +136,18 @@ const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
         return;
       }
 
+      setIsRetrying(false);
       await onLoginSuccess(data);
     } catch (error) {
       console.error('[CHILDLOGIN] Network or fetch error:', error);
-      setStatusMessage('Network error. Please try again.');
+      setIsRetrying(false);
+
+      // Handle custom server errors
+      if (error instanceof Error && error.message.includes('Server temporarily unavailable')) {
+        setStatusMessage(error.message);
+      } else {
+        setStatusMessage('Network error. Please try again.');
+      }
     }
   };
 

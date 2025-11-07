@@ -476,8 +476,8 @@ export default function ParentsRequestsScreen() {
             </Text>
           )}
 
-          {/* Available Balance Context for Financial Requests */}
-          {(request.type === 'donation' || request.type === 'reward' || request.type === 'goal-completion') && request.amount && (
+          {/* Available Balance Context for Financial Requests - Only show for pending requests */}
+          {(request.type === 'donation' || request.type === 'reward' || request.type === 'goal-completion') && request.amount && request.status === 'Pending' && (
             <View style={{
               backgroundColor: themeColors.surface + '80',
               borderRadius: 8,
@@ -833,9 +833,6 @@ export default function ParentsRequestsScreen() {
             </Text>
             {approvalModal.request && (
               <View style={styles.modalRequestSummary}>
-                <Text style={styles.modalRequestText}>
-                  <Text style={styles.boldText}>Child:</Text> {approvalModal.request.childName}
-                </Text>
                 <Text style={styles.modalRequestText}>
                   <Text style={styles.boldText}>Request:</Text> {approvalModal.request.name}
                 </Text>
