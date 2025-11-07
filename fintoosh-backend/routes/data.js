@@ -2011,16 +2011,49 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
 
 router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
   try {
+    console.log("DEBUG: PUT /requests/:requestId - START - req.params.requestId:", req.params.requestId);
+    console.log("DEBUG: PUT /requests/:requestId - req.user:", { id: req.user.id, familyId: req.user.familyId, role: req.user.role });
+
     const { status, parentComment } = req.body;
+    console.log("DEBUG: PUT /requests/:requestId - Request body:", { status, parentComment });
+
     const ApprovalRequest = require('../models/ApprovalRequest');
+    console.log("DEBUG: PUT /requests/:requestId - About to call ApprovalRequest.findById");
+
     const approval = await ApprovalRequest.findById(req.params.requestId);
-    if (!approval) return res.status(404).json({ message: 'Request not found' });
+    console.log("DEBUG: PUT /requests/:requestId - ApprovalRequest.findById result:", approval);
+
+    if (!approval) {
+      console.log("DEBUG: PUT /requests/:requestId - Approval request not found, returning 404");
+      return res.status(404).json({ message: 'Request not found' });
+    }
+
+    console.log("DEBUG: PUT /requests/:requestId - Full approval object:", JSON.stringify(approval, null, 2));
+    console.log("DEBUG: PUT /requests/:requestId - approval.familyId:", approval.familyId);
+    console.log("DEBUG: PUT /requests/:requestId - req.user.familyId:", req.user.familyId);
     console.log("DEBUG: PUT /requests/:requestId", { statusFromFrontend: status, approvalType: approval.type, approvalStatus: approval.status, requestId: approval._id });
     console.log("DEBUG: Approving type:", approval.type, "RequestID:", approval._id);
 
     // Check that the request belongs to the authenticated parent's family
+    console.log("DEBUG: Family ID check - approval.familyId:", approval.familyId, "req.user.familyId:", req.user.familyId, "comparison:", approval.familyId !== req.user.familyId);
     if (approval.familyId !== req.user.familyId) {
+      console.log("DEBUG: Authorization failed - family ID mismatch");
       return res.status(403).json({ message: 'Not authorized to modify this request' });
+    }
+    console.log("DEBUG: Authorization passed - proceeding with approval");
+
+    // If approval.familyId is undefined, try to get it from the child user
+    if (!approval.familyId) {
+      console.log("DEBUG: approval.familyId is undefined, looking up child user");
+      const childUser = await User.findOne({ id: approval.childId });
+      if (childUser && childUser.familyId) {
+        console.log("DEBUG: Found child user familyId:", childUser.familyId);
+        approval.familyId = childUser.familyId;
+        console.log("DEBUG: Set approval.familyId to:", approval.familyId);
+      } else {
+        console.log("DEBUG: Could not find child user or child has no familyId");
+        return res.status(400).json({ message: 'Could not determine family for this approval request' });
+      }
     }
 
     // Only allow updating if the request is still pending
