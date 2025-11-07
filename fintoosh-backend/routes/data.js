@@ -238,6 +238,7 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
 
     const transaction = new Transaction({
       user: user._id,
+      familyId: user.familyId,
       type,
       description,
       amount,
@@ -1721,20 +1722,38 @@ router.get('/requests', auth, requireParent, async (req, res) => {
     }));
 
     // Calculate totals by status for the family
+    console.log('DEBUG BACKEND: About to calculate totals for familyId:', req.user.familyId);
+
+    const pendingCount = await ApprovalRequest.countDocuments({
+      familyId: req.user.familyId,
+      status: 'Pending'
+    });
+    const approvedCount = await ApprovalRequest.countDocuments({
+      familyId: req.user.familyId,
+      status: 'Approved'
+    });
+    const deniedCount = await ApprovalRequest.countDocuments({
+      familyId: req.user.familyId,
+      status: 'Denied'
+    });
+
     const totals = {
-      pending: await ApprovalRequest.countDocuments({
-        familyId: req.user.familyId,
-        status: 'Pending'
-      }),
-      approved: await ApprovalRequest.countDocuments({
-        familyId: req.user.familyId,
-        status: 'Approved'
-      }),
-      denied: await ApprovalRequest.countDocuments({
-        familyId: req.user.familyId,
-        status: 'Denied'
-      })
+      pending: pendingCount,
+      approved: approvedCount,
+      denied: deniedCount
     };
+
+    console.log('DEBUG BACKEND: Individual counts - Pending:', pendingCount, 'Approved:', approvedCount, 'Denied:', deniedCount);
+    console.log('DEBUG BACKEND: Final totals object:', totals);
+    console.log('DEBUG BACKEND: Family ID used:', req.user.familyId);
+
+    // Debug: Check total documents in collection
+    const totalRequestsInCollection = await ApprovalRequest.countDocuments();
+    console.log('DEBUG BACKEND: Total requests in entire collection:', totalRequestsInCollection);
+
+    // Debug: Check requests for this family regardless of status
+    const familyRequests = await ApprovalRequest.find({ familyId: req.user.familyId }).limit(5);
+    console.log('DEBUG BACKEND: Sample family requests:', familyRequests.map(r => ({ id: r._id, status: r.status, childId: r.childId })));
 
     res.json({
       requests: enriched,

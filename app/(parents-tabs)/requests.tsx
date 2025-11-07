@@ -133,13 +133,19 @@ export default function ParentsRequestsScreen() {
       setPaginationMeta(meta);
 
       // Use totals from API instead of calculating locally
-      if (reset || page === 1) {
-        setRequestCounts({
-          pending: totals.pending || 0,
-          approved: totals.approved || 0,
-          denied: totals.denied || 0
-        });
-      }
+      // Always update counts regardless of pagination to ensure accuracy
+      console.log('DEBUG: API totals received:', totals);
+      console.log('DEBUG: Setting request counts:', {
+        pending: totals.pending || 0,
+        approved: totals.approved || 0,
+        denied: totals.denied || 0
+      });
+
+      setRequestCounts({
+        pending: totals.pending || 0,
+        approved: totals.approved || 0,
+        denied: totals.denied || 0
+      });
 
       setRequests((prev) =>
         reset || page === 1 ? newRequests : [...prev, ...newRequests.filter((r: any) => !prev.some((old) => old._id === r._id))]
