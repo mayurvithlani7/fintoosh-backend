@@ -452,7 +452,7 @@ const KidsHomeScreen = memo(function KidsHomeScreen() {
 
   // Memoize expensive calculations
   const totalPoints = useMemo(() =>
-    jars.reduce((sum, jar) => sum + jar.value, 0),
+    jars.reduce((sum, jar) => sum + (jar.totalValue || 0), 0),
     [jars]
   );
 
@@ -1075,13 +1075,13 @@ contentContainerStyle={{
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
                       {userData.caregivers.map((caregiver: any, index: number) => {
                         // Create kid-friendly labels and avoid duplicates
-                        const getKidFriendlyLabel = () => {
+                        const getKidFriendlyLabel = (): string => {
                           const role = caregiver.role || 'caregiver';
                           const relationship = caregiver.relationship;
                           const name = caregiver.name;
 
                           // Use name if available, otherwise use kid-friendly role names
-                          if (name && name.trim()) {
+                          if (name && typeof name === 'string' && name.trim()) {
                             return name;
                           }
 
@@ -1339,15 +1339,15 @@ contentContainerStyle={{
               style={{
                 marginHorizontal: 6,
                 alignItems: 'center',
-                width: 80, // Fixed width for consistent snapping
+                width: 90, // Slightly wider for better text fit
               }}
               accessibilityRole="button"
-              accessibilityLabel={`${jar.label}: ${jar.value} points`}
+              accessibilityLabel={`${jar.label}: ${jar.totalValue} total points, ${jar.value} available, ${jar.pendingValue || 0} pending`}
               onPress={() => router.push('./money-jars')}
             >
               <View style={{
-                width: 80,
-                height: 80,
+                width: 90,
+                height: 110, // Taller to fit all three values
                 borderRadius: 12,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1360,41 +1360,54 @@ contentContainerStyle={{
                 borderWidth: 2,
                 borderColor: jar.color,
                 position: 'relative',
+                paddingVertical: 8,
               }}>
-                <Text style={{ fontSize: 20 }}>{jar.icon}</Text>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: themeColors.text }}>{jar.value}</Text>
-                <Text style={{ fontSize: 10, textAlign: 'center', lineHeight: 12, color: themeColors.textSecondary }}>
+                {/* Icon */}
+                <Text style={{ fontSize: 20, marginBottom: 4 }}>{jar.icon}</Text>
+
+                {/* Total Points - Most prominent */}
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  color: themeColors.text,
+                  marginBottom: 2
+                }}>
+                  {formatAmount(jar.totalValue || 0)}
+                </Text>
+
+                {/* Available & Pending - Smaller, color coded */}
+                <View style={{
+                  alignItems: 'center',
+                  marginBottom: 4
+                }}>
+                  <Text style={{
+                    fontSize: 9,
+                    color: themeColors.success, // Green for available
+                    fontWeight: '600'
+                  }}>
+                    {jar.value ?? 0} avail
+                  </Text>
+                  {(jar.pendingValue || 0) > 0 && (
+                    <Text style={{
+                      fontSize: 9,
+                      color: themeColors.warning, // Orange for pending
+                      fontWeight: '600'
+                    }}>
+                      {jar.pendingValue ?? 0} pend
+                    </Text>
+                  )}
+                </View>
+
+                {/* Label */}
+                <Text style={{
+                  fontSize: 9,
+                  textAlign: 'center',
+                  lineHeight: 10,
+                  color: themeColors.textSecondary,
+                  fontWeight: '500'
+                }}>
                   {jar.label.replace(' Pot', '').replace(' Money', '')}
                 </Text>
-                {(jar.pendingValue || 0) > 0 && (
-                  <View style={{
-                    position: 'absolute',
-                    top: -8,
-                    right: -8,
-                    backgroundColor: themeColors.warning,
-                    borderRadius: 10,
-                    minWidth: 20,
-                    height: 20,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderWidth: 2,
-                    borderColor: themeColors.card,
-                    elevation: 3,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 2,
-                  }}>
-                    <Text style={{
-                      fontSize: 10,
-                      color: themeColors.card,
-                      fontWeight: '700',
-                      textAlign: 'center'
-                    }}>
-                      {jar.pendingValue}
-                    </Text>
-                  </View>
-                )}
               </View>
             </TouchableOpacity>
           ))}
