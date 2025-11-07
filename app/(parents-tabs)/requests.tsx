@@ -104,6 +104,7 @@ export default function ParentsRequestsScreen() {
       const json = await response.json();
       const newRequests = json.requests ?? [];
       const meta = json.pagination ?? {};
+      const totals = json.totals ?? { pending: 0, approved: 0, denied: 0 };
 
       // Security: reject if any requests returned for child not in parent's children list
       try {
@@ -130,6 +131,15 @@ export default function ParentsRequestsScreen() {
       }
 
       setPaginationMeta(meta);
+
+      // Use totals from API instead of calculating locally
+      if (reset || page === 1) {
+        setRequestCounts({
+          pending: totals.pending || 0,
+          approved: totals.approved || 0,
+          denied: totals.denied || 0
+        });
+      }
 
       setRequests((prev) =>
         reset || page === 1 ? newRequests : [...prev, ...newRequests.filter((r: any) => !prev.some((old) => old._id === r._id))]
@@ -249,7 +259,7 @@ export default function ParentsRequestsScreen() {
     }
   };
 
-  // FlatList: load next page when reaching end
+  // Load more function for manual loading
   const loadMore = () => {
     if (pagination.hasNextPage && !pagination.loadingMore && !pagination.loading) {
       loadRequests({ page: pagination.currentPage + 1 });
@@ -261,16 +271,6 @@ export default function ParentsRequestsScreen() {
     now.setDate(now.getDate() - 90);
     return now;
   }, []);
-
-  // Calculate request counts for filter chips
-  React.useEffect(() => {
-    const counts = {
-      pending: requests.filter(r => r.status === 'Pending').length,
-      approved: requests.filter(r => r.status === 'Approved' && new Date(r.createdAt) >= archiveThreshold).length,
-      denied: requests.filter(r => r.status === 'Denied' && new Date(r.createdAt) >= archiveThreshold).length
-  };
-    setRequestCounts(counts);
-  }, [requests, archiveThreshold]);
 
   // Filter for recent approved/denied - memoized to prevent infinite loops
   const displayedRequests = React.useMemo(() => {
@@ -774,6 +774,22 @@ export default function ParentsRequestsScreen() {
         ListFooterComponent={
           pagination.loadingMore ? (
             <ActivityIndicator style={{ marginVertical: 18 }} />
+          ) : pagination.hasNextPage ? (
+            <TouchableOpacity
+              style={[styles.loadMoreButton, { backgroundColor: themeColors.primary }]}
+              onPress={loadMore}
+              disabled={pagination.loading || pagination.loadingMore}
+            >
+              <Text style={[styles.loadMoreButtonText, { color: themeColors.card }]}>
+                Load More Requests
+              </Text>
+            </TouchableOpacity>
+          ) : displayedRequests.length > 0 ? (
+            <View style={styles.endMessage}>
+              <Text style={[styles.endMessageText, { color: themeColors.textSecondary }]}>
+                You've reached the end of your requests
+              </Text>
+            </View>
           ) : null
         }
         ListEmptyComponent={
@@ -1252,5 +1268,26 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   timestampText: {
     ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
     color: themeColors.textSecondary
+  },
+  loadMoreButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginVertical: 16,
+    alignItems: 'center',
+    elevation: 2
+  },
+  loadMoreButtonText: {
+    ...SEMANTIC_TYPOGRAPHY["type-body"],
+    fontWeight: 'bold'
+  },
+  endMessage: {
+    paddingVertical: 24,
+    alignItems: 'center'
+  },
+  endMessageText: {
+    ...SEMANTIC_TYPOGRAPHY["type-body-small"],
+    fontStyle: 'italic'
   }
   });
