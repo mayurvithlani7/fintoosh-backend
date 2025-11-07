@@ -1972,6 +1972,17 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
       }
     }
 
+    // Initialize approvalRequest at the top to avoid "cannot access before initialization" error
+    let approvalRequest = new (require('../models/ApprovalRequest'))({
+      ...req.body,
+      familyId: childUser.familyId,
+      childId: userId,
+      parentId: primaryCaregiver.userId, // Use primary caregiver
+      caregiverId: primaryCaregiver.userId, // New field for clarity
+      status: 'Pending',
+      createdAt: new Date()
+    });
+
     // For move-points requests, capture current balances and reserve points from the source jar
     if ((req.body.type === 'move-points' || req.body.type === 'points-move') && req.body.from && req.body.to) {
       const fromJar = req.body.from;
@@ -2040,16 +2051,6 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
         await chore.save();
       }
     }
-
-    const approvalRequest = new (require('../models/ApprovalRequest'))({
-      ...req.body,
-      familyId: childUser.familyId,
-      childId: userId,
-      parentId: primaryCaregiver.userId, // Use primary caregiver
-      caregiverId: primaryCaregiver.userId, // New field for clarity
-      status: 'Pending',
-      createdAt: new Date()
-    });
 
     // Add initial child note as first message if provided
     if (note && note.trim()) {
