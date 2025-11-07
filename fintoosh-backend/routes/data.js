@@ -2218,6 +2218,13 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         invest: 'investPoints'
       };
 
+      console.log('DEBUG: About to create transactions for chore approval');
+      console.log('DEBUG: splitConfig:', splitConfig);
+      console.log('DEBUG: jarFieldMap:', jarFieldMap);
+      console.log('DEBUG: pointsToAward:', pointsToAward);
+      console.log('DEBUG: user._id:', user._id);
+      console.log('DEBUG: approval.familyId:', approval.familyId, 'typeof:', typeof approval.familyId);
+
       const transactions = [];
       for (const [jar, percentage] of Object.entries(splitConfig)) {
         if (percentage > 0) {
@@ -2228,16 +2235,25 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
             user[fieldName] = (user[fieldName] || 0) + pointsForJar;
 
             // Create transaction for this jar
-            const txn = new Transaction({
+            const txnData = {
               type: 'chore-completed',
               description: `Parent approved chore completion: "${chore.name}" - ${pointsForJar} points to ${jar} jar`,
               amount: pointsForJar,
               toJar: jar,
               user: user._id,
+              familyId: approval.familyId, // Explicitly set familyId
               reference: chore._id,
               date: new Date().toLocaleString(),
-            });
+            };
+
+            console.log('DEBUG: Creating transaction with data:', JSON.stringify(txnData, null, 2));
+
+            const txn = new Transaction(txnData);
+            console.log('DEBUG: Transaction created, about to save...');
+
             await txn.save();
+            console.log('DEBUG: Transaction saved successfully, _id:', txn._id);
+
             transactions.push(txn._id);
           }
         }
