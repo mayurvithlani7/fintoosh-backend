@@ -457,36 +457,34 @@ function GiftsSection() {
             }} numberOfLines={1} ellipsizeMode="tail">
               {reward.name}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{
+              ...TYPOGRAPHY.body,
+              color: themeColors.primary,
+              marginBottom: 2,
+              fontFamily: TYPOGRAPHY.body.fontFamily,
+            }}>
+              💰 {formatAmount(reward.cost)} points
+            </Text>
+            {/* Only show total for available gifts (not claimed) */}
+            {userData && !reward.purchased && (
               <Text style={{
-                ...TYPOGRAPHY.body,
-                color: themeColors.primary,
-                marginRight: 8,
-                fontFamily: TYPOGRAPHY.body.fontFamily,
-              }}>
-                💰 {formatAmount(reward.cost)} points
+                ...TYPOGRAPHY.bodySmall,
+                color: themeColors.textSecondary,
+                fontFamily: TYPOGRAPHY.bodySmall.fontFamily,
+                marginBottom: 2
+              }} numberOfLines={2} ellipsizeMode="tail">
+                Total: {formatAmount(userData.currentPoints || 0)}{(userData.pendingCurrentPoints || 0) > 0 ? `, ${userData.pendingCurrentPoints} pending` : ''}
               </Text>
-              {/* Only show total for available gifts (not claimed) */}
-              {userData && !reward.purchased && (
-                <Text style={{
-                  ...TYPOGRAPHY.bodySmall,
-                  color: themeColors.textSecondary,
-                  fontFamily: TYPOGRAPHY.bodySmall.fontFamily,
-                }}>
-                  (Total: {formatAmount(userData.currentPoints || 0)}{(userData.pendingCurrentPoints || 0) > 0 ? `, ${userData.pendingCurrentPoints} pending` : ''})
-                </Text>
-              )}
-              {userData && (userData.pendingCurrentPoints || 0) > 0 && (
-                <Text style={{
-                  ...TYPOGRAPHY.caption,
-                  color: themeColors.textSecondary,
-                  fontFamily: TYPOGRAPHY.caption.fontFamily,
-                  marginTop: 2
-                }}>
-                  Available: {formatAmount((userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0))}
-                </Text>
-              )}
-            </View>
+            )}
+            {userData && (userData.pendingCurrentPoints || 0) > 0 && (
+              <Text style={{
+                ...TYPOGRAPHY.caption,
+                color: themeColors.textSecondary,
+                fontFamily: TYPOGRAPHY.caption.fontFamily,
+              }} numberOfLines={1} ellipsizeMode="tail">
+                Available: {formatAmount((userData.currentPoints || 0) - (userData.pendingCurrentPoints || 0))}
+              </Text>
+            )}
           </View>
         </View>
 

@@ -35,6 +35,70 @@ const {
   atomicAwardPointsWithSplit
 } = require('../utils/atomicTransactions');
 
+
+
+/**
+ * Safely get a valid caregiver for approval workflows
+ * @param {Object} user - The child user object
+ * @param {string} preferredRelationship - Optional preferred relationship (e.g., 'mother', 'father')
+ * @returns {Object|null} Valid caregiver user object or null
+ */
+async function getValidCaregiver(user, preferredRelationship = null) {
+  try {
+    if (!user || !user.caregivers || !Array.isArray(user.caregivers) || user.caregivers.length === 0) {
+      return null;
+    }
+
+    // Filter caregivers with valid userId
+    const validCaregivers = user.caregivers.filter(c => c && c.userId);
+
+    if (validCaregivers.length === 0) {
+      return null;
+    }
+
+    // If preferred relationship specified, try to find it first
+    if (preferredRelationship) {
+      const preferred = validCaregivers.find(c => c.relationship === preferredRelationship);
+      if (preferred) {
+        try {
+          const caregiverUser = await User.findOne({
+            id: preferred.userId,
+            status: 'active',
+            familyId: user.familyId
+          });
+          if (caregiverUser) {
+            return caregiverUser;
+          }
+        } catch (error) {
+          console.warn('Error validating preferred caregiver:', error.message);
+        }
+      }
+    }
+
+    // Find first valid active caregiver in same family
+    for (const caregiver of validCaregivers) {
+      try {
+        const caregiverUser = await User.findOne({
+          id: caregiver.userId,
+          status: 'active',
+          familyId: user.familyId
+        });
+        if (caregiverUser) {
+          return caregiverUser;
+        }
+      } catch (error) {
+        console.warn('Error validating caregiver:', caregiver.userId, error.message);
+        continue;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error in getValidCaregiver:', error);
+    return null;
+  }
+}
+
 // Role-based rate limiting for authenticated users
 const createRoleBasedLimiter = (role) => {
   const limits = {
@@ -717,25 +781,25 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
       // Reload and send updated reward after save
       const updatedReward = await Reward.findById(reward._id);
 
-      // Create approval request - use first caregiver as primary approver
-      const primaryCaregiver = rewardOwner.caregivers && rewardOwner.caregivers.length > 0 ? rewardOwner.caregivers[0] : null;
+      // Create approval request - use valid caregiver as primary approver
+      const primaryCaregiver = await getValidCaregiver(rewardOwner);
       if (!primaryCaregiver) {
         // Release the reserved points since we can't proceed
         try {
           await atomicReleaseReservedPoints(rewardOwner._id, 'current', reward.cost, {
-            description: 'Released reservation - no caregiver found'
+            description: 'Released reservation - no valid caregiver found'
           });
         } catch (rollbackError) {
           console.error('Failed to rollback reservation:', rollbackError);
         }
-        return res.status(400).json({ message: 'No caregiver found for user.' });
+        return res.status(400).json({ message: 'No valid caregiver found for user.' });
       }
 
       const approvalRequest = new ApprovalRequest({
         familyId: rewardOwner.familyId,
         childId: rewardOwner.id,
-        parentId: primaryCaregiver.userId, // Backward compatibility field
-        caregiverId: primaryCaregiver.userId, // New field for clarity
+        parentId: primaryCaregiver.id, // Use the valid caregiver's id
+        caregiverId: primaryCaregiver.id, // New field for clarity
         type: 'reward',
         name: reward.name,
         amount: reward.cost,
@@ -1035,12 +1099,14 @@ router.get('/goals/:childId', auth, requireSelfOrParent('childId'), async (req, 
       // Add current points from the child who owns this goal for progress calculation
       const childUser = await User.findById(goal.user);
       if (childUser) {
+        // MIGRATION: Use new unified pots object instead of deprecated jar fields
+        const pots = childUser.pots || {};
         goal._doc.currentPoints = {
-          current: childUser.currentPoints || 0,
-          save: childUser.savePoints || 0,
-          spend: childUser.spendPoints || 0,
-          donate: childUser.donatePoints || 0,
-          invest: childUser.investPoints || 0
+          current: pots.available || 0,  // pots.available replaces currentPoints
+          save: pots.save || 0,         // pots.save replaces savePoints
+          spend: pots.spend || 0,       // pots.spend replaces spendPoints
+          donate: pots.donate || 0,     // pots.donate replaces donatePoints
+          invest: pots.invest || 0      // pots.invest replaces investPoints
         };
       }
 
@@ -1102,15 +1168,10 @@ router.post('/goals', auth, sanitizeInput, async (req, res) => {
     // For children, parent is their assigned caregiver
     const childUser = await User.findById(req.user._id);
 
-    // Find primary caregiver (first in caregivers array) - NEW MULTI-PARENT LOGIC
-    if (childUser.caregivers && Array.isArray(childUser.caregivers) && childUser.caregivers.length > 0) {
-      const primaryCaregiver = childUser.caregivers[0];
-      if (primaryCaregiver && primaryCaregiver.userId) {
-        const parentUser = await User.findOne({ id: primaryCaregiver.userId });
-        parentId = parentUser ? parentUser._id : req.user._id;
-      } else {
-        parentId = req.user._id; // fallback if caregiver exists but has no userId
-      }
+    // Find primary caregiver using safe validation
+    const primaryCaregiver = await getValidCaregiver(childUser);
+    if (primaryCaregiver) {
+      parentId = primaryCaregiver._id;
     } else if (childUser.parentId) {
       // Fallback to legacy parentId for backward compatibility
       const parentUser = await User.findOne({ id: childUser.parentId });
@@ -1174,8 +1235,16 @@ router.patch('/goals/:goalId', auth, async (req, res) => {
       if (update.deadline !== undefined) allowed.deadline = update.deadline;
       if (update.status !== undefined) allowed.status = update.status;
     } else {
+      // SECURITY: Whitelist allowed fields for children
+      const allowedFields = ['status'];
+      for (const key of Object.keys(req.body)) {
+        if (!allowedFields.includes(key)) {
+          delete req.body[key];
+        }
+      }
+
       // Child can only set status to 'pending'
-      if (update.status !== 'pending') {
+      if (req.body.status !== 'pending') {
         return res.status(403).json({ message: "Children can only set goal status to pending" });
       }
       if (!goal.user.equals(req.user._id)) {
@@ -1186,7 +1255,24 @@ router.patch('/goals/:goalId', auth, async (req, res) => {
       const jar = goal.jar || 'current';
       const pointsField = jar + 'Points';
       const pendingField = 'pending' + jar.charAt(0).toUpperCase() + jar.slice(1) + 'Points';
-      const availablePoints = (req.user[pointsField] || 0) - (req.user[pendingField] || 0);
+
+      // MIGRATION: Use new unified pots object instead of deprecated jar fields
+      const pots = req.user.pots || {};
+      let availablePoints;
+      if (jar === 'current') {
+        availablePoints = (pots.available || 0) - (req.user[pendingField] || 0);
+      } else if (jar === 'save') {
+        availablePoints = (pots.save || 0) - (req.user[pendingField] || 0);
+      } else if (jar === 'spend') {
+        availablePoints = (pots.spend || 0) - (req.user[pendingField] || 0);
+      } else if (jar === 'donate') {
+        availablePoints = (pots.donate || 0) - (req.user[pendingField] || 0);
+      } else if (jar === 'invest') {
+        availablePoints = (pots.invest || 0) - (req.user[pendingField] || 0);
+      } else {
+        // Fallback to old jar fields for backward compatibility
+        availablePoints = (req.user[pointsField] || 0) - (req.user[pendingField] || 0);
+      }
 
       if (availablePoints < goal.targetAmount) {
         return res.status(400).json({ message: `Not enough points in ${jar} jar to claim this goal.` });
@@ -1204,7 +1290,7 @@ router.patch('/goals/:goalId', auth, async (req, res) => {
       }
 
       // Allow updating status for children
-      if (update.status !== undefined) allowed.status = update.status;
+      if (req.body.status !== undefined) allowed.status = req.body.status;
     }
 
     Object.assign(goal, allowed, { updatedAt: new Date() });
@@ -2575,9 +2661,10 @@ router.post('/achievements/:userId/check-milestones', auth, requireSelfOrParent(
       return res.status(403).json({ message: 'Not authorized to check milestones for users outside your family' });
     }
 
-    // Check various milestones
-    const totalPoints = (user.currentPoints || 0) + (user.savePoints || 0) +
-                       (user.spendPoints || 0) + (user.donatePoints || 0) + (user.investPoints || 0);
+    // Check various milestones - MIGRATION: Use new unified pots object
+    const pots = user.pots || {};
+    const totalPoints = (pots.available || 0) + (pots.save || 0) +
+                       (pots.spend || 0) + (pots.donate || 0) + (pots.invest || 0);
 
     // Update points saved achievement
     const pointsAchievement = await Achievement.getOrCreate(
@@ -3115,13 +3202,16 @@ router.delete('/dream-board/:dreamBoardId', auth, requireParent, async (req, res
 
 
 
-// Elder Wisdom routes
-router.post('/elder-wisdom/:familyId', auth, sanitizeInput, async (req, res) => {
+/**
+ * ELDER WISDOM ROUTES - Parent-only access with family isolation
+ * These routes allow parents to add wisdom/advice to their family's timeline
+ */
+router.post('/elder-wisdom/:familyId', auth, requireParent, sanitizeInput, async (req, res) => {
   try {
     const { familyId } = req.params;
     const { childId, elderName, advice } = req.body;
 
-    // Verify user belongs to this family
+    // SECURITY: Enforce familyId isolation - parents can only add wisdom to their own family
     if (req.user.familyId !== familyId) {
       return res.status(403).json({ message: 'Not authorized to add wisdom to this family' });
     }
