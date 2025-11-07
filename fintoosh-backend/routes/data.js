@@ -2150,10 +2150,14 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
 
     if (status === 'Approved' && approval.type === 'reward') {
       try {
+        console.log('DEBUG: Starting reward approval for approval:', approval._id);
+        console.log('DEBUG: Reward approval details:', { name: approval.name, amount: approval.amount, rewardId: approval.rewardId });
+
         // ATOMIC: Approve reserved points for reward purchase
         const result = await atomicApproveReservedPoints(
           approval.childId,
-          'current',
+          approval.familyId, // Fixed: familyId parameter
+          'current',         // Fixed: jar parameter (hardcoded for rewards)
           approval.amount,
           {
             type: 'reward-purchase',
@@ -2161,6 +2165,7 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
             reference: approval.rewardId
           }
         );
+        console.log('DEBUG: atomicApproveReservedPoints completed successfully for reward');
 
         // Update reward fulfillment and status
         const RewardModel = require('../models/Reward');
@@ -2176,8 +2181,10 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           rewardDoc.purchasedAt = new Date();
           rewardDoc.status = 'claimed';
           await rewardDoc.save();
+          console.log('DEBUG: Reward updated successfully');
         }
       } catch (error) {
+        console.log('DEBUG: Reward approval failed:', error);
         return res.status(400).json({ message: error.message || 'Failed to approve reward purchase.' });
       }
     }
@@ -2397,30 +2404,44 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
     // If approved and goal-completion, check points, deduct, set goal status to 'completed'
     if (status === 'Approved' && approval.type === 'goal-completion') {
       try {
+        console.log('DEBUG: Starting goal-completion approval for approval:', approval._id);
+        console.log('DEBUG: Goal completion details:', { goalId: approval.goalId, amount: approval.amount });
+
         const Goal = require('../models/Goal');
         const goal = await Goal.findById(approval.goalId);
+        console.log('DEBUG: Found goal:', goal ? { id: goal._id, name: goal.name, jar: goal.jar, targetAmount: goal.targetAmount } : 'GOAL NOT FOUND');
+
         if (goal) {
           const target = goal.targetAmount || approval.amount || 0;
+          console.log('DEBUG: Target amount for goal completion:', target);
+
+          // Use goal.jar if set, otherwise default to 'current'
+          const jar = goal.jar || 'current';
+          console.log('DEBUG: Using jar for goal completion:', jar, 'goal.jar was:', goal.jar);
 
           // ATOMIC: Approve reserved points for goal completion
           const result = await atomicApproveReservedPoints(
             approval.childId,
-            goal.jar,
+            approval.familyId, // Fixed: familyId parameter
+            jar,               // Fixed: jar parameter with default
             target,
             {
               type: 'goal-completion',
-              description: `Parent approved goal "${goal.name}" completion, ${target} points from ${goal.jar}`,
+              description: `Parent approved goal "${goal.name}" completion, ${target} points from ${jar}`,
               reference: goal._id
             }
           );
+          console.log('DEBUG: atomicApproveReservedPoints completed successfully for goal completion');
 
           goal.status = 'completed'; // Mark as completed/claimed
           goal.achieved = true;
           goal.achievedAt = new Date();
           goal.updatedAt = new Date();
           await goal.save();
+          console.log('DEBUG: Goal marked as completed');
         }
       } catch (error) {
+        console.log('DEBUG: Goal completion approval failed:', error);
         const Goal = require('../models/Goal');
         const goal = await Goal.findById(approval.goalId);
         if (goal) {
