@@ -209,6 +209,33 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
       return res.status(403).json({ message: 'Not authorized for this user' });
     }
 
+    // VALIDATION: Check available points for subtractions to prevent negative balances
+    if (amount < 0 && toJar) {
+      // This is a point subtraction (negative amount)
+      const pointsField = toJar + 'Points';
+      const pendingField = 'pending' + toJar.charAt(0).toUpperCase() + toJar.slice(1) + 'Points';
+
+      const actualPoints = user[pointsField] || 0;
+      const pendingPoints = user[pendingField] || 0;
+      const availablePoints = actualPoints - pendingPoints;
+      const requiredAmount = Math.abs(amount);
+
+      console.log('DEBUG: Transaction validation:', {
+        toJar,
+        actualPoints,
+        pendingPoints,
+        availablePoints,
+        requiredAmount,
+        sufficient: availablePoints >= requiredAmount
+      });
+
+      if (availablePoints < requiredAmount) {
+        return res.status(400).json({
+          message: `Insufficient points in ${toJar} jar. Available: ${availablePoints}, Required: ${requiredAmount}. Some points may be reserved for other pending requests.`
+        });
+      }
+    }
+
     const transaction = new Transaction({
       user: user._id,
       type,
@@ -1906,9 +1933,10 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
       }
     }
 
-    // For move-points requests, reserve points from the source jar
-    if ((req.body.type === 'move-points' || req.body.type === 'points-move') && req.body.from) {
+    // For move-points requests, capture current balances and reserve points from the source jar
+    if ((req.body.type === 'move-points' || req.body.type === 'points-move') && req.body.from && req.body.to) {
       const fromJar = req.body.from;
+      const toJar = req.body.to;
       const pointsField = fromJar + 'Points';
       const pendingField = 'pending' + fromJar.charAt(0).toUpperCase() + fromJar.slice(1) + 'Points';
       const availablePoints = (childUser[pointsField] || 0) - (childUser[pendingField] || 0);
@@ -1917,6 +1945,14 @@ router.post('/requests', auth, sanitizeInput, async (req, res) => {
         res.status(400).json({ message: `Not enough available points in ${fromJar} jar to move.` });
         return;
       }
+
+      // Capture AVAILABLE balances (total - pending) for display to parent
+      const fromBalance = availablePoints; // Available points in source jar
+      const toBalance = (childUser[toJar + 'Points'] || 0) - (childUser['pending' + toJar.charAt(0).toUpperCase() + toJar.slice(1) + 'Points'] || 0); // Available points in destination jar
+
+      // Set balances on the approval request for parent to see
+      approvalRequest.fromBalance = fromBalance;
+      approvalRequest.toBalance = toBalance;
 
       // Atomically reserve points from source jar
       const updatedUser = await User.findOneAndUpdate(
@@ -2096,6 +2132,34 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         console.log('DEBUG: Starting move-points approval for approval:', approval._id);
         console.log('DEBUG: Move-points details:', { from: approval.from, to: approval.to, amount: approval.amount });
 
+        // VALIDATION: Check if child has sufficient points in source jar
+        const childUser = await User.findOne({ id: approval.childId });
+        if (!childUser) {
+          return res.status(404).json({ message: 'Child user not found.' });
+        }
+
+        const sourceJar = approval.from;
+        const pointsField = sourceJar + 'Points';
+        const pendingField = 'pending' + sourceJar.charAt(0).toUpperCase() + sourceJar.slice(1) + 'Points';
+
+        const actualPoints = childUser[pointsField] || 0;
+        const pendingPoints = childUser[pendingField] || 0;
+        const availablePoints = actualPoints - pendingPoints;
+
+        console.log('DEBUG: Balance validation:', {
+          sourceJar,
+          actualPoints,
+          pendingPoints,
+          availablePoints,
+          requiredAmount: approval.amount
+        });
+
+        if (availablePoints < approval.amount) {
+          return res.status(400).json({
+            message: `Insufficient points in ${sourceJar} jar. Available: ${availablePoints}, Required: ${approval.amount}. Some points may be reserved for other pending requests.`
+          });
+        }
+
         // ATOMIC: Approve the reserved points transfer
         const approveResult = await atomicApproveReservedPoints(
           approval.childId,
@@ -2152,6 +2216,32 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       try {
         console.log('DEBUG: Starting reward approval for approval:', approval._id);
         console.log('DEBUG: Reward approval details:', { name: approval.name, amount: approval.amount, rewardId: approval.rewardId });
+
+        // VALIDATION: Check if child has sufficient points in current jar
+        const childUser = await User.findOne({ id: approval.childId });
+        if (!childUser) {
+          return res.status(404).json({ message: 'Child user not found.' });
+        }
+
+        const currentPointsField = 'currentPoints';
+        const pendingCurrentField = 'pendingCurrentPoints';
+
+        const actualPoints = childUser[currentPointsField] || 0;
+        const pendingPoints = childUser[pendingCurrentField] || 0;
+        const availablePoints = actualPoints - pendingPoints;
+
+        console.log('DEBUG: Reward validation:', {
+          actualPoints,
+          pendingPoints,
+          availablePoints,
+          requiredAmount: approval.amount
+        });
+
+        if (availablePoints < approval.amount) {
+          return res.status(400).json({
+            message: `Insufficient points in current jar for reward purchase. Available: ${availablePoints}, Required: ${approval.amount}. Some points may be reserved for other pending requests.`
+          });
+        }
 
         // ATOMIC: Approve reserved points for reward purchase
         const result = await atomicApproveReservedPoints(
@@ -2407,6 +2497,12 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
         console.log('DEBUG: Starting goal-completion approval for approval:', approval._id);
         console.log('DEBUG: Goal completion details:', { goalId: approval.goalId, amount: approval.amount });
 
+        // VALIDATION: Check if child has sufficient points in goal jar
+        const childUser = await User.findOne({ id: approval.childId });
+        if (!childUser) {
+          return res.status(404).json({ message: 'Child user not found.' });
+        }
+
         const Goal = require('../models/Goal');
         const goal = await Goal.findById(approval.goalId);
         console.log('DEBUG: Found goal:', goal ? { id: goal._id, name: goal.name, jar: goal.jar, targetAmount: goal.targetAmount } : 'GOAL NOT FOUND');
@@ -2418,6 +2514,27 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           // Use goal.jar if set, otherwise default to 'current'
           const jar = goal.jar || 'current';
           console.log('DEBUG: Using jar for goal completion:', jar, 'goal.jar was:', goal.jar);
+
+          const pointsField = jar + 'Points';
+          const pendingField = 'pending' + jar.charAt(0).toUpperCase() + jar.slice(1) + 'Points';
+
+          const actualPoints = childUser[pointsField] || 0;
+          const pendingPoints = childUser[pendingField] || 0;
+          const availablePoints = actualPoints - pendingPoints;
+
+          console.log('DEBUG: Goal validation:', {
+            jar,
+            actualPoints,
+            pendingPoints,
+            availablePoints,
+            requiredAmount: target
+          });
+
+          if (availablePoints < target) {
+            return res.status(400).json({
+              message: `Insufficient points in ${jar} jar for goal completion. Available: ${availablePoints}, Required: ${target}. Some points may be reserved for other pending requests.`
+            });
+          }
 
           // ATOMIC: Approve reserved points for goal completion
           const result = await atomicApproveReservedPoints(
