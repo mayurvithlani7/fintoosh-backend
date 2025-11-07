@@ -230,22 +230,49 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
   ];
 
   useEffect(() => {
-    // Set demo children immediately for testing
-    const demoChildren = [
-      { id: 'demo-child-1', name: 'Alex', age: 10 },
-      { id: 'demo-child-2', name: 'Emma', age: 8 },
-      { id: 'demo-child-3', name: 'Ryan', age: 12 }
-    ];
-    console.log('Setting demo children:', demoChildren);
-    setAvailableChildren(demoChildren);
-    setSelectedChild(demoChildren[0]);
-    console.log('Demo children set, availableChildren should now be:', demoChildren.length);
-
     loadCurrentUser();
     loadTeachingData();
     loadStoredData(); // Load data from AsyncStorage first
     loadMilestonesFromStorage(); // Load milestones from storage
   }, []);
+
+  // Check for real children availability and clear demo data
+  useEffect(() => {
+    if (availableChildren.length === 0) {
+      // Show message to add children if none available
+      console.log('No children available - user needs to add children first');
+    } else {
+      // Clear any demo child data from AsyncStorage
+      clearDemoChildData();
+    }
+  }, [availableChildren]);
+
+  // Function to clear demo child data from AsyncStorage
+  const clearDemoChildData = async () => {
+    try {
+      console.log('🧹 Clearing demo child data from AsyncStorage');
+
+      // Get all keys from AsyncStorage
+      const keys = await AsyncStorage.getAllKeys();
+
+      // Filter keys that might contain demo child data
+      const demoKeys = keys.filter(key =>
+        key.includes('child_') ||
+        key.includes('demo-child') ||
+        key.includes('familyDiscussions') && key.includes('demo-family')
+      );
+
+      if (demoKeys.length > 0) {
+        console.log('🗑️ Removing demo keys:', demoKeys);
+        await AsyncStorage.multiRemove(demoKeys);
+        console.log('✅ Demo child data cleared from AsyncStorage');
+      } else {
+        console.log('ℹ️ No demo child data found to clear');
+      }
+    } catch (error) {
+      console.error('❌ Error clearing demo child data:', error);
+    }
+  };
 
   // Debug: Log whenever availableChildren changes
   useEffect(() => {
@@ -279,28 +306,15 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
         // Load family's children with real authentication
         await loadRealChildren(userData.familyId, token);
       } else {
-        console.log('⚠️ No authentication data found, using demo mode');
-        // Use demo user for testing (no real auth)
-        const demoUser = {
-          id: 'demo-parent',
-          name: 'Demo Parent',
-          familyId: 'demo-family',
-          role: 'parent'
-        };
-        setCurrentUser(demoUser);
-        await loadDemoChildren();
+        console.log('⚠️ No authentication data found');
+        // No fallback to demo children - user must be authenticated
       }
     } catch (error) {
       console.error('💥 Error loading current user:', error);
-      // Fallback to demo user
-      const demoUser = {
-        id: 'demo-parent',
-        name: 'Demo Parent',
-        familyId: 'demo-family',
-        role: 'parent'
-      };
-      setCurrentUser(demoUser);
-      await loadDemoChildren();
+      // No fallback to demo data - user must authenticate properly
+      setCurrentUser(null);
+      setAvailableChildren([]);
+      setSelectedChild(null);
     }
   };
 
@@ -324,55 +338,35 @@ Praise effort and learning, not just perfect decisions. Everyone makes money mis
         console.log('✅ Loaded real children from API:', children);
 
         if (children && children.length > 0) {
+          // Force complete replacement of any demo data
+          console.log('🧹 FORCE CLEARING any demo children and setting real ones');
+          console.log('📋 Real children from API:', children.map(c => ({ id: c.id, name: c.name })));
+
+          // Clear AsyncStorage demo data immediately
+          clearDemoChildData();
+
+          // Force set real children (synchronously)
           setAvailableChildren(children);
-          // Always set the first real child when real children are loaded
           setSelectedChild(children[0]);
-          console.log('✅ Set selectedChild to real child:', children[0].id);
+
+          console.log('✅ FORCE SET selectedChild to real child:', children[0].id);
+          console.log('✅ FORCE SET Available children now:', children.map((c: any) => ({ id: c.id, name: c.name })));
         } else {
-          console.log('⚠️ No children found in database, using demo children');
-          await loadDemoChildren();
+          console.log('⚠️ No children found in database');
+          setAvailableChildren([]);
         }
       } else {
         const errorText = await response.text();
         console.error('❌ API error loading children:', response.status, errorText);
-        await loadDemoChildren();
+        setAvailableChildren([]);
       }
     } catch (error) {
       console.error('💥 Error loading real children:', error);
-      await loadDemoChildren();
+      setAvailableChildren([]);
     }
   };
 
-  // Load demo children for testing/fallback
-  const loadDemoChildren = async () => {
-    try {
-      console.log('🔄 Loading demo children for testing...');
 
-      const demoChildren = [
-        { id: 'demo-child-1', name: 'Alex', age: 10 },
-        { id: 'demo-child-2', name: 'Emma', age: 8 },
-        { id: 'demo-child-3', name: 'Ryan', age: 12 }
-      ];
-
-      setAvailableChildren(demoChildren);
-      if (!selectedChild) {
-        setSelectedChild(demoChildren[0]);
-      }
-
-      console.log('✅ Demo children loaded:', demoChildren.length, 'children');
-    } catch (error) {
-      console.error('💥 Error loading demo children:', error);
-    }
-  };
-
-  // Load family's children (legacy function for backward compatibility)
-  const loadFamilyChildren = async (familyId: string, token?: string) => {
-    if (token) {
-      await loadRealChildren(familyId, token);
-    } else {
-      await loadDemoChildren();
-    }
-  };
 
 /**
  * Dream Board API helpers
@@ -766,23 +760,49 @@ const loadStoredData = async () => {
 
   // Save discussions to database and AsyncStorage
   const saveDiscussionsToDatabase = async (discussions: any[]) => {
+    // DEBUG LOGS - Family and child validation
+    console.log('🔍 DEBUG: saveDiscussionsToDatabase called');
+    console.log('🔍 DEBUG: currentUser:', currentUser ? {
+      id: currentUser.id,
+      familyId: currentUser.familyId,
+      name: currentUser.name,
+      role: currentUser.role
+    } : 'null');
+    console.log('🔍 DEBUG: selectedChild:', selectedChild ? {
+      id: selectedChild.id,
+      name: selectedChild.name
+    } : 'null');
+    console.log('🔍 DEBUG: availableChildren:', availableChildren.map(c => ({
+      id: c.id,
+      name: c.name
+    })));
+    console.log('🔍 DEBUG: discussions to save:', discussions.length);
+
     // Always save to AsyncStorage first for immediate persistence
     try {
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.log('⚠️ DEBUG: No currentUser, skipping AsyncStorage save');
+        return;
+      }
       await AsyncStorage.setItem(
         getFamilyKey('familyDiscussions', currentUser.familyId),
         JSON.stringify(discussions)
       );
-      console.log('Discussions saved to AsyncStorage:', discussions.length);
+      console.log('✅ DEBUG: Discussions saved to AsyncStorage:', discussions.length);
     } catch (storageError) {
-      console.error('Error saving discussions to AsyncStorage:', storageError);
+      console.error('❌ DEBUG: Error saving discussions to AsyncStorage:', storageError);
     }
 
     // Try to save to database if user is logged in
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log('⚠️ DEBUG: No currentUser, skipping database save');
+      return;
+    }
 
     try {
       const token = await getAuthToken();
+      console.log('🔑 DEBUG: Auth token retrieved:', token ? 'present' : 'null');
+
       const headers: any = {
         'Content-Type': 'application/json',
       };
@@ -792,30 +812,61 @@ const loadStoredData = async () => {
       }
 
     for (const discussion of discussions) {
-        console.log('Saving discussion to database:', discussion);
-        console.log('Discussion childId type:', typeof discussion.childId, 'value:', discussion.childId);
+        console.log('💬 DEBUG: Processing discussion:', {
+          id: discussion._id,
+          childId: discussion.childId,
+          topic: discussion.topic,
+          discussionDate: discussion.discussionDate
+        });
+
+        // Validate child exists in available children
+        // Handle both object and string childId formats
+        const discussionChildId = typeof discussion.childId === 'object' && discussion.childId?._id
+          ? discussion.childId._id
+          : discussion.childId;
+        const childExists = availableChildren.some(child => child.id === discussionChildId);
+        console.log('👶 DEBUG: Child validation - discussion childId:', discussion.childId, 'extracted ID:', discussionChildId, 'exists in availableChildren:', childExists);
+
+        if (!childExists) {
+          console.error('🚫 DEBUG: Child not found in availableChildren! Skipping this discussion.');
+          console.error('🚫 DEBUG: Available children IDs:', availableChildren.map(c => c.id));
+          continue; // Skip this discussion
+        }
+
         const requestBody = {
           ...discussion,
           familyId: currentUser.familyId,
           parentId: currentUser.id
         };
-        console.log('Request body being sent:', JSON.stringify(requestBody, null, 2));
+
+        console.log('📤 DEBUG: Final request body:', JSON.stringify(requestBody, null, 2));
+        console.log('🌐 DEBUG: API URL:', `${API_URL}/family-discussions`);
+        console.log('🔐 DEBUG: Headers:', {
+          'Content-Type': headers['Content-Type'],
+          'Authorization': headers.Authorization ? 'Bearer [TOKEN]' : 'none'
+        });
+
         const response = await fetch(`${API_URL}/family-discussions`, {
           method: 'POST',
           headers,
           body: JSON.stringify(requestBody),
         });
-        console.log('Discussion save response status:', response.status);
+
+        console.log('📥 DEBUG: Discussion save response status:', response.status);
+        console.log('📥 DEBUG: Response headers:', Object.fromEntries(response.headers.entries()));
+
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Failed to save discussion:', response.status, errorText);
+          console.error('❌ DEBUG: Failed to save discussion:', response.status, errorText);
+          console.error('❌ DEBUG: Request body that failed:', JSON.stringify(requestBody, null, 2));
         } else {
-          console.log('Discussion saved successfully');
+          const successData = await response.json();
+          console.log('✅ DEBUG: Discussion saved successfully:', successData);
         }
       }
-      console.log('All discussions saved to database');
+      console.log('🎉 DEBUG: All discussions processed');
     } catch (error) {
-      console.error('Error saving discussions to database:', error);
+      console.error('💥 DEBUG: Error saving discussions to database:', error);
       // Data already saved to AsyncStorage, so no additional fallback needed
     }
   };

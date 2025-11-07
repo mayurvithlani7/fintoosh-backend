@@ -2094,10 +2094,11 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       if (user) {
         user.currentPoints = (user.currentPoints || 0) + (approval.amount || 0);
         const txn = new Transaction({
-          type: 'points-request',
-          description: `Parent approved ${approval.amount} points (Request)`,
+          type: 'points-move',
+          description: `Moved ${approval.amount} points from ${approval.from} to ${approval.to} (Parent Approved Request)`,
           amount: approval.amount,
           user: user._id,
+          familyId: approval.familyId,
           date: new Date().toLocaleString(),
         });
         await txn.save();

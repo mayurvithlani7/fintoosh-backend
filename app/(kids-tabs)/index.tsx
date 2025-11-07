@@ -1375,19 +1375,19 @@ contentContainerStyle={{
                   {formatAmount(jar.totalValue || 0)}
                 </Text>
 
-                {/* Available & Pending - Smaller, color coded */}
-                <View style={{
-                  alignItems: 'center',
-                  marginBottom: 4
-                }}>
-                  <Text style={{
-                    fontSize: 9,
-                    color: themeColors.success, // Green for available
-                    fontWeight: '600'
+                {/* Available & Pending - Smaller, color coded - Only show when there are pending points */}
+                {(jar.pendingValue || 0) > 0 && (
+                  <View style={{
+                    alignItems: 'center',
+                    marginBottom: 4
                   }}>
-                    {jar.value ?? 0} avail
-                  </Text>
-                  {(jar.pendingValue || 0) > 0 && (
+                    <Text style={{
+                      fontSize: 9,
+                      color: themeColors.success, // Green for available
+                      fontWeight: '600'
+                    }}>
+                      {jar.value ?? 0} avail
+                    </Text>
                     <Text style={{
                       fontSize: 9,
                       color: themeColors.warning, // Orange for pending
@@ -1395,8 +1395,8 @@ contentContainerStyle={{
                     }}>
                       {jar.pendingValue ?? 0} pend
                     </Text>
-                  )}
-                </View>
+                  </View>
+                )}
 
                 {/* Label */}
                 <Text style={{

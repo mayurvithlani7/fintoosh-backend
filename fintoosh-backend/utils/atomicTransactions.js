@@ -57,12 +57,13 @@ async function executeFinancialTransaction(operation) {
 /**
  * Atomic point transfer between jars
  * @param {string} userId - User ID (custom or ObjectId)
+ * @param {string} familyId - Family ID for data isolation
  * @param {string} fromJar - Source jar (current, save, spend, donate, invest)
  * @param {string} toJar - Destination jar
  * @param {number} amount - Amount to transfer
  * @param {Object} transactionData - Additional transaction data
  */
-async function atomicPointTransfer(userId, fromJar, toJar, amount, transactionData = {}) {
+async function atomicPointTransfer(userId, familyId, fromJar, toJar, amount, transactionData = {}) {
   const userObjectId = await resolveUserObjectId(userId);
 
   return executeFinancialTransaction(async (session) => {
@@ -100,6 +101,7 @@ async function atomicPointTransfer(userId, fromJar, toJar, amount, transactionDa
       fromJar: fromJar,
       toJar: toJar,
       user: userObjectId,
+      familyId: familyId,
       ...transactionData
     }], { session });
 
@@ -113,11 +115,12 @@ async function atomicPointTransfer(userId, fromJar, toJar, amount, transactionDa
 /**
  * Atomic point reservation for pending operations (rewards, goals, etc.)
  * @param {string} userId - User ID (custom or ObjectId)
+ * @param {string} familyId - Family ID for data isolation
  * @param {string} jar - Jar to reserve from
  * @param {number} amount - Amount to reserve
  * @param {Object} transactionData - Additional transaction data
  */
-async function atomicReservePoints(userId, jar, amount, transactionData = {}) {
+async function atomicReservePoints(userId, familyId, jar, amount, transactionData = {}) {
   const userObjectId = await resolveUserObjectId(userId);
 
   return executeFinancialTransaction(async (session) => {
@@ -147,6 +150,7 @@ async function atomicReservePoints(userId, jar, amount, transactionData = {}) {
       amount: -amount, // Negative for reservation
       fromJar: jar,
       user: userObjectId,
+      familyId: familyId,
       ...transactionData
     }], { session });
 
@@ -160,11 +164,12 @@ async function atomicReservePoints(userId, jar, amount, transactionData = {}) {
 /**
  * Atomic approval of reserved points (finalize deduction)
  * @param {string} userId - User ID (custom or ObjectId)
+ * @param {string} familyId - Family ID for data isolation
  * @param {string} jar - Jar where points were reserved
  * @param {number} amount - Amount to approve/deduct
  * @param {Object} transactionData - Additional transaction data
  */
-async function atomicApproveReservedPoints(userId, jar, amount, transactionData = {}) {
+async function atomicApproveReservedPoints(userId, familyId, jar, amount, transactionData = {}) {
   const userObjectId = await resolveUserObjectId(userId);
 
   return executeFinancialTransaction(async (session) => {
@@ -194,6 +199,7 @@ async function atomicApproveReservedPoints(userId, jar, amount, transactionData 
       amount: -amount,
       fromJar: jar,
       user: userObjectId,
+      familyId: familyId,
       ...transactionData
     }], { session });
 
@@ -207,11 +213,12 @@ async function atomicApproveReservedPoints(userId, jar, amount, transactionData 
 /**
  * Atomic release of reserved points (deny/cancel operation)
  * @param {string} userId - User ID (custom or ObjectId)
+ * @param {string} familyId - Family ID for data isolation
  * @param {string} jar - Jar where points were reserved
  * @param {number} amount - Amount to release back
  * @param {Object} transactionData - Additional transaction data
  */
-async function atomicReleaseReservedPoints(userId, jar, amount, transactionData = {}) {
+async function atomicReleaseReservedPoints(userId, familyId, jar, amount, transactionData = {}) {
   const userObjectId = await resolveUserObjectId(userId);
 
   return executeFinancialTransaction(async (session) => {
@@ -237,6 +244,7 @@ async function atomicReleaseReservedPoints(userId, jar, amount, transactionData 
       amount: amount, // Positive for release
       toJar: jar,
       user: userObjectId,
+      familyId: familyId,
       ...transactionData
     }], { session });
 
@@ -250,11 +258,12 @@ async function atomicReleaseReservedPoints(userId, jar, amount, transactionData 
 /**
  * Atomic direct points award/deduction (admin operations, chores, etc.)
  * @param {string} userId - User ID (custom or ObjectId)
+ * @param {string} familyId - Family ID for data isolation
  * @param {string} jar - Jar to modify
  * @param {number} amount - Amount to add (positive) or deduct (negative)
  * @param {Object} transactionData - Additional transaction data
  */
-async function atomicModifyPoints(userId, jar, amount, transactionData = {}) {
+async function atomicModifyPoints(userId, familyId, jar, amount, transactionData = {}) {
   const userObjectId = await resolveUserObjectId(userId);
 
   return executeFinancialTransaction(async (session) => {
@@ -280,6 +289,7 @@ async function atomicModifyPoints(userId, jar, amount, transactionData = {}) {
       amount: amount,
       [amount > 0 ? 'toJar' : 'fromJar']: jar,
       user: userObjectId,
+      familyId: familyId,
       ...transactionData
     }], { session });
 
@@ -294,12 +304,13 @@ async function atomicModifyPoints(userId, jar, amount, transactionData = {}) {
  * Atomic points award with jar splitting (unified helper for common operations)
  * Handles point distribution across multiple jars based on split configuration
  * @param {string} userId - User ID (custom or ObjectId)
+ * @param {string} familyId - Family ID for data isolation
  * @param {number} totalAmount - Total points to award
  * @param {Object} splitConfig - Split configuration { current: 40, save: 30, spend: 15, donate: 10, invest: 5 }
  * @param {Object} transactionData - Additional transaction data
  * @returns {Promise} - Result with user and array of transactions
  */
-async function atomicAwardPointsWithSplit(userId, totalAmount, splitConfig, transactionData = {}) {
+async function atomicAwardPointsWithSplit(userId, familyId, totalAmount, splitConfig, transactionData = {}) {
   const userObjectId = await resolveUserObjectId(userId);
 
   return executeFinancialTransaction(async (session) => {
@@ -322,6 +333,7 @@ async function atomicAwardPointsWithSplit(userId, totalAmount, splitConfig, tran
             amount: pointsForJar,
             toJar: jar,
             user: userObjectId,
+            familyId: familyId,
             ...transactionData
           });
         }

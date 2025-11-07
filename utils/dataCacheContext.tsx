@@ -85,8 +85,22 @@ export const DataCacheProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.log('fetchChildData: user exists:', !!currentUser, 'token exists:', !!token, 'childId:', childId);
 
       if (!currentUser || !token) {
-        throw new Error('No user session found');
+        console.log('fetchChildData: No user session found, setting childData to null');
+        setChildData(null);
+        setLastFetched(prev => ({ ...prev, childData: Math.floor(Date.now() / 1000) }));
+        setChildDataStatus('idle');
+        return;
       }
+
+      // If user is a child, return their own data
+      if (currentUser.role === 'child') {
+        console.log('fetchChildData: User is child, returning self data');
+        setChildData(currentUser);
+        setLastFetched(prev => ({ ...prev, childData: Math.floor(Date.now() / 1000) }));
+        setChildDataStatus('idle');
+        return;
+      }
+
       const familyId = currentUser.familyId;
       const userId = currentUser.id;
 

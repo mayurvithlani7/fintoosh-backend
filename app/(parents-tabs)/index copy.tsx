@@ -595,130 +595,100 @@ export default function ParentsOverviewScreen() {
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Pocket Money: ${(childData.currentPoints || 0)} total points, ${(childData.currentPoints || 0) - (childData.pendingCurrentPoints || 0)} available, ${(childData.pendingCurrentPoints || 0)} pending`}
+                accessibilityLabel={`Pocket Money: ${(childData.currentPoints || 0) - (childData.pendingCurrentPoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/points')}
               >
-                <View style={[styles.compactJar, { backgroundColor: themeColors.card, height: 110, paddingVertical: 8 }]}>
+                <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>🤑</Text>
                   <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
-                    {childData.currentPoints || 0}
+                    {(childData.currentPoints || 0) - (childData.pendingCurrentPoints || 0)}
                   </Text>
-                  {/* Available & Pending - Smaller, color coded - Only show when there are pending points */}
-                  {(childData.pendingCurrentPoints || 0) > 0 && (
-                    <View style={{ alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ fontSize: 9, color: themeColors.success, fontWeight: '600' }}>
-                        {(childData.currentPoints || 0) - (childData.pendingCurrentPoints || 0)} avail
-                      </Text>
-                      <Text style={{ fontSize: 9, color: themeColors.warning, fontWeight: '600' }}>
-                        {childData.pendingCurrentPoints} pend
-                      </Text>
-                    </View>
-                  )}
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Pocket</Text>
+                  {(childData.pendingCurrentPoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingCurrentPoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Savings Pot: ${(childData.savePoints || 0)} total points, ${(childData.savePoints || 0) - (childData.pendingSavePoints || 0)} available, ${(childData.pendingSavePoints || 0)} pending`}
+                accessibilityLabel={`Savings Pot: ${(childData.savePoints || 0) - (childData.pendingSavePoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/goals')}
               >
-                <View style={[styles.compactJar, { backgroundColor: themeColors.card, height: 110, paddingVertical: 8 }]}>
+                <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>🐷</Text>
                   <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
-                    {childData.savePoints || 0}
+                    {(childData.savePoints || 0) - (childData.pendingSavePoints || 0)}
                   </Text>
-                  {/* Available & Pending - Smaller, color coded - Only show when there are pending points */}
-                  {(childData.pendingSavePoints || 0) > 0 && (
-                    <View style={{ alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ fontSize: 9, color: themeColors.success, fontWeight: '600' }}>
-                        {(childData.savePoints || 0) - (childData.pendingSavePoints || 0)} avail
-                      </Text>
-                      <Text style={{ fontSize: 9, color: themeColors.warning, fontWeight: '600' }}>
-                        {childData.pendingSavePoints} pend
-                      </Text>
-                    </View>
-                  )}
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Savings</Text>
+                  {(childData.pendingSavePoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingSavePoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Spending Pot: ${(childData.spendPoints || 0)} total points, ${(childData.spendPoints || 0) - (childData.pendingSpendPoints || 0)} available, ${(childData.pendingSpendPoints || 0)} pending`}
+                accessibilityLabel={`Spending Pot: ${(childData.spendPoints || 0) - (childData.pendingSpendPoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/requests')}
               >
-                <View style={[styles.compactJar, { backgroundColor: themeColors.card, height: 110, paddingVertical: 8 }]}>
+                <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>🛍️</Text>
                   <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
-                    {childData.spendPoints || 0}
+                    {(childData.spendPoints || 0) - (childData.pendingSpendPoints || 0)}
                   </Text>
-                  {/* Available & Pending - Smaller, color coded - Only show when there are pending points */}
-                  {(childData.pendingSpendPoints || 0) > 0 && (
-                    <View style={{ alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ fontSize: 9, color: themeColors.success, fontWeight: '600' }}>
-                        {(childData.spendPoints || 0) - (childData.pendingSpendPoints || 0)} avail
-                      </Text>
-                      <Text style={{ fontSize: 9, color: themeColors.warning, fontWeight: '600' }}>
-                        {childData.pendingSpendPoints} pend
-                      </Text>
-                    </View>
-                  )}
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Spending</Text>
+                  {(childData.pendingSpendPoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingSpendPoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Help Others Pot: ${(childData.donatePoints || 0)} total points, ${(childData.donatePoints || 0) - (childData.pendingDonatePoints || 0)} available, ${(childData.pendingDonatePoints || 0)} pending`}
+                accessibilityLabel={`Help Others Pot: ${(childData.donatePoints || 0) - (childData.pendingDonatePoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/points')}
               >
-                <View style={[styles.compactJar, { backgroundColor: themeColors.card, height: 110, paddingVertical: 8 }]}>
+                <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>❤️</Text>
                   <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
-                    {childData.donatePoints || 0}
+                    {(childData.donatePoints || 0) - (childData.pendingDonatePoints || 0)}
                   </Text>
-                  {/* Available & Pending - Smaller, color coded - Only show when there are pending points */}
-                  {(childData.pendingDonatePoints || 0) > 0 && (
-                    <View style={{ alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ fontSize: 9, color: themeColors.success, fontWeight: '600' }}>
-                        {(childData.donatePoints || 0) - (childData.pendingDonatePoints || 0)} avail
-                      </Text>
-                      <Text style={{ fontSize: 9, color: themeColors.warning, fontWeight: '600' }}>
-                        {childData.pendingDonatePoints} pend
-                      </Text>
-                    </View>
-                  )}
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Help Others</Text>
+                  {(childData.pendingDonatePoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingDonatePoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.compactJarWrapper}
                 accessibilityRole="button"
-                accessibilityLabel={`Grow Money Pot: ${(childData.investPoints || 0)} total points, ${(childData.investPoints || 0) - (childData.pendingInvestPoints || 0)} available, ${(childData.pendingInvestPoints || 0)} pending`}
+                accessibilityLabel={`Grow Money Pot: ${(childData.investPoints || 0) - (childData.pendingInvestPoints || 0)} available points`}
                 onPress={() => router.push('/(parents-tabs)/points')}
               >
-                <View style={[styles.compactJar, { backgroundColor: themeColors.card, height: 110, paddingVertical: 8 }]}>
+                <View style={[styles.compactJar, { backgroundColor: themeColors.card }]}>
                   <Text style={styles.compactJarEmoji}>📈</Text>
                   <Text style={[styles.compactJarValue, { color: themeColors.text }]}>
-                    {childData.investPoints || 0}
+                    {(childData.investPoints || 0) - (childData.pendingInvestPoints || 0)}
                   </Text>
-                  {/* Available & Pending - Smaller, color coded - Only show when there are pending points */}
-                  {(childData.pendingInvestPoints || 0) > 0 && (
-                    <View style={{ alignItems: 'center', marginBottom: 4 }}>
-                      <Text style={{ fontSize: 9, color: themeColors.success, fontWeight: '600' }}>
-                        {(childData.investPoints || 0) - (childData.pendingInvestPoints || 0)} avail
-                      </Text>
-                      <Text style={{ fontSize: 9, color: themeColors.warning, fontWeight: '600' }}>
-                        {childData.pendingInvestPoints} pend
-                      </Text>
-                    </View>
-                  )}
                   <Text style={[styles.compactJarLabel, { color: themeColors.textSecondary }]}>Grow Money</Text>
+                  {(childData.pendingInvestPoints || 0) > 0 && (
+                    <Text style={{ fontSize: 8, color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
+                      {childData.pendingInvestPoints} pending
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
             </ScrollView>

@@ -420,11 +420,20 @@ router.post('/verify-otp', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // Remove password from response
+    // Remove password from response and include complete user data like regular login
     const userResponse = user.toObject();
     delete userResponse.password;
     delete userResponse.loginAttempts;
     delete userResponse.lockoutUntil;
+
+    // Ensure complete user data is returned (same as regular login)
+    userResponse.familyId = user.familyId;
+    userResponse.caregivers = user.caregivers || [];
+    userResponse.parentId = user.parentId;
+    userResponse.goals = user.goals || [];
+    userResponse.chores = user.chores || [];
+    userResponse.rewards = user.rewards || [];
+    userResponse.transactions = user.transactions || [];
 
     res.json({
       user: userResponse,

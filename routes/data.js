@@ -68,6 +68,7 @@ router.post('/transactions', auth, requireParent, async (req, res) => {
 
     const transaction = new Transaction({
       user: user._id,
+      familyId: user.familyId,
       type,
       description,
       amount,
