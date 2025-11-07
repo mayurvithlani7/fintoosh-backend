@@ -1371,13 +1371,20 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
     const ApprovalRequest = require('../models/ApprovalRequest');
     const approval = await ApprovalRequest.findById(req.params.requestId);
     if (!approval) return res.status(404).json({ message: 'Request not found' });
+
+    console.log("DEBUG: PUT /requests/:requestId - Full approval object:", JSON.stringify(approval, null, 2));
+    console.log("DEBUG: PUT /requests/:requestId - approval.familyId:", approval.familyId);
+    console.log("DEBUG: PUT /requests/:requestId - req.user.familyId:", req.user.familyId);
     console.log("DEBUG: PUT /requests/:requestId", { statusFromFrontend: status, approvalType: approval.type, approvalStatus: approval.status, requestId: approval._id });
     console.log("DEBUG: Approving type:", approval.type, "RequestID:", approval._id);
 
     // Check that the request belongs to the authenticated parent's family
+    console.log("DEBUG: Family ID check - approval.familyId:", approval.familyId, "req.user.familyId:", req.user.familyId, "comparison:", approval.familyId !== req.user.familyId);
     if (approval.familyId !== req.user.familyId) {
+      console.log("DEBUG: Authorization failed - family ID mismatch");
       return res.status(403).json({ message: 'Not authorized to modify this request' });
     }
+    console.log("DEBUG: Authorization passed - proceeding with approval");
 
     // Only allow messaging if status is changing from 'Pending'
     if (parentComment && parentComment.trim() && approval.status === 'Pending' && (status === 'Approved' || status === 'Denied')) {
