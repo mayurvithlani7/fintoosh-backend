@@ -653,14 +653,17 @@ function ChoresSection() {
           console.error('Error updating chore achievement:', error);
         }
 
-        // Reload data to get final state
-        await loadChoresUserAndRequests();
-
+        // Show success message immediately (before any reload)
         if (data.autoApproved) {
           showMessage("Points added! (Auto-Approved)", 'success');
         } else {
           showMessage("Chore claimed! Awaiting parent approval...", 'success');
         }
+
+        // Background sync: Update data silently after 2 seconds (don't block UI)
+        setTimeout(() => {
+          loadChoresUserAndRequests();
+        }, 2000);
 
       } catch (requestError) {
         console.error('❌ Network error during approval request:', requestError);

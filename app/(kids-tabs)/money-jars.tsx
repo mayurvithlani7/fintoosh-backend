@@ -648,12 +648,12 @@ const createStyles = (themeColors: any) => StyleSheet.create({
   jarLabel: {
     ...TYPOGRAPHY.body,
     marginBottom: 2,
-    color: '#F59E0B',
+    // Color will be set dynamically based on jar background
   },
   jarPoints: {
     ...TYPOGRAPHY.h2,
     marginBottom: 1,
-    color: '#FFFFFF', // White text for contrast on dark jar backgrounds
+    // Color will be set dynamically based on jar background
   },
   formRow: {
     flexDirection: "row",
@@ -1466,20 +1466,23 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
           : jar
       ));
 
-      // Update achievement for making a donation request
-      try {
-        const { updateAchievementProgress } = await import('../../components/AchievementSystem');
-        await updateAchievementProgress('charity-helper', amount);
-      } catch (error) {
-        console.error('Error updating charity achievement:', error);
-      }
-
+      // 🚀 OPTIMIZATION: Show success message and reset form IMMEDIATELY
       showMessage(`Donation request sent to parent! ❤️ ${selectedCause?.label}`, 'success');
       setFromJar('');
       setDonationAmount('');
       setCause('');
       setDonationNote('');
       onDonationMade();
+
+      // 🚀 OPTIMIZATION: Move achievement updates to background (don't block UI)
+      setTimeout(async () => {
+        try {
+          const { updateAchievementProgress } = await import('../../components/AchievementSystem');
+          await updateAchievementProgress('charity-helper', amount);
+        } catch (error) {
+          console.error('Error updating charity achievement:', error);
+        }
+      }, 100);
 
     } catch (error) {
       console.error('Error making donation:', error);
@@ -1801,56 +1804,66 @@ function CharityDonationSection({ jars, onDonationMade }: { jars: any[], onDonat
 
       {/* JARS DISPLAY */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-evenly", marginVertical: 18 }}>
-        {jars.map(jar => (
-            <View
-              key={jar.label}
-              style={[
-                styles.jarBox,
-                { backgroundColor: jar.color || themeColors.surface, borderColor: themeColors.border }
-              ]}
-            >
-              <Text style={{ ...TYPOGRAPHY.h1, marginBottom: 3 }}>{jar.icon}</Text>
-              <Text style={[styles.jarPoints]}>{formatAmount(jar.value)}</Text>
-              <Text style={[styles.jarLabel]}>{jar.label}</Text>
-              {jar.pendingValue > 0 && (
-                <View style={{
-                  backgroundColor: '#FFFFFF', // White background for contrast on dark jar backgrounds
-                  borderRadius: 4,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  marginTop: 2,
-                  borderWidth: 1,
-                  borderColor: themeColors.warning + '40'
-                }}>
-                  <Text style={{
-                    ...TYPOGRAPHY.caption,
-                    color: themeColors.warning, // Keep dark orange text
-                    textAlign: 'center'
-                  }}>
-                    {formatAmount(jar.totalValue)} total, {formatAmount(jar.pendingValue)} pending
-                  </Text>
-                </View>
-              )}
-              {showDenominations && (
-                <RupeeDenominations amount={convertToINR(jar.value)} />
-              )}
-              {jar.key === "save" && interestRule && (
+        {jars.map(jar => {
+            // Calculate optimal text color for contrast
+            const optimalTextColor = getOptimalTextColor(jar.color || themeColors.surface);
+            return (
+              <View
+                key={jar.label}
+                style={[
+                  styles.jarBox,
+                  { backgroundColor: jar.color || themeColors.surface, borderColor: themeColors.border }
+                ]}
+              >
                 <Text style={{
-                  marginTop: 4,
-                  ...TYPOGRAPHY.bodySmall,
-                  color: themeColors.success, // Keep dark green text
-                  backgroundColor: '#FFFFFF', // White background for contrast on dark jar backgrounds
-                  borderRadius: 5,
-                  paddingHorizontal: 7,
-                  paddingVertical: 3
-                }}>
-                  🏦 Your points are earning!
-                  {"\n"}
-                  Next payout in {daysUntilPayout(interestRule)} days
-                </Text>
-              )}
-            </View>
-        ))}
+                  ...TYPOGRAPHY.h1,
+                  marginBottom: 3,
+                  color: optimalTextColor // ✅ Dynamic color for icon
+                }}>{jar.icon}</Text>
+                <Text style={[styles.jarPoints, { color: optimalTextColor }]}>{formatAmount(jar.value)}</Text>
+                <Text style={[styles.jarLabel, { color: optimalTextColor }]}>{jar.label}</Text>
+                {jar.pendingValue > 0 && (
+                  <View style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.85)', // Increased opacity for maximum readability
+                    borderRadius: 6,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    marginTop: 2,
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.5)' // More visible white border
+                  }}>
+                    <Text style={{
+                      ...TYPOGRAPHY.caption,
+                      color: '#FFFFFF', // Always white text on dark background
+                      textAlign: 'center',
+                      fontWeight: '700', // Bolder text for better readability
+                      fontSize: 11 // Slightly larger text
+                    }}>
+                      {formatAmount(jar.totalValue)} total, {formatAmount(jar.pendingValue)} pending
+                    </Text>
+                  </View>
+                )}
+                {showDenominations && (
+                  <RupeeDenominations amount={convertToINR(jar.value)} />
+                )}
+                {jar.key === "save" && interestRule && (
+                  <Text style={{
+                    marginTop: 4,
+                    ...TYPOGRAPHY.bodySmall,
+                    color: themeColors.success, // Keep dark green text
+                    backgroundColor: '#FFFFFF', // White background for contrast on dark jar backgrounds
+                    borderRadius: 5,
+                    paddingHorizontal: 7,
+                    paddingVertical: 3
+                  }}>
+                    🏦 Your points are earning!
+                    {"\n"}
+                    Next payout in {daysUntilPayout(interestRule)} days
+                  </Text>
+                )}
+              </View>
+            );
+        })}
       </View>
 
       {/* Section Divider */}

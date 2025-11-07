@@ -94,7 +94,7 @@ async function atomicPointTransfer(userId, fromJar, toJar, amount, transactionDa
 
     // Create transaction record atomically
     const transaction = await Transaction.create([{
-      type: 'points-move',
+      type: transactionData.type || 'points-move',
       description: transactionData.description || `Moved ${amount} points from ${fromJar} to ${toJar}`,
       amount: amount,
       fromJar: fromJar,
@@ -142,7 +142,7 @@ async function atomicReservePoints(userId, jar, amount, transactionData = {}) {
 
     // Create transaction record atomically
     const transaction = await Transaction.create([{
-      type: 'points-reserved',
+      type: transactionData.type || 'points-reserved',
       description: transactionData.description || `Reserved ${amount} points from ${jar} jar`,
       amount: -amount, // Negative for reservation
       fromJar: jar,
@@ -232,7 +232,7 @@ async function atomicReleaseReservedPoints(userId, jar, amount, transactionData 
 
     // Create transaction record atomically
     const transaction = await Transaction.create([{
-      type: 'points-released',
+      type: transactionData.type || 'points-released',
       description: transactionData.description || `Released ${amount} reserved points back to ${jar} jar`,
       amount: amount, // Positive for release
       toJar: jar,

@@ -267,14 +267,48 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
   // Collapsible section states
   const [goalsExpanded, setGoalsExpanded] = useState(true);
   const [showStaleWarning, , markRefreshed] = useStaleDataWarning();
+  // Refresh feedback states
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<string | null>(null);
   const { showMessage } = useCenteredMessage();
+
+  // Enhanced refresh function with visual feedback
+  const handleRefresh = React.useCallback(async () => {
+    if (refreshing) return; // Prevent multiple simultaneous refreshes
+
+    console.log('🔄 Starting manual refresh...');
+    setRefreshing(true);
+    setLastRefreshTime(null); // Clear previous timestamp during refresh
+
+    try {
+      await loadGoalsAndRewards(); // Load fresh data
+
+      // Update last refresh time
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      setLastRefreshTime(timeString);
+
+      // Show success feedback
+      showMessage('Goals refreshed successfully!', 'success');
+
+    } catch (error) {
+      console.error('❌ Refresh failed:', error);
+      showMessage('Failed to refresh goals', 'error');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshing, showMessage]);
 
   // Watch for refresh trigger changes from parent
   useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
-      loadGoalsAndRewards();
+      handleRefresh();
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, handleRefresh]);
 
   // Handle template selection
   const handleTemplateSelect = async (template: any) => {
@@ -373,25 +407,42 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
     return jarNames[jar] || jar;
   }
 
-  // Load goals, rewards, and requests on component mount
+  // Load goals, rewards, and requests on component mount - OPTIMIZED VERSION
   const loadGoalsAndRewards = async () => {
-    console.log('🔄 Goals: Starting loadGoalsAndRewards...');
+    console.log('🚀 Goals: Starting OPTIMIZED loadGoalsAndRewards...');
+    const startTime = Date.now();
+
     try {
       const token = await getAuthToken();
       const user = await getUser();
 
-      console.log('🔄 Goals: Token exists:', !!token, 'User exists:', !!user);
+      console.log('🚀 Goals: Token exists:', !!token, 'User exists:', !!user);
 
       if (!token || !user) {
-        console.log('🔄 Goals: Missing token or user data');
+        console.log('🚀 Goals: Missing token or user data');
         setLoading(false);
         return;
       }
-      // Always fetch freshest user data from backend (not AsyncStorage!)
+
       const userId = user.id;
-      const userRes = await fetch(`${API_URL}/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+
+      // 🚀 OPTIMIZATION 1: PARALLEL API CALLS (instead of sequential)
+      console.log('🚀 Goals: Making parallel API calls...');
+      const [userRes, reqRes, goalsResponse] = await Promise.all([
+        fetch(`${API_URL}/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/requests/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/goals/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      ]);
+
+      console.log('🚀 Goals: Parallel API calls completed in', Date.now() - startTime, 'ms');
+
+      // Process user data
       if (!userRes.ok) {
         await handleApiError(userRes, { showError: (msg) => showMessage(msg, 'error'), feature: 'Goals - User Data' });
         setLoading(false);
@@ -400,24 +451,20 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
       const freshUserData = await userRes.json();
       setUserData(freshUserData);
 
-      // Load all approval requests first (needed for goal status logic)
-      const reqRes = await fetch(`${API_URL}/requests/${userId}`);
+      // Process requests
       let requestsData: any[] = [];
       if (reqRes.ok) {
         requestsData = await reqRes.json();
         setRequests(requestsData);
       }
 
-      // Load goals
-      const goalsResponse = await fetch(`${API_URL}/goals/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
+      // Process goals
       if (goalsResponse.ok) {
         const goalsData = await goalsResponse.json();
-        // Support for backend returning { data: [...] } OR a direct array (legacy)
         const goalsArray = Array.isArray(goalsData?.data) ? goalsData.data : Array.isArray(goalsData) ? goalsData : [];
-        console.log('[KIDS GOALS] Fetched goals from server:', JSON.stringify(goalsArray, null, 2));
+
+        console.log('🚀 Goals: Processed', goalsArray.length, 'goals in', Date.now() - startTime, 'ms');
+
         // Security check: All loaded goals must belong to this user (kid)
         if (
           user &&
@@ -430,91 +477,146 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
           if (typeof window !== 'undefined' && window.location) window.location.href = '/login';
           return;
         }
-        // Check for goal progress milestones and send notifications
-        if (userData && goalsArray.length > 0) {
-          for (const goal of goalsArray) {
-            const jarPoints = userData[goal.jar + "Points"] || 0;
-            const progressPercent = Math.floor((jarPoints / goal.targetAmount) * 100);
 
-            // Check for milestone achievements (25%, 50%, 75%, 90%)
-            const milestones = [25, 50, 75, 90];
-            for (const milestone of milestones) {
-              if (progressPercent >= milestone && progressPercent < milestone + 5) { // Allow some tolerance
-                // Check if we haven't notified about this milestone recently
-                const milestoneKey = `goal_${goal._id}_milestone_${milestone}`;
-                const lastNotified = await AsyncStorage.getItem(milestoneKey);
-                const now = Date.now();
-
-                if (!lastNotified || (now - parseInt(lastNotified)) > 24 * 60 * 60 * 1000) { // 24 hours
-                  NotificationService.scheduleGoalMilestoneNotification(goal.name, milestone);
-                  await AsyncStorage.setItem(milestoneKey, now.toString());
-                }
-                break; // Only send one milestone notification per goal check
-              }
-            }
-
-            // Check for goal completion
-            if (jarPoints >= goal.targetAmount && goal.status === "active") {
-              const completionKey = `goal_${goal._id}_completed`;
-              const lastNotified = await AsyncStorage.getItem(completionKey);
-
-              if (!lastNotified) {
-                NotificationService.scheduleGoalMilestoneNotification(goal.name, 100, true);
-                await AsyncStorage.setItem(completionKey, Date.now().toString());
-              }
-            }
-
-            // Check for deadline reminders
-            if (goal.deadline) {
-              const deadline = new Date(goal.deadline);
-              const now = new Date();
-              const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-              if (daysLeft > 0 && daysLeft <= 7) {
-                const reminderKey = `goal_${goal._id}_deadline_${daysLeft}`;
-                const lastNotified = await AsyncStorage.getItem(reminderKey);
-                const now = Date.now();
-
-                if (!lastNotified || (now - parseInt(lastNotified)) > 24 * 60 * 60 * 1000) { // 24 hours
-                  NotificationService.scheduleGoalDeadlineReminder(goal.name, daysLeft);
-                  await AsyncStorage.setItem(reminderKey, now.toString());
-                }
-              }
-            }
-
-            // Check for encouragement reminders for inactive goals
-            const lastActivityKey = `goal_${goal._id}_last_activity`;
-            const lastActivity = await AsyncStorage.getItem(lastActivityKey);
-            const now = Date.now();
-
-            if (lastActivity) {
-              const daysSinceActivity = Math.floor((now - parseInt(lastActivity)) / (1000 * 60 * 60 * 24));
-              if (daysSinceActivity >= 3 && goal.status === "active") {
-                const encouragementKey = `goal_${goal._id}_encouragement_${daysSinceActivity}`;
-                const lastEncouraged = await AsyncStorage.getItem(encouragementKey);
-
-                if (!lastEncouraged || (now - parseInt(lastEncouraged)) > 24 * 60 * 60 * 1000) {
-                  NotificationService.scheduleGoalEncouragementNotification(goal.name, daysSinceActivity);
-                  await AsyncStorage.setItem(encouragementKey, now.toString());
-                }
-              }
-            }
-
-            // Update last activity timestamp
-            await AsyncStorage.setItem(lastActivityKey, now.toString());
-          }
-        }
-
-        // Goals now have the correct status from the database, so we can use them directly
+        // 🚀 OPTIMIZATION 2: Set goals immediately for instant UI update
         setGoals(goalsArray);
+
+        // 🚀 OPTIMIZATION 3: Move heavy milestone processing to background
+        // This prevents blocking the UI with AsyncStorage operations
+        setTimeout(() => {
+          processGoalMilestones(goalsArray, freshUserData);
+        }, 100);
+
       }
 
+      console.log('🚀 Goals: Core data loaded in', Date.now() - startTime, 'ms');
 
     } catch (error) {
-      console.error('Error loading goals:', error);
+      console.error('❌ Error loading goals:', error);
       showMessage('Failed to load goals.', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 🚀 OPTIMIZATION: Background processing for milestones and notifications
+  const processGoalMilestones = async (goalsArray: any[], userData: any) => {
+    if (!goalsArray.length || !userData) return;
+
+    console.log('🔄 Processing milestones for', goalsArray.length, 'goals in background...');
+
+    try {
+      // Batch AsyncStorage operations for better performance
+      const storageOperations = [];
+
+      for (const goal of goalsArray) {
+        const jarPoints = userData[goal.jar + "Points"] || 0;
+        const progressPercent = Math.floor((jarPoints / goal.targetAmount) * 100);
+
+        // Check for milestone achievements (25%, 50%, 75%, 90%)
+        const milestones = [25, 50, 75, 90];
+        for (const milestone of milestones) {
+          if (progressPercent >= milestone && progressPercent < milestone + 5) {
+            const milestoneKey = `goal_${goal._id}_milestone_${milestone}`;
+            storageOperations.push({
+              key: milestoneKey,
+              action: 'check_and_notify',
+              goal: goal,
+              milestone: milestone as number
+            });
+            break;
+          }
+        }
+
+        // Check for goal completion
+        if (jarPoints >= goal.targetAmount && goal.status === "active") {
+          const completionKey = `goal_${goal._id}_completed`;
+          storageOperations.push({
+            key: completionKey,
+            action: 'completion_check',
+            goal: goal
+          });
+        }
+
+        // Check for deadline reminders
+        if (goal.deadline) {
+          const deadline = new Date(goal.deadline);
+          const now = new Date();
+          const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+          if (daysLeft > 0 && daysLeft <= 7) {
+            const reminderKey = `goal_${goal._id}_deadline_${daysLeft}`;
+            storageOperations.push({
+              key: reminderKey,
+              action: 'deadline_check',
+              goal: goal,
+              daysLeft: daysLeft
+            });
+          }
+        }
+
+        // Update last activity timestamp
+        const lastActivityKey = `goal_${goal._id}_last_activity`;
+        storageOperations.push({
+          key: lastActivityKey,
+          action: 'update_activity',
+          goal: goal
+        });
+      }
+
+      // Process storage operations in batches to reduce blocking
+      for (let i = 0; i < storageOperations.length; i += 5) { // Process 5 at a time
+        const batch = storageOperations.slice(i, i + 5);
+        await Promise.all(batch.map(async (op) => {
+          try {
+            switch (op.action) {
+              case 'check_and_notify':
+                const lastNotified = await AsyncStorage.getItem(op.key);
+                const currentTime = Date.now();
+                if (!lastNotified || (currentTime - parseInt(lastNotified || '0')) > 24 * 60 * 60 * 1000) {
+                  const milestoneNum = op.milestone as number;
+                  NotificationService.scheduleGoalMilestoneNotification(op.goal.name, milestoneNum);
+                  await AsyncStorage.setItem(op.key, currentTime.toString());
+                }
+                break;
+
+              case 'completion_check':
+                const lastCompletion = await AsyncStorage.getItem(op.key);
+                if (!lastCompletion) {
+                  NotificationService.scheduleGoalMilestoneNotification(op.goal.name, 100, true);
+                  await AsyncStorage.setItem(op.key, Date.now().toString());
+                }
+                break;
+
+              case 'deadline_check':
+                const lastReminder = await AsyncStorage.getItem(op.key);
+                const reminderTime = Date.now();
+                if (!lastReminder || (reminderTime - parseInt(lastReminder || '0')) > 24 * 60 * 60 * 1000) {
+                  const daysLeftNum = op.daysLeft ? Number(op.daysLeft) : 0;
+                  NotificationService.scheduleGoalDeadlineReminder(op.goal.name, daysLeftNum);
+                  await AsyncStorage.setItem(op.key, reminderTime.toString());
+                }
+                break;
+
+              case 'update_activity':
+                await AsyncStorage.setItem(op.key, Date.now().toString());
+                break;
+            }
+          } catch (error) {
+            console.error('Error processing storage operation:', error);
+          }
+        }));
+
+        // Small delay between batches to prevent overwhelming AsyncStorage
+        if (i + 5 < storageOperations.length) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      }
+
+      console.log('✅ Background milestone processing completed');
+
+    } catch (error) {
+      console.error('❌ Error in background milestone processing:', error);
     }
   };
 
@@ -1033,6 +1135,29 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Refresh Progress Indicator */}
+      {refreshing && (
+        <View style={{
+          backgroundColor: themeColors.primary + '15',
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          marginBottom: MOBILE_LAYOUT.itemSpacing,
+          borderRadius: MOBILE_LAYOUT.borderRadius,
+          borderWidth: 1,
+          borderColor: themeColors.primary + '30',
+          width: MOBILE_LAYOUT.containerWidth,
+        }}>
+          <Text style={{
+            ...TYPOGRAPHY.bodySmall,
+            color: themeColors.primary,
+            textAlign: 'center',
+            fontFamily: FONTS.primary.semiBold
+          }}>
+            🔄 Refreshing your goals...
+          </Text>
+        </View>
+      )}
+
       {/* Quick Actions Header */}
       <View style={{
         ...MOBILE_STYLES.card,
@@ -1064,21 +1189,36 @@ function KidGoalsRewardsSection({ refreshTrigger, onRefresh }: { refreshTrigger?
         <TouchableOpacity
           style={{
             ...MOBILE_STYLES.primaryButton,
-            backgroundColor: themeColors.secondary,
+            backgroundColor: refreshing ? themeColors.surface : themeColors.secondary,
           }}
-          onPress={onRefresh}
+          onPress={handleRefresh}
+          disabled={refreshing}
           accessibilityRole="button"
-          accessibilityLabel="Refresh goals"
-          accessibilityHint="Double tap to reload your goals"
+          accessibilityLabel={refreshing ? "Refreshing goals" : "Refresh goals"}
+          accessibilityHint={refreshing ? "Goals are being refreshed" : "Double tap to reload your goals"}
+          accessibilityState={{ disabled: refreshing }}
         >
           <Text style={{
             ...MOBILE_STYLES.body,
-            color: themeColors.card,
+            color: refreshing ? themeColors.textSecondary : themeColors.card,
             fontWeight: '600'
           }}>
-            🔄 Refresh Goals
+            {refreshing ? '⏳ Refreshing...' : '🔄 Refresh Goals'}
           </Text>
         </TouchableOpacity>
+
+        {/* Last Refresh Time */}
+        {lastRefreshTime && (
+          <Text style={{
+            ...TYPOGRAPHY.caption,
+            color: themeColors.textSecondary,
+            textAlign: 'center',
+            marginTop: MOBILE_LAYOUT.itemSpacing,
+            fontFamily: FONTS.primary.medium
+          }}>
+            Last updated: {lastRefreshTime}
+          </Text>
+        )}
       </View>
 
       {/* Goals Section - Always Visible */}
