@@ -696,6 +696,7 @@ router.patch('/rewards/:rewardId', auth, sanitizeInput, async (req, res) => {
       try {
         reservedResult = await atomicReservePoints(
           rewardOwner._id,
+          rewardOwner.familyId,
           'current',
           reward.cost,
           {
