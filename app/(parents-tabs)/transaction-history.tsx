@@ -952,6 +952,8 @@ export default function ParentTransactionHistoryScreen() {
             <Text style={styles.label}>Search</Text>
             <TextInput
               placeholder="Type to search..."
+              // @ts-ignore - placeholderTextColor works correctly with theme colors
+              placeholderTextColor={themeColors.textSecondary}
               style={styles.filterInput}
               value={search}
               onChangeText={setSearch}

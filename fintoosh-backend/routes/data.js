@@ -1735,9 +1735,37 @@ router.get('/requests', auth, requireParent, async (req, res) => {
     const foundUsers = await User.find({ id: { $in: childIds } }, 'id name');
     foundUsers.forEach(u => { usersById[u.id] = u.name; });
 
-    const enriched = requests.map(req => ({
-      ...req.toObject(),
-      userName: usersById[req.childId] || 'Unknown User'
+    // Enrich requests with current balances for move-points requests and user names
+    const enriched = await Promise.all(requests.map(async (req) => {
+      const enrichedReq = {
+        ...req.toObject(),
+        userName: usersById[req.childId] || 'Unknown User'
+      };
+
+      // For move-points requests, fetch current balances
+      if (req.type === 'move-points' || req.type === 'points-move') {
+        try {
+          const childUser = await User.findOne({ id: req.childId });
+          if (childUser) {
+            // Calculate current available balances (total - pending)
+            const fromField = req.from + 'Points';
+            const toField = req.to + 'Points';
+            const pendingFromField = 'pending' + req.from.charAt(0).toUpperCase() + req.from.slice(1) + 'Points';
+            const pendingToField = 'pending' + req.to.charAt(0).toUpperCase() + req.to.slice(1) + 'Points';
+
+            const currentFromBalance = (childUser[fromField] || 0) - (childUser[pendingFromField] || 0);
+            const currentToBalance = (childUser[toField] || 0) - (childUser[pendingToField] || 0);
+
+            enrichedReq.fromBalance = currentFromBalance;
+            enrichedReq.toBalance = currentToBalance;
+          }
+        } catch (balanceError) {
+          console.warn('Error fetching current balances for request:', req._id, balanceError.message);
+          // Keep original stored balances as fallback
+        }
+      }
+
+      return enrichedReq;
     }));
 
     // Calculate totals by status for the family
