@@ -270,8 +270,22 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
           );
           console.log(`DEBUG: ATOMIC - Reserved ${Math.abs(saved.amount)} points in ${saved.fromJar} jar for donation for user ${user.id}`);
         }
+      } else if (saved.type === 'parent-points-adjustment' && saved.fromJar) {
+        // Handle PARENT point deductions from jars (ATOMIC)
+        await atomicModifyPoints(
+          user._id,
+          user.familyId,
+          saved.fromJar,
+          saved.amount, // amount is already negative for deduction
+          {
+            description: saved.description || `Points deducted from ${saved.fromJar} jar`,
+            type: saved.type,
+            reference: saved._id
+          }
+        );
+        console.log(`DEBUG: ATOMIC - Deducted ${saved.amount} points from ${saved.fromJar} jar for user ${user.id}`);
       } else if (saved.toJar) {
-        // ALL point additions to jars (including parent-points-adjustment) (ATOMIC)
+        // ALL point additions to jars (ATOMIC)
         await atomicModifyPoints(
           user._id,
           user.familyId,
