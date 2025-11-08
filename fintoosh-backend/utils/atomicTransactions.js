@@ -262,8 +262,9 @@ async function atomicReleaseReservedPoints(userId, familyId, jar, amount, transa
  * @param {string} jar - Jar to modify
  * @param {number} amount - Amount to add (positive) or deduct (negative)
  * @param {Object} transactionData - Additional transaction data
+ * @param {boolean} createTransaction - Whether to create a transaction record (default: true)
  */
-async function atomicModifyPoints(userId, familyId, jar, amount, transactionData = {}) {
+async function atomicModifyPoints(userId, familyId, jar, amount, transactionData = {}, createTransaction = true) {
   const userObjectId = await resolveUserObjectId(userId);
 
   return executeFinancialTransaction(async (session) => {
@@ -282,20 +283,24 @@ async function atomicModifyPoints(userId, familyId, jar, amount, transactionData
       throw new Error('Failed to modify points');
     }
 
-    // Create transaction record atomically
-    const transaction = await Transaction.create([{
-      type: transactionData.type || (amount > 0 ? 'points-awarded' : 'points-deducted'),
-      description: transactionData.description || `${amount > 0 ? 'Awarded' : 'Deducted'} ${Math.abs(amount)} points to ${jar} jar`,
-      amount: amount,
-      [amount > 0 ? 'toJar' : 'fromJar']: jar,
-      user: userObjectId,
-      familyId: familyId,
-      reference: transactionData.reference // Only spread the reference field if present
-    }], { session });
+    let transaction = null;
+    if (createTransaction) {
+      // Create transaction record atomically
+      const transactionResult = await Transaction.create([{
+        type: transactionData.type || (amount > 0 ? 'points-awarded' : 'points-deducted'),
+        description: transactionData.description || `${amount > 0 ? 'Awarded' : 'Deducted'} ${Math.abs(amount)} points to ${jar} jar`,
+        amount: amount,
+        [amount > 0 ? 'toJar' : 'fromJar']: jar,
+        user: userObjectId,
+        familyId: familyId,
+        reference: transactionData.reference // Only spread the reference field if present
+      }], { session });
+      transaction = transactionResult[0];
+    }
 
     return {
       user: updatedUser,
-      transaction: transaction[0]
+      transaction: transaction
     };
   });
 }

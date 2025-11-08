@@ -286,6 +286,7 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
         console.log(`DEBUG: ATOMIC - Deducted ${saved.amount} points from ${saved.fromJar} jar for user ${user.id}`);
       } else if (saved.toJar) {
         // ALL point additions to jars (ATOMIC)
+        // Pass createTransaction: false since transaction is already created above
         await atomicModifyPoints(
           user._id,
           user.familyId,
@@ -295,7 +296,8 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
             description: saved.description || `Points added to ${saved.toJar} jar`,
             type: saved.type,
             reference: saved._id
-          }
+          },
+          false // Don't create duplicate transaction
         );
         console.log(`DEBUG: ATOMIC - Added ${saved.amount} points to ${saved.toJar} jar for user ${user.id}`);
       }
