@@ -419,47 +419,6 @@ export default function ParentsRequestsScreen() {
                 }
                 return null;
               })()}
-
-              {/* Quick Action Buttons - Only show for pending requests */}
-              {request.status === 'Pending' && (
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'center',
-                  marginTop: 12,
-                  paddingTop: 12,
-                  borderTopWidth: 1,
-                  borderTopColor: themeColors.border + '40'
-                }}>
-                  <TouchableOpacity
-                    style={[{
-                      backgroundColor: themeColors.success,
-                      paddingHorizontal: 16,
-                      paddingVertical: 8,
-                      borderRadius: 6,
-                      marginHorizontal: 4,
-                      minWidth: 80,
-                      alignItems: 'center'
-                    }]}
-                    onPress={() => setApprovalModal({ visible: true, request, approved: true, comment: '' })}
-                  >
-                    <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>✓ Approve</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[{
-                      backgroundColor: themeColors.error,
-                      paddingHorizontal: 16,
-                      paddingVertical: 8,
-                      borderRadius: 6,
-                      marginHorizontal: 4,
-                      minWidth: 80,
-                      alignItems: 'center'
-                    }]}
-                    onPress={() => setApprovalModal({ visible: true, request, approved: false, comment: '' })}
-                  >
-                    <Text style={{ color: themeColors.card, ...SEMANTIC_TYPOGRAPHY["type-body-small"] }}>✗ Deny</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
           )}
 
