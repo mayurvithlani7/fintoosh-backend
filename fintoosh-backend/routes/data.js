@@ -1743,19 +1743,17 @@ router.get('/requests', auth, requireParent, async (req, res) => {
         userName: usersById[req.childId] || 'Unknown User'
       };
 
-      // For move-points requests, fetch current balances
+      // For move-points requests, fetch current total balances
       if (req.type === 'move-points' || req.type === 'points-move') {
         try {
           const childUser = await User.findOne({ id: req.childId });
           if (childUser) {
-            // Calculate current available balances (total - pending)
+            // Use total balances (including pending points)
             const fromField = req.from + 'Points';
             const toField = req.to + 'Points';
-            const pendingFromField = 'pending' + req.from.charAt(0).toUpperCase() + req.from.slice(1) + 'Points';
-            const pendingToField = 'pending' + req.to.charAt(0).toUpperCase() + req.to.slice(1) + 'Points';
 
-            const currentFromBalance = (childUser[fromField] || 0) - (childUser[pendingFromField] || 0);
-            const currentToBalance = (childUser[toField] || 0) - (childUser[pendingToField] || 0);
+            const currentFromBalance = childUser[fromField] || 0;
+            const currentToBalance = childUser[toField] || 0;
 
             enrichedReq.fromBalance = currentFromBalance;
             enrichedReq.toBalance = currentToBalance;
