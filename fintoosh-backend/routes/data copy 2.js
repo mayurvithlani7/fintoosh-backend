@@ -2428,12 +2428,6 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
       console.log('DEBUG: Starting donation approval for approval:', approval._id);
       console.log('DEBUG: Donation details:', { from: approval.from, amount: approval.amount, cause: approval.cause });
 
-      if (pendingPoints < approval.amount) {
-        return res.status(400).json({
-          message: `Insufficient pending points for donation approval. Reserved: ${pendingPoints}, Required: ${approval.amount}. The donation reservation may have expired or been invalidated.`
-        });
-      }
-
       const user = await User.findOne({ id: approval.childId });
       console.log('DEBUG: Found user for donation:', user ? { id: user.id, _id: user._id } : 'USER NOT FOUND');
 
@@ -2454,55 +2448,61 @@ router.put('/requests/:requestId', auth, requireParent, async (req, res) => {
           sufficient: availablePoints >= approval.amount
         });
 
-    if (pendingPoints >= approval.amount) {
-      console.log('DEBUG: Sufficient points available, proceeding with donation');
+        // Verify that pending reservation exists for this donation
+        if (pendingPoints < approval.amount) {
+          return res.status(400).json({
+            message: `Insufficient pending points for donation approval. Reserved: ${pendingPoints}, Required: ${approval.amount}. The donation reservation may have expired or been invalidated.`
+          });
+        }
 
-      // Move points from source jar to donate jar
-      user[approval.from + 'Points'] -= approval.amount;
-      user.donatePoints = (user.donatePoints || 0) + approval.amount;
-      // Clear the pending reservation
-      user[pendingField] -= approval.amount;
+        console.log('DEBUG: Sufficient points reserved, proceeding with donation');
 
-      console.log('DEBUG: Updated user points:', {
-        fromJar: approval.from + 'Points',
-        newFromAmount: user[approval.from + 'Points'],
-        newDonateAmount: user.donatePoints,
-        pendingField,
-        newPendingAmount: user[pendingField]
-      });
+        // Move points from source jar to donate jar
+        user[approval.from + 'Points'] -= approval.amount;
+        user.donatePoints = (user.donatePoints || 0) + approval.amount;
+        // Clear the pending reservation
+        user[pendingField] -= approval.amount;
 
-      await user.save();
-      console.log('DEBUG: User saved successfully after points update');
+          console.log('DEBUG: Updated user points:', {
+            fromJar: approval.from + 'Points',
+            newFromAmount: user[approval.from + 'Points'],
+            newDonateAmount: user.donatePoints,
+            pendingField,
+            newPendingAmount: user[pendingField]
+          });
 
-      // Create transaction for donation
-      const txnData = {
-        type: 'donation-approved',
-        description: `Donation approved: ${approval.amount} points to ${approval.cause || 'charity'} from ${approval.from}`,
-        amount: -approval.amount,
-        user: user._id,
-        familyId: approval.familyId, // Explicitly set familyId
-        fromJar: approval.from,
-        toJar: 'donate',
-        date: new Date().toLocaleString(),
-      };
+          await user.save();
+          console.log('DEBUG: User saved successfully after points update');
 
-      console.log('DEBUG: Creating donation transaction with data:', JSON.stringify(txnData, null, 2));
+          // Create transaction for donation
+          const txnData = {
+            type: 'donation-approved',
+            description: `Donation approved: ${approval.amount} points to ${approval.cause || 'charity'} from ${approval.from}`,
+            amount: -approval.amount,
+            user: user._id,
+            familyId: approval.familyId, // Explicitly set familyId
+            fromJar: approval.from,
+            toJar: 'donate',
+            date: new Date().toLocaleString(),
+          };
 
-      const txn = new Transaction(txnData);
-      console.log('DEBUG: Transaction created, about to save...');
+          console.log('DEBUG: Creating donation transaction with data:', JSON.stringify(txnData, null, 2));
 
-      await txn.save();
-      console.log('DEBUG: Donation transaction saved successfully, _id:', txn._id);
+          const txn = new Transaction(txnData);
+          console.log('DEBUG: Transaction created, about to save...');
 
-      user.transactions = user.transactions || [];
-      user.transactions.unshift(txn._id);
-      await user.save();
-      console.log('DEBUG: User saved with transaction reference');
+          await txn.save();
+          console.log('DEBUG: Donation transaction saved successfully, _id:', txn._id);
 
-    } else {
-      console.log('DEBUG: Insufficient points for donation, returning error');
-      return res.status(400).json({ message: 'Not enough available points in selected jar for donation (some points may be pending for other requests).' });
-    }
+          user.transactions = user.transactions || [];
+          user.transactions.unshift(txn._id);
+          await user.save();
+          console.log('DEBUG: User saved with transaction reference');
+
+        } else {
+          console.log('DEBUG: Insufficient points for donation, returning error');
+          return res.status(400).json({ message: 'Not enough available points in selected jar for donation (some points may be pending for other requests).' });
+        }
       } else {
         console.log('DEBUG: Invalid donation setup:', {
           userExists: !!user,

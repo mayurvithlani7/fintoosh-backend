@@ -22,15 +22,19 @@ const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
       try {
         setIsRetrying(attempt > 0);
 
-        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/child-login`, {
+        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://fintoosh-backend.onrender.com'}/api/auth/child-login`;
+
+        const requestBody = JSON.stringify({
+          username: username.trim(),
+          pin: pin.trim(),
+        });
+
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            username: username.trim(),
-            pin: pin.trim(),
-          }),
+          body: requestBody,
         });
 
         let data;
@@ -145,6 +149,10 @@ const ChildLogin: React.FC<ChildLoginProps> = ({ onLoginSuccess, onBack }) => {
       // Handle custom server errors
       if (error instanceof Error && error.message.includes('Server temporarily unavailable')) {
         setStatusMessage(error.message);
+      } else if (error instanceof Error && error.message.includes('Network request failed')) {
+        // Check if this might be a server connectivity issue
+        console.warn('[CHILDLOGIN] Network request failed - possible server connectivity issue');
+        setStatusMessage('Unable to connect to server. Please check your internet connection and try again.');
       } else {
         setStatusMessage('Network error. Please try again.');
       }

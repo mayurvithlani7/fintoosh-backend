@@ -1,4 +1,34 @@
-const fetch = require('node-fetch');
+const https = require('https');
+
+function makeRequest(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode,
+          headers: res.headers,
+          data: data
+        });
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    if (options.body) {
+      req.write(options.body);
+    }
+
+    req.end();
+  });
+}
 
 async function testChildLogin() {
   const API_URL = 'https://fintoosh-backend.onrender.com';
@@ -18,7 +48,7 @@ async function testChildLogin() {
       pin: '[HIDDEN]'
     });
 
-    const response = await fetch(`${API_URL}/auth/child-login`, {
+    const response = await makeRequest(`${API_URL}/api/auth/child-login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -26,18 +56,17 @@ async function testChildLogin() {
       body: JSON.stringify(testCredentials),
     });
 
-    console.log('Response status:', response.status);
+    console.log('Response status:', response.statusCode);
     console.log('Response headers:', {
-      'content-type': response.headers.get('content-type'),
-      'content-length': response.headers.get('content-length')
+      'content-type': response.headers['content-type'],
+      'content-length': response.headers['content-length']
     });
 
-    const responseText = await response.text();
-    console.log('Response body length:', responseText.length);
-    console.log('Response body starts with:', responseText.substring(0, 100) + '...');
+    console.log('Response body length:', response.data.length);
+    console.log('Response body starts with:', response.data.substring(0, 100) + '...');
 
     // Check if response is HTML
-    if (responseText.trim().startsWith('<')) {
+    if (response.data.trim().startsWith('<')) {
       console.log('❌ ERROR: Server returned HTML instead of JSON!');
       console.log('This indicates a server error or misconfiguration.');
       return;
@@ -45,7 +74,7 @@ async function testChildLogin() {
 
     // Try to parse as JSON
     try {
-      const data = JSON.parse(responseText);
+      const data = JSON.parse(response.data);
       console.log('✅ SUCCESS: Valid JSON response');
       console.log('Response data:', JSON.stringify(data, null, 2));
     } catch (parseError) {
@@ -64,9 +93,8 @@ async function testHealth() {
 
   try {
     console.log('Testing health endpoint...');
-    const response = await fetch(`${API_URL}/api/health`);
-    const data = await response.json();
-    console.log('Health check result:', data);
+    const response = await makeRequest(`${API_URL}/api/health`);
+    console.log('Health check result:', JSON.parse(response.data));
   } catch (error) {
     console.error('Health check failed:', error.message);
   }
