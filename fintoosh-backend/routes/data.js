@@ -281,7 +281,8 @@ router.post('/transactions', auth, requireParent, sanitizeInput, validateFinanci
             description: saved.description || `Points deducted from ${saved.fromJar} jar`,
             type: saved.type,
             reference: saved._id
-          }
+          },
+          false // Don't create duplicate transaction
         );
         console.log(`DEBUG: ATOMIC - Deducted ${saved.amount} points from ${saved.fromJar} jar for user ${user.id}`);
       } else if (saved.toJar) {
