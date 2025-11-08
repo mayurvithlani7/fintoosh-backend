@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import HelpModal from '@/components/HelpModal';
-import { SEMANTIC_TYPOGRAPHY } from '@/constants/theme';
+import { SEMANTIC_TYPOGRAPHY, getContrastRatio } from '@/constants/theme';
 import { createTransaction, fetchFamilyChildren, fetchTransactions, fetchUser } from '@/utils/api';
 import { useCenteredMessage } from '@/utils/centeredMessageContext';
 import { useDataCache } from '@/utils/dataCacheContext';
@@ -43,11 +43,11 @@ export default function ParentsPointsScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const jarOptions = [
-    { label: 'Pocket Money', value: 'current' },
-    { label: 'Savings Pot', value: 'save' },
-    { label: 'Spending Pot', value: 'spend' },
-    { label: 'Help Others Pot', value: 'donate' },
-    { label: 'Grow Money Pot', value: 'invest' }
+    { label: 'Pocket Money', value: 'current', icon: '💰', color: themeColors.jarColors?.current || themeColors.primary },
+    { label: 'Savings Pot', value: 'save', icon: '🐷', color: themeColors.jarColors?.save || themeColors.success },
+    { label: 'Spending Pot', value: 'spend', icon: '🛒', color: themeColors.jarColors?.spend || themeColors.secondary },
+    { label: 'Help Others Pot', value: 'donate', icon: '🤲', color: themeColors.jarColors?.donate || themeColors.warning },
+    { label: 'Grow Money Pot', value: 'invest', icon: '📈', color: themeColors.jarColors?.invest || themeColors.accent }
   ];
 
   const selectedJarLabel = jarOptions.find(jar => jar.value === toJar)?.label || 'Select --';
@@ -497,94 +497,63 @@ export default function ParentsPointsScreen() {
             </TouchableOpacity>
           </View>
           <View style={styles.summaryGrid}>
-            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
-              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🤑 Pocket</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.primary }]}>
-                {(childData.currentPoints || 0) - (childData.pendingCurrentPoints || 0)}
-              </Text>
-              {(childData.pendingCurrentPoints || 0) > 0 && (
-                <View style={{
-                  backgroundColor: '#FFFFFF', // White background for contrast on dark jar backgrounds
-                  borderRadius: 4,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  marginTop: 2,
-                  borderWidth: 1,
-                  borderColor: themeColors.warning + '40'
-                }}>
-                  <Text style={{
-                    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
-                    color: themeColors.warning, // Dark orange text for contrast
-                    textAlign: 'center'
-                  }}>
-                    {childData.currentPoints} total, {childData.pendingCurrentPoints} pending
+            {jarOptions.map((jarOption, index) => {
+              const pointsField = `${jarOption.value}Points` as keyof typeof childData;
+              const pendingField = `pending${jarOption.value.charAt(0).toUpperCase() + jarOption.value.slice(1)}Points` as keyof typeof childData;
+              const availablePoints = (childData[pointsField] as number || 0) - (childData[pendingField] as number || 0);
+              const totalPoints = childData[pointsField] as number || 0;
+              const pendingPoints = childData[pendingField] as number || 0;
+
+              // Calculate optimal text color for contrast
+              const getOptimalTextColor = (backgroundColor: string): string => {
+                try {
+                  const whiteContrast = getContrastRatio(backgroundColor, '#FFFFFF');
+                  const darkContrast = getContrastRatio(backgroundColor, '#000000');
+                  return whiteContrast > darkContrast ? '#FFFFFF' : '#000000';
+                } catch (error) {
+                  return '#FFFFFF';
+                }
+              };
+
+              const textColor = getOptimalTextColor(jarOption.color);
+
+              return (
+                <View key={jarOption.value} style={[styles.summaryItem, {
+                  backgroundColor: jarOption.color,
+                  borderWidth: jarOption.value === 'current' ? 2 : 1,
+                  borderColor: jarOption.value === 'current' ? themeColors.primary : 'transparent'
+                }]}>
+                  <Text style={[styles.summaryLabel, { color: textColor }]}>
+                    {jarOption.icon} {jarOption.label.replace(' Pot', '').replace(' Money', '')}
                   </Text>
-                </View>
-              )}
-            </View>
-            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
-              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🐷 Savings</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.accent }]}>
-                {(childData.savePoints || 0) - (childData.pendingSavePoints || 0)}
-              </Text>
-              {(childData.pendingSavePoints || 0) > 0 && (
-                <View style={{
-                  backgroundColor: '#FFFFFF', // White background for contrast on dark jar backgrounds
-                  borderRadius: 4,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  marginTop: 2,
-                  borderWidth: 1,
-                  borderColor: themeColors.warning + '40'
-                }}>
-                  <Text style={{
-                    ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
-                    color: themeColors.warning, // Dark orange text for contrast
-                    textAlign: 'center'
-                  }}>
-                    {childData.savePoints} total, {childData.pendingSavePoints} pending
+                  <Text style={[styles.summaryValue, { color: textColor }]}>
+                    {availablePoints}
                   </Text>
+                  {pendingPoints > 0 && (
+                    <View style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 4,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      marginTop: 2,
+                      borderWidth: 1,
+                      borderColor: themeColors.warning + '40'
+                    }}>
+                      <Text style={{
+                        ...SEMANTIC_TYPOGRAPHY["type-caption-small"],
+                        color: themeColors.warning,
+                        textAlign: 'center'
+                      }}>
+                        {totalPoints} total, {pendingPoints} pending
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
-              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🛍️ Spending</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.secondary }]}>
-                {(childData.spendPoints || 0) - (childData.pendingSpendPoints || 0)}
-              </Text>
-              {(childData.pendingSpendPoints || 0) > 0 && (
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
-                  {childData.spendPoints} total, {childData.pendingSpendPoints} pending
-                </Text>
-              )}
-            </View>
-            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
-              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>❤️ Help Others</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.warning }]}>
-                {(childData.donatePoints || 0) - (childData.pendingDonatePoints || 0)}
-              </Text>
-              {(childData.pendingDonatePoints || 0) > 0 && (
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
-                  {childData.donatePoints} total, {childData.pendingDonatePoints} pending
-                </Text>
-              )}
-            </View>
-            <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 1, borderColor: themeColors.border }]}>
-              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>📈 Grow Money</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.success }]}>
-                {(childData.investPoints || 0) - (childData.pendingInvestPoints || 0)}
-              </Text>
-              {(childData.pendingInvestPoints || 0) > 0 && (
-                <Text style={{ ...SEMANTIC_TYPOGRAPHY["type-caption-small"], color: themeColors.warning, textAlign: 'center', marginTop: 2 }}>
-                  {childData.investPoints} total, {childData.pendingInvestPoints} pending
-                </Text>
-              )}
-            </View>
+              );
+            })}
             <View style={[styles.summaryItem, { backgroundColor: themeColors.surface, borderWidth: 2, borderColor: themeColors.primary }]}>
-              <Text style={[styles.summaryLabel, { color: themeColors.text
-  }]}>🏆 Total</Text>
-              <Text style={[styles.summaryValue, { color: themeColors.primary
-  }]}>
+              <Text style={[styles.summaryLabel, { color: themeColors.text }]}>🏆 Total</Text>
+              <Text style={[styles.summaryValue, { color: themeColors.primary }]}>
                 {(childData.currentPoints || 0) + (childData.savePoints || 0) + (childData.spendPoints || 0) + (childData.donatePoints || 0) + (childData.investPoints || 0)}
               </Text>
             </View>
@@ -603,7 +572,7 @@ export default function ParentsPointsScreen() {
               accessibilityHint="Enter the number of points to add or subtract from child's account"
               style={[styles.input, { minHeight: 40 }]}
               placeholder="e.g. 10"
-              placeholderTextColor={themeColors.textSecondary}
+              placeholderTextColor={themeColors.textSecondary || themeColors.text}
               keyboardType="numeric"
               value={amount}
               onChangeText={setAmount}
